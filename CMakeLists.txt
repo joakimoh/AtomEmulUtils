@@ -1,15 +1,59 @@
-﻿# CMakeList.txt : Top-level CMake project file, do global configuration
-# and include sub-projects here.
+﻿# CMakeList.txt : CMake project for Assemblerutils
 #
 cmake_minimum_required (VERSION 3.8)
 
-# Enable Hot Reload for MSVC compilers if supported.
-if (POLICY CMP0141)
-  cmake_policy(SET CMP0141 NEW)
-  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
-endif()
+set(CMAKE_CXX_STANDARD 17)
 
-project ("AssemblerUtils")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
-# Include sub-projects.
-add_subdirectory ("AssemblerUtils")
+project ("AssemblerUtils" VERSION 2.2)
+
+# Create sub driectory for shared library
+add_subdirectory(shared)
+
+#
+include_directories(
+    "${PROJECT_BINARY_DIR}"
+	"${CMAKE_SOURCE_DIR}/shared"	
+	${ZLIB_INCLUDE_DIRS}
+)
+
+add_executable ( 
+	Dis  "Dis/Dis.cpp"
+	"Dis/ArgParser.h"  "Dis/ArgParser.cpp"
+)
+target_link_libraries(Dis PUBLIC shared )
+
+# Installation of Codec6502
+install(TARGETS Dis DESTINATION bin)
+install(
+	FILES "Dis/Dis.h"
+    DESTINATION include/Dis
+)
+
+
+
+# Installer (will be created if cpack --config CPackConfig.cmake + cpack --config CPackSourceConfig.cmake are run from command line)
+set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}")
+include(InstallRequiredSystemLibraries)
+set(CPACK_PACKAGE_DIRECTORY "distribution")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
+set(CPACK_PACKAGE_NAME "AssemblerUtils")
+set(CPACK_PACKAGE_VERSION_MAJOR "${AtomTapeUtils_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${AtomTapeUtils_VERSION_MINOR}")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Utility to disassemble 6502 machine code")
+set(CPACK_PACKAGE_DESCRIPTION
+"This is a utility to disasemble 6502 machine code")
+IF (WIN32)
+  set(CPACK_GENERATOR WIX)
+ELSEIF(UNIX)
+  set(CPACK_GENERATOR "DEB")
+  set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+  #set(CPACK_DEBIAN_PACKAGE_NAME "AssemblerUtils-dev")
+  #set(CPACK_DEBIAN_PACKAGE_VERSION 1.0.0)
+  #set(CPACK_DEBIAN_PACKAGE_RELEASE 1)
+  set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Joakim Ohlsson")
+ENDIF()
+set(CPACK_SOURCE_GENERATOR "TGZ")
+include(CPack)
+
