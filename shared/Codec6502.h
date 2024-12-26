@@ -73,6 +73,8 @@ public:
 		InstructionType		type;
 	} InstructionInfo;
 
+	const InstructionInfo invalidInstr { NON, UD, Jam };
+
 	vector<InstructionInfo> instructions
 	{
 		//		Instructions sorted by opcode
@@ -111,6 +113,8 @@ private:
 public:
 
 	Codec6502();
+
+	bool decodeInstruction(uint8_t opcode, InstructionInfo& instr);
 
 	bool decode(int adr, string srcFileName, ostream &fout);
 

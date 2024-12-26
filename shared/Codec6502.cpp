@@ -70,6 +70,17 @@ bool Codec6502::readAbsAdr(ifstream& fin, uint16_t& adr)
 	return true;
 }
 
+bool Codec6502::decodeInstruction(uint8_t opcode, InstructionInfo &instr)
+{
+	instr = invalidInstr;
+	if (mOpcodeDict.find(opcode) != mOpcodeDict.end()) {
+		instr = mOpcodeDict[opcode];
+		return true;
+	}
+
+	return false;
+}
+
 bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 {
 
@@ -175,12 +186,12 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 						fout << instr2str[instr.instruction] << " ($" << word2str(op_a) << ")";
 						break;
 					}
-					case iX:		// OPC ($12),X
+					case iX:		// OPC ($12,X)
 					{
 						if (!readZPAdr(fin, op_a))
 							break;
 						fout << byte2str(op_a) << "    ";
-						fout << instr2str[instr.instruction] << " ($" << byte2str(op_a) << "),X";
+						fout << instr2str[instr.instruction] << " ($" << byte2str(op_a) << ";X)";
 						break;
 					}
 					case iY:		// OPC ($12),Y

@@ -21,13 +21,26 @@ include_directories(
 add_executable ( 
 	Dis  "Dis/Dis.cpp"
 	"Dis/ArgParser.h"  "Dis/ArgParser.cpp"
-)
+ "shared/AtomMemMap.h")
 target_link_libraries(Dis PUBLIC shared )
 
-# Installation of Codec6502
+add_executable ( 
+	Sim  "Sim/Sim.cpp"
+	"Sim/ArgParser.h"  "Sim/ArgParser.cpp"
+ "shared/AtomMemMap.h")
+target_link_libraries(Sim PUBLIC shared )
+
+# Installation of Disassembler
 install(TARGETS Dis DESTINATION bin)
 install(
 	FILES "Dis/Dis.h"
+    DESTINATION include/Dis
+)
+
+# Installation of Emulator
+install(TARGETS Sim DESTINATION bin)
+install(
+	FILES "Sim/Sim.h"
     DESTINATION include/Dis
 )
 
