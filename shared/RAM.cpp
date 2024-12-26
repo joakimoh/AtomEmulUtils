@@ -12,7 +12,7 @@ RAM::RAM(uint16_t adr, uint16_t sz) : Device(RAM_DEV, adr, sz)
 	// Initialise RAM with zeros
 	mMem.assign(mDevSz, 0);
 }
-}
+
 
 bool RAM::read(uint16_t adr, uint8_t& data)
 {

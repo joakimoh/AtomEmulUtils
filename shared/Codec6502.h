@@ -14,7 +14,7 @@ public:
 
 	enum Instruction {
 
-		// Documented instructions
+		// Valid instructions
 		ADC = 0x00, AND = 0x01, ASL = 0x02, BCC = 0x03, BCS = 0x04, BEQ = 0x05, BIT = 0x06, BMI = 0x07,
 		BNE = 0x08, BPL = 0x09, BRK = 0x0a, BVC = 0x0b, BVS = 0x0c, CLC = 0x0d, CLD = 0x0e, CLI = 0x0f,
 		CLV = 0x10, CMP = 0x11, CPX = 0x12, CPY = 0x13, DEC = 0x14, DEX = 0x15, DEY = 0x16, EOR = 0x17,
@@ -23,92 +23,217 @@ public:
 		ROR = 0x28, RTI = 0x29, RTS = 0x2a, SBC = 0x2b, SEC = 0x2c, SED = 0x2d, SEI = 0x2e, STA = 0x2f,
 		STX = 0x30, STY = 0x31, TAX = 0x32, TAY = 0x33, TSX = 0x34, TXA = 0x35, TXS = 0x36, TYA = 0x37,
 
-		// Undocumented instructions (not guaranteed to work)
-		ALR = 0x38, ANC = 0x39, ANE = 0x3a, ARR = 0x3b, DCP = 0x3c, ISC = 0x3d, LAS = 0x3e, LAX = 0x3f,
-		LXA = 0x40, RLA = 0x41, RRA = 0x42, SAX = 0x43, SBX = 0x44, SHA = 0x45, SHX = 0x46, SHY = 0x47,
-		SLO = 0x48, SRE = 0x49, TAS = 0x4a, USBC= 0x4b,
-
 		// Used when a non-existing instruction is encountered 
-		NON = 0x4c
+		UNDEFINED_INSTRUCTION = 0x38
 	};
 
 	const vector<string> instr2str {
 
-		// Documented instructions
+		// Valid instructions
 		"ADC", "AND", "ASL", "BCC", "BCS", "BEQ", "BIT", "BMI", "BNE", "BPL", "BRK", "BVC", "BVS", "CLC",
 		"CLD", "CLI", "CLV", "CMP", "CPX", "CPY", "DEC", "DEX", "DEY", "EOR", "INC", "INX", "INY", "JMP",
 		"JSR", "LDA", "LDX", "LDY", "LSR", "NOP", "ORA", "PHA", "PHP", "PLA", "PLP", "ROL", "ROR", "RTI",
 		"RTS", "SBC", "SEC", "SED", "SEI", "STA", "STX", "STY", "TAX", "TAY", "TSX", "TXA", "TXS", "TYA",
-
-		// Undocumented instructions (not guaranteed to work)
-		"ALR", "ANC", "ANE", "ARR", "DCP", "ISC", "LAS", "LAX", "LXA", "RLA", "RRA", "SAX", "SBX",
-		"SHA", "SHX", "SHY", "SLO", "SRE", "TAS", "USBC",
 
 		// Used when a non-existing instruction is encountered 
 		"???"
 	};
 
 	enum Mode {
-		ac,		// OPC A
-		ip,		// OPC
-		re,		// OPC <branch target>
-		im,		// OPC #$12
-		zp,		// OPC $12
-		zX,		// OPC $12,X
-		zY,		// OPC $12,Y
-		ab,		// OPC $1234
-		aX,		// OPC $1234,X
-		aY,		// OPC $1234,Y
-		id,		// OPC ($1234)
-		iX,		// OPC ($12),X
-		iY,		// OPC ($12),Y
-		UD		// Undefined
+		Accumulator,	// OPC A
+		Implied,		// OPC
+		Relative,		// OPC <branch target>	-- add one cycle if page boundary crosseds
+		Immediate,		// OPC #$12
+		ZeroPage,		// OPC $12
+		ZeroPage_X,		// OPC $12,X
+		ZeroPage_Y,		// OPC $12,Y			-- add one cycle if page boundary crossed for some instructions
+		Absolute,		// OPC $1234
+		Absolute_X,		// OPC $1234,X			-- add one cycle if page boundary crossed for some instructions
+		Absolute_Y,		// OPC $1234,Y			-- add one cycle if page boundary crossed for some instructions
+		Indirect,		// OPC ($1234)
+		Indirect_X,		// OPC ($12),X
+		Indirect_Y,		// OPC ($12),Y			-- add one cycle if page boundary crossed for some instructions
+		UndefinedMode	// Undefined
 	};
-
-	typedef enum InstructionType { Doc, Ndc, Jam };
 
 	typedef struct InstructionInfo_struct {
+		uint8_t				opcode;
 		Instruction			instruction;
 		Mode				mode;
-		InstructionType		type;
+		int					cycles;
+		bool				addCycleAtPageBoundary;
 	} InstructionInfo;
 
-	const InstructionInfo invalidInstr { NON, UD, Jam };
+	const InstructionInfo invalidInstr { 0xff, UNDEFINED_INSTRUCTION, UndefinedMode, false };
 
-	vector<InstructionInfo> instructions
-	{
-		//		Instructions sorted by opcode
-		//		0				1				2				3				4				5				6				7				8				9				a				b				c				d				e				f
-		/* 0 */ {BRK, ip, Doc}, {ORA, iX, Doc}, {NON, UD, Jam}, {SLO, iX, Ndc}, {NOP, zp, Ndc}, {ORA, zp, Doc}, {ASL, zp, Doc}, {SLO, zp, Ndc}, {PHP, ip, Doc}, {ORA, im, Doc}, {ASL, ac, Doc}, {ANC, im, Ndc}, {NOP, ab, Ndc}, {ORA, ab, Doc}, {ASL, ab, Doc}, {SLO, ab, Ndc},
-		/* 1 */ {BPL, re, Doc}, {ORA, iY, Doc}, {NON, UD, Jam}, {SLO, iY, Ndc}, {NOP, zX, Ndc}, {ORA, zX, Doc}, {ASL, zX, Doc}, {SLO, zX, Ndc}, {CLC, ip, Doc}, {ORA, aY, Doc}, {NOP, ip, Ndc}, {SLO, aY, Ndc}, {NOP, aX, Ndc}, {ORA, aX, Doc}, {ASL, aX, Doc}, {SLO, aX, Ndc},
-		/* 2 */ {JSR, ab, Doc}, {AND, iX, Doc}, {NON, UD, Jam}, {RLA, iX, Ndc}, {BIT, zp, Doc}, {AND, zp, Doc}, {ROL, zp, Doc}, {RLA, zp, Ndc}, {PLP, ip, Doc}, {AND, im, Doc}, {ROL, ac, Doc}, {ANC, im, Ndc}, {BIT, ab, Doc}, {AND, ab, Doc}, {ROL, ab, Doc}, {RLA, ab, Ndc },
-		/* 3 */ {BMI, re, Doc}, {AND, iY, Doc}, {NON, UD, Jam}, {RLA, iY, Ndc}, {NOP, zX, Ndc}, {AND, zX, Doc}, {ROL, zX, Doc}, {RLA, zX, Ndc}, {SEC, ip, Doc}, {AND, aY, Doc}, {NOP, ip, Ndc}, {RLA, aY, Ndc}, {NOP, aX, Ndc}, {AND, aX, Doc}, {ROL, aX, Doc}, {RLA, aX, Ndc },
-		/* 4 */ {RTI, ip, Doc}, {EOR, iX, Doc}, {NON, UD, Jam}, {SRE, iX, Ndc}, {NOP, zp, Ndc}, {EOR, zp, Doc}, {LSR, zp, Doc}, {SRE, zp, Ndc}, {PHA, ip, Doc}, {EOR, im, Doc}, {LSR, ac, Doc}, {ALR, im, Ndc}, {JMP, ab, Doc}, {EOR, ab, Doc}, {LSR, ab, Doc}, {SRE, ab, Ndc },
-		/* 5 */ {BVC, re, Doc}, {EOR, iY, Doc}, {NON, UD, Jam}, {SRE, iY, Ndc}, {NOP, zX, Ndc}, {EOR, zX, Doc}, {LSR, zX, Doc}, {SRE, zX, Ndc}, {CLI, ip, Doc}, {EOR, aY, Doc}, {NOP, ip, Ndc}, {SRE, aY, Ndc}, {NOP, aX, Ndc}, {EOR, aX, Doc}, {LSR, aX, Doc}, {SRE, aX, Ndc },
-		/* 6 */ {RTS, ip, Doc}, {ADC, iX, Doc}, {NON, UD, Jam}, {RRA, iX, Ndc}, {NOP, zp, Ndc}, {ADC, zp, Doc}, {ROR, zp, Doc}, {RRA, zp, Ndc}, {PLA, ip, Doc}, {ADC, im, Doc}, {ROR, ac, Doc}, {ARR, im, Ndc}, {JMP, id, Doc}, {ADC, ab, Doc}, {ROR, ab, Doc}, {RRA, ab, Ndc },
-		/* 7 */ {BVS, re, Doc}, {ADC, iY, Doc}, {NON, UD, Jam}, {RRA, iY, Ndc}, {NOP, zX, Ndc}, {ADC, zX, Doc}, {ROR, zX, Doc}, {RRA, zX, Ndc}, {SEI, ip, Doc}, {ADC, aY, Doc}, {NOP, ip, Ndc}, {RRA, aY, Ndc}, {NOP, aX, Doc}, {ADC, aX, Doc}, {ROR, aX, Doc}, {RRA, aX, Ndc },
-		/* 8 */ {NOP, im, Ndc}, {STA, iX, Doc}, {NOP, im, Doc}, {SAX, iX, Ndc}, {STY, zp, Doc}, {STA, zp, Doc}, {STX, zp, Doc}, {SAX, zp, Ndc}, {DEY, ip, Doc}, {NOP, im, Ndc}, {TXA, ip, Doc}, {ANE, im, Ndc}, {STY, ab, Doc}, {STA, ab, Doc}, {STX, ab, Doc}, {SAX, ab, Ndc },
-		/* 9 */ {BCC, re, Doc}, {STA, iY, Doc}, {NON, UD, Jam}, {SHA, iY, Ndc}, {STY, zX, Doc}, {STA, zX, Doc}, {STX, zY, Doc}, {SAX, zY, Ndc}, {TYA, ip, Doc}, {STA, aY, Doc}, {TXS, ip, Doc}, {TAS, aY, Ndc}, {SHY, aX, Ndc}, {STA, aX, Doc}, {SHX, aY, Ndc}, {SHA, aY, Ndc },
-		/* a */ {LDY, im, Doc}, {LDA, iX, Doc}, {LDX, im, Doc}, {LAX, iX, Ndc}, {LDY, zp, Doc}, {LDA, zp, Doc}, {LDX, zp, Doc}, {LAX, zp, Ndc}, {TAY, ip, Doc}, {LDA, im, Doc}, {TAX, ip, Doc}, {LXA, im, Ndc}, {LDY, ab, Doc}, {LDA, ab, Doc}, {LDX, ab, Doc}, {LAX, ab, Ndc },
-		/* b */ {BCS, re, Doc}, {LDA, iY, Doc}, {NON, UD, Jam}, {LAX, iY, Ndc}, {LDY, zX, Doc}, {LDA, zX, Doc}, {LDX, zY, Doc}, {LAX, zY, Ndc}, {CLV, ip, Doc}, {LDA, aY, Doc}, {TSX, ip, Doc}, {LAS, aY, Ndc}, {LDY, aX, Doc}, {LDA, aX, Doc}, {LDX, aY, Doc}, {LAX, aY, Ndc },
-		/* c */ {CPY, im, Doc}, {CMP, iX, Doc}, {NOP, im, Ndc}, {DCP, iX, Ndc}, {CPY, zp, Doc}, {CMP, zp, Doc}, {DEC, zp, Doc}, {DCP, zp, Ndc}, {INY, ip, Doc}, {CMP, im, Doc}, {DEX, ip, Doc}, {SBX, im, Ndc}, {CPY, ab, Doc}, {CMP, ab, Doc}, {DEC, ab, Doc}, {DCP, ab, Ndc },
-		/* d */ {BNE, re, Doc}, {CMP, iY, Doc}, {NON, UD, Jam}, {DCP, iY, Ndc}, {NOP, zX, Ndc}, {CMP, zX, Doc}, {DEC, zX, Doc}, {DCP, zX, Ndc}, {CLD, ip, Doc}, {CMP, aY, Doc}, {NOP, ip, Ndc}, {DCP, aY, Ndc}, {NOP, aX, Ndc}, {CMP, aX, Doc}, {DEC, aX, Doc}, {DCP, aX, Ndc },
-		/* e */ {CPX, im, Doc}, {SBC, iX, Doc}, {NOP, im, Ndc}, {ISC, iX, Ndc}, {CPX, zp, Doc}, {SBC, zp, Doc}, {INC, zp, Doc}, {ISC, zp, Ndc}, {INX, ip, Doc}, {SBC, im, Doc}, {NOP, ip, Doc}, {USBC,im, Ndc}, {CPX, ab, Doc}, {SBC, ab, Doc}, {INC, ab, Doc}, {ISC, ab, Ndc },
-		/* f */ {BEQ, re, Doc}, {SBC, iY, Doc}, {NON, UD, Doc}, {ISC, iY, Doc}, {NOP, zX, Ndc}, {SBC, zX, Doc}, {INC, zX, Doc}, {ISC, zX, Doc}, {SED, ip, Doc}, {SBC, aY, Doc}, {NOP, ip, Ndc}, {ISC, aY, Ndc}, {NOP, aX, Doc}, {SBC, aX, Doc}, {INC, aX, Doc}, {ISC, aX, Ndc }
+	vector<InstructionInfo> instructions {
+		{0x69, ADC, 					Immediate,		2, false},
+		{0x65, ADC, 					ZeroPage,		3, false},
+		{0x75, ADC, 					ZeroPage_X,		4, false},
+		{0x6d, ADC, 					Absolute,		4, false},
+		{0x7d, ADC, 					Absolute_X,		4, true },
+		{0x79, ADC, 					Absolute_Y,		4, true },
+		{0x61, ADC, 					Indirect_X,		6, false},
+		{0x71, ADC, 					Indirect_Y,		5, true },
+		{0x29, AND, 					Immediate,		2, false },
+		{0x25, AND, 					ZeroPage,		3, false },
+		{0x35, AND, 					ZeroPage_X,		4, false },
+		{0x2d, AND, 					Absolute,		4, false },
+		{0x3d, AND, 					Absolute_X,		4, true },
+		{0x39, AND, 					Absolute_Y,		4, true },
+		{0x21, AND, 					Indirect_X,		6, false},
+		{0x31, AND, 					Indirect_Y,		6, true },
+		{0x0a, ASL, 					Accumulator,	2, false},
+		{0x06, ASL, 					ZeroPage,		5, false},
+		{0x16, ASL, 					ZeroPage_X,		6, false},
+		{0x0e, ASL, 					Absolute,		6, false},
+		{0x1e, ASL, 					Absolute_X,		7, false},
+		{0x90, BCC, 					Relative,		2, true },
+		{0xb0, BCS, 					Relative,		2, true },
+		{0xf0, BEQ, 					Relative,		2, true },
+		{0x24, BIT, 					ZeroPage,		3, false},
+		{0x2c, BIT, 					Absolute,		4, false},
+		{0x30, BMI, 					Relative,		2, true },
+		{0xd0, BNE, 					Relative,		2, true },
+		{0x10, BPL, 					Relative,		2, true },
+		{0x00, BRK,						Implied,		7, false},
+		{0x50, BVC, 					Relative,		2, true },
+		{0x70, BVS, 					Relative,		2, true },
+		{0x18, CLC, 					Implied,		2, false},
+		{0xd8, CLD, 					Implied,		2, false},
+		{0x58, CLI, 					Implied,		2, false},
+		{0xb8, CLV, 					Implied,		2, false},
+		{0xc9, CMP, 					Immediate,		2, false},
+		{0xc5, CMP, 					ZeroPage,		3, false},
+		{0xd5, CMP, 					ZeroPage_X,		4, false},
+		{0xcd, CMP, 					Absolute,		4, false},
+		{0xdd, CMP, 					Absolute_X,		4, true },
+		{0xd9, CMP, 					Absolute_Y,		4, true },
+		{0xc1, CMP, 					Indirect_X,		6, false},
+		{0xd1, CMP, 					Indirect_Y,		5, true },
+		{0xe0, CPX, 					Immediate,		2, false},
+		{0xe4, CPX, 					ZeroPage,		3, false},
+		{0xec, CPX, 					Absolute,		4, false},
+		{0xc0, CPY, 					Immediate,		2, false},
+		{0xc4, CPY, 					ZeroPage,		3, false},
+		{0xcc, CPY, 					Absolute,		4, false},
+		{0xc6, DEC, 					ZeroPage,		5, false},
+		{0xd6, DEC, 					ZeroPage_X,		6, false},
+		{0xce, DEC, 					Absolute,		6, false},
+		{0xde, DEC, 					Absolute_X,		7, false},
+		{0xca, DEX, 					Implied,		2, false},
+		{0x88, DEY, 					Implied,		2, false},
+		{0x49, EOR, 					Immediate,		2, false},
+		{0x45, EOR, 					ZeroPage,		3, false},
+		{0x55, EOR, 					ZeroPage_X,		4, false},
+		{0x4d, EOR, 					Absolute,		4, false},
+		{0x5d, EOR, 					Absolute_X,		4, true },
+		{0x59, EOR, 					Absolute_Y,		4, true },
+		{0x41, EOR, 					Indirect_X,		6, false},
+		{0x51, EOR, 					Indirect_Y,		6, true },
+		{0xe6, INC, 					ZeroPage,		5, false},
+		{0xf6, INC, 					ZeroPage_X,		6, false},
+		{0xee, INC, 					Absolute,		6, false},
+		{0xfe, INC, 					Absolute_X,		7, false},
+		{0xe8, INX, 					Implied,		2, false},
+		{0xc8, INY, 					Implied,		2, false},
+		{0x4c, JMP, 					Absolute,		3, false},
+		{0x6c, JMP,						Indirect,		5, false},
+		{0x20, JSR, 					Absolute,		6, false},
+		{0xa9, LDA, 					Immediate,		2, false},
+		{0xa5, LDA, 					ZeroPage,		3, false},
+		{0xb5, LDA, 					ZeroPage_X,		4, false},
+		{0xad, LDA, 					Absolute,		4, false},
+		{0xbd, LDA, 					Absolute_X,		4, true },
+		{0xb9, LDA, 					Absolute_Y,		4, true },
+		{0xa1, LDA, 					Indirect_X,		6, false},
+		{0xb1, LDA, 					Indirect_Y,		5, true },
+		{0xa2, LDX, 					Immediate,		2, false},
+		{0xa6, LDX, 					ZeroPage,		3, false},
+		{0xb6, LDX, 					Absolute,		4, false},
+		{0xae, LDX, 					Absolute_Y,		4, false},
+		{0xbe, LDX, 					ZeroPage_Y,		4, true },
+		{0xa0, LDY, 					Immediate,		2, false},
+		{0xa4, LDY, 					ZeroPage,		3, false},
+		{0xb4, LDY, 					ZeroPage_X,		4, false},
+		{0xac, LDY, 					Absolute,		4, false},
+		{0xbc, LDY, 					Absolute_X,		4, true },
+		{0x4a, LSR, 					Accumulator,	2, false},
+		{0x46, LSR, 					ZeroPage,		5, false},
+		{0x56, LSR, 					ZeroPage_X,		6, false},
+		{0x4e, LSR, 					Absolute,		6, false},
+		{0x5e, LSR, 					Absolute_X,		7, false},
+		{0xea, NOP, 					Implied,		2, false},
+		{0x09, ORA, 					Immediate,		2, false},
+		{0x05, ORA, 					ZeroPage,		3, false},
+		{0x15, ORA, 					ZeroPage_X,		4, false},
+		{0x0d, ORA, 					Absolute,		4, false },
+		{0x1d, ORA, 					Absolute_X,		4, true },
+		{0x19, ORA, 					Absolute_Y,		4, true },
+		{0x01, ORA, 					Indirect_X,		6, false},
+		{0x11, ORA, 					Indirect_Y,		5, true },
+		{0x48, PHA, 					Implied,		3, false},
+		{0x08, PHP, 					Implied,		3, false},
+		{0x68, PLA, 					Implied,		4, false},
+		{0x28, PLP, 					Implied,		4, false},
+		{0x2a, ROL, 					Accumulator,	2, false},
+		{0x26, ROL, 					ZeroPage,		5, false},
+		{0x36, ROL, 					ZeroPage_X,		6, false},
+		{0x2e, ROL, 					Absolute,		6, false},
+		{0x3e, ROL, 					Absolute_X,		7, false},
+		{0x6a, ROR, 					Accumulator,	2, false},
+		{0x66, ROR, 					ZeroPage,		5, false},
+		{0x76, ROR, 					ZeroPage_X,		6, false},
+		{0x6e, ROR, 					Absolute,		6, false},
+		{0x7e, ROR, 					Absolute_X,		7, false},
+		{0x40, RTI, 					Implied,		6, false},
+		{0x60, RTS, 					Implied,		6, false},
+		{0xe9, SBC, 					Immediate,		2, false},
+		{0xe5, SBC, 					ZeroPage,		3, false},
+		{0xf5, SBC, 					ZeroPage_X,		4, false},
+		{0xed, SBC, 					Absolute,		4, false},
+		{0xfd, SBC, 					Absolute_X,		4, true },
+		{0xf9, SBC, 					Absolute_Y,		4, true },
+		{0xe1, SBC, 					Indirect_X,		6, false},
+		{0xf1, SBC, 					Indirect_Y,		5, true },
+		{0x38, SEC, 					Implied,		2, false},
+		{0xf8, SED, 					Implied,		2, false},
+		{0x78, SEI, 					Implied,		2, false},
+		{0x85, STA, 					ZeroPage,		3, false},
+		{0x95, STA, 					ZeroPage_X,		4, false},
+		{0x8d, STA, 					Absolute,		4, false},
+		{0x9d, STA, 					Absolute_X,		5, false},
+		{0x99, STA, 					Absolute_Y,		5, false},
+		{0x81, STA, 					Indirect_X,		6, false},
+		{0x91, STA, 					Indirect_Y,		6, false},
+		{0x86, STX, 					ZeroPage,		3, false},
+		{0x96, STX, 					ZeroPage_Y,		4, false},
+		{0x8e, STX, 					Absolute,		4, false},
+		{0x84, STY, 					ZeroPage,		3, false},
+		{0x94, STY, 					ZeroPage_X,		4, false},
+		{0x8c, STY, 					Absolute,		4, false},
+		{0xaa, TAX, 					Implied,		2, false},
+		{0xa8, TAY, 					Implied,		2, false},
+		{0xba, TSX, 					Implied,		2, false},
+		{0x8a, TXA, 					Implied,		2, false},
+		{0x9a, TXS, 					Implied,		2, false},
+		{0x98, TYA, 					Implied,		2, false}
 	};
+
+	
 
 private:
 
 	map<uint8_t, InstructionInfo> mOpcodeDict;
 
-	string byte2str(uint8_t byte);
+	string byte2str(uint16_t byte);
 	string word2strB(uint16_t word);
 	string word2str(uint16_t word);
 	bool readZPAdr(ifstream& fin, uint16_t &adr);
 	bool readRelAdr(ifstream& fin, int8_t& relAdr, uint16_t &adr);
 	bool readAbsAdr(ifstream& fin, uint16_t &adr);
 
-	uint16_t mPC = 0x0;
+	uint16_t mProgramCounter = 0x0;
 
 public:
 

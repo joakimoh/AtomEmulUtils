@@ -16,7 +16,6 @@ using namespace std;
 int main(int argc, const char* argv[])
 {
 
-
     ArgParser arg_parser = ArgParser(argc, argv);
 
     if (arg_parser.failed())
@@ -24,7 +23,7 @@ int main(int argc, const char* argv[])
 
     vector<Device*> devices;
 
-    Device::crMemMap(AtomMemMap, devices);
+    Device::crMemMap(AtomMemMap, devices, arg_parser.romPath);
 
     // Create processor object
     P6502 processor(arg_parser.cMHz, devices);

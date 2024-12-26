@@ -16,7 +16,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "Disassembles 6502 machine code\n";
 	cout << "Usage:\t" << name << " <src file> -a <adr> -o <dst file> [-v]\n\n";
 	cout << "<src  file>:\n\tFile with 6502 machine code.\n\n";
-	cout << "<adr>:\n\tStart address. If not specified, zero is assumed\n\n";
+	cout << "<adr>:\n\tStart address in hex. If not specified, zero is assumed\n\n";
 	cout << "-v:\n\tVerbose output\n\n";
 	cout << "-o <dst file>:\n\tFile to put disassembled code in. If not specified output goes to screen.\n\n";
 }
@@ -38,26 +38,26 @@ ArgParser::ArgParser(int argc, const char* argv[])
 	}
 	srcFileName = argv[1];
 
-	int ac = 2;
+	int Accumulator = 2;
 	bool genFiles = false;
-	while (ac < argc) {
-		if (strcmp(argv[ac], "-o") == 0) {
-			dstFileName = argv[ac + 1];
-			ac++;
+	while (Accumulator < argc) {
+		if (strcmp(argv[Accumulator], "-o") == 0) {
+			dstFileName = argv[Accumulator + 1];
+			Accumulator++;
 		}
-		else if (strcmp(argv[ac], "-a") == 0) {
-			startAdr = stoi(argv[ac + 1]);
-			ac++;
+		else if (strcmp(argv[Accumulator], "-a") == 0) {
+			startAdr = stoi(argv[Accumulator + 1], 0, 16);
+			Accumulator++;
 		}
-		else if (strcmp(argv[ac], "-v") == 0) {
+		else if (strcmp(argv[Accumulator], "-v") == 0) {
 			verbose = true;
 		}
 		else {
-			cout << "Unknown option " << argv[ac] << "\n";
+			cout << "Unknown option " << argv[Accumulator] << "\n";
 			printUsage(argv[0]);
 			return;
 		}
-		ac++;
+		Accumulator++;
 	}
 
 	if (argc < 2) {

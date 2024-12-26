@@ -1,7 +1,9 @@
 add_library(
 	shared
-	"Codec6502.cpp" "P6502.cpp"
-	"Codec6502.h" "P6502.h" "VIA6522.h" "VIA6522.cpp" "VDU6847.h" "VDU6847.cpp" "PIA8255.h" "PIA8255.cpp" "ROM.h" "ROM.cpp" "RAM.cpp" "RAM.h" "Device.h" "Device.cpp")
+	"Codec6502.cpp" "P6502.cpp" "VIA6522.cpp" "VDU6847.cpp" "PIA8255.cpp" "ROM.cpp" "RAM.cpp" "Device.cpp"
+	"Codec6502.h" "P6502.h" "VIA6522.h"
+	 "VDU6847.h"  "PIA8255.h"  "ROM.h"  "RAM.h" "Device.h"
+)
 
 # Locate zlib
 find_package(ZLIB REQUIRED)

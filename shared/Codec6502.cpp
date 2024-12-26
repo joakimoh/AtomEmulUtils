@@ -13,17 +13,16 @@ using namespace std;
 Codec6502::Codec6502() {
 
 	// Initialise opcode dictionary
-	for (int opcode = 0; opcode < instructions.size(); opcode++) {
-		//cout << "OPCODE 0x" << hex << (int) opcode << "\n";
-		InstructionInfo instr = instructions[(uint8_t) opcode];
-		mOpcodeDict[(uint8_t) opcode] = instr;
+	for (int i = 0; i < instructions.size(); i++) {
+		InstructionInfo instr = instructions[(uint8_t) i];
+		mOpcodeDict[(uint8_t)instr.opcode] = instr;
 	}
 }
 
-string Codec6502::byte2str(uint8_t byte)
+string Codec6502::byte2str(uint16_t byte)
 {
 	stringstream s;
-	s << hex << setfill('0') << right << setw(2) << (int) byte;
+	s << hex << setfill('0') << right << setw(2) << (int) (byte & 0xff);
 	return s.str();
 }
 
@@ -44,7 +43,7 @@ bool Codec6502::readZPAdr(ifstream& fin, uint16_t& adr)
 	uint8_t zp_a;
 	fin.read((char*)&zp_a, sizeof(zp_a));
 	adr = (uint16_t) zp_a;
-	mPC++;
+	mProgramCounter++;
 
 	return true;
 }
@@ -52,8 +51,8 @@ bool Codec6502::readZPAdr(ifstream& fin, uint16_t& adr)
 bool Codec6502::readRelAdr(ifstream& fin, int8_t &relAdr, uint16_t& adr)
 {
 	fin.read((char*)&relAdr, sizeof(relAdr));
-	mPC++;
-	adr = (mPC + relAdr + 1) & 0xffff;
+	mProgramCounter++;
+	adr = (mProgramCounter + relAdr + 1) & 0xffff;
 
 	return true;
 }
@@ -62,9 +61,9 @@ bool Codec6502::readAbsAdr(ifstream& fin, uint16_t& adr)
 {
 	uint8_t a_L, a_H;
 	fin.read((char*)&a_L, sizeof(a_L));
-	mPC++;
+	mProgramCounter++;
 	fin.read((char*)&a_H, sizeof(a_H));
-	mPC++;
+	mProgramCounter++;
 	adr = a_H * 256 + a_L;
 
 	return true;
@@ -91,115 +90,113 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 		return (-1);
 	}
 
-	mPC = adr;
+	mProgramCounter = adr;
 
 	fin.seekg(0);
 	uint8_t opcode;
 	while (!fin.fail()) {
 		fin.read((char*)&opcode, sizeof(opcode));
-		fout << word2str(mPC) << " ";
+		fout << word2str(mProgramCounter) << " ";
 		fout << byte2str(opcode) << " ";
 		if (mOpcodeDict.find(opcode) != mOpcodeDict.end()) {
 			InstructionInfo instr = mOpcodeDict[opcode];
 			uint16_t op_a = 0x0;
-			if (instr.type != InstructionType::Doc)
-				instr.mode = Mode::UD;
 			switch (instr.mode) {
-					case ac:		// OPC A
+					case Accumulator:		// OPC mAccumulator
 						fout << "      ";
-						fout << instr2str[instr.instruction] << " A";
+						fout << instr2str[instr.instruction] << " mAccumulator";
 						break;
-					case ip:		// 
+					case Implied:		// 
 						fout << "      ";
 						fout << instr2str[instr.instruction] << "     ";
 						break;
-					case re:		// OPC <branch target>
+					case Relative:		// OPC <branch target>
 					{
 						int8_t r_a;
 						if (!readRelAdr(fin, r_a, op_a))
 							break;
 						fout << byte2str(r_a + 0x100) << "    ";
-						fout << instr2str[instr.instruction] << " $" << word2str(op_a);
+						fout << instr2str[instr.instruction] << " &" << word2str(op_a);
 						break;
 					}
-					case im:		// OPC #$12
+					case Immediate:		// OPC #&12
 					{
 						if (!readZPAdr(fin, op_a))
 							break;
 						fout << byte2str(op_a) << "    ";
-						fout << instr2str[instr.instruction] << " #$" << byte2str(op_a);
+						fout << instr2str[instr.instruction] << " #&" << byte2str(op_a);
 						break;
 					}
-					case zp:		// OPC $12
+					case ZeroPage:		// OPC &12
 					{
 						if (!readZPAdr(fin, op_a))
 							break;
 						fout << byte2str(op_a) << "    ";
-						fout << instr2str[instr.instruction] << " $" << byte2str(op_a);
+						fout << instr2str[instr.instruction] << " &" << byte2str(op_a);
 						break;
 					}
-					case zX:		// OPC $12,X
+					case ZeroPage_X:		// OPC &12,X
 					{
 						if (!readZPAdr(fin, op_a))
 							break;
 						fout << byte2str(op_a) << "    ";
-						fout << instr2str[instr.instruction] << " $" << byte2str(op_a) << ",X";
+						fout << instr2str[instr.instruction] << " &" << byte2str(op_a) << ",X";
 						break;
 					}
-					case zY:		// OPC $12,Y
+					case ZeroPage_Y:		// OPC &12,Y
 					{
 						if (!readZPAdr(fin, op_a))
 							break;
 						fout << byte2str(op_a) << "    ";
-						fout << instr2str[instr.instruction] << " $" << byte2str(op_a) << ",Y";
+						fout << instr2str[instr.instruction] << " &" << byte2str(op_a) << ",Y";
 						break;
 					}
-					case ab:		// OPC $1234
+					case Absolute:		// OPC &1234
 					{
 						if (!readAbsAdr(fin, op_a))
 							break;
 						fout << word2strB(op_a) << " ";
-						fout << instr2str[instr.instruction] << " $" << word2str(op_a);
+						fout << instr2str[instr.instruction] << " &" << word2str(op_a);
 						break;
 					}
-					case aX:		// OPC $1234,X
+					case Absolute_X:		// OPC &1234,X
 					{
 						if (!readAbsAdr(fin, op_a))
 							break;
 						fout << word2strB(op_a) << " ";
-						fout << instr2str[instr.instruction] << " $" << word2str(op_a) << ",X";
+						fout << instr2str[instr.instruction] << " &" << word2str(op_a) << ",X";
 						break;
 					}
-					case aY:		// OPC $1234,Y
+					case Absolute_Y:		// OPC &1234,Y
 					{
 						if (!readAbsAdr(fin, op_a))
 							break;
 						fout << word2strB(op_a) << " ";
-						fout << instr2str[instr.instruction] << " $" << word2str(op_a) << ",Y";
+						fout << instr2str[instr.instruction] << " &" << word2str(op_a) << ",Y";
 						break;
 					}
-					case id:		// OPC ($1234)
+					case Indirect:		// OPC (&1234)
 					{
 						if (!readAbsAdr(fin, op_a))
 							break;
 						fout << word2strB(op_a) << " ";
-						fout << instr2str[instr.instruction] << " ($" << word2str(op_a) << ")";
+						fout << instr2str[instr.instruction] << " (&" << word2str(op_a) << ")";
 						break;
 					}
-					case iX:		// OPC ($12,X)
+					case Indirect_X:		// OPC (&12,X)
 					{
 						if (!readZPAdr(fin, op_a))
 							break;
 						fout << byte2str(op_a) << "    ";
-						fout << instr2str[instr.instruction] << " ($" << byte2str(op_a) << ";X)";
+						fout << instr2str[instr.instruction] << " (&" << byte2str(op_a) << ";X)";
 						break;
 					}
-					case iY:		// OPC ($12),Y
+					case Indirect_Y:		// OPC (&12),Y
 					{
 						if (!readZPAdr(fin, op_a))
 							break;
 						fout << byte2str(op_a) << "    ";
-						fout << instr2str[instr.instruction] << " ($" << byte2str(op_a) << "),Y";
+						fout << instr2str[instr.instruction] << " (&" << byte2str(op_a) << "),Y";
 						break;
 					}
 					default:
@@ -208,11 +205,11 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 						break;
 			}
 			fout << "\n";
-			mPC++;
 		}
 		else {
-			fout << "Undefined opcode 0x" << hex << opcode << "\n";
+			fout << "      ???\n";
 		}
+		mProgramCounter++;
 	}
 	fin.close();
 

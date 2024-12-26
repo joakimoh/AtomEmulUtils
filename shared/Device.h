@@ -36,8 +36,8 @@ public:
 	bool selected(uint16_t adr);
 	bool validAdr(uint16_t adr);
 
-	static bool crMemMap(vector< DeviceAllocation> devAllocation, vector<Device*> &devices);
-	static bool freeMemMap(vector<Device*>& devices)
+	static bool crMemMap(vector< DeviceAllocation> devAllocation, vector<Device*> &devices, string ROMDirPath);
+	static bool freeMemMap(vector<Device*>& devices);
 
 };
 
