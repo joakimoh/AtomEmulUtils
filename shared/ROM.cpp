@@ -2,10 +2,11 @@
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
 using namespace std;
 
-ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent) : Device(ROM_DEV, adr, sz)
+ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent, bool verbose) : Device(ROM_DEV, adr, sz, verbose)
 {
 
 	ifstream fin(binaryContent, ios::in | ios::binary | ios::ate);
@@ -15,15 +16,11 @@ ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent) : Device(ROM_DEV, adr,
 		throw runtime_error("couldn't open ROM file");
 	}
 
-	// Resize the ROM vector
-	mMem.resize((size_t) mDevSz);
-
-	// Initialise ROM with zeros in case the ROM file is smaller than specified ROM size
-	mMem.assign(sz, 0);
 
 	// Get file size (should normally equal ROM size)
 	fin.seekg(0, ios::end);
 	streamsize file_sz = fin.tellg();
+	fin.seekg(0);
 
 	uint16_t upper_sz = sz;
 	if (file_sz < (streamsize) sz) {
@@ -41,15 +38,31 @@ ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent) : Device(ROM_DEV, adr,
 	else
 		mDevSz = (uint16_t) file_sz;
 
+	// Resize the ROM vector
+	mMem.resize((size_t)mDevSz);
+
+	// Initialise ROM with zeros in case the ROM file is smaller than specified ROM size
+	mMem.assign(sz, 0);
+
 	// Read ROM content
 	fin.read((char*)&mMem[0], upper_sz);
+
+	if (mVerbose) {
+		filesystem::path path = binaryContent;
+		string file_name = path.filename().string();
+		cout << "ROM at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
+			" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes) ['" <<
+			file_name << "']\n";
+	}
 
 }
 
 bool ROM::read(uint16_t adr, uint8_t& data)
 {
-	if (!validAdr(adr))
+	if (!validAdr(adr)) {
+		cout << "Invalid read address 0x" << hex << adr << " for ROM at 0x" << mDevAdr << " to " << mDevAdr + mDevSz - 1 << "\n";
 		return false;
+	}
 
 	data = mMem[adr - mDevAdr];
 

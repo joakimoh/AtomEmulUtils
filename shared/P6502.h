@@ -69,7 +69,7 @@ private:
 	uint8_t getCarryFlag() { return (mStatusRegister >> 0) & 0x1; }
 	void setCarryFlag(uint8_t v) { mStatusRegister = mStatusRegister | (v!=0?1:0); }
 
-	bool getOperand(Codec6502::InstructionInfo instr, uint16_t& op_adr, uint8_t &op_val, bool& op_mem);
+	bool getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint16_t calc_op_adr, uint8_t& read_val, bool& op_mem);
 
 
 	void tick(int cycles = 1);
@@ -80,11 +80,15 @@ private:
 	void setNZFlags(uint8_t val);
 	void setNZCFlags(uint16_t val);
 
-	bool executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint8_t op_val, bool op_mem);
+	bool executeInstr(Codec6502::InstructionInfo instr, uint16_t operand, uint16_t calc_op_adr, uint8_t read_val, bool op_mem);
+
+	string getState();
+
+	bool mVerbose = false;
 
 public:
 
-	P6502(double clockSpeed, vector<Device*> &devices);
+	P6502(double clockSpeed, vector<Device*> &devices, bool verbose = false);
 
 	void run();
 

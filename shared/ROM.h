@@ -9,14 +9,14 @@
 
 using namespace std;
 
-class ROM : Device {
+class ROM : public Device {
 
 private:
 
 public:
 
 
-	ROM(uint16_t adr, uint16_t sz, string binaryContent);
+	ROM(uint16_t adr, uint16_t sz, string binaryContent, bool verbose = false);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

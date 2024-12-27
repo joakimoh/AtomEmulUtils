@@ -1,9 +1,9 @@
 #include "RAM.h"
 #include <stdexcept>
 #include <iostream>
-#include <fstream>
+#include <filesystem>
 
-RAM::RAM(uint16_t adr, uint16_t sz) : Device(RAM_DEV, adr, sz)
+RAM::RAM(uint16_t adr, uint16_t sz, bool verbose) : Device(RAM_DEV, adr, sz, verbose)
 {
 
 	// Resize the RAM vector
@@ -11,6 +11,10 @@ RAM::RAM(uint16_t adr, uint16_t sz) : Device(RAM_DEV, adr, sz)
 
 	// Initialise RAM with zeros
 	mMem.assign(mDevSz, 0);
+
+	if (mVerbose)
+		cout << "RAM at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
+		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
 }
 
 

@@ -4,14 +4,14 @@
 #include <cstdint>
 #include "Device.h"
 
-class VDU6847 : Device {
+class VDU6847 : public Device {
 
 private:
 	
 
 public:
 
-	VDU6847(uint16_t adr);
+	VDU6847(uint16_t adr, bool verbose = false);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

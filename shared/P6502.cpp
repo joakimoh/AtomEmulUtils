@@ -3,10 +3,14 @@
 #include <chrono>
 #include <thread>
 #include <iostream>
+#include <sstream>
+#include <filesystem>
+#include <bitset>
 
-P6502::P6502(double clockSpeed, vector<Device*>& devices) : mDevices(devices)
+P6502::P6502(double clockSpeed, vector<Device*>& devices, bool verbose) : mDevices(devices), mVerbose(verbose)
 {
 	cPeriod = (int) round(1000 / clockSpeed);
+	reset();
 }
 
 // Execution method
@@ -32,25 +36,36 @@ void P6502::run()
 			cont = false;
 			std::cout << "Failed to read instruction!\n";
 		}
+		uint16_t opcode_PC = mProgramCounter;
+		mProgramCounter++;
 
 		// Decode the opcode
 		Codec6502::InstructionInfo instr;
 		if (!mCodec.decodeInstruction(opcode, instr)) {
 			cont = false;
-			std::cout << "Invalid instruction 0x" << hex << opcode << " encountered at address 0x" << hex << mProgramCounter << "!\n";
+			std::cout << "Invalid instruction 0x" << hex << (int) opcode << " encountered at address 0x" << hex << mProgramCounter << "!\n";
 		}
 
 		// Get the operand
-		uint16_t op_adr;
-		uint8_t op_val;
+		uint16_t operand = 0x0;
+		uint16_t calc_op_adr = 0x0;
+		uint8_t read_val = 0x0;
 		bool op_mem;
-		if (!getOperand(instr, op_adr, op_val, op_mem)) {
-
+		if (!getOperand(instr, operand, calc_op_adr, read_val, op_mem)) {
+			cont = false;
+			std::cout << "Failed to get operand for instruction!\n";
 		}
 
 		// Execute the instruction
-		if (!executeInstr(instr, op_adr, op_val, op_mem)) {
-			
+		if (!executeInstr(instr, operand, calc_op_adr, read_val, op_mem)) {
+			cont = false;
+			std::cout << "Failed to execute instruction!\n";
+		}
+
+		if (mVerbose && cont) {
+			string instr_s = mCodec.decode(opcode_PC, opcode, operand);
+			cout << setfill(' ') << setw(30) << left << instr_s << right <<
+				" " << getState() << "\n";
 		}
 
 		// Increase time by the no of clock cycles specified for the instruction and mode.
@@ -59,7 +74,7 @@ void P6502::run()
 	}
 }
 
-bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint8_t op_val, bool op_mem)
+bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t operand, uint16_t calc_op_adr, uint8_t read_val, bool op_mem)
 {
 	uint16_t val_16;
 	uint8_t val_8;
@@ -72,13 +87,13 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 		if (getDecimalFlag()) {
 			// Convert values to 2-complement numbers before addition
 			uint8_t A_2c = (mAccumulator / 16) * 10 + mAccumulator % 16;
-			uint8_t op_2c = (op_val / 16) * 10 + op_val % 16;
+			uint8_t op_2c = (read_val / 16) * 10 + read_val % 16;
 			uint16_t val_16_2c = (int8_t) A_2c + (int8_t)op_2c + (int8_t) getCarryFlag();
 			setNZCVFlags(val_16_2c);
 			mAccumulator = (val_16_2c % 100) / 10 * 16 + (val_16_2c % 100) % 10;
 		}
 		else {
-			val_16 = (int8_t)mAccumulator + (int8_t)op_val + (int8_t)getCarryFlag(); // Add as 2-complement numbers to secure sign-extension
+			val_16 = (int8_t)mAccumulator + (int8_t)read_val + (int8_t)getCarryFlag(); // Add as 2-complement numbers to secure sign-extension
 			mAccumulator = (uint8_t)(val_16 & 0xf);
 			setNZCVFlags(val_16);
 		}
@@ -88,7 +103,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::AND:
 		// AND Memory with Accumulator
 	{
-		mAccumulator = mAccumulator & op_val;
+		mAccumulator = mAccumulator & read_val;
 		setNZFlags(mAccumulator);
 		break;
 	}
@@ -96,9 +111,9 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::ASL:
 		// Shift Left One Bit (Memory or Accumulator)
 	{
-		val_16 = (op_val << 1) & 0x1fe;
+		val_16 = (read_val << 1) & 0x1fe;
 		if (op_mem) {
-			if (!write(op_adr, val_16 & 0xff)) {
+			if (!write(calc_op_adr, val_16 & 0xff)) {
 				return false;
 			}
 		}
@@ -112,7 +127,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 		// Branch on Carry Clear
 	{
 		if (!getCarryFlag())
-			mProgramCounter = (mProgramCounter + op_val) & 0xffff;
+			mProgramCounter = (mProgramCounter + read_val) & 0xffff;
 		break;
 	}
 
@@ -120,7 +135,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 		// Branch on Carry Set
 	{
 		if (getCarryFlag())
-			mProgramCounter = (mProgramCounter + op_val) & 0xffff;
+			mProgramCounter = (mProgramCounter + read_val) & 0xffff;
 		break;
 	}
 
@@ -128,7 +143,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 		// Branch on Result Zero
 	{
 		if (!getZeroFlag())
-			mProgramCounter = (mProgramCounter + op_val) & 0xffff;
+			mProgramCounter = (mProgramCounter + read_val) & 0xffff;
 		break;
 	}
 
@@ -136,10 +151,10 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	{
 		// Test Bits in Memory with Accumulator
 		{
-			val_8 = mAccumulator & op_val;
+			val_8 = mAccumulator & read_val;
 			setZeroFlag(val_8 == 0 ? 1 : 0);
-			setCarryFlag((op_val & 0x80) ? 1 : 0);
-			setOverFlowFlag((op_val & 0x40) ? 1 : 0);
+			setCarryFlag((read_val & 0x80) ? 1 : 0);
+			setOverFlowFlag((read_val & 0x40) ? 1 : 0);
 			break;
 		}
 	}
@@ -148,7 +163,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 		// Branch on Result Minus
 	{
 		if (getNegativeFlag())
-			mProgramCounter = (mProgramCounter + op_val) & 0xffff;
+			mProgramCounter = (mProgramCounter + read_val) & 0xffff;
 		break;
 	}
 
@@ -156,7 +171,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 		// Branch on Result not Zero
 	{
 		if (!getZeroFlag())
-			mProgramCounter = (mProgramCounter + op_val) & 0xffff;
+			mProgramCounter = (mProgramCounter + read_val) & 0xffff;
 		break;
 	}
 
@@ -164,7 +179,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 		// Branch on Result Plus
 	{
 		if (!getNegativeFlag())
-			mProgramCounter = (mProgramCounter + op_val) & 0xffff;
+			mProgramCounter = (mProgramCounter + read_val) & 0xffff;
 		break;
 	}
 
@@ -190,7 +205,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 		// Branch on Overflow Clear
 	{
 		if (!getOverFlowFlag())
-			mProgramCounter = (mProgramCounter + op_val) & 0xffff;
+			mProgramCounter = (mProgramCounter + read_val) & 0xffff;
 		break;
 	}
 
@@ -198,7 +213,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 		// Branch on Overflow Set
 	{
 		if (getOverFlowFlag())
-			mProgramCounter = (mProgramCounter + op_val) & 0xffff;
+			mProgramCounter = (mProgramCounter + read_val) & 0xffff;
 		break;
 	}
 
@@ -234,7 +249,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 		// Compare Memory with Accumulator
 	{
 		
-		val_16 = mAccumulator - op_val;
+		val_16 = mAccumulator - read_val;
 		setNZCFlags(val_16);
 		break;
 	}
@@ -243,7 +258,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 		// Compare Memory and Index X
 	{
 		
-		val_16 = mRegisterX - op_val;
+		val_16 = mRegisterX - read_val;
 		setNZCFlags(val_16);
 		break;
 	}
@@ -251,7 +266,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::CPY:
 		// Compare Memory and Index Y
 	{
-		val_16 = mRegisterY - op_val;
+		val_16 = mRegisterY - read_val;
 		setNZCFlags(val_16);
 		break;
 	}
@@ -259,8 +274,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::DEC:
 		// Decrement Memory by One
 	{
-		val_8 = op_val - 1;
-		if (!write(op_adr, val_8)) {
+		val_8 = read_val - 1;
+		if (!write(calc_op_adr, val_8)) {
 			return false;
 		}
 		setNZFlags(val_8);
@@ -286,7 +301,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::EOR:
 		// Exclusive-OR Memory with Accumulator
 	{
-		mAccumulator = mAccumulator ^ op_val;
+		mAccumulator = mAccumulator ^ read_val;
 		setNZFlags(mAccumulator);
 		break;
 	}
@@ -294,8 +309,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::INC:
 		// Increment Memory by One
 	{
-		val_8 = op_val + 1;
-		if (!write(op_adr, val_8)) {
+		val_8 = read_val + 1;
+		if (!write(calc_op_adr, val_8)) {
 			return false;
 		}
 		setNZFlags(val_8);
@@ -321,7 +336,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::JMP:
 		// Jump to New Location
 	{
-		mProgramCounter = op_adr;
+		mProgramCounter = calc_op_adr;
 		break;
 	}
 
@@ -330,14 +345,14 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	{
 		write(0x100 + (uint16_t) mStackPointer--, mProgramCounter % 256);
 		write(0x100 + (uint16_t)mStackPointer--, mProgramCounter / 256);
-		mProgramCounter = op_adr;
+		mProgramCounter = calc_op_adr;
 		break;
 	}
 
 	case Codec6502::Instruction::LDA:
 		// Load Accumulator with Memory
 	{
-		mAccumulator = op_val;
+		mAccumulator = read_val;
 		setNZFlags(mAccumulator);
 		break;
 	}
@@ -345,7 +360,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::LDX:
 		// Load X with Memory
 	{
-		mRegisterX = op_val;
+		mRegisterX = read_val;
 		setNZFlags(mRegisterX);
 		break;
 	}
@@ -353,7 +368,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::LDY:
 		// Load Y with Memory
 	{
-		mRegisterY = op_val;
+		mRegisterY = read_val;
 		setNZFlags(mRegisterY);
 		break;
 	}
@@ -361,10 +376,10 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::LSR:
 		// Shift One Bit Right (Memory or Accumulator)
 	{
-		setCarryFlag(op_val & 0x1);
-		val_8 = (op_val >> 1) & 0xff;
+		setCarryFlag(read_val & 0x1);
+		val_8 = (read_val >> 1) & 0xff;
 		if (op_mem) {
-			if (!write(op_adr, val_8)) {
+			if (!write(calc_op_adr, val_8)) {
 				return false;
 			}
 		}
@@ -381,7 +396,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::ORA:
 		// OR Memory with Accumulator
 	{
-		mAccumulator = mAccumulator | op_val;
+		mAccumulator = mAccumulator | read_val;
 		setNZFlags(mAccumulator);
 		break;
 	}
@@ -415,10 +430,10 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::ROL:
 		// Rotate One Bit Left (Memory or Accumulator): C <- [76543210] <- C
 	{
-		setCarryFlag(op_val & 0x80);
-		val_8 = (op_val << 1) | getCarryFlag();
+		setCarryFlag(read_val & 0x80);
+		val_8 = (read_val << 1) | getCarryFlag();
 		if (op_mem) {
-			if (!write(op_adr, val_8)) {
+			if (!write(calc_op_adr, val_8)) {
 				return false;
 			}
 		}
@@ -431,10 +446,10 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::ROR:
 		// Rotate One Bit Right (Memory or Accumulator): C -> [76543210] -> C
 	{
-		setCarryFlag(op_val & 0x1);
-		val_8 = ((op_val >> 1) & 0x3f) | (getCarryFlag() << 7);
+		setCarryFlag(read_val & 0x1);
+		val_8 = ((read_val >> 1) & 0x3f) | (getCarryFlag() << 7);
 		if (op_mem) {
-			if (!write(op_adr, val_8)) {
+			if (!write(calc_op_adr, val_8)) {
 				return false;
 			}
 		}
@@ -475,13 +490,13 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 			if (getDecimalFlag()) {
 				// Convert values to 2-complement numbers before addition
 				uint8_t A_2c = (mAccumulator / 16) * 10 + mAccumulator % 16;
-				uint8_t op_2c = (op_val / 16) * 10 + op_val % 16;
+				uint8_t op_2c = (read_val / 16) * 10 + read_val % 16;
 				uint16_t val_16_2c = (int8_t) A_2c - (int8_t) op_2c - (int8_t) getCarryFlag();
 				setNZCVFlags(val_16_2c);
 				mAccumulator = (val_16_2c % 100) / 10 * 16 + (val_16_2c % 100) % 10;
 			}
 			else {
-				val_16 = (int8_t)mAccumulator - (int8_t)op_val - (int8_t)getCarryFlag();// Subtract as 2-complement numbers to secure sign-extension
+				val_16 = (int8_t)mAccumulator - (int8_t)read_val - (int8_t)getCarryFlag();// Subtract as 2-complement numbers to secure sign-extension
 				mAccumulator = (uint8_t)(val_16 & 0xff);
 				setNZCVFlags(val_16);
 			}
@@ -512,21 +527,21 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 	case Codec6502::Instruction::STA:
 		// Store Accumulator in Memory: A -> M
 	{
-		write(op_adr, mAccumulator);
+		write(calc_op_adr, mAccumulator);
 		break;
 	}
 
 	case Codec6502::Instruction::STX:
 		// Store Index X in Memory
 	{
-		write(op_adr, mRegisterX);
+		write(calc_op_adr, mRegisterX);
 		break;
 	}
 
 	case Codec6502::Instruction::STY:
 		// Store Index Y in Memory
 	{
-		write(op_adr, mRegisterY);
+		write(calc_op_adr, mRegisterY);
 		break;
 	}
 
@@ -589,12 +604,14 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t op_adr, uint
 //
 bool P6502::reset()
 {
+	if (mVerbose)
+		cout << "RESET\n";
 
 	mStackPointer = 0xff;
 
 	// Fetch RESET vector
 	uint8_t adr_L, adr_H;
-	if (!read(0xffc, adr_L) || !read(0xffd, adr_H))
+	if (!read(0xfffc, adr_L) || !read(0xfffd, adr_H))
 		return false;
 
 	mProgramCounter = adr_H * 256 + adr_L;
@@ -610,11 +627,14 @@ bool P6502::reset()
 //
 bool P6502::read(uint16_t adr, uint8_t &data)
 {
-
+	
 	for (int i = 0; i < mDevices.size(); i++) {
 		Device* dev = mDevices[i];
 		if (dev->selected(adr)) {
-			return dev->read(adr, data);
+			bool success = dev->read(adr, data);
+			if (mVerbose)
+				cout << "READ 0x" << hex << adr << " => " << (int)data << "\n";
+			return success;
 		}
 	}
 
@@ -647,14 +667,15 @@ void P6502::stop()
 	mMutex.unlock();
 }
 
-bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8_t &op_val, bool &op_mem)
+bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint16_t calc_op_adr, uint8_t& read_val, bool& op_mem)
 {
-	op_adr = 0x0;
-	op_val = 0x0;
+	operand = 0x0;
+	calc_op_adr = 0x0;
+	read_val = 0x0;
 	op_mem = false;
 	switch (instr.mode) {
 	case Codec6502::Mode::Accumulator:		// OPC mAccumulator
-		op_val = mAccumulator;
+		read_val = mAccumulator;
 		break;
 
 	case Codec6502::Mode::Implied:		// implicit (no operand)
@@ -666,10 +687,11 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 		if (!read(mProgramCounter, rel_a))
 			return false;
 		mProgramCounter++;
-		op_val = rel_a;
+		operand = rel_a;
+		calc_op_adr = (rel_a + mProgramCounter) & 0xffff;
 
 		// Add one cycle if branch to other page
-		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(mProgramCounter, op_val))
+		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(mProgramCounter, calc_op_adr))
 			tick();
 
 		break;
@@ -677,9 +699,10 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 
 	case Codec6502::Mode::Immediate:		// OPC #$12
 	{
-
-		if (!read(mProgramCounter, op_val))
+		uint8_t op8;
+		if (!read(mProgramCounter, op8))
 			return false;
+		operand = op8;
 		mProgramCounter++;
 
 		break;
@@ -690,13 +713,14 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 		op_mem = true;
 
 		uint8_t zp_a;
-		if (!read(mProgramCounter+1, zp_a))
+		if (!read(mProgramCounter, zp_a))
 			return false;
+		operand = zp_a;
+		calc_op_adr = zp_a;
 		mProgramCounter++;
 
-		if (!read((uint16_t) zp_a, op_val))
+		if (!read((uint16_t) zp_a, read_val))
 			return false;
-		op_adr = zp_a;
 
 		break;
 	}
@@ -706,16 +730,18 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 		op_mem = true;
 
 		uint8_t zp_a;
-		if (!read(mProgramCounter+1, zp_a))
+		if (!read(mProgramCounter, zp_a))
 			return false;
+		operand = zp_a;
 		mProgramCounter++;
 
 		uint8_t data;
 		if (!read((uint16_t)zp_a, data))
 			return false;
 
-		op_adr = (uint16_t)zp_a + mRegisterX;
-		if (!read(op_adr, op_val))
+		operand = zp_a;
+		read_val = (uint16_t)zp_a + mRegisterX;
+		if (!read(operand, read_val))
 			return false;
 
 		break;
@@ -726,8 +752,9 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 		op_mem = true;
 
 		uint8_t zp_a;
-		if (!read(mProgramCounter+1, zp_a))
+		if (!read(mProgramCounter, zp_a))
 			return false;
+		operand = zp_a;
 		mProgramCounter++;
 
 		uint8_t data;
@@ -735,14 +762,14 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 			return false;
 
 		uint16_t mem_a = (uint16_t)zp_a;
-		uint16_t op_adr = mem_a + mRegisterY;
+		uint16_t operand = mem_a + mRegisterY;
 
-		if (!read(op_adr, op_val))
+		if (!read(operand, read_val))
 			return false;
 
 
 		// Add one cycle if access on other page
-		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed((uint16_t)zp_a, op_adr))
+		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed((uint16_t)zp_a, operand))
 			tick();
 
 		break;
@@ -752,7 +779,6 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 	{
 		op_mem = true;
 
-		mProgramCounter++;
 		uint8_t a_L, a_H;
 		if (!read(mProgramCounter, a_L))
 			return false;
@@ -761,8 +787,9 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 			return false;
 		mProgramCounter++;
 
-		op_adr = (uint16_t)a_H * 256 + a_L;
-		if (!read(op_adr, op_val))
+		operand = (uint16_t)a_H * 256 + a_L;
+		calc_op_adr = operand;
+		if (!read(operand, read_val))
 			return false;
 
 		break;
@@ -773,7 +800,6 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 	{
 		op_mem = true;
 
-		mProgramCounter++;
 		uint8_t a_L, a_H;
 		if (!read(mProgramCounter, a_L))
 			return false;
@@ -782,14 +808,14 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 			return false;
 		mProgramCounter++;
 
-		uint16_t mem_a = (uint16_t)a_H * 256 + a_L;
-		op_adr = mem_a + mRegisterX;
-		if (!read(op_adr, op_val))
+		operand = (uint16_t)a_H * 256 + a_L;
+		calc_op_adr = operand + mRegisterX;
+		if (!read(operand, read_val))
 			return false;
 
 
 		// Add one cycle if page boundary crossed
-		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(mem_a, op_adr))
+		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(calc_op_adr, operand))
 			tick();
 
 		break;
@@ -799,7 +825,6 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 	{
 		op_mem = true;
 
-		mProgramCounter++;
 		uint8_t a_L, a_H;
 		if (!read(mProgramCounter, a_L))
 			return false;
@@ -808,13 +833,13 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 			return false;
 		mProgramCounter++;
 
-		uint16_t mem_a = (uint16_t)a_H * 256 + a_L;
-		op_adr = mem_a + mRegisterY;
-		if (!read(op_adr, op_val))
+		operand = (uint16_t)a_H * 256 + a_L;
+		calc_op_adr = operand + mRegisterY;
+		if (!read(operand, read_val))
 			return false;
 
 		// Add one cycle if page boundary crossed
-		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(mem_a, op_adr))
+		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(calc_op_adr, operand))
 			tick();
 
 		break;
@@ -823,13 +848,13 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 	{
 		op_mem = true;
 
-		mProgramCounter++;
 		uint8_t a_L, a_H;
 		if (!read(mProgramCounter, a_L))
 			return false;
 		mProgramCounter++;
 		if (!read(mProgramCounter, a_H))
 			return false;
+		operand = (uint16_t)a_H * 256 + a_L;
 		mProgramCounter++;
 
 		uint16_t adr_i = (uint16_t) a_H * 256 + a_L;
@@ -837,8 +862,8 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 			return false;
 		if (!read(adr_i, a_H))
 			return false;
-		op_adr = (uint16_t) a_H * 256 + a_L;;
-		if (!read(op_adr, op_val))
+		calc_op_adr = (uint16_t) a_H * 256 + a_L;
+		if (!read(operand, read_val))
 			return false;
 
 		break;
@@ -848,8 +873,9 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 		op_mem = true;
 
 		uint8_t zp_a;
-		if (!read(mProgramCounter + 1, zp_a))
+		if (!read(mProgramCounter, zp_a))
 			return false;
+		operand = zp_a;
 		mProgramCounter++;
 
 		uint8_t data;
@@ -860,8 +886,8 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 		uint8_t a_L, a_H;
 		if (!read(mem_a, a_L) || !read(mem_a, a_H))
 			return false;
-		op_adr = (uint16_t)a_H * 256 + a_L;
-		if (!read(op_adr, op_val))
+		calc_op_adr = (uint16_t)a_H * 256 + a_L;
+		if (!read(operand, read_val))
 			return false;
 
 		break;
@@ -872,8 +898,9 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 
 		// Read zero page address (e.g. $12)
 		uint8_t zp_a;
-		if (!read(mProgramCounter + 1, zp_a))
+		if (!read(mProgramCounter, zp_a))
 			return false;
+		operand = zp_a;
 		mProgramCounter++;
 
 		// Read Indirect address -  e.g. ($12)
@@ -881,12 +908,12 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 		if (!read((uint16_t)zp_a, a_L) || !read((uint16_t)zp_a+1, a_H))
 			return false;
 		uint16_t mem_a = (uint16_t)a_H * 256 + a_L;
-		op_adr = mem_a + mRegisterY;
-		if (!read(op_adr, op_val))
+		calc_op_adr = mem_a + mRegisterY;
+		if (!read(operand, read_val))
 			return false;
 
 		// Add one cycle if page boundary crossed
-		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(mem_a, op_adr))
+		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(mem_a, operand))
 			tick();
 
 		break;
@@ -898,6 +925,23 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t &op_adr, uint8
 
 	return true;
 }
+
+string P6502::getState()
+{
+	stringstream sout;
+
+	sout << hex << setfill('0') << setw(2) <<
+		"A:" << (int) mAccumulator <<
+		" X:" << (int) mRegisterX <<
+		" Y:" << (int) mRegisterY <<
+		" SP:" << (int) mStackPointer <<
+		" NV-BDIZC:" << bitset<8>(mStatusRegister & 0xdf) <<
+		setw(4) <<
+		" PC:" << mProgramCounter;
+
+	return sout.str();
+}
+
 
 bool P6502::pageBoundaryCrossed(uint16_t before, uint16_t after)
 {

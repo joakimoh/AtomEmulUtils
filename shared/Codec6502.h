@@ -229,9 +229,7 @@ private:
 	string byte2str(uint16_t byte);
 	string word2strB(uint16_t word);
 	string word2str(uint16_t word);
-	bool readZPAdr(ifstream& fin, uint16_t &adr);
-	bool readRelAdr(ifstream& fin, int8_t& relAdr, uint16_t &adr);
-	bool readAbsAdr(ifstream& fin, uint16_t &adr);
+
 
 	uint16_t mProgramCounter = 0x0;
 
@@ -242,6 +240,8 @@ public:
 	bool decodeInstruction(uint8_t opcode, InstructionInfo& instr);
 
 	bool decode(int adr, string srcFileName, ostream &fout);
+
+	string decode(uint16_t PC, uint8_t opcode, uint16_t operand);
 
 };
 
