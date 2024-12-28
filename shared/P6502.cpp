@@ -163,7 +163,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
-		if (!Z_flag)
+		if (Z_flag)
 			mProgramCounter = (opcode_PC+2 + (int8_t) operand) & 0xffff;
 		break;
 	}
@@ -235,7 +235,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 
 		// Fetch break vector
 		uint8_t adr_L, adr_H;
-		if (!read(0xffe, adr_L) || !read(0xfff, adr_H))
+		if (!read(0xfffe, adr_L) || !read(0xffff, adr_H))
 			return false;
 		mProgramCounter = adr_H * 256 + adr_L;
 
@@ -310,6 +310,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		
 		val_16 = mAccumulator - read_val;
 		setNZCflags(val_16);
+		mStatusRegister ^= C_set_mask; // invert carry as it was set based on overflow at addition
 		break;
 	}
 
@@ -322,6 +323,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		
 		val_16 = mRegisterX - read_val;
 		setNZCflags(val_16);
+		mStatusRegister ^= C_set_mask; // invert carry as it was set based on overflow at addition
 		break;
 	}
 
@@ -333,6 +335,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 	{
 		val_16 = mRegisterY - read_val;
 		setNZCflags(val_16);
+		mStatusRegister ^= C_set_mask; // invert carry as it was set based on overflow at addition
 		break;
 	}
 
@@ -426,8 +429,39 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
+		if (calc_op_adr == 0xfe52) { // OSWRCH is executed via JSR $fff4:JMP($208) where Mem[0x208] = 0xfe52
+			// Output A content on screen
+			if (mAccumulator >= 0x20 && mAccumulator < 0x7f)
+				cout.put((char)mAccumulator).flush();
+			else if (mAccumulator == 0xd)
+				cout << "\n";
 
-		mProgramCounter = calc_op_adr;
+			// Emulate RTS instruction
+			uint8_t PC_l, PC_h;
+			read(0x100 + (uint16_t)++mStackPointer, PC_l);
+			read(0x100 + (uint16_t)++mStackPointer, PC_h);
+			mProgramCounter = PC_h * 256 + PC_l + 1;
+			//cout << "OSWRCH RTS => PC = 0x" << mProgramCounter << "\n";
+		}
+		else if (calc_op_adr == 0xfe94) { // OSRDCH is executed via JSR $FFE3:JMP($20a) where Mem[0x20a] = 0xfe94
+			// Read char into A
+			//cout << "OSRDCH\n";
+			mAccumulator = (uint8_t)getch();
+			if (mAccumulator == '\n')
+				mAccumulator = 0xd;
+			else if (mAccumulator == 0x3)
+				return false;
+			//cout << "GOT " << hex << (int)mAccumulator << "\n";
+			// Emulate RTS instruction
+			uint8_t PC_l, PC_h;
+			read(0x100 + (uint16_t)++mStackPointer, PC_l);
+			read(0x100 + (uint16_t)++mStackPointer, PC_h);
+			mProgramCounter = PC_h * 256 + PC_l + 1;
+			//cout << "OSRDCH RTS => PC = 0x" << mProgramCounter << "\n";
+		}
+		else {
+			mProgramCounter = calc_op_adr;
+		}
 
 		break;
 	}
@@ -439,21 +473,11 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
-		if (calc_op_adr == 0xfff4 || calc_op_adr == 0xffe6) { // OSWRCH/OSECHO vector
-			if (mAccumulator >= 0x20 && mAccumulator < 0x7f)
-				cout << (char)mAccumulator;
-			else if (mAccumulator == 0xd)
-				cout << "\n";
-		}
-		else if (calc_op_adr == 0xffe3) { // OSRDCH vector
-			mAccumulator = (uint8_t) getch();
-		}
-		else {
-			uint16_t PC_push_val = opcode_PC + 2;
-			write(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
-			write(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
-			mProgramCounter = calc_op_adr;
-		}
+		uint16_t PC_push_val = opcode_PC + 2;
+		write(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
+		write(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
+		mProgramCounter = calc_op_adr;
+
 		break;
 	}
 
@@ -650,21 +674,26 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// A - M - C* -> A
 		// N	Z	C	I	D	V
 		// +	+	+	-	-	+
+		//
+		// V is set if sign bit is incorrect
+		// C is cleared if overflow in b7
 	{
 		{
 			if (D_flag) {
 				// Convert values to 2-complement numbers before addition
 				uint8_t A_2c = (mAccumulator / 16) * 10 + mAccumulator & 16;
 				uint8_t op_2c = (read_val / 16) * 10 + read_val & 16;
-				uint16_t val_16_2c = (int8_t)A_2c - (int8_t)op_2c - (int8_t)C_flag;
+				uint16_t val_16_2c = (int8_t)A_2c - (int8_t)op_2c - (int8_t)(1-C_flag);
 				setNZCVflags(val_16_2c);
 				mAccumulator = (val_16_2c % 100) / 10 * 16 + (val_16_2c % 100) % 10;
 			}
 			else {
-				val_16 = (int8_t)mAccumulator - (int8_t)read_val - (int8_t)C_flag;// Subtract as 2-complement numbers to secure sign-extension
+				val_16 = (int8_t)mAccumulator - (int8_t)read_val - (int8_t)(1-C_flag);// Subtract as 2-complement numbers to secure sign-extension
 				mAccumulator = (uint8_t)(val_16 & 0xff);
 				setNZCVflags(val_16);
+				
 			}
+			mStatusRegister ^= C_set_mask; // invert carry as it was set based on overflow at addition
 			break;
 		}
 	}
@@ -837,8 +866,8 @@ bool P6502::read(uint16_t adr, uint8_t &data)
 		}
 	}
 
-	data = 0x0;
-	return false;
+	data = 0xff;
+	return true;
 }
 
 //
