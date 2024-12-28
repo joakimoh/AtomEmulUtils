@@ -6,6 +6,7 @@
 #include <sstream>
 #include <filesystem>
 #include <bitset>
+#include<conio.h>
 
 P6502::P6502(double clockSpeed, vector<Device*>& devices, bool verbose) : mDevices(devices), mVerbose(verbose)
 {
@@ -53,7 +54,7 @@ void P6502::run()
 		bool op_mem;
 		if (!getOperand(instr, operand, calc_op_adr, read_val, op_mem)) {
 			cont = false;
-			std::cout << "Failed to get operand for instruction!\n";
+			std::cout << "Failed to get operand for instruction 0x" << hex << (int)opcode << " at address 0x" << opcode_PC << "!\n";
 		}
 
 		// Execute the instruction
@@ -220,6 +221,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// Force Break
 		// Initiates a software interrupt
 		// push PC+2, push SR
+		// The low PC byte is pushed first (so that the PC is stored in little endian format in the memory)
 		// N	Z	C	I	D	V
 		// -	-	-	1	-	-
 	{
@@ -227,8 +229,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		
 		// Save PC & Status to stack
 		uint16_t PC_push_val = opcode_PC + 2;
-		write(0x100 + (uint16_t) mStackPointer--, PC_push_val % 256);
-		write(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
+		write(0x100 + (uint16_t) mStackPointer--, PC_push_val / 256);
+		write(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
 		write(0x100 + (uint16_t)mStackPointer--, mStatusRegister);
 
 		// Fetch break vector
@@ -424,20 +426,34 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
+
 		mProgramCounter = calc_op_adr;
+
 		break;
 	}
 
 	case Codec6502::Instruction::JSR:
 		// Jump to New Location Saving Return Address
 		// Push PC+2; OP2:OP1 -> PC
+		// The stack byte contains the program count high first, followed by program count low
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
-		uint16_t PC_push_val = opcode_PC + 2;
-		write(0x100 + (uint16_t) mStackPointer--, PC_push_val % 256);
-		write(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
-		mProgramCounter = calc_op_adr;
+		if (calc_op_adr == 0xfff4 || calc_op_adr == 0xffe6) { // OSWRCH/OSECHO vector
+			if (mAccumulator >= 0x20 && mAccumulator < 0x7f)
+				cout << (char)mAccumulator;
+			else if (mAccumulator == 0xd)
+				cout << "\n";
+		}
+		else if (calc_op_adr == 0xffe3) { // OSRDCH vector
+			mAccumulator = (uint8_t) getch();
+		}
+		else {
+			uint16_t PC_push_val = opcode_PC + 2;
+			write(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
+			write(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
+			mProgramCounter = calc_op_adr;
+		}
 		break;
 	}
 
@@ -592,7 +608,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 
 	case Codec6502::Instruction::RTI:
 		// Return from Interrupt
-		// pull SR, pull PC
+		// Pull SR and then pull PC
+		// The low byte is pulled first.
 		// N	Z	C	I	D	V
 		// +	+	+	+	+	+
 	{
@@ -605,8 +622,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 
 		// Pull PC
 		uint8_t PC_l, PC_h;
-		read(0x100 + (uint16_t)++mStackPointer, PC_h);
 		read(0x100 + (uint16_t)++mStackPointer, PC_l);
+		read(0x100 + (uint16_t)++mStackPointer, PC_h);
 		mProgramCounter = PC_h * 256 + PC_l;
 
 		break;
@@ -614,14 +631,15 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 
 	case Codec6502::Instruction::RTS:
 		// Return from Subroutine
-		// pull PC, PC+1 -> PC
+		// Pull PC, PC+1 -> PC
+		// The low byte is pulled first .
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 
 	{
 		uint8_t PC_l, PC_h;
-		read(0x100 + (uint16_t)++mStackPointer, PC_h);
 		read(0x100 + (uint16_t)++mStackPointer, PC_l);
+		read(0x100 + (uint16_t)++mStackPointer, PC_h);
 		mProgramCounter = PC_h * 256 + PC_l + 1;
 		break;
 	}
@@ -1158,7 +1176,7 @@ bool P6502::pageBoundaryCrossed(uint16_t before, uint16_t after)
 
 void P6502::tick(int cycles)
 {
-	std::this_thread::sleep_for(std::chrono::nanoseconds(cycles * cPeriod));
+	//std::this_thread::sleep_for(std::chrono::nanoseconds(cycles * cPeriod));
 }
 
 void P6502::setNZflags(uint8_t val)
