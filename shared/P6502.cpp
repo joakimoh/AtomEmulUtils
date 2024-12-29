@@ -131,7 +131,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		}
 		else
 			mAccumulator = val_16 & 0xff;
-		setNZflags(val_16);
+		setNZflags(mAccumulator);
 		break;
 	}
 
@@ -226,13 +226,14 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// -	-	-	1	-	-
 	{
 		// Force Break
+		//mVerbose = true;
 		
 		// Save PC & Status to stack
 		uint16_t PC_push_val = opcode_PC + 2;
 		write(0x100 + (uint16_t) mStackPointer--, PC_push_val / 256);
 		write(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
-		uint8_t push_SR = mStatusRegister | B_set_mask;
-		write(0x100 + (uint16_t)mStackPointer--, push_SR);
+		uint8_t SR_push_val = mStatusRegister | B_set_mask;
+		write(0x100 + (uint16_t)mStackPointer--, SR_push_val);
 
 		// Fetch break vector
 		uint8_t adr_L, adr_H;
@@ -443,23 +444,22 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 			read(0x100 + (uint16_t)++mStackPointer, PC_l);
 			read(0x100 + (uint16_t)++mStackPointer, PC_h);
 			mProgramCounter = PC_h * 256 + PC_l + 1;
-			//cout << "OSWRCH RTS => PC = 0x" << mProgramCounter << "\n";
+			//cout << "JMP($208) with A=0x" << hex << (int)mAccumulator << "\n";
 		}
 		else if (calc_op_adr == 0xfe94) { // OSRDCH is executed via JSR $FFE3:JMP($20a) where Mem[0x20a] = 0xfe94
 			// Read char into A
-			//cout << "OSRDCH\n";
-			mAccumulator = (uint8_t)getch();
-			if (mAccumulator == '\n')
+			uint8_t c = (uint8_t)getch();
+			if (c == '\n')
 				mAccumulator = 0xd;
-			else if (mAccumulator == 0x3)
+			else if (c == 0x3)
 				return false;
-			//cout << "GOT " << hex << (int)mAccumulator << "\n";
+			else
+				mAccumulator = c;
 			// Emulate RTS instruction
 			uint8_t PC_l, PC_h;
 			read(0x100 + (uint16_t)++mStackPointer, PC_l);
 			read(0x100 + (uint16_t)++mStackPointer, PC_h);
 			mProgramCounter = PC_h * 256 + PC_l + 1;
-			//cout << "OSRDCH RTS => PC = 0x" << mProgramCounter << "\n";
 		}
 		else {
 			mProgramCounter = calc_op_adr;
@@ -475,10 +475,42 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
-		uint16_t PC_push_val = opcode_PC + 2;
-		write(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
-		write(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
-		mProgramCounter = calc_op_adr;
+		if (calc_op_adr == 0xffe6) { // OSECHO
+			// Read character
+			uint8_t c = (uint8_t)getch();
+			if (c == '\n')
+				mAccumulator = 0xd;
+			else if (c == 0x3)
+				return false;
+			else
+				mAccumulator = c;
+			// Write it
+			calc_op_adr = 0xfff4;
+		}
+		if (calc_op_adr == 0xfff4) { // OSWRCH
+			// Output A content on screen
+			if (mAccumulator >= 0x20 && mAccumulator < 0x7f)
+				cout.put((char)mAccumulator).flush();
+			else if (mAccumulator == 0xd)
+				cout << "\n";
+			//cout << "JSR $fff4 with A=0x" << hex << (int)mAccumulator << "\n";
+		}
+		else if (calc_op_adr == 0xffe3) { // OSRDCH
+			// Read char into A
+			uint8_t c = (uint8_t)getch();
+			if (c == '\n')
+				mAccumulator = 0xd;
+			else if (c == 0x3)
+				return false;
+			else
+				mAccumulator = c;
+		}
+		else {
+			uint16_t PC_push_val = opcode_PC + 2;
+			write(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
+			write(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
+			mProgramCounter = calc_op_adr;
+		}
 
 		break;
 	}
