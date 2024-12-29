@@ -31,24 +31,24 @@ private:
 	// Status Register
 	// b7 = Negative, b6 = Overflow (V), b5 not used, b4 = break (B),
 	// b3 = Decimal (D), b2 = Interrupt Disable (I),b1 = zero (Z), b0 = carry (C) 
+	// The B flag is not stored in the register but only put on stack (as b4) together with
+	// the Status Register content when a BRK instruction is executed.
 	uint8_t mStatusRegister;
-#define N_set_mask 0x80
-#define N_clr_mask 0x7f
-#define V_set_mask 0x40
-#define V_clr_mask 0xb0
-#define B_set_mask 0x10
-#define B_clr_mask 0xe0
-#define D_set_mask 0x08
-#define D_clr_mask 0xf7
-#define I_set_mask 0x04
-#define I_clr_mask 0xfb
-#define Z_set_mask 0x02
-#define Z_clr_mask 0xfd
-#define C_set_mask 0x01
-#define C_clr_mask 0xfe
+#define N_set_mask 0x80 // 1000 0000
+#define N_clr_mask 0x7f // 0111 1111
+#define V_set_mask 0x40 // 0100 0000
+#define V_clr_mask 0xbf // 1011 1111
+#define B_set_mask 0x10 // 0001 0000
+#define D_set_mask 0x08 // 0000 1000
+#define D_clr_mask 0xf7 // 1111 0111
+#define I_set_mask 0x04 // 0000 0100
+#define I_clr_mask 0xfb // 1111 1011
+#define Z_set_mask 0x02 // 0000 0010
+#define Z_clr_mask 0xfd // 1111 1101
+#define C_set_mask 0x01 // 0000 0001
+#define C_clr_mask 0xfe // 1111 1110
 #define N_flag ((mStatusRegister >> 7) & 1)
 #define V_flag ((mStatusRegister >> 6) & 1)
-#define B_flag ((mStatusRegister >> 4) & 1)
 #define D_flag ((mStatusRegister >> 3) & 1)
 #define I_flag ((mStatusRegister >> 2) & 1)
 #define Z_flag ((mStatusRegister >> 1) & 1)

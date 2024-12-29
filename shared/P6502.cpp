@@ -220,7 +220,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 	case Codec6502::Instruction::BRK:
 		// Force Break
 		// Initiates a software interrupt
-		// push PC+2, push SR
+		// push PC+2, push SR (together with a set b4 = B)
 		// The low PC byte is pushed first (so that the PC is stored in little endian format in the memory)
 		// N	Z	C	I	D	V
 		// -	-	-	1	-	-
@@ -231,13 +231,15 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		uint16_t PC_push_val = opcode_PC + 2;
 		write(0x100 + (uint16_t) mStackPointer--, PC_push_val / 256);
 		write(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
-		write(0x100 + (uint16_t)mStackPointer--, mStatusRegister);
+		uint8_t push_SR = mStatusRegister | B_set_mask;
+		write(0x100 + (uint16_t)mStackPointer--, push_SR);
 
 		// Fetch break vector
 		uint8_t adr_L, adr_H;
 		if (!read(0xfffe, adr_L) || !read(0xffff, adr_H))
 			return false;
 		mProgramCounter = adr_H * 256 + adr_L;
+
 
 		break;
 	}
@@ -1228,7 +1230,7 @@ void P6502::setNZCflags(uint16_t val)
 
 	// Carry flag (C)
 	mStatusRegister &= C_clr_mask;
-	if (val & 0x100)
+	if ((val & 0x100) == 0x100)
 		mStatusRegister |= C_set_mask;
 
 }
