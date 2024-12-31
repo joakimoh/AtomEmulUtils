@@ -57,6 +57,7 @@ private:
 
 	void setNZflags(uint8_t val_8_u);
 	void setNZCflags(uint8_t val_16_u, uint8_t C);
+	void setNZVflags(uint8_t N, uint8_t Z, uint8_t V);
 	void setNZCVflags(uint8_t val_16_u, uint8_t C, uint8_t V);
 	void setNZCVflags(uint8_t N, uint8_t Z, uint8_t C, uint8_t V);
 
