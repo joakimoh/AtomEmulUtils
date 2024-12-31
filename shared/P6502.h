@@ -35,18 +35,12 @@ private:
 	// the Status Register content when a BRK instruction is executed.
 	uint8_t mStatusRegister;
 #define N_set_mask 0x80 // 1000 0000
-#define N_clr_mask 0x7f // 0111 1111
 #define V_set_mask 0x40 // 0100 0000
-#define V_clr_mask 0xbf // 1011 1111
 #define B_set_mask 0x10 // 0001 0000
 #define D_set_mask 0x08 // 0000 1000
-#define D_clr_mask 0xf7 // 1111 0111
 #define I_set_mask 0x04 // 0000 0100
-#define I_clr_mask 0xfb // 1111 1011
 #define Z_set_mask 0x02 // 0000 0010
-#define Z_clr_mask 0xfd // 1111 1101
 #define C_set_mask 0x01 // 0000 0001
-#define C_clr_mask 0xfe // 1111 1110
 #define N_flag ((mStatusRegister >> 7) & 1)
 #define V_flag ((mStatusRegister >> 6) & 1)
 #define D_flag ((mStatusRegister >> 3) & 1)
@@ -61,9 +55,10 @@ private:
 
 	bool pageBoundaryCrossed(uint16_t before, uint16_t after);
 
-	void setNZflags(uint8_t val);
-	void setNZCflags(uint16_t val);
-	void setNZCVflags(uint16_t val);
+	void setNZflags(uint8_t val_8_u);
+	void setNZCflags(uint8_t val_16_u, uint8_t C);
+	void setNZCVflags(uint8_t val_16_u, uint8_t C, uint8_t V);
+	void setNZCVflags(uint8_t N, uint8_t Z, uint8_t C, uint8_t V);
 
 	bool executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, uint16_t operand, uint16_t calc_op_adr, uint8_t read_val, bool op_mem);
 

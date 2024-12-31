@@ -7,8 +7,11 @@
 
 using namespace std;
 
-enum DeviceEnum { ROM_DEV, RAM_DEV, PIA8255_DEV, VDU6847_DEV, VIA6522_DEV};
-#define _DEVICE_TYPE(x) (x==ROM_DEV?"ROM":(x==RAM_DEV?"RAM":(x==PIA8255_DEV?"PIA 8255":(x==VDU6847_DEV?"VDU 6847":("VIA 6522")))))
+enum DeviceEnum {
+	ROM_DEV, RAM_DEV, PIA8255_DEV, VDU6847_DEV, VIA6522_DEV, UNDEFINED_DEV
+};
+#define _DEVICE_TYPE(x) (\
+	x==ROM_DEV?"ROM":(x==RAM_DEV?"RAM":(x==PIA8255_DEV?"PIA 8255":(x==VDU6847_DEV?"VDU 6847":(x==VIA6522_DEV?"VIA 6522":"???")))))
 
 typedef struct DeviceAllocation_struct {
 	DeviceEnum deviceType;
@@ -39,7 +42,7 @@ public:
 	bool selected(uint16_t adr);
 	bool validAdr(uint16_t adr);
 
-	static bool crMemMap(const vector< DeviceAllocation> &devAllocation, vector<Device*> &devices, string ROMDirPath, bool verbose = false);
+	static bool crMemMap(string memMapFile, vector<Device*>& devices, bool verbose);
 	static bool freeMemMap(vector<Device*>& devices);
 
 };

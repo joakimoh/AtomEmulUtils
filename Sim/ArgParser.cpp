@@ -14,9 +14,9 @@ bool ArgParser::failed()
 void ArgParser::printUsage(const char* name)
 {
 	cout << "Emulates an Acorn\n";
-	cout << "Usage:\t" << name << " -rom <ROM dir> [-clk <clock speed>] [-v]\n\n";
+	cout << "Usage:\t" << name << " -map <memory map file> [-clk <clock speed>] [-v]\n\n";
 	cout << "<clock speed>:\n\Clock speed in MHz. If not specified, 1 Mhz is assumed\n\n";
-	cout << "<ROM dir>:\n\tDirectory in which ROM files are located\n\n";
+	cout << "<memory map file>:\n\tFile which defines devices and their memory mapping.\n\n";
 	cout << "-v:\n\tVerbose output\n\n";
 }
 
@@ -35,8 +35,8 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			cMHz = stod(argv[a + 1]);
 			a++;
 		}
-		else if (strcmp(argv[a], "-rom") == 0) {
-			romPath = argv[a + 1];
+		else if (strcmp(argv[a], "-map") == 0) {
+			mapFileName = argv[a + 1];
 			a++;
 		}
 		else if (strcmp(argv[a], "-v") == 0) {

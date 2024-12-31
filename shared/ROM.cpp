@@ -16,13 +16,17 @@ ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent, bool verbose) : Device
 		throw runtime_error("couldn't open ROM file");
 	}
 
+	if (sz >= 0x10000)
+		mDevSz = 0xffff;
+	else
+		mDevSz = sz;
 
 	// Get file size (should normally equal ROM size)
 	fin.seekg(0, ios::end);
 	streamsize file_sz = fin.tellg();
 	fin.seekg(0);
 
-	uint16_t upper_sz = sz;
+	uint16_t upper_sz = mDevSz;
 	if (file_sz < (streamsize) sz) {
 		cout << "Warning - size of ROM file " << binaryContent << " (" << file_sz <<
 			" ) is smaller than the expected one(" << sz << ") => filling up with zeros...\n";
@@ -30,19 +34,15 @@ ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent, bool verbose) : Device
 	} else if (file_sz > (streamsize)sz) {
 		cout << "Warning - size of ROM file " << binaryContent << " (" << file_sz <<
 			" ) is larger than the expected one(" << sz << ") => truncating...\n";
-		mDevSz = 0x10000;
 		upper_sz = mDevSz;
 	}
-	if (file_sz >= 0x10000)
-		mDevSz = 0xffff;
-	else
-		mDevSz = (uint16_t) file_sz;
+
 
 	// Resize the ROM vector
 	mMem.resize((size_t)mDevSz);
 
 	// Initialise ROM with zeros in case the ROM file is smaller than specified ROM size
-	mMem.assign(sz, 0);
+	mMem.assign(mDevSz, 0);
 
 	// Read ROM content
 	fin.read((char*)&mMem[0], upper_sz);

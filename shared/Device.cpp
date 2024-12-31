@@ -6,6 +6,8 @@
 #include "VIA6522.h"
 #include <iostream>
 #include <filesystem>
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
@@ -23,23 +25,64 @@ bool Device::validAdr(uint16_t adr)
 	return selected(adr);
 }
 
-bool Device::crMemMap(const vector< DeviceAllocation> &devAllocation, vector<Device*>& devices, string ROMDirPath, bool verbose)
+bool Device::crMemMap(string memMapFile, vector<Device*>& devices,  bool verbose)
 {
+	ifstream fin(memMapFile, ios::in | ios::ate);
 
-	for (int i = 0; i < devAllocation.size(); i++) {
-		const DeviceAllocation& a = devAllocation[i];
+	if (!fin) {
+		cout << "couldn't open memory map file " << memMapFile << "\n";
+		throw runtime_error("couldn't open memory map file");
+	}
+
+	fin.seekg(0);
+
+	string line;
+	while (getline(fin, line)) {
+		string dev_typ_s, dev_adr_s, dev_sz_s;
+		stringstream sin(line);
+		int dev_adr, dev_sz;
+
+		sin >> dev_typ_s;
+		sin >> dev_adr_s;
+		dev_adr = stoi(dev_adr_s, 0, 16);
+		sin >> dev_sz_s;
+		dev_sz = stoi(dev_sz_s, 0, 16);
+
+		DeviceAllocation a;
+		a.startAdr = dev_adr;
+		a.size = dev_sz;
+
+		if (dev_typ_s == "RAM")
+			a.deviceType = DeviceEnum::RAM_DEV; 
+		else if (dev_typ_s == "VDU6847") {
+			a.deviceType = DeviceEnum::VDU6847_DEV;
+		} 
+		else if (dev_typ_s == "ROM") {
+			a.deviceType = DeviceEnum::ROM_DEV;
+			string ROM_file_name;
+			sin >> ROM_file_name;
+			a.ROMFileName = ROM_file_name;
+		} 
+		else if (dev_typ_s == "PIA8255")
+			a.deviceType = DeviceEnum::PIA8255_DEV; 
+		else if (dev_typ_s == "VIA6522")
+			a.deviceType = DeviceEnum::VIA6522_DEV;
+		else
+			a.deviceType = DeviceEnum::UNDEFINED_DEV;
+
 		switch (a.deviceType) {
 		case DeviceEnum::RAM_DEV:
 		{
-			RAM *ram = new RAM(a.startAdr, a.size, verbose);
+			RAM* ram = new RAM(a.startAdr, a.size, verbose);
 			devices.push_back(ram);
 			break;
 		}
 		case DeviceEnum::ROM_DEV:
 		{
-			filesystem::path dir_path = ROMDirPath;
-			filesystem::path file = a.ROMFileName;
-			filesystem::path file_path = dir_path / file;
+			filesystem::path map_file_path = memMapFile;
+			filesystem::path map_dir_path = map_file_path.parent_path();
+			filesystem::path ROM_file_path = a.ROMFileName;
+			filesystem::path file_path = map_dir_path / ROM_file_path;
 			ROM* rom = new ROM(a.startAdr, a.size, file_path.string(), verbose);
 			devices.push_back(rom);
 			break;
@@ -67,6 +110,8 @@ bool Device::crMemMap(const vector< DeviceAllocation> &devAllocation, vector<Dev
 			return false;
 			break;
 		}
+
+
 	}
 
 	return true;

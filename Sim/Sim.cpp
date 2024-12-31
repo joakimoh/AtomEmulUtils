@@ -9,7 +9,6 @@
 #include "ArgParser.h"
 #include "../shared/P6502.h"
 #include <thread>
-#include "../shared/AtomMemMap.h"
 
 using namespace std;
 
@@ -23,7 +22,7 @@ int main(int argc, const char* argv[])
 
     vector<Device*> devices;
 
-    Device::crMemMap(AtomMemMap, devices, arg_parser.romPath, arg_parser.verbose);
+    Device::crMemMap(arg_parser.mapFileName, devices, arg_parser.verbose);
 
     // Create processor object
     P6502 processor(arg_parser.cMHz, devices, arg_parser.verbose);

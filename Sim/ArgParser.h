@@ -12,7 +12,7 @@ public:
 
 	double cMHz = 1.0;
 	bool verbose = false;
-	string romPath;
+	string mapFileName;
 
 private:
 

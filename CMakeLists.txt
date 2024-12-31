@@ -21,13 +21,13 @@ include_directories(
 add_executable ( 
 	Dis  "Dis/Dis.cpp"
 	"Dis/ArgParser.h"  "Dis/ArgParser.cpp"
- "shared/AtomMemMap.h")
+ )
 target_link_libraries(Dis PUBLIC shared )
 
 add_executable ( 
 	Sim  "Sim/Sim.cpp"
 	"Sim/ArgParser.h"  "Sim/ArgParser.cpp"
- "shared/AtomMemMap.h")
+ )
 target_link_libraries(Sim PUBLIC shared )
 
 # Installation of Disassembler
