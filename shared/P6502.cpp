@@ -345,8 +345,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 
 	{
 		
-		val_16_u = mAcc - read_val;
-		setNZCflags(val_16_u & 0xff, mAcc >= read_val);
+		val_8_u = mAcc - read_val;
+		setNZCflags(val_8_u, mAcc >= read_val);
 		break;
 	}
 
@@ -357,8 +357,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// +	+	+	-	-	-
 	{
 		
-		val_16_u = mRegisterX - read_val;
-		setNZCflags(val_16_u & 0xff, mRegisterX >= read_val);
+		val_8_u = mRegisterX - read_val;
+		setNZCflags(val_8_u, mRegisterX >= read_val);
 		break;
 	}
 
@@ -368,8 +368,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	+	-	-	-
 	{
-		val_16_u = mRegisterY - read_val;
-		setNZCflags(val_16_u & 0xff, mRegisterY >= read_val);
+		val_8_u = mRegisterY - read_val;
+		setNZCflags(val_8_u, mRegisterY >= read_val);
 		break;
 	}
 
@@ -637,11 +637,13 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 
 	case Codec6502::Instruction::PHP:
 		// Push Status on Stack
-		// push SR
+		// push SR.
+		// The status register will be pushed with the B
+		// flag and b5 set to 1
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
-		write(0x100 + (uint16_t)mStackPointer--, mStatusRegister);
+		write(0x100 + (uint16_t)mStackPointer--, mStatusRegister | B_set_mask | b5_set_mask);
 		break;
 	}
 
@@ -663,7 +665,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 	{
 		uint8_t stack_val;
 		read(0x100 + (uint16_t)++mStackPointer, stack_val);
-		stack_val &= ~(B_set_mask | 0x20);
+		stack_val &= ~(B_set_mask | b5_set_mask);
 		mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
 		mStatusRegister |= stack_val;
 		break;
@@ -724,7 +726,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// Pull Status Register
 		uint8_t stack_val;
 		read(0x100 + (uint16_t)++mStackPointer, stack_val);
-		stack_val &= ~(B_set_mask | 0x20);
+		stack_val &= ~(B_set_mask | b5_set_mask);
 		mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
 		mStatusRegister |= stack_val;
 
@@ -1078,13 +1080,10 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint
 		operand = zp_a;
 		mProgramCounter++;
 
-		uint8_t data;
-		if (!read((uint16_t)zp_a, data))
-			return false;
+		uint8_t mem_a = (uint16_t)zp_a;
+		uint8_t calc_op_adr = mem_a + mRegisterX;
 
-		calc_op_adr = zp_a;
-		read_val = (uint16_t)zp_a + mRegisterX;
-		if (instr.readsMem && !read(calc_op_adr, read_val))
+		if (instr.readsMem && !read((uint16_t) calc_op_adr, read_val))
 			return false;
 
 		break;
@@ -1092,7 +1091,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint
 
 	case Codec6502::Mode::ZeroPage_Y:
 		// OPC $12,Y
-		// Read Mem[$12+X]
+		// Read Mem[$12+Y]
 	{
 		op_mem = true;
 
@@ -1102,20 +1101,12 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint
 		operand = zp_a;
 		mProgramCounter++;
 
-		uint8_t data;
-		if (!read((uint16_t)zp_a, data))
+		uint8_t mem_a = (uint16_t)zp_a;
+		uint8_t calc_op_adr = mem_a + mRegisterY;
+
+		if (instr.readsMem && !read((uint16_t) calc_op_adr, read_val))
 			return false;
 
-		uint16_t mem_a = (uint16_t)zp_a;
-		uint16_t calc_op_adr = mem_a + mRegisterY;
-
-		if (instr.readsMem && !read(calc_op_adr, read_val))
-			return false;
-
-
-		// Add one cycle if access on other page
-		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed((uint16_t)zp_a, calc_op_adr))
-			tick();
 
 		break;
 	}
@@ -1220,7 +1211,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint
 
 		break;
 	}
-	case Codec6502::Mode::Indirect_X:
+	case Codec6502::Mode::Indirect_X: // pre-indexed indirect
 		// OPC ($12,X)
 		// Read from Mem[Mem[$12+X]]
 	{
@@ -1232,13 +1223,10 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint
 		operand = zp_a;
 		mProgramCounter++;
 
-		uint8_t data;
-		if (!read((uint16_t)zp_a, data))
-			return false;
-
-		uint16_t mem_a = (uint16_t)zp_a + mRegisterX;
+		uint8_t mem_a = (uint16_t)zp_a + mRegisterX;
+		uint8_t mem_a_1 = mem_a + 1;
 		uint8_t a_L, a_H;
-		if (!read(mem_a, a_L) || !read(mem_a+1, a_H))
+		if (!read((uint16_t)mem_a, a_L) || !read((uint16_t) mem_a_1, a_H))
 			return false;
 		calc_op_adr = (uint16_t)a_H * 256 + a_L;
 		if (instr.readsMem && !read(calc_op_adr, read_val))
@@ -1246,7 +1234,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint
 
 		break;
 	}
-	case Codec6502::Mode::Indirect_Y:
+	case Codec6502::Mode::Indirect_Y: // post-indexed indirect
 		// OPC ($12),Y
 		// Read from Mem[Mem[$12]+Y]
 	{
@@ -1261,7 +1249,8 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint
 
 		// Read Indirect address -  e.g. ($12)
 		uint8_t a_L, a_H;
-		if (!read((uint16_t)zp_a, a_L) || !read((uint16_t)zp_a+1, a_H))
+		uint8_t zp_a_1 = zp_a + 1; // can overflow but that is OK
+		if (!read((uint16_t)zp_a, a_L) || !read((uint16_t) zp_a_1, a_H))
 			return false;
 		uint16_t mem_a = (uint16_t)a_H * 256 + a_L;
 		calc_op_adr = mem_a + mRegisterY;

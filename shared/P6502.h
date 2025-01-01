@@ -34,13 +34,14 @@ private:
 	// The B flag is not stored in the register but only put on stack (as b4) together with
 	// the Status Register content when a BRK instruction is executed.
 	uint8_t mStatusRegister;
-#define N_set_mask 0x80 // 1000 0000
-#define V_set_mask 0x40 // 0100 0000
-#define B_set_mask 0x10 // 0001 0000
-#define D_set_mask 0x08 // 0000 1000
-#define I_set_mask 0x04 // 0000 0100
-#define Z_set_mask 0x02 // 0000 0010
-#define C_set_mask 0x01 // 0000 0001
+#define N_set_mask 0x80 // 1000 0000 - b7
+#define V_set_mask 0x40 // 0100 0000 - b6
+#define b5_set_mask 0x30// 0010 0000 - b5 (not used)
+#define B_set_mask 0x10 // 0001 0000 - b4
+#define D_set_mask 0x08 // 0000 1000 - b3
+#define I_set_mask 0x04 // 0000 0100 - b2
+#define Z_set_mask 0x02 // 0000 0010 - b1
+#define C_set_mask 0x01 // 0000 0001 - b0
 #define N_flag ((mStatusRegister >> 7) & 1)
 #define V_flag ((mStatusRegister >> 6) & 1)
 #define D_flag ((mStatusRegister >> 3) & 1)
