@@ -9,6 +9,7 @@
 #include "ArgParser.h"
 #include "../shared/P6502.h"
 #include <thread>
+#include "../shared/Codec6502.h"
 
 using namespace std;
 

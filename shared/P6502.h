@@ -58,7 +58,6 @@ private:
 	void setNZflags(uint8_t val_8_u);
 	void setNZCflags(uint8_t val_16_u, uint8_t C);
 	void setNZVflags(uint8_t N, uint8_t Z, uint8_t V);
-	void setNZCVflags(uint8_t val_16_u, uint8_t C, uint8_t V);
 	void setNZCVflags(uint8_t N, uint8_t Z, uint8_t C, uint8_t V);
 
 	bool executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, uint16_t operand, uint16_t calc_op_adr, uint8_t read_val, bool op_mem);

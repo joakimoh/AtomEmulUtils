@@ -78,7 +78,7 @@ void P6502::run()
 bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, uint16_t operand, uint16_t calc_op_adr, uint8_t read_val, bool op_mem)
 {
 	uint16_t val_16_u;
-	uint8_t val_8;
+	uint8_t val_8_u;
 
 	if (!op_mem)
 		read_val = operand & 0xff;
@@ -125,7 +125,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 			val_V = (int8_t)mAcc + (int8_t)read_val + C_flag; // Add as signed no to determine overflow (V)
 			val_C = mAcc + read_val + C_flag; // Add as unsigned no to determine carry (C)
 			mAcc = val_C & 0xff;
-			setNZCVflags(mAcc, (val_C & 0x100) != 0, val_V < -128 || val_V > 127);
+			setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, (val_C & 0x100) != 0, val_V < -128 || val_V > 127);
 		}
 		
 		break;
@@ -149,16 +149,20 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// +	+	+	-	-	-
 	{
 		mStatusRegister &= ~C_set_mask;
-		mStatusRegister |= ((read_val & 0x80) ? C_set_mask : 0);
+		mStatusRegister |= ((read_val & 0x80) != 0? C_set_mask : 0);
 		val_16_u = (read_val << 1) & 0x1fe;
+		val_8_u = val_16_u & 0xff;
 		if (op_mem) {
+			if (!write(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
+				return false;
+			}
 			if (!write(calc_op_adr, val_16_u & 0xff)) {
 				return false;
 			}
 		}
 		else
-			mAcc = val_16_u & 0xff;
-		setNZflags(mAcc);
+			mAcc = val_8_u;
+		setNZflags(val_8_u);
 		break;
 	}
 
@@ -202,11 +206,14 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// M7	+	-	-	-	M6
 		{
-			val_8 = mAcc & read_val;
-			mStatusRegister &= ~Z_set_mask & ~N_set_mask & ~V_set_mask;
-			mStatusRegister |= (val_8 == 0? Z_set_mask: 0);
-			mStatusRegister |= read_val & N_set_mask;
-			mStatusRegister |= read_val & V_set_mask;
+			val_8_u = mAcc & read_val;
+			mStatusRegister &= ~(Z_set_mask | N_set_mask | V_set_mask);
+			if (val_8_u == 0)
+				mStatusRegister |= Z_set_mask;
+			if ((read_val & 0x80) != 0)
+				mStatusRegister |= N_set_mask;
+			if ((read_val & 0x40) != 0)
+				mStatusRegister |= V_set_mask;
 			break;
 		}
 	}
@@ -372,11 +379,14 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	-	-	-	-
 	{
-		val_8 = read_val - 1;
-		if (!write(calc_op_adr, val_8)) {
+		val_8_u = read_val - 1;
+		if (!write(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
 			return false;
 		}
-		setNZflags(val_8);
+		if (!write(calc_op_adr, val_8_u)) {
+			return false;
+		}
+		setNZflags(val_8_u);
 		break;
 	}
 
@@ -420,11 +430,14 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	-	-	-	-
 	{
-		val_8 = read_val + 1;
-		if (!write(calc_op_adr, val_8)) {
+		val_8_u = read_val + 1;
+		if (!write(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
 			return false;
 		}
-		setNZflags(val_8);
+		if (!write(calc_op_adr, val_8_u)) {
+			return false;
+		}
+		setNZflags(val_8_u);
 		break;
 	}
 
@@ -579,16 +592,19 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// 0	+	+	-	-	-
 	{
 		mStatusRegister &= ~C_set_mask;
-		mStatusRegister |= ((read_val & 0x1) ? C_set_mask : 0);
-		val_8 = (read_val >> 1) & 0x7f;
+		mStatusRegister |= ((read_val & 0x1) != 0 ? C_set_mask : 0);
+		val_8_u = (read_val >> 1) & 0x7f;
 		if (op_mem) {
-			if (!write(calc_op_adr, val_8)) {
+			if (!write(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
+				return false;
+			}
+			if (!write(calc_op_adr, val_8_u)) {
 				return false;
 			}
 		}
 		else
-			mAcc = val_8;
-		setNZflags(val_8);
+			mAcc = val_8_u;
+		setNZflags(val_8_u);
 		break;
 	}
 	case Codec6502::Instruction::NOP:
@@ -647,8 +663,9 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 	{
 		uint8_t stack_val;
 		read(0x100 + (uint16_t)++mStackPointer, stack_val);
+		stack_val &= ~(B_set_mask | 0x20);
 		mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
-		mStatusRegister |= (N_flag | Z_flag | C_flag | I_flag | D_flag | V_flag) & stack_val;
+		mStatusRegister |= stack_val;
 		break;
 	}
 	case Codec6502::Instruction::ROL:
@@ -657,17 +674,20 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	+	-	-	-
 	{
-		val_8 = ((read_val << 1) & 0xfe) | C_flag;
+		val_8_u = ((read_val << 1) & 0xfe) | C_flag;
 		mStatusRegister &= ~C_set_mask;
-		mStatusRegister |= ((read_val & 0x80)? C_set_mask : 0);	
+		mStatusRegister |= ((read_val & 0x80)!=0? C_set_mask : 0);	
 		if (op_mem) {
-			if (!write(calc_op_adr, val_8)) {
+			if (!write(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
+				return false;
+			}
+			if (!write(calc_op_adr, val_8_u)) {
 				return false;
 			}
 		}
 		else
-			mAcc = val_8;
-		setNZflags(val_8);
+			mAcc = val_8_u;
+		setNZflags(val_8_u);
 		break;
 	}
 
@@ -677,23 +697,26 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	+	-	-	-
 	{
-		val_8 = ((read_val >> 1) & 0x3f) | ((C_flag << 7) & 0x80);
+		val_8_u = ((read_val >> 1) & 0x3f) | ((C_flag << 7) & 0x80);
 		mStatusRegister &= ~C_set_mask;
 		mStatusRegister |= ((read_val & 0x1) ? C_set_mask : 0);		
 		if (op_mem) {
-			if (!write(calc_op_adr, val_8)) {
+			if (!write(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
+				return false;
+			}
+			if (!write(calc_op_adr, val_8_u)) {
 				return false;
 			}
 		}
 		else
-			mAcc = val_8;
-		setNZflags(val_8);
+			mAcc = val_8_u;
+		setNZflags(val_8_u);
 		break;
 	}
 
 	case Codec6502::Instruction::RTI:
 		// Return from Interrupt
-		// Pull SR and then pull PC
+		// Pull SR (b5 and B flag ignored) and then pull PC
 		// The low byte is pulled first.
 		// N	Z	C	I	D	V
 		// +	+	+	+	+	+
@@ -701,9 +724,9 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// Pull Status Register
 		uint8_t stack_val;
 		read(0x100 + (uint16_t)++mStackPointer, stack_val);
+		stack_val &= ~(B_set_mask | 0x20);
 		mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
-		mStatusRegister |= (N_flag | Z_flag | C_flag | I_flag | D_flag | V_flag) & stack_val;
-
+		mStatusRegister |= stack_val;
 
 		// Pull PC
 		uint8_t PC_l, PC_h;
@@ -770,8 +793,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 				val_V = (int8_t)mAcc - (int8_t)read_val - (1-C_flag);
 				val_C = mAcc - read_val - (1 - C_flag);
 				mAcc = val_C & 0xff;
-				
-				setNZCVflags(val_C & 0xff, val_C >= 0, val_V < -128 || val_V > 127);
+				setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, val_C >= 0, val_V < -128 || val_V > 127);
 			}
 			
 
@@ -915,8 +937,6 @@ bool P6502::reset()
 {
 	if (mVerbose)
 		cout << "RESET\n";
-
-	mStatusRegister &= ~V_set_mask;
 
 	// Fetch RESET vector
 	uint8_t adr_L, adr_H;
@@ -1301,7 +1321,7 @@ void P6502::setNZflags(uint8_t val_8_u)
 		mStatusRegister |= Z_set_mask;
 
 	// Negative flag (N): Set if the result is negative
-	if (val_8_u & 0x80)
+	if ((val_8_u & 0x80) != 0)
 		mStatusRegister |= N_set_mask;
 }
 
@@ -1312,18 +1332,6 @@ void P6502::setNZCflags(uint8_t val_8_u, uint8_t C)
 	mStatusRegister &= ~C_set_mask;
 	if (C)
 		mStatusRegister |= C_set_mask;
-
-}
-
-void P6502::setNZCVflags(uint8_t val_8_u, uint8_t C, uint8_t V)
-{
-	setNZflags(val_8_u);
-
-	mStatusRegister &= ~(C_set_mask | V_set_mask);
-	if (C)
-		mStatusRegister |= C_set_mask;
-	if (V)
-		mStatusRegister |= V_set_mask;
 
 }
 
