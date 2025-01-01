@@ -83,17 +83,6 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 	if (!op_mem)
 		read_val = operand & 0xff;
 
-
-
-	if (mProgramCounter == 0xa070) {
-		uint8_t err, N1, N2;
-		read(0x0a147, err);
-		read(0x0a14d, N1);
-		read(0x0a14e, N2);
-		cout << "N1: " << hex << (int) N1 << ", N2: " << (int) N2 << ", CIN: " << (int) mRegisterY << ", ERROR: " << (int)err << "\n";
-		return false;
-	}
-
 	switch (instr.instruction) {
 
 	case Codec6502::Instruction::ADC:
@@ -108,37 +97,35 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 
 			
 			// Calculate zero - flag set as for non-BDC addition
-			int16_t val_Z = mAccumulator + read_val + C_flag;
+			int16_t val_Z = mAcc + read_val + C_flag;
 			int8_t set_Z = ((val_Z & 0xff) == 0);
 
 			// BCD Addition and calculation of carry flag
-			int8_t low_digit = (mAccumulator & 0xf) + (read_val & 0xf) + C_flag;
-			int8_t carry = 0;
-			if (low_digit > 9) {
-				low_digit -= 10;
-				carry = 1;
+			uint8_t low_digit = (mAcc & 0xf) + (read_val & 0xf) + C_flag;
+			uint8_t carry = 0;
+			if (low_digit >= 0xa) {
+				low_digit += 0x6; // same as subtraction by 10 (modulo 16)
+				carry = 0x10;
 			}
-			int8_t high_digit = ((mAccumulator >> 4) & 0xf) + ((read_val >> 4) & 0xf) + carry;
-			int8_t high_digit_not_adjusted = high_digit; // save for later use when setting N & V flags
+			low_digit &= 0xf;
+			int16_t val_NV = (int8_t)(mAcc & 0xf0) + (int8_t)(read_val & 0xf0) + carry + low_digit; // save for later use when setting N & V flags
+			uint16_t high_digit = (mAcc & 0xf0) + (read_val & 0xf0) + carry; // result could be up to 0x130 (0x90+0x90+0x10)
 			int8_t set_C  = 0;
-			if (high_digit > 9) {
-				high_digit -= 10;
+			if (high_digit >= 0xa0) {
+				high_digit += 0x60; // same as subtraction by 10 (modulo 16)
 				set_C = 1;
 			}
-			mAccumulator = ((high_digit << 4) & 0xf0) | (low_digit & 0xf);
+			high_digit &= 0xf0;
+			mAcc = high_digit | low_digit;
 
 			// Calculate N & V flags - they are based on the sum before adjusting for overflow of the high digit
-			int8_t val_V = ((high_digit_not_adjusted << 4) & 0xff) + (low_digit & 0xf) + C_flag;
-			int8_t set_V = ((val_V & 0x100) != 0);
-			int8_t set_N = ((val_V & 0x80) != 0);;
-
-			setNZCVflags(set_N, set_Z, set_C, set_V);
+			setNZCVflags((val_NV & 0x80) !=0, set_Z, set_C, val_NV < -128 || val_NV > 127);
 		}
 		else {
-			val_V = (int8_t)mAccumulator + (int8_t)read_val + C_flag; // Add as signed no to determine overflow (V)
-			val_C = mAccumulator + read_val + C_flag; // Add as unsigned no to determine carry (C)
-			mAccumulator = val_C & 0xff;
-			setNZCVflags(mAccumulator, (val_C & 0x100) != 0, val_V < -128 || val_V > 127);
+			val_V = (int8_t)mAcc + (int8_t)read_val + C_flag; // Add as signed no to determine overflow (V)
+			val_C = mAcc + read_val + C_flag; // Add as unsigned no to determine carry (C)
+			mAcc = val_C & 0xff;
+			setNZCVflags(mAcc, (val_C & 0x100) != 0, val_V < -128 || val_V > 127);
 		}
 		
 		break;
@@ -150,8 +137,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	-	-	-	-
 	{
-		mAccumulator = mAccumulator & read_val;
-		setNZflags(mAccumulator);
+		mAcc = mAcc & read_val;
+		setNZflags(mAcc);
 		break;
 	}
 
@@ -170,8 +157,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 			}
 		}
 		else
-			mAccumulator = val_16_u & 0xff;
-		setNZflags(mAccumulator);
+			mAcc = val_16_u & 0xff;
+		setNZflags(mAcc);
 		break;
 	}
 
@@ -215,7 +202,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// M7	+	-	-	-	M6
 		{
-			val_8 = mAccumulator & read_val;
+			val_8 = mAcc & read_val;
 			mStatusRegister &= ~Z_set_mask & ~N_set_mask & ~V_set_mask;
 			mStatusRegister |= (val_8 == 0? Z_set_mask: 0);
 			mStatusRegister |= read_val & N_set_mask;
@@ -351,8 +338,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 
 	{
 		
-		val_16_u = mAccumulator - read_val;
-		setNZCflags(val_16_u & 0xff, mAccumulator >= read_val);
+		val_16_u = mAcc - read_val;
+		setNZCflags(val_16_u & 0xff, mAcc >= read_val);
 		break;
 	}
 
@@ -422,8 +409,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// +	+	-	-	-	-
 
 	{
-		mAccumulator = mAccumulator ^ read_val;
-		setNZflags(mAccumulator);
+		mAcc = mAcc ^ read_val;
+		setNZflags(mAcc);
 		break;
 	}
 
@@ -471,9 +458,9 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 	{
 		if (calc_op_adr == 0xfe52) { // OSWRCH is executed via JSR $fff4:JMP($208) where Mem[0x208] = 0xfe52
 			// Output A content on screen
-			if (mAccumulator >= 0x20 && mAccumulator < 0x7f)
-				cout.put((char)mAccumulator).flush();
-			else if (mAccumulator == 0xd)
+			if (mAcc >= 0x20 && mAcc < 0x7f)
+				cout.put((char)mAcc).flush();
+			else if (mAcc == 0xd)
 				cout << "\n";
 
 			// Emulate RTS instruction
@@ -481,17 +468,17 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 			read(0x100 + (uint16_t)++mStackPointer, PC_l);
 			read(0x100 + (uint16_t)++mStackPointer, PC_h);
 			mProgramCounter = PC_h * 256 + PC_l + 1;
-			//cout << "JMP($208) with A=0x" << hex << (int)mAccumulator << "\n";
+			//cout << "JMP($208) with A=0x" << hex << (int)mAcc << "\n";
 		}
 		else if (calc_op_adr == 0xfe94) { // OSRDCH is executed via JSR $FFE3:JMP($20a) where Mem[0x20a] = 0xfe94
 			// Read char into A
 			uint8_t c = (uint8_t)getch();
 			if (c == '\n')
-				mAccumulator = 0xd;
+				mAcc = 0xd;
 			else if (c == 0x3)
 				return false;
 			else
-				mAccumulator = c;
+				mAcc = c;
 			// Emulate RTS instruction
 			uint8_t PC_l, PC_h;
 			read(0x100 + (uint16_t)++mStackPointer, PC_l);
@@ -516,31 +503,31 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 			// Read character
 			uint8_t c = (uint8_t)getch();
 			if (c == '\n')
-				mAccumulator = 0xd;
+				mAcc = 0xd;
 			else if (c == 0x3)
 				return false;
 			else
-				mAccumulator = c;
+				mAcc = c;
 			// Write it
 			calc_op_adr = 0xfff4;
 		}
 		if (calc_op_adr == 0xfff4) { // OSWRCH
 			// Output A content on screen
-			if (mAccumulator >= 0x20 && mAccumulator < 0x7f)
-				cout.put((char)mAccumulator).flush();
-			else if (mAccumulator == 0xd)
+			if (mAcc >= 0x20 && mAcc < 0x7f)
+				cout.put((char)mAcc).flush();
+			else if (mAcc == 0xd)
 				cout << "\n";
-			//cout << "JSR $fff4 with A=0x" << hex << (int)mAccumulator << "\n";
+			//cout << "JSR $fff4 with A=0x" << hex << (int)mAcc << "\n";
 		}
 		else if (calc_op_adr == 0xffe3) { // OSRDCH
 			// Read char into A
 			uint8_t c = (uint8_t)getch();
 			if (c == '\n')
-				mAccumulator = 0xd;
+				mAcc = 0xd;
 			else if (c == 0x3)
 				return false;
 			else
-				mAccumulator = c;
+				mAcc = c;
 		}
 		else {
 			uint16_t PC_push_val = opcode_PC + 2;
@@ -558,8 +545,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	-	-	-	-
 	{
-		mAccumulator = read_val;
-		setNZflags(mAccumulator);
+		mAcc = read_val;
+		setNZflags(mAcc);
 		break;
 	}
 
@@ -600,7 +587,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 			}
 		}
 		else
-			mAccumulator = val_8;
+			mAcc = val_8;
 		setNZflags(val_8);
 		break;
 	}
@@ -617,8 +604,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	-	-	-	-
 	{
-		mAccumulator = mAccumulator | read_val;
-		setNZflags(mAccumulator);
+		mAcc = mAcc | read_val;
+		setNZflags(mAcc);
 		break;
 	}
 
@@ -628,7 +615,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
-		write(0x100 + (uint16_t)mStackPointer--, mAccumulator);
+		write(0x100 + (uint16_t)mStackPointer--, mAcc);
 		break;
 	}
 
@@ -648,8 +635,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	-	-	-	-
 	{
-		read(0x100 + (uint16_t)++mStackPointer, mAccumulator);
-		setNZflags(mAccumulator);
+		read(0x100 + (uint16_t)++mStackPointer, mAcc);
+		setNZflags(mAcc);
 		break;
 	}
 	case Codec6502::Instruction::PLP:
@@ -679,7 +666,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 			}
 		}
 		else
-			mAccumulator = val_8;
+			mAcc = val_8;
 		setNZflags(val_8);
 		break;
 	}
@@ -699,7 +686,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 			}
 		}
 		else
-			mAccumulator = val_8;
+			mAcc = val_8;
 		setNZflags(val_8);
 		break;
 	}
@@ -757,43 +744,32 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 			if (D_flag) {
 
 				// Calculate zero, negative & overflow flag as for non-BDC subtraction
-				int16_t val_ZNV = (int8_t)mAccumulator - (int8_t)read_val - (1 - C_flag);
+				int16_t val_ZNV = (int8_t)mAcc - (int8_t)read_val - (1 - C_flag);
 				setNZVflags((val_ZNV & 0x80) != 0, (val_ZNV & 0xff) == 0, val_ZNV < -128 || val_ZNV > 127);
 
 				// BCD Subtraction and calculation of carry flag
-				int8_t low_digit = (mAccumulator & 0xf) - (read_val & 0xf) - (1-C_flag);
+				int8_t low_digit = (mAcc & 0xf) - (read_val & 0xf) - (1-C_flag); // can become -10 (0-9-1) to 9 (9-0-0)
 				int8_t borrow = 0;
 				if (low_digit < 0) {
-					low_digit += 10;
-					borrow = 1;
+					low_digit += 0x0a;
+					borrow = 0x10;
 				}
-				int8_t high_digit = ((mAccumulator >> 4) & 0xf) - ((read_val >> 4) & 0xf) - borrow;
-				int8_t high_digit_not_adjusted = high_digit; // save for later use when setting N & V flags
+				low_digit &= 0x0f;
+				int16_t high_digit = (mAcc & 0xf0) - (read_val & 0xf0) - borrow; // can become -0xa0 (0-0x90-0x10) to 0x90 (0x90-0-0) 
 				int8_t set_C = 1;
 				if (high_digit < 0) {
-					high_digit += 10;
+					high_digit += 0xa0;
 					set_C = 0;
 				}
-				uint8_t mAccumulator_p = mAccumulator; // save for later use when setting N & V flags
-				mAccumulator = ((high_digit << 4) & 0xf0) | (low_digit & 0xf);
+				mAcc = (high_digit | low_digit) & 0xff;
 				mStatusRegister &= ~C_set_mask;
 				mStatusRegister |= set_C;
 
-				// Calculate N & V flags
-				/*
-				int8_t set_N = 0;
-				if (high_digit_not_adjusted & 0x8)
-					set_N = 1;
-				int16_t val_V = (int8_t) mAccumulator_p - (int8_t)read_val - (1 - C_flag);
-				int8_t set_V = ((val_V < -128) || (val_V > 127));
-
-				setNZCVflags(set_N, set_Z, set_C, set_V);
-				*/
 			}
 			else {
-				val_V = (int8_t)mAccumulator - (int8_t)read_val - (1-C_flag);
-				val_C = mAccumulator - read_val - (1 - C_flag);
-				mAccumulator = val_C & 0xff;
+				val_V = (int8_t)mAcc - (int8_t)read_val - (1-C_flag);
+				val_C = mAcc - read_val - (1 - C_flag);
+				mAcc = val_C & 0xff;
 				
 				setNZCVflags(val_C & 0xff, val_C >= 0, val_V < -128 || val_V > 127);
 			}
@@ -835,7 +811,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
-		write(calc_op_adr, mAccumulator);
+		write(calc_op_adr, mAcc);
 		break;
 	}
 
@@ -866,7 +842,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// +	+	-	-	-	-
 
 	{
-		mRegisterX = mAccumulator;
+		mRegisterX = mAcc;
 		setNZflags(mRegisterX);
 		break;
 	}
@@ -877,7 +853,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	-	-	-	-
 	{
-		mRegisterY = mAccumulator;
+		mRegisterY = mAcc;
 		setNZflags(mRegisterY);
 		break;
 	}
@@ -899,8 +875,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	-	-	-	-
 	{
-		mAccumulator = mRegisterX;
-		setNZflags(mAccumulator);
+		mAcc = mRegisterX;
+		setNZflags(mAcc);
 		break;
 	}
 
@@ -920,8 +896,8 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	-	-	-	-
 	{
-		mAccumulator = mRegisterY;
-		setNZflags(mAccumulator);
+		mAcc = mRegisterY;
+		setNZflags(mAcc);
 		break;
 	}
 
@@ -948,7 +924,6 @@ bool P6502::reset()
 		return false;
 
 	mProgramCounter = adr_H * 256 + adr_L;
-	mProgramCounter = 0xa000;
 
 	// Increase time by 7 clock cycles for the RESET
 	tick(7);
@@ -1011,9 +986,9 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint
 	op_mem = false;
 	switch (instr.mode) {
 	case Codec6502::Mode::Accumulator:
-		// OPC mAccumulator
+		// OPC mAcc
 		// Read A
-		read_val = mAccumulator;
+		read_val = mAcc;
 		break;
 
 	case Codec6502::Mode::Implied:
@@ -1295,7 +1270,7 @@ string P6502::getState()
 	stringstream sout;
 
 	sout << hex << setfill('0') <<
-		"A:" << setw(2) << (int) mAccumulator <<
+		"A:" << setw(2) << (int) mAcc <<
 		" X:" << setw(2) << (int) mRegisterX <<
 		" Y:" << setw(2) << (int) mRegisterY <<
 		" SP:" << setw(2) << (int) mStackPointer <<

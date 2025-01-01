@@ -24,7 +24,7 @@ private:
 
 	// Registers
 	uint16_t mProgramCounter;	// Program Counter
-	uint8_t mAccumulator;		// Accumulator
+	uint8_t mAcc;		// Accumulator
 	uint8_t mRegisterX;			// Index Register mRegisterX
 	uint8_t mRegisterY;			// Index Register mRegisterY
 	uint8_t mStackPointer;		// Stack Pointer
