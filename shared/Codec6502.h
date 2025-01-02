@@ -51,8 +51,8 @@ public:
 		Absolute_X,		// OPC $1234,X			-- add one cycle if page boundary crossed for some instructions
 		Absolute_Y,		// OPC $1234,Y			-- add one cycle if page boundary crossed for some instructions
 		Indirect,		// OPC ($1234)
-		PreIndexed_Indirect_X,		// OPC ($12),X
-		PostIndexed_Indirect_Y,		// OPC ($12),Y			-- add one cycle if page boundary crossed for some instructions
+		PreInd_Ind_X,		// OPC ($12),X
+		PostInd_Ind_Y,		// OPC ($12),Y			-- add one cycle if page boundary crossed for some instructions
 		UndefinedMode	// Undefined
 	};
 
@@ -75,8 +75,8 @@ public:
 		{0x6d, ADC, 					Absolute,		4, false, true},
 		{0x7d, ADC, 					Absolute_X,		4, true , true},
 		{0x79, ADC, 					Absolute_Y,		4, true , true},
-		{0x61, ADC, 					PreIndexed_Indirect_X,		6, false, true},
-		{0x71, ADC, 					PostIndexed_Indirect_Y,		5, true , true},
+		{0x61, ADC, 					PreInd_Ind_X,		6, false, true},
+		{0x71, ADC, 					PostInd_Ind_Y,		5, true , true},
 
 		{0x29, AND, 					Immediate,		2, false , false},
 		{0x25, AND, 					ZeroPage,		3, false , true},
@@ -84,8 +84,8 @@ public:
 		{0x2d, AND, 					Absolute,		4, false , true},
 		{0x3d, AND, 					Absolute_X,		4, true , true},
 		{0x39, AND, 					Absolute_Y,		4, true , true},
-		{0x21, AND, 					PreIndexed_Indirect_X,		6, false, true},
-		{0x31, AND, 					PostIndexed_Indirect_Y,		6, true , true},
+		{0x21, AND, 					PreInd_Ind_X,	6, false, true},
+		{0x31, AND, 					PostInd_Ind_Y,	6, true , true},
 
 		{0x0a, ASL, 					Accumulator,	2, false, false},
 		{0x06, ASL, 					ZeroPage,		5, false, true},
@@ -127,8 +127,8 @@ public:
 		{0xcd, CMP, 					Absolute,		4, false, true},
 		{0xdd, CMP, 					Absolute_X,		4, true , true},
 		{0xd9, CMP, 					Absolute_Y,		4, true , true},
-		{0xc1, CMP, 					PreIndexed_Indirect_X,		6, false, true},
-		{0xd1, CMP, 					PostIndexed_Indirect_Y,		5, true , true},
+		{0xc1, CMP, 					PreInd_Ind_X,	6, false, true},
+		{0xd1, CMP, 					PostInd_Ind_Y,	5, true , true},
 
 		{0xe0, CPX, 					Immediate,		2, false, false},
 		{0xe4, CPX, 					ZeroPage,		3, false, true},
@@ -153,8 +153,8 @@ public:
 		{0x4d, EOR, 					Absolute,		4, false, true},
 		{0x5d, EOR, 					Absolute_X,		4, true , true},
 		{0x59, EOR, 					Absolute_Y,		4, true , true},
-		{0x41, EOR, 					PreIndexed_Indirect_X,		6, false, true},
-		{0x51, EOR, 					PostIndexed_Indirect_Y,		6, true , true},
+		{0x41, EOR, 					PreInd_Ind_X,	6, false, true},
+		{0x51, EOR, 					PostInd_Ind_Y,	6, true , true},
 
 		{0xe6, INC, 					ZeroPage,		5, false, true},
 		{0xf6, INC, 					ZeroPage_X,		6, false, true},
@@ -176,8 +176,8 @@ public:
 		{0xad, LDA, 					Absolute,		4, false, true},
 		{0xbd, LDA, 					Absolute_X,		4, true , true},
 		{0xb9, LDA, 					Absolute_Y,		4, true , true},
-		{0xa1, LDA, 					PreIndexed_Indirect_X,		6, false, true},
-		{0xb1, LDA, 					PostIndexed_Indirect_Y,		5, true , true},
+		{0xa1, LDA, 					PreInd_Ind_X,	6, false, true},
+		{0xb1, LDA, 					PostInd_Ind_Y,	5, true , true},
 
 		{0xa2, LDX, 					Immediate,		2, false, false},
 		{0xa6, LDX, 					ZeroPage,		3, false, true},
@@ -205,8 +205,8 @@ public:
 		{0x0d, ORA, 					Absolute,		4, false , true },
 		{0x1d, ORA, 					Absolute_X,		4, true , true },
 		{0x19, ORA, 					Absolute_Y,		4, true , true },
-		{0x01, ORA, 					PreIndexed_Indirect_X,		6, false, true },
-		{0x11, ORA, 					PostIndexed_Indirect_Y,		5, true , true },
+		{0x01, ORA, 					PreInd_Ind_X,	6, false, true },
+		{0x11, ORA, 					PostInd_Ind_Y,	5, true , true },
 
 		{0x48, PHA, 					Implied,		3, false, false},
 
@@ -238,8 +238,8 @@ public:
 		{0xed, SBC, 					Absolute,		4, false, true },
 		{0xfd, SBC, 					Absolute_X,		4, true , true },
 		{0xf9, SBC, 					Absolute_Y,		4, true , true },
-		{0xe1, SBC, 					PreIndexed_Indirect_X,		6, false, true },
-		{0xf1, SBC, 					PostIndexed_Indirect_Y,		5, true , true },
+		{0xe1, SBC, 					PreInd_Ind_X,	6, false, true },
+		{0xf1, SBC, 					PostInd_Ind_Y,	5, true , true },
 
 		{0x38, SEC, 					Implied,		2, false, false},
 
@@ -252,8 +252,8 @@ public:
 		{0x8d, STA, 					Absolute,		4, false, false},
 		{0x9d, STA, 					Absolute_X,		5, false, false},
 		{0x99, STA, 					Absolute_Y,		5, false, false},
-		{0x81, STA, 					PreIndexed_Indirect_X,		6, false, false},
-		{0x91, STA, 					PostIndexed_Indirect_Y,		6, false, false},
+		{0x81, STA, 					PreInd_Ind_X,	6, false, false},
+		{0x91, STA, 					PostInd_Ind_Y,	6, false, false},
 
 		{0x86, STX, 					ZeroPage,		3, false, false},
 		{0x96, STX, 					ZeroPage_Y,		4, false, false},

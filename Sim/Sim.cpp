@@ -23,10 +23,10 @@ int main(int argc, const char* argv[])
 
     vector<Device*> devices;
 
-    Device::crMemMap(arg_parser.mapFileName, devices, arg_parser.verbose);
+    Device::crMemMap(arg_parser.mapFileName, devices, arg_parser.debugInfo.verbose);
 
     // Create processor object
-    P6502 processor(arg_parser.cMHz, devices, arg_parser.verbose);
+    P6502 processor(arg_parser.cMHz, devices, arg_parser.debugInfo);
 
     // Start processor thread (run method of processor)
     std::thread processor_t(&P6502::run, &processor);

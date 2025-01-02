@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include "../shared/DebugInfo.h"
 
 using namespace std;
 
@@ -11,8 +12,10 @@ class ArgParser
 public:
 
 	double cMHz = 1.0;
-	bool verbose = false;
 	string mapFileName;
+
+	DebugInfo debugInfo;
+
 
 private:
 

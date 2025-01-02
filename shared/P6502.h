@@ -7,6 +7,7 @@
 #include "Device.h"
 #include <vector>
 #include <mutex>
+#include "DebugInfo.h"
 
 class P6502 {
 
@@ -65,11 +66,11 @@ private:
 
 	string getState();
 
-	bool mVerbose = false;
+	DebugInfo mDebugInfo;
 
 public:
 
-	P6502(double clockSpeed, vector<Device*> &devices, bool verbose = false);
+	P6502(double clockSpeed, vector<Device*> &devices, DebugInfo debugInfo);
 
 	void run();
 

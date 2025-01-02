@@ -78,8 +78,8 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 					case ZeroPage:		// OPC &12
 					case ZeroPage_X:	// OPC &12,X
 					case ZeroPage_Y:	// OPC &12,Y
-					case PreIndexed_Indirect_X:	// OPC (&12,X)
-					case PostIndexed_Indirect_Y:	// OPC (&12),Y
+					case PreInd_Ind_X:	// OPC (&12,X)
+					case PostInd_Ind_Y:	// OPC (&12),Y
 					{
 						uint8_t op8;
 						fin.read((char*)&op8, sizeof(op8));
@@ -185,13 +185,13 @@ string Codec6502::decode(uint16_t PC, uint8_t opcode, uint16_t operand)
 			sout << instr2str[instr.instruction] << " (&" << word2str(operand) << ")";
 			break;
 		}
-		case PreIndexed_Indirect_X:		// OPC (&12,X)
+		case PreInd_Ind_X:		// OPC (&12,X)
 		{
 			sout << byte2str(operand) << "    ";
 			sout << instr2str[instr.instruction] << " (&" << byte2str(operand) << ";X)";
 			break;
 		}
-		case PostIndexed_Indirect_Y:		// OPC (&12),Y
+		case PostInd_Ind_Y:		// OPC (&12),Y
 		{
 			sout << byte2str(operand) << "    ";
 			sout << instr2str[instr.instruction] << " (&" << byte2str(operand) << "),Y";

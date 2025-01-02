@@ -8,7 +8,7 @@
 #include <bitset>
 #include<conio.h>
 
-P6502::P6502(double clockSpeed, vector<Device*>& devices, bool verbose) : mDevices(devices), mVerbose(verbose)
+P6502::P6502(double clockSpeed, vector<Device*>& devices, DebugInfo debugInfo) : mDevices(devices), mDebugInfo(debugInfo)
 {
 	cPeriod = (int) round(1000 / clockSpeed);
 	reset();
@@ -31,12 +31,25 @@ void P6502::run()
 			cont = false;
 		mMutex.unlock();
 
+		if (mDebugInfo.stopAdr > 0 && mProgramCounter == mDebugInfo.stopAdr) {
+			cont = false;
+			std::cout << "Execution stop triggered!\n";
+			if (mDebugInfo.dumpAdr > 0) {
+				for (int a = mDebugInfo.dumpAdr; a < mDebugInfo.dumpAdr + mDebugInfo.dumpSz; a++) {
+					uint8_t d;
+					read(a, d);
+					std::cout << "0x" << hex << setw(4) << setfill('0') << a <<
+						" 0x" << setw(2) << (int) d << "\n";
+				}
+			}
+		}
+
 		// Get opcode of next instruction
 		uint8_t opcode;
 		uint16_t opcode_PC = mProgramCounter;
 		if (!read(mProgramCounter++, opcode)) {
 			cont = false;
-			std::cout << "Failed to read instruction!\n";
+			std::cout << "Failed to read instruction!\n";		
 		}
 
 		// Decode the opcode
@@ -62,7 +75,7 @@ void P6502::run()
 			std::cout << "Failed to execute instruction!\n";
 		}
 
-		if (mVerbose && cont) {
+		if (mDebugInfo.verbose && cont) {
 			string instr_s = mCodec.decode(opcode_PC, opcode, operand);
 			cout << setfill(' ') << setw(30) << left << instr_s << right <<
 				" " << getState() << "\n";
@@ -79,8 +92,14 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 	uint16_t val_16_u;
 	uint8_t val_8_u;
 
-	if (!op_mem)
-		read_val = operand & 0xff;
+	if (opcode_PC == 0xc504) { // Atom <ESC> key subroutine that checks for pressed <ESC> key
+		// Emulate RTS instruction
+		uint8_t PC_l, PC_h;
+		read(0x100 + (uint16_t)++mStackPointer, PC_l);
+		read(0x100 + (uint16_t)++mStackPointer, PC_h);
+		mProgramCounter = PC_h * 256 + PC_l + 1;
+		return true;
+	}
 
 	switch (instr.instruction) {
 
@@ -149,13 +168,12 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 	{
 		mStatusRegister &= ~C_set_mask;
 		mStatusRegister |= ((read_val & 0x80) != 0? C_set_mask : 0);
-		val_16_u = (read_val << 1) & 0x1fe;
-		val_8_u = val_16_u & 0xff;
+		val_8_u = (read_val << 1) & 0xfe;
 		if (op_mem) {
 			if (!write(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
 				return false;
 			}
-			if (!write(calc_op_adr, val_16_u & 0xff)) {
+			if (!write(calc_op_adr, val_8_u)) {
 				return false;
 			}
 		}
@@ -259,7 +277,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// -	-	-	1	-	-
 	{
 		// Force Break
-		//mVerbose = true;
+		//mDebugInfo.verbose = true;
 		
 		// Save PC & Status to stack
 		uint16_t PC_push_val = opcode_PC + 2;
@@ -936,7 +954,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 //
 bool P6502::reset()
 {
-	if (mVerbose)
+	if (mDebugInfo.verbose)
 		cout << "RESET\n";
 
 	// Fetch RESET vector
@@ -962,7 +980,7 @@ bool P6502::read(uint16_t adr, uint8_t &data)
 		Device* dev = mDevices[i];
 		if (dev->selected(adr)) {
 			bool success = dev->read(adr, data);
-			if (mVerbose)
+			if (mDebugInfo.verbose)
 				cout << "READ 0x" << hex << adr << " => " << (int)data << "\n";
 			return success;
 		}
@@ -981,7 +999,7 @@ bool P6502::write(uint16_t adr, uint8_t data)
 	for (int i = 0; i < mDevices.size(); i++) {
 		Device* dev = mDevices[i];
 		if (dev->selected(adr)) {
-			if (mVerbose)
+			if (mDebugInfo.verbose)
 				cout << "WRITE 0x" << hex << (int)data << " to 0x" << adr << "\n";
 			return dev->write(adr, data);			
 		}
@@ -1015,26 +1033,26 @@ void P6502::stop()
 //
 bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u, uint16_t &calc_op_adr, uint8_t& read_val_8_u, bool& op_mem)
 {
-	operand_16_u = 0x0; // needs to have a default value as e.g. the Implied addressing mode doesn't define any operand_16_u
-	calc_op_adr = 0x0; // needs to have a default value as e.g. the Accumulator/Implied addressing modes doen't define any addresses
+	operand_16_u = 0x0; // needs to have a default value as e.g. the Implied addressing mode doesn't define any operand
+	calc_op_adr = 0x0; // needs to have a default value as e.g. the Accumulator/Implied addressing modes don't define any addresses
 	read_val_8_u = 0x0; // needs to have a default value as e.g. the Implied addressing mode doesn't define any result value
-	op_mem = false; // Initiallymark the instruction as one NOT accessing memory
+	op_mem = false; // Initially mark the instruction as one NOT accessing memory
 
 	switch (instr.mode) {
 
 	case Codec6502::Mode::Accumulator: // e.g., LSR A
 
 		// OPC mAcc
-		// Read A
+		// Read A (no numeric operand)
 
-		// Save the value resulting from the evaluation of the operand_16_u
+		// Save the value resulting from the evaluation of the operand
 		read_val_8_u = mAcc;
 
 		break;
 
 	case Codec6502::Mode::Implied: // e.g., SEC
 
-		// implicit (no operand_16_u)
+		// implicit (no explicit operand)
 		break;
 
 	case Codec6502::Mode::Relative: // e.g., BNE
@@ -1046,7 +1064,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 		if (!read(mProgramCounter++, rel_a))
 			return false;
 
-		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		// Save the constant numeric part of the operand for later use when executing the specific instruction
 		operand_16_u = rel_a;
 
 		// Save the calculated address for use when executing the specific instruction later on
@@ -1068,10 +1086,10 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 		if (!read(mProgramCounter++, op8))
 			return false;
 
-		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		// Save the constant numeric part of the operand for later use when executing the specific instruction
 		operand_16_u = op8;
 
-		// Save the value resulting from the evaluation of the operand_16_u
+		// Save the value resulting from the evaluation of the operand
 		read_val_8_u = op8;
 
 		break;
@@ -1080,18 +1098,18 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 	case Codec6502::Mode::ZeroPage: // e.g., LDA $12
 
 		// OPC $12
-		// Read value Mem[$12]
+		// Read/Write value Mem[$12]
 	{
 		// Mark the instruction as one accessing memory to later one be able to distinguish between
 		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
-		// Read operand_16_u address
+		// Read address operand
 		uint8_t zp_a;
 		if (!read(mProgramCounter++, zp_a))
 			return false;
 
-		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		// Save the constant numeric part of the operand for later use when executing the specific instruction
 		operand_16_u = zp_a;
 
 		// Save the calculated address for use when executing the specific instruction later on
@@ -1099,7 +1117,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !read((uint16_t) zp_a, read_val_8_u))
+		if (instr.readsMem && !read(zp_a, read_val_8_u))
 			return false;
 
 		break;
@@ -1108,18 +1126,18 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 	case Codec6502::Mode::ZeroPage_X: // e.g., LDA $12,X
 
 		// OPC $12,X
-		// Read Mem[$12+X]
+		// Read/Write Mem[$12+X]
 	{
 		// Mark the instruction as one accessing memory to later one be able to distinguish between
 		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
-		// Read operand_16_u address
+		// Read address operand
 		uint8_t zp_a;
 		if (!read(mProgramCounter++, zp_a))
 			return false;
 
-		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		// Save the constant numeric part of the operand for later use when executing the specific instruction
 		operand_16_u = zp_a;
 
 		// Calculate address and save it for use when executing the specific instruction later on
@@ -1127,7 +1145,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !read((uint16_t) calc_op_adr, read_val_8_u))
+		if (instr.readsMem && !read(calc_op_adr, read_val_8_u))
 			return false;
 
 		break;
@@ -1136,18 +1154,18 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 	case Codec6502::Mode::ZeroPage_Y: // e.g., LDA $12,Y
 
 		// OPC $12,Y
-		// Read Mem[$12+Y]
+		// Read/Write Mem[$12+Y]
 	{
 		// Mark the instruction as one accessing memory to later one be able to distinguish between
 		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
-		// Read operand_16_u address
+		// Read address operand
 		uint8_t zp_a;
 		if (!read(mProgramCounter++, zp_a))
 			return false;
 
-		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		// Save the constant numeric part of the operand for later use when executing the specific instruction
 		operand_16_u = zp_a;
 
 		// Calculate address and save it for use when executing the specific instruction later on
@@ -1155,7 +1173,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !read((uint16_t) calc_op_adr, read_val_8_u))
+		if (instr.readsMem && !read(calc_op_adr, read_val_8_u))
 			return false;
 
 
@@ -1165,18 +1183,18 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 	case Codec6502::Mode::Absolute: // e.g., LDA $1234
 
 		// OPC $1234
-		// Read Mem[$1234]
+		// Read/Write Mem[$1234]
 	{
 		// Mark the instruction as one accessing memory to later one be able to distinguish between
 		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
-		// Read operand_16_u address
+		// Read address operand
 		uint8_t a_L, a_H;
 		if (!read(mProgramCounter++, a_L) || !read(mProgramCounter++, a_H))
 			return false;
 
-		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		// Save the constant numeric part of the operand for later use when executing the specific instruction
 		operand_16_u = (a_H << 8) | a_L;
 
 		// Save the calculated address for use when executing the specific instruction later on
@@ -1194,18 +1212,18 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 	case Codec6502::Mode::Absolute_X: // e.g., LDA $1234,X
 
 		// OPC $1234,X
-		// Read Mem[$1234+X]
+		// Read/Write Mem[$1234+X]
 	{
 		// Mark the instruction as one accessing memory to later one be able to distinguish between
 		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
-		// Read operand_16_u address
+		// Read address operand
 		uint8_t a_L, a_H;
 		if (!read(mProgramCounter++, a_L) || !read(mProgramCounter++, a_H))
 			return false;
 
-		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		// Save the constant numeric part of the operand for later use when executing the specific instruction
 		operand_16_u = (a_H << 8) | a_L;
 
 		// Calculate address and save it for use when executing the specific instruction later on
@@ -1226,20 +1244,20 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 	case Codec6502::Mode::Absolute_Y: // e.g., LDA $1234,X
 
 		// OPC $1234,Y
-		// Read Mem[$1234+Y]
+		// Read/Write Mem[$1234+Y]
 	{
 		// Mark the instruction as one accessing memory to later one be able to distinguish between
 		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
-		// Read operand_16_u address
+		// Read address operand
 		uint8_t a_L, a_H;
 		if (!read(mProgramCounter++, a_L))
 			return false;
 		if (!read(mProgramCounter++, a_H))
 			return false;
 
-		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		// Save the constant numeric part of the operand for later use when executing the specific instruction
 		operand_16_u = (a_H << 8) | a_L;
 
 		// Calculate address and save it for use when executing the specific instruction later on
@@ -1266,14 +1284,14 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
-		// Read operand_16_u address
+		// Read address operand
 		uint8_t a_L, a_H;
 		if (!read(mProgramCounter++, a_L))
 			return false;
 		if (!read(mProgramCounter++, a_H))
 			return false;
 
-		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		// Save the constant numeric part of the operand for later use when executing the specific instruction
 		operand_16_u = (a_H << 8) | a_L;
 
 		// Read indirect address
@@ -1292,21 +1310,21 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 		break;
 	}
 
-	case Codec6502::Mode::PreIndexed_Indirect_X: // pre-indexed indirect -  // e.g., LDA ($12,X)
+	case Codec6502::Mode::PreInd_Ind_X: // pre-indexed indirect -  // e.g., LDA ($12,X)
 
 		// OPC ($12,X)
-		// Read from Mem[Mem[$12+X]]
+		// Read/Write Mem[Mem[$12+X]]
 	{
 		// Mark the instruction as one accessing memory to later one be able to distinguish between
 		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
-		// Read operand_16_u zero page address
+		// Read zero page address operand
 		uint8_t zp_a;
 		if (!read(mProgramCounter++, zp_a))
 			return false;
 
-		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		// Save the constant numeric part of the operand for later use when executing the specific instruction
 		operand_16_u = zp_a;
 
 		// Read indirect address
@@ -1327,21 +1345,21 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 		break;
 	}
 
-	case Codec6502::Mode::PostIndexed_Indirect_Y: // post-indexed indirect -  // e.g., LDA ($12),Y
+	case Codec6502::Mode::PostInd_Ind_Y: // post-indexed indirect -  // e.g., LDA ($12),Y
 
 		// OPC ($12),Y
-		// Read from Mem[Mem[$12]+Y]
+		// Read/Write Mem[Mem[$12]+Y]
 	{
 		// Mark the instruction as one accessing memory to later one be able to distinguish between
 		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
-		// Read operand_16_u zero page address (e.g. $12)
+		// Read zero page address operand (e.g. $12)
 		uint8_t zp_a;
 		if (!read(mProgramCounter++, zp_a))
 			return false;
 
-		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		// Save the constant numeric part of the operand for later use when executing the specific instruction
 		operand_16_u = zp_a;
 
 		// Read Indirect address -  e.g. ($12)
@@ -1370,7 +1388,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 		break;
 	}
 
-	if (mVerbose)
+	if (mDebugInfo.verbose)
 		cout << "operand_16_u = 0x" << hex << operand_16_u << ", calc adr = 0x" << calc_op_adr << ", read val = 0x" << (int) read_val_8_u <<
 		", mem acc = " << (op_mem?"TRUE":"FALSE") << "\n";
 	return true;
