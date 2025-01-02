@@ -1141,7 +1141,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 		operand_16_u = zp_a;
 
 		// Calculate address and save it for use when executing the specific instruction later on
-		uint8_t calc_op_adr = zp_a + mRegisterX;
+		calc_op_adr = (uint8_t) (zp_a + mRegisterX);
 
 		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 		// to make it available as 'read_val_8_u' later on when executing the instruction
@@ -1169,7 +1169,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 		operand_16_u = zp_a;
 
 		// Calculate address and save it for use when executing the specific instruction later on
-		uint8_t calc_op_adr = zp_a + mRegisterY;
+		calc_op_adr = (uint8_t) (zp_a + mRegisterY);
 
 		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 		// to make it available as 'read_val_8_u' later on when executing the instruction
