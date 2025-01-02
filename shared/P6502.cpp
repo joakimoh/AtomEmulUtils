@@ -33,12 +33,11 @@ void P6502::run()
 
 		// Get opcode of next instruction
 		uint8_t opcode;
-		if (!read(mProgramCounter, opcode)) {
+		uint16_t opcode_PC = mProgramCounter;
+		if (!read(mProgramCounter++, opcode)) {
 			cont = false;
 			std::cout << "Failed to read instruction!\n";
 		}
-		uint16_t opcode_PC = mProgramCounter;
-		mProgramCounter++;
 
 		// Decode the opcode
 		Codec6502::InstructionInfo instr;
@@ -137,7 +136,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	-	-	-	-
 	{
-		mAcc = mAcc & read_val;
+		mAcc &= read_val;
 		setNZflags(mAcc);
 		break;
 	}
@@ -419,7 +418,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// +	+	-	-	-	-
 
 	{
-		mAcc = mAcc ^ read_val;
+		mAcc ^= read_val;
 		setNZflags(mAcc);
 		break;
 	}
@@ -620,7 +619,7 @@ bool P6502::executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, u
 		// N	Z	C	I	D	V
 		// +	+	-	-	-	-
 	{
-		mAcc = mAcc | read_val;
+		mAcc |=  read_val;
 		setNZflags(mAcc);
 		break;
 	}
@@ -1000,32 +999,57 @@ void P6502::stop()
 	mMutex.unlock();
 }
 
-bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint16_t &calc_op_adr, uint8_t& read_val, bool& op_mem)
+//
+// Evaluates the operand part of an instruction
+//
+// Doesn't care about which specific instruction it is (e.g., LDA, STA etc.). It only
+// looks at the addressing mode independent of the specific instruction.
+// 
+// Returns:
+// 
+// operand_16_u:	the constant numeric part of the specific instruction's operand (when applicable)
+// calc_op_adr:		calculated memory access address for the specific instruction (when applicable)
+// read_val_8_u:	value read from memory or from internal register (A,X,Y,SR,PC) by the specific instruction (when applicable)
+// op_mem:			if true , specifies that the specific instruction's mode includes READING from
+//					memory (e.g., LDA $12 and INC $12 but not LDA @#12 and STA $12)
+//
+bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u, uint16_t &calc_op_adr, uint8_t& read_val_8_u, bool& op_mem)
 {
-	operand = 0x0;
-	calc_op_adr = 0x0;
-	read_val = 0x0;
-	op_mem = false;
+	operand_16_u = 0x0; // needs to have a default value as e.g. the Implied addressing mode doesn't define any operand_16_u
+	calc_op_adr = 0x0; // needs to have a default value as e.g. the Accumulator/Implied addressing modes doen't define any addresses
+	read_val_8_u = 0x0; // needs to have a default value as e.g. the Implied addressing mode doesn't define any result value
+	op_mem = false; // Initiallymark the instruction as one NOT accessing memory
+
 	switch (instr.mode) {
-	case Codec6502::Mode::Accumulator:
+
+	case Codec6502::Mode::Accumulator: // e.g., LSR A
+
 		// OPC mAcc
 		// Read A
-		read_val = mAcc;
+
+		// Save the value resulting from the evaluation of the operand_16_u
+		read_val_8_u = mAcc;
+
 		break;
 
-	case Codec6502::Mode::Implied:
-		// implicit (no operand)
+	case Codec6502::Mode::Implied: // e.g., SEC
+
+		// implicit (no operand_16_u)
 		break;
 
-	case Codec6502::Mode::Relative:
+	case Codec6502::Mode::Relative: // e.g., BNE
+
 		// OPC <branch target>
 		// Read relative branch address
 	{
 		uint8_t rel_a;
-		if (!read(mProgramCounter, rel_a))
+		if (!read(mProgramCounter++, rel_a))
 			return false;
-		mProgramCounter++;
-		operand = rel_a;
+
+		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		operand_16_u = rel_a;
+
+		// Save the calculated address for use when executing the specific instruction later on
 		calc_op_adr = (rel_a + mProgramCounter) & 0xffff;
 
 		// Add one cycle if branch to other page
@@ -1035,226 +1059,304 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint
 		break;
 	}
 
-	case Codec6502::Mode::Immediate:
+	case Codec6502::Mode::Immediate: // e.g., LDA @$12
+
 		// OPC #$12
 		// Read value $12
 	{
 		uint8_t op8;
-		if (!read(mProgramCounter, op8))
+		if (!read(mProgramCounter++, op8))
 			return false;
-		operand = op8;
-		read_val = op8;
-		mProgramCounter++;
+
+		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		operand_16_u = op8;
+
+		// Save the value resulting from the evaluation of the operand_16_u
+		read_val_8_u = op8;
 
 		break;
 	}
 
-	case Codec6502::Mode::ZeroPage:
+	case Codec6502::Mode::ZeroPage: // e.g., LDA $12
+
 		// OPC $12
 		// Read value Mem[$12]
 	{
+		// Mark the instruction as one accessing memory to later one be able to distinguish between
+		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
+		// Read operand_16_u address
 		uint8_t zp_a;
-		if (!read(mProgramCounter, zp_a))
+		if (!read(mProgramCounter++, zp_a))
 			return false;
-		operand = zp_a;
-		calc_op_adr = zp_a;
-		mProgramCounter++;
 
-		if (instr.readsMem && !read((uint16_t) zp_a, read_val))
+		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		operand_16_u = zp_a;
+
+		// Save the calculated address for use when executing the specific instruction later on
+		calc_op_adr = zp_a;
+
+		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+		// to make it available as 'read_val_8_u' later on when executing the instruction
+		if (instr.readsMem && !read((uint16_t) zp_a, read_val_8_u))
 			return false;
 
 		break;
 	}
 
-	case Codec6502::Mode::ZeroPage_X:
+	case Codec6502::Mode::ZeroPage_X: // e.g., LDA $12,X
+
 		// OPC $12,X
 		// Read Mem[$12+X]
 	{
+		// Mark the instruction as one accessing memory to later one be able to distinguish between
+		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
+		// Read operand_16_u address
 		uint8_t zp_a;
-		if (!read(mProgramCounter, zp_a))
+		if (!read(mProgramCounter++, zp_a))
 			return false;
-		operand = zp_a;
-		mProgramCounter++;
 
-		uint8_t mem_a = (uint16_t)zp_a;
-		uint8_t calc_op_adr = mem_a + mRegisterX;
+		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		operand_16_u = zp_a;
 
-		if (instr.readsMem && !read((uint16_t) calc_op_adr, read_val))
+		// Calculate address and save it for use when executing the specific instruction later on
+		uint8_t calc_op_adr = zp_a + mRegisterX;
+
+		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+		// to make it available as 'read_val_8_u' later on when executing the instruction
+		if (instr.readsMem && !read((uint16_t) calc_op_adr, read_val_8_u))
 			return false;
 
 		break;
 	}
 
-	case Codec6502::Mode::ZeroPage_Y:
+	case Codec6502::Mode::ZeroPage_Y: // e.g., LDA $12,Y
+
 		// OPC $12,Y
 		// Read Mem[$12+Y]
 	{
+		// Mark the instruction as one accessing memory to later one be able to distinguish between
+		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
+		// Read operand_16_u address
 		uint8_t zp_a;
-		if (!read(mProgramCounter, zp_a))
+		if (!read(mProgramCounter++, zp_a))
 			return false;
-		operand = zp_a;
-		mProgramCounter++;
 
-		uint8_t mem_a = (uint16_t)zp_a;
-		uint8_t calc_op_adr = mem_a + mRegisterY;
+		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		operand_16_u = zp_a;
 
-		if (instr.readsMem && !read((uint16_t) calc_op_adr, read_val))
+		// Calculate address and save it for use when executing the specific instruction later on
+		uint8_t calc_op_adr = zp_a + mRegisterY;
+
+		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+		// to make it available as 'read_val_8_u' later on when executing the instruction
+		if (instr.readsMem && !read((uint16_t) calc_op_adr, read_val_8_u))
 			return false;
 
 
 		break;
 	}
 
-	case Codec6502::Mode::Absolute:
+	case Codec6502::Mode::Absolute: // e.g., LDA $1234
+
 		// OPC $1234
 		// Read Mem[$1234]
 	{
+		// Mark the instruction as one accessing memory to later one be able to distinguish between
+		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
+		// Read operand_16_u address
 		uint8_t a_L, a_H;
-		if (!read(mProgramCounter, a_L))
+		if (!read(mProgramCounter++, a_L) || !read(mProgramCounter++, a_H))
 			return false;
-		mProgramCounter++;
-		if (!read(mProgramCounter, a_H))
-			return false;
-		mProgramCounter++;
 
-		operand = (uint16_t)a_H * 256 + a_L;
-		calc_op_adr = operand;
-		if (instr.readsMem && !read(calc_op_adr, read_val))
+		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		operand_16_u = (a_H << 8) | a_L;
+
+		// Save the calculated address for use when executing the specific instruction later on
+		calc_op_adr = operand_16_u;
+
+		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+		// to make it available as 'read_val_8_u' later on when executing the instruction
+		if (instr.readsMem && !read(calc_op_adr, read_val_8_u))
 			return false;
 
 		break;
 
 	}
 
-	case Codec6502::Mode::Absolute_X:
+	case Codec6502::Mode::Absolute_X: // e.g., LDA $1234,X
+
 		// OPC $1234,X
 		// Read Mem[$1234+X]
 	{
+		// Mark the instruction as one accessing memory to later one be able to distinguish between
+		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
+		// Read operand_16_u address
 		uint8_t a_L, a_H;
-		if (!read(mProgramCounter, a_L))
+		if (!read(mProgramCounter++, a_L) || !read(mProgramCounter++, a_H))
 			return false;
-		mProgramCounter++;
-		if (!read(mProgramCounter, a_H))
-			return false;
-		mProgramCounter++;
 
-		operand = (uint16_t)a_H * 256 + a_L;
-		calc_op_adr = operand + mRegisterX;
-		if (instr.readsMem && !read(calc_op_adr, read_val))
+		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		operand_16_u = (a_H << 8) | a_L;
+
+		// Calculate address and save it for use when executing the specific instruction later on
+		calc_op_adr = operand_16_u + mRegisterX;
+
+		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+		// to make it available as 'read_val_8_u' later on when executing the instruction
+		if (instr.readsMem && !read(calc_op_adr, read_val_8_u))
 			return false;
 
 		// Add one cycle if page boundary crossed
-		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(calc_op_adr, operand))
+		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(calc_op_adr, operand_16_u))
 			tick();
 
 		break;
 	}
 
-	case Codec6502::Mode::Absolute_Y:
+	case Codec6502::Mode::Absolute_Y: // e.g., LDA $1234,X
+
 		// OPC $1234,Y
 		// Read Mem[$1234+Y]
 	{
+		// Mark the instruction as one accessing memory to later one be able to distinguish between
+		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
+		// Read operand_16_u address
 		uint8_t a_L, a_H;
-		if (!read(mProgramCounter, a_L))
+		if (!read(mProgramCounter++, a_L))
 			return false;
-		mProgramCounter++;
-		if (!read(mProgramCounter, a_H))
+		if (!read(mProgramCounter++, a_H))
 			return false;
-		mProgramCounter++;
 
-		operand = (uint16_t)a_H * 256 + a_L;
-		calc_op_adr = operand + mRegisterY;
-		if (instr.readsMem && !read(calc_op_adr, read_val))
+		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		operand_16_u = (a_H << 8) | a_L;
+
+		// Calculate address and save it for use when executing the specific instruction later on
+		calc_op_adr = operand_16_u + mRegisterY;
+
+		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+		// to make it available as 'read_val_8_u' later on when executing the instruction
+		if (instr.readsMem && !read(calc_op_adr, read_val_8_u))
 			return false;
 
 		// Add one cycle if page boundary crossed
-		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(calc_op_adr, operand))
+		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(calc_op_adr, operand_16_u))
 			tick();
 
 		break;
 	}
-	case Codec6502::Mode::Indirect:
+
+	case Codec6502::Mode::Indirect: // e.g., JMP ($1234)
+
 		// OPC ($1234)
 		// Read 16-bit little-endian word from Mem[Mem[$1234]]
 	{
+		// Mark the instruction as one accessing memory to later one be able to distinguish between
+		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
+		// Read operand_16_u address
 		uint8_t a_L, a_H;
-		if (!read(mProgramCounter, a_L))
+		if (!read(mProgramCounter++, a_L))
 			return false;
-		mProgramCounter++;
-		if (!read(mProgramCounter, a_H))
+		if (!read(mProgramCounter++, a_H))
 			return false;
-		operand = (uint16_t)a_H * 256 + a_L;
-		mProgramCounter++;
 
+		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		operand_16_u = (a_H << 8) | a_L;
+
+		// Read indirect address
 		uint16_t adr_i = (uint16_t) a_H * 256 + a_L;
-		if (!read(adr_i, a_L))
+		if (!read(adr_i, a_L) || !read(adr_i+1, a_H))
 			return false;
-		if (!read(adr_i+1, a_H))
-			return false;
+
+		// Calculate address and save it for use when executing the specific instruction later on
 		calc_op_adr = (uint16_t) a_H * 256 + a_L;
-		if (instr.readsMem && !read(calc_op_adr, read_val))
+
+		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+		// to make it available as 'read_val_8_u' later on when executing the instruction
+		if (instr.readsMem && !read(calc_op_adr, read_val_8_u))
 			return false;
 
 		break;
 	}
-	case Codec6502::Mode::Indirect_X: // pre-indexed indirect
+
+	case Codec6502::Mode::PreIndexed_Indirect_X: // pre-indexed indirect -  // e.g., LDA ($12,X)
+
 		// OPC ($12,X)
 		// Read from Mem[Mem[$12+X]]
 	{
+		// Mark the instruction as one accessing memory to later one be able to distinguish between
+		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
+		// Read operand_16_u zero page address
 		uint8_t zp_a;
-		if (!read(mProgramCounter, zp_a))
+		if (!read(mProgramCounter++, zp_a))
 			return false;
-		operand = zp_a;
-		mProgramCounter++;
 
-		uint8_t mem_a = (uint16_t)zp_a + mRegisterX;
-		uint8_t mem_a_1 = mem_a + 1;
+		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		operand_16_u = zp_a;
+
+		// Read indirect address
+		uint8_t mem_a = zp_a + mRegisterX;
+		uint8_t mem_a_1 = mem_a + 1; // allow value to wrap around as for an actual NMOS 6502
 		uint8_t a_L, a_H;
-		if (!read((uint16_t)mem_a, a_L) || !read((uint16_t) mem_a_1, a_H))
+		if (!read(mem_a, a_L) || !read(mem_a_1, a_H))
 			return false;
-		calc_op_adr = (uint16_t)a_H * 256 + a_L;
-		if (instr.readsMem && !read(calc_op_adr, read_val))
+
+		// Calculate address and save it for use when executing the specific instruction later on
+		calc_op_adr = (a_H << 8) | a_L;
+
+		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+		// to make it available as 'read_val_8_u' later on when executing the instruction
+		if (instr.readsMem && !read(calc_op_adr, read_val_8_u))
 			return false;
 
 		break;
 	}
-	case Codec6502::Mode::Indirect_Y: // post-indexed indirect
+
+	case Codec6502::Mode::PostIndexed_Indirect_Y: // post-indexed indirect -  // e.g., LDA ($12),Y
+
 		// OPC ($12),Y
 		// Read from Mem[Mem[$12]+Y]
 	{
+		// Mark the instruction as one accessing memory to later one be able to distinguish between
+		// immediate and memory access modes of the same instruction (e.g., LDA @$12 v s LDA $12).
 		op_mem = true;
 
-		// Read zero page address (e.g. $12)
+		// Read operand_16_u zero page address (e.g. $12)
 		uint8_t zp_a;
-		if (!read(mProgramCounter, zp_a))
+		if (!read(mProgramCounter++, zp_a))
 			return false;
-		operand = zp_a;
-		mProgramCounter++;
+
+		// Save the constant numeric part of the operand_16_u for later use when executing the specific instruction
+		operand_16_u = zp_a;
 
 		// Read Indirect address -  e.g. ($12)
 		uint8_t a_L, a_H;
-		uint8_t zp_a_1 = zp_a + 1; // can overflow but that is OK
+		uint8_t zp_a_1 = zp_a + 1; // allow value to wrap around as for an actual NMOS 6502
 		if (!read((uint16_t)zp_a, a_L) || !read((uint16_t) zp_a_1, a_H))
 			return false;
-		uint16_t mem_a = (uint16_t)a_H * 256 + a_L;
+		uint16_t mem_a = (a_H << 8) | a_L;
+
+		// Calculate address and save it for use when executing the specific instruction later on
 		calc_op_adr = mem_a + mRegisterY;
-		if (instr.readsMem && !read(calc_op_adr, read_val))
+
+		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+		// to make it available as 'read_val_8_u' later on when executing the instruction
+		if (instr.readsMem && !read(calc_op_adr, read_val_8_u))
 			return false;
 
 		// Add one cycle if page boundary crossed
@@ -1269,7 +1371,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint
 	}
 
 	if (mVerbose)
-		cout << "operand = 0x" << hex << operand << ", calc adr = 0x" << calc_op_adr << ", read val = 0x" << (int) read_val <<
+		cout << "operand_16_u = 0x" << hex << operand_16_u << ", calc adr = 0x" << calc_op_adr << ", read val = 0x" << (int) read_val_8_u <<
 		", mem acc = " << (op_mem?"TRUE":"FALSE") << "\n";
 	return true;
 }

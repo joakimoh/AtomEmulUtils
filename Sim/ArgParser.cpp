@@ -15,7 +15,7 @@ void ArgParser::printUsage(const char* name)
 {
 	cout << "Emulates an Acorn\n";
 	cout << "Usage:\t" << name << " -map <memory map file> [-clk <clock speed>] [-v]\n\n";
-	cout << "<clock speed>:\n\Clock speed in MHz. If not specified, 1 Mhz is assumed\n\n";
+	cout << "<clock speed>:\nClock speed in MHz. If not specified, 1 Mhz is assumed\n\n";
 	cout << "<memory map file>:\n\tFile which defines devices and their memory mapping.\n\n";
 	cout << "-v:\n\tVerbose output\n\n";
 }

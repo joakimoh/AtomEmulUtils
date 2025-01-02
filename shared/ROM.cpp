@@ -30,7 +30,7 @@ ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent, bool verbose) : Device
 	if (file_sz < (streamsize) sz) {
 		cout << "Warning - size of ROM file " << binaryContent << " (" << file_sz <<
 			" ) is smaller than the expected one(" << sz << ") => filling up with zeros...\n";
-		upper_sz = file_sz;
+		upper_sz = (uint16_t) file_sz;
 	} else if (file_sz > (streamsize)sz) {
 		cout << "Warning - size of ROM file " << binaryContent << " (" << file_sz <<
 			" ) is larger than the expected one(" << sz << ") => truncating...\n";
