@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include "../shared/DebugInfo.h"
+#include "../shared/Device.h"
 
 using namespace std;
 
@@ -13,6 +14,7 @@ public:
 
 	double cMHz = 1.0;
 	string mapFileName;
+	Program program;
 
 	DebugInfo debugInfo;
 

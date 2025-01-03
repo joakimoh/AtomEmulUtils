@@ -21,9 +21,7 @@ int main(int argc, const char* argv[])
     if (arg_parser.failed())
         return -1;
 
-    vector<Device*> devices;
-
-    Device::crMemMap(arg_parser.mapFileName, devices, arg_parser.debugInfo.verbose);
+    Devices devices(arg_parser.mapFileName, arg_parser.debugInfo, arg_parser.program);
 
     // Create processor object
     P6502 processor(arg_parser.cMHz, devices, arg_parser.debugInfo);
@@ -33,9 +31,6 @@ int main(int argc, const char* argv[])
 
     // Wait for processor thread to complete
     processor_t.join();
-
-    // Clean up
-    Device::freeMemMap(devices);
 
     return 0;
 

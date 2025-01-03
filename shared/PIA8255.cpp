@@ -3,7 +3,7 @@
 #include <filesystem>
 using namespace std;
 
-PIA8255::PIA8255(uint16_t adr, bool verbose) : Device(PIA8255_DEV, adr, 4, verbose)
+PIA8255::PIA8255(uint16_t adr, DebugInfo debugInfo) : Device(PIA8255_DEV, adr, 4, debugInfo)
 {
 
 	// Set the size of the PIA register vector
@@ -12,7 +12,7 @@ PIA8255::PIA8255(uint16_t adr, bool verbose) : Device(PIA8255_DEV, adr, 4, verbo
 	// Initialise the PIA registers with zeros
 	mMem.assign(mDevSz, 0);
 
-	if (mVerbose)
+	if (mDebugInfo.verbose)
 		cout << "PIA 8255 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
 		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
 }

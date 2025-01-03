@@ -15,7 +15,6 @@ private:
 
 	int cPeriod = 1000; // clock period in ns
 
-	vector<Device*> & mDevices;
 
 	mutex mMutex;
 
@@ -68,17 +67,17 @@ private:
 
 	DebugInfo mDebugInfo;
 
+	Devices mDevices;
+
 public:
 
-	P6502(double clockSpeed, vector<Device*> &devices, DebugInfo debugInfo);
+	P6502(double clockSpeed, Devices &devices, DebugInfo debugInfo);
 
 	void run();
 
 	bool reset();
 	void stop();
 
-	bool read(uint16_t adr, uint8_t &data);
-	bool write(uint16_t adr, uint8_t data);
 
 };
 

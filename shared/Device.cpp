@@ -11,7 +11,8 @@
 
 using namespace std;
 
-Device::Device(DeviceEnum typ, uint16_t adr, uint16_t sz, bool verbose) : devType(typ), mDevAdr(adr), mDevSz(sz), mVerbose(verbose)
+Device::Device(DeviceEnum typ, uint16_t adr, uint16_t sz, DebugInfo debugInfo) : devType(typ), mDevAdr(adr), mDevSz(sz),
+mDebugInfo(debugInfo)
 {
 }
 
@@ -25,7 +26,7 @@ bool Device::validAdr(uint16_t adr)
 	return selected(adr);
 }
 
-bool Device::crMemMap(string memMapFile, vector<Device*>& devices,  bool verbose)
+Devices::Devices(std::string memMapFile, DebugInfo debugInfo, Program program)
 {
 	ifstream fin(memMapFile, ios::in | ios::ate);
 
@@ -73,8 +74,8 @@ bool Device::crMemMap(string memMapFile, vector<Device*>& devices,  bool verbose
 		switch (a.deviceType) {
 		case DeviceEnum::RAM_DEV:
 		{
-			RAM* ram = new RAM(a.startAdr, a.size, verbose);
-			devices.push_back(ram);
+			RAM* ram = new RAM(a.startAdr, a.size, mDebugInfo);
+			mDevices.push_back(ram);
 			break;
 		}
 		case DeviceEnum::ROM_DEV:
@@ -83,44 +84,119 @@ bool Device::crMemMap(string memMapFile, vector<Device*>& devices,  bool verbose
 			filesystem::path map_dir_path = map_file_path.parent_path();
 			filesystem::path ROM_file_path = a.ROMFileName;
 			filesystem::path file_path = map_dir_path / ROM_file_path;
-			ROM* rom = new ROM(a.startAdr, a.size, file_path.string(), verbose);
-			devices.push_back(rom);
+			ROM* rom = new ROM(a.startAdr, a.size, file_path.string(), mDebugInfo);
+			mDevices.push_back(rom);
 			break;
 		}
 		case DeviceEnum::PIA8255_DEV:
 		{
-			PIA8255* pia = new PIA8255(a.startAdr, verbose);
-			devices.push_back(pia);
+			PIA8255* pia = new PIA8255(a.startAdr, mDebugInfo);
+			mDevices.push_back(pia);
 			break;
 		}
 		case DeviceEnum::VDU6847_DEV:
 		{
-			VDU6847* vdu = new VDU6847(a.startAdr, verbose);
-			devices.push_back(vdu);
+			VDU6847* vdu = new VDU6847(a.startAdr, mDebugInfo);
+			mDevices.push_back(vdu);
 			break;
 		}
 		case DeviceEnum::VIA6522_DEV:
 		{
-			VIA6522* via = new VIA6522(a.startAdr, verbose);
-			devices.push_back(via);
+			VIA6522* via = new VIA6522(a.startAdr, mDebugInfo);
+			mDevices.push_back(via);
 			break;
 		}
 		default:
 			cout << "Unsupported device type " << a.deviceType << "!\n";
-			return false;
+			throw runtime_error("Attempt to add unsupported device (should never happen)");
 			break;
 		}
 
 
 	}
 
+	if (program.loadAdr > 0) {
+
+		ifstream pin(program.fileName, ios::in | ios::binary | ios::ate);
+
+		if (!pin) {
+			cout << "couldn't open program file " << program.fileName << "\n";
+			throw runtime_error("couldn't open program file");
+		}
+
+		// Get program size
+		pin.seekg(0, ios::end);
+		int program_size = (int) pin.tellg();
+		pin.seekg(0);
+
+		// Get RAM device that matches the program load address
+		RAM* ram = NULL;
+		for (int i = 0; i < mDevices.size(); i++) {
+			Device* dev = mDevices[i];
+			if (dev->selected(program.loadAdr) && dev->devType == RAM_DEV) {
+				ram = (RAM*)dev;
+				break;
+			}
+		}
+		if (ram == NULL || !ram->selected(program.loadAdr + program_size - 1)) {
+			throw runtime_error("couldn't find a RAM device large enough to hold the program '" + program.fileName + "'");
+		}
+
+
+
+		vector<uint8_t> data(program_size);
+		pin.read((char*) &data[0], (streamsize) program_size);
+
+		if ( pin.fail() || (int) pin.gcount() < program_size) {
+			throw runtime_error("couldn't read all bytes from the program file '" + program.fileName + "'");
+		}
+
+		if (!ram->write(program.loadAdr, data, program_size)) {
+			throw runtime_error("couldn't update a RAM with the program file '" + program.fileName + "'");
+		}
+
+	}
+
+}
+
+Devices::~Devices()
+{
+	for (int i = 0; i < mDevices.size(); i++)
+		delete mDevices[i];
+}
+
+//
+//
+bool Devices::read(uint16_t adr, uint8_t & data)
+{
+
+	for (int i = 0; i < mDevices.size(); i++) {
+		Device* dev = mDevices[i];
+		if (dev->selected(adr)) {
+			bool success = dev->read(adr, data);
+			if (mDebugInfo.verbose)
+				cout << "READ 0x" << hex << adr << " => " << (int)data << "\n";
+			return success;
+		}
+	}
+
+	data = 0xff;
 	return true;
 }
 
-bool Device::freeMemMap(vector<Device*>& devices)
+//
+//
+//
+bool Devices::write(uint16_t adr, uint8_t data)
 {
-	for (int i = 0; i < devices.size(); i++)
-		delete devices[i];
 
-	return true;
+	for (int i = 0; i < mDevices.size(); i++) {
+		Device* dev = mDevices[i];
+		if (dev->selected(adr)) {
+			if (mDebugInfo.verbose)
+				cout << "WRITE 0x" << hex << (int)data << " to 0x" << adr << "\n";
+			return dev->write(adr, data);
+		}
+	}
+	return false;
 }

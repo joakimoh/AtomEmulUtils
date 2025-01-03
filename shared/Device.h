@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include "DebugInfo.h"
 
 using namespace std;
 
@@ -17,8 +18,13 @@ typedef struct DeviceAllocation_struct {
 	DeviceEnum deviceType;
 	uint16_t startAdr;
 	uint16_t size;
-	string ROMFileName;
+	std::string ROMFileName;
 } DeviceAllocation;
+
+typedef struct Program_struct {
+	std::string fileName = "";
+	int loadAdr = -1;
+} Program;
 
 class Device {
 
@@ -28,13 +34,14 @@ protected:
 	uint16_t mDevSz;
 	vector<uint8_t> mMem;
 
-	bool mVerbose = false;
+	DebugInfo mDebugInfo;
+
 
 public:
 
 	DeviceEnum devType;
 
-	Device(DeviceEnum typ, uint16_t adr, uint16_t sz, bool verbose = false);
+	Device(DeviceEnum typ, uint16_t adr, uint16_t sz, DebugInfo debugInfo);
 
 	virtual bool read(uint16_t adr, uint8_t& data) = 0;
 	virtual bool write(uint16_t adr, uint8_t data) = 0;
@@ -42,9 +49,26 @@ public:
 	bool selected(uint16_t adr);
 	bool validAdr(uint16_t adr);
 
-	static bool crMemMap(string memMapFile, vector<Device*>& devices, bool verbose);
-	static bool freeMemMap(vector<Device*>& devices);
 
+
+
+};
+
+class Devices {
+
+private:
+
+	vector<Device*> mDevices;
+	DebugInfo mDebugInfo;
+
+public:
+
+	Devices(std::string memMapFile, DebugInfo debugInfo, Program program);
+
+	~Devices();
+
+	bool read(uint16_t adr, uint8_t& data);
+	bool write(uint16_t adr, uint8_t data);
 };
 
 #endif

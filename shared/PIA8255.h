@@ -13,7 +13,7 @@ private:
 
 public:
 
-	PIA8255(uint16_t adr, bool verbose = false);
+	PIA8255(uint16_t adr, DebugInfo debugInfo);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

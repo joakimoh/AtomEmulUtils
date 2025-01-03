@@ -6,7 +6,7 @@
 
 using namespace std;
 
-ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent, bool verbose) : Device(ROM_DEV, adr, sz, verbose)
+ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo) : Device(ROM_DEV, adr, sz, debugInfo)
 {
 
 	ifstream fin(binaryContent, ios::in | ios::binary | ios::ate);
@@ -47,7 +47,7 @@ ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent, bool verbose) : Device
 	// Read ROM content
 	fin.read((char*)&mMem[0], upper_sz);
 
-	if (mVerbose) {
+	if (mDebugInfo.verbose) {
 		filesystem::path path = binaryContent;
 		string file_name = path.filename().string();
 		cout << "ROM at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<

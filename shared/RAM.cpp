@@ -3,7 +3,7 @@
 #include <iostream>
 #include <filesystem>
 
-RAM::RAM(uint16_t adr, uint16_t sz, bool verbose) : Device(RAM_DEV, adr, sz, verbose)
+RAM::RAM(uint16_t adr, uint16_t sz, DebugInfo debugInfo) : Device(RAM_DEV, adr, sz, debugInfo)
 {
 
 	// Resize the RAM vector
@@ -12,7 +12,7 @@ RAM::RAM(uint16_t adr, uint16_t sz, bool verbose) : Device(RAM_DEV, adr, sz, ver
 	// Initialise RAM with zeros
 	mMem.assign(mDevSz, 0);
 
-	if (mVerbose)
+	if (mDebugInfo.verbose)
 		cout << "RAM at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
 		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
 }
@@ -34,6 +34,37 @@ bool RAM::write(uint16_t adr, uint8_t data)
 		return false;
 
 	mMem[adr - mDevAdr] = data;
+
+	return true;
+}
+
+bool RAM::write(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
+{
+	if (!(adr >= mDevAdr && adr + sz < mDevAdr + mDevSz))
+		return false;
+
+	for (int a = adr; a < adr + sz; a++) {
+		if (!write(a, data[a - adr]))
+			return false;
+	}
+
+	cout << "Wrote " << sz << " bytes to RAM at location " << hex << setw(4) << setfill('0') << adr << "\n";
+
+	return true;
+}
+
+bool RAM::read(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
+{
+	if (!(adr >= mDevAdr && adr + sz < mDevAdr + mDevSz))
+		return false;
+
+	if (data.size() < sz)
+		return false;
+
+	for (int a = adr; a < adr + sz; a++) {
+		if (!read(a, data[a - adr]))
+			return false;
+	}
 
 	return true;
 }
