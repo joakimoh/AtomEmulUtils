@@ -26,8 +26,9 @@ bool Device::validAdr(uint16_t adr)
 	return selected(adr);
 }
 
-Devices::Devices(std::string memMapFile, DebugInfo debugInfo, Program program)
+Devices::Devices(std::string memMapFile, DebugInfo debugInfo, Program program) : mDebugInfo(debugInfo)
 {
+
 	ifstream fin(memMapFile, ios::in | ios::ate);
 
 	if (!fin) {

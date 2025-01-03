@@ -48,7 +48,8 @@ bool RAM::write(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
 			return false;
 	}
 
-	cout << "Wrote " << sz << " bytes to RAM at location " << hex << setw(4) << setfill('0') << adr << "\n";
+	if (mDebugInfo.verbose)
+		cout << "Wrote " << sz << " bytes to RAM at location " << hex << setw(4) << setfill('0') << adr << "\n";
 
 	return true;
 }

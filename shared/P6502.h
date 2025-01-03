@@ -49,7 +49,7 @@ private:
 #define Z_flag ((mStatusRegister >> 1) & 1)
 #define C_flag (mStatusRegister & 1)
 
-	bool getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint16_t &calc_op_adr, uint8_t& read_val, bool& op_mem);
+	bool getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint16_t &calc_op_adr, uint8_t& read_val);
 
 
 	void tick(int cycles = 1);
@@ -61,13 +61,19 @@ private:
 	void setNZVflags(uint8_t N, uint8_t Z, uint8_t V);
 	void setNZCVflags(uint8_t N, uint8_t Z, uint8_t C, uint8_t V);
 
-	bool executeInstr(Codec6502::InstructionInfo instr, uint16_t opcode_PC, uint16_t operand, uint16_t calc_op_adr, uint8_t read_val, bool op_mem);
+	bool executeInstr(
+		Codec6502::InstructionInfo instr, uint16_t opcode_PC, uint16_t operand, uint16_t calc_op_adr, uint8_t read_val, 
+		uint8_t& written_val);
 
 	string getState();
 
 	DebugInfo mDebugInfo;
 
 	Devices mDevices;
+
+	int mTraceCount = 0;
+	std::vector<string> mBufferedTraceLines;
+	bool mTriggered = false;
 
 public:
 

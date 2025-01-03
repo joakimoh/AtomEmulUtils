@@ -22,6 +22,9 @@ void ArgParser::printUsage(const char* name)
 	cout << "\nADVANCED OPTIONS:\n";
 	cout << "-stop <hex address>: stop execution at this address\n\n";
 	cout << "-dump <hex address> <hex size>: dump memory content address to address+size-1 after stopping execution\n\n";
+	cout << "-trace <hex address> <pre trace len> <post trace len>: turn on verbose mode when an certain address is read\n";
+	cout << "\tor written to. The tracing starts <pre trace len> instructions prior to the trigger and lasts <post trace len>\n";
+	cout << "\tinstructions after the trigger.\n\n";
 }
 
 ArgParser::ArgParser(int argc, const char* argv[])
@@ -43,7 +46,23 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			debugInfo.stopAdr = stoi(argv[a + 1], 0, 16);
 			a++;
 		}
-	else if(strcmp(argv[a], "-dump") == 0) {
+		else if (strcmp(argv[a], "-trace") == 0) {
+			debugInfo.traceAdr = stoi(argv[a + 1], 0, 16);
+			a++;
+			if (a >= argc) {
+				printUsage(argv[0]);
+				return;
+			}
+			debugInfo.preTraceLen = stoi(argv[a + 1]);
+			a++;
+			if (a >= argc) {
+				printUsage(argv[0]);
+				return;
+			}
+			debugInfo.postTraceLen = stoi(argv[a + 1]);
+			a++;
+		}
+		else if(strcmp(argv[a], "-dump") == 0) {
 		debugInfo.dumpAdr = stoi(argv[a + 1], 0, 16);
 		a++;
 		if (a >= argc) {
