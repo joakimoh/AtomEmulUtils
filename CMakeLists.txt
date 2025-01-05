@@ -1,34 +1,77 @@
 ﻿# CMakeList.txt : CMake project for Assemblerutils
 #
 cmake_minimum_required (VERSION 3.8)
+project ("AssemblerUtils" VERSION 2.2)
+include(FetchContent)
+
+#option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+
+FetchContent_Declare(
+  allegro5
+  GIT_REPOSITORY https://github.com/liballeg/allegro5.git
+  GIT_TAG        5.2.10.1
+)
+FetchContent_GetProperties(allegro5)
+if(NOT allegro5_POPULATED)
+  FetchContent_Populate(allegro5)
+	if (MSVC)
+		set(SHARED ON)
+	else()
+		set(SHARED OFF)
+	endif()
+	set(WANT_TESTS OFF)
+	set(WANT_EXAMPLES OFF)
+	set(WANT_DEMO OFF)
+  add_subdirectory(${allegro5_SOURCE_DIR} ${allegro5_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+#set(WANT_STATIC_RUNTIME "Whether or not to link the C and C++ runtimes statically (currently only implemented on Windows)" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
-project ("AssemblerUtils" VERSION 2.2)
+set(CMAKE_BUILD_TYPE Release)
+
+set (MY_ALLEGRO_SOURCE_DIR ${allegro5_SOURCE_DIR})
+set (MY_ALLEGRO_BINARY_DIR ${allegro5_BINARY_DIR})
 
 # Create sub driectory for shared library
 add_subdirectory(shared)
 
-#
+# Common
 include_directories(
     "${PROJECT_BINARY_DIR}"
 	"${CMAKE_SOURCE_DIR}/shared"	
 	${ZLIB_INCLUDE_DIRS}
+	${allegro5_SOURCE_DIR}/include
+	${allegro5_BINARY_DIR}/include
 )
 
+# Dis application
 add_executable ( 
 	Dis  "Dis/Dis.cpp"
 	"Dis/ArgParser.h"  "Dis/ArgParser.cpp"
  )
 target_link_libraries(Dis PUBLIC shared )
 
+# Emu6502 application
 add_executable ( 
-	Sim  "Sim/Sim.cpp"
-	"Sim/ArgParser.h"  "Sim/ArgParser.cpp"
+	Emu6502  "Emu6502/Emu6502.cpp"
+	"Emu6502/ArgParser.h"  "Emu6502/ArgParser.cpp"
  )
-target_link_libraries(Sim PUBLIC shared )
+
+target_include_directories(Emu6502 PUBLIC ${allegro5_SOURCE_DIR}/include)
+target_include_directories(Emu6502 PUBLIC ${allegro5_BINARY_DIR}/include)
+target_link_libraries(Emu6502 PUBLIC shared allegro allegro_main allegro_font allegro_primitives)# allegro_font-debug)
+
+# These include files are typically copied into the correct places via allegro's install
+# target, but we do it manually.
+file(COPY ${allegro5_SOURCE_DIR}/addons/font/allegro5/allegro_font.h
+	DESTINATION ${allegro5_SOURCE_DIR}/include/allegro5
+)
+file(COPY ${allegro5_SOURCE_DIR}/addons/primitives/allegro5/allegro_primitives.h
+	DESTINATION ${allegro5_SOURCE_DIR}/include/allegro5
+)
 
 # Installation of Disassembler
 install(TARGETS Dis DESTINATION bin)
@@ -38,9 +81,9 @@ install(
 )
 
 # Installation of Emulator
-install(TARGETS Sim DESTINATION bin)
+install(TARGETS Emu6502 DESTINATION bin)
 install(
-	FILES "Sim/Sim.h"
+	FILES "Emu6502/Emu6502.h"
     DESTINATION include/Dis
 )
 

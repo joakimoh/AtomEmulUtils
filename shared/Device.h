@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include "DebugInfo.h"
+#include "KeyBoard.h"
 
 using namespace std;
 
@@ -63,7 +64,7 @@ private:
 
 public:
 
-	Devices(std::string memMapFile, DebugInfo debugInfo, Program program);
+	Devices(std::string memMapFile, KeyBoard *keyboard, DebugInfo debugInfo, Program program);
 
 	~Devices();
 

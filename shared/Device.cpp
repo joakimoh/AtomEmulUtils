@@ -26,7 +26,7 @@ bool Device::validAdr(uint16_t adr)
 	return selected(adr);
 }
 
-Devices::Devices(std::string memMapFile, DebugInfo debugInfo, Program program) : mDebugInfo(debugInfo)
+Devices::Devices(std::string memMapFile, KeyBoard *keyboard, DebugInfo debugInfo, Program program) : mDebugInfo(debugInfo)
 {
 
 	ifstream fin(memMapFile, ios::in | ios::ate);
@@ -91,7 +91,7 @@ Devices::Devices(std::string memMapFile, DebugInfo debugInfo, Program program) :
 		}
 		case DeviceEnum::PIA8255_DEV:
 		{
-			PIA8255* pia = new PIA8255(a.startAdr, mDebugInfo);
+			PIA8255* pia = new PIA8255(a.startAdr, (AtomKeyBoard *) keyboard, mDebugInfo);
 			mDevices.push_back(pia);
 			break;
 		}

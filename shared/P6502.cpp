@@ -8,6 +8,7 @@
 #include <bitset>
 #include<conio.h>
 
+
 P6502::P6502(double clockSpeed, Devices &devices, DebugInfo debugInfo) : mDevices(devices), mDebugInfo(debugInfo)
 {
 	cPeriod = (int) round(1000 / clockSpeed);
@@ -582,7 +583,7 @@ bool P6502::executeInstr(
 			// Write it
 			calc_op_adr = 0xfff4;
 		}
-		if (calc_op_adr == 0xfff4) { // OSWRCH
+		if (calc_op_adr == 0xfff4) { // OSWRCH (normally 0xfe52)
 			// Output A content on screen
 			if (mAcc >= 0x20 && mAcc < 0x7f)
 				cout.put((char)mAcc).flush();
@@ -590,7 +591,7 @@ bool P6502::executeInstr(
 				cout << "\n";
 			//cout << "JSR $fff4 with A=0x" << hex << (int)mAcc << "\n";
 		}
-		else if (calc_op_adr == 0xffe3) { // OSRDCH
+		else if (calc_op_adr == 0xffe3) { // OSRDCH (normally 0xfe94)
 			// Read char into A
 			uint8_t c = (uint8_t)getch();
 			if (c == '\n')

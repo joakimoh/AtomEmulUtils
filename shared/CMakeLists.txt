@@ -1,7 +1,8 @@
 add_library(
 	shared
 	"Codec6502.cpp" "P6502.cpp" "VIA6522.cpp" "VDU6847.cpp" "PIA8255.cpp" "ROM.cpp" "RAM.cpp" "Device.cpp"
-	"Codec6502.h" "P6502.h" "VIA6522.h"
+	"KeyBoard.cpp" "AtomKeyBoard.cpp"
+	"Codec6502.h" "P6502.h" "VIA6522.h" "KeyBoard.h" "AtomKeyBoard.h"
 	 "VDU6847.h"  "PIA8255.h"  "ROM.h"  "RAM.h" "Device.h"
  "DebugInfo.h")
 
@@ -10,6 +11,9 @@ find_package(ZLIB REQUIRED)
 
 include_directories(
     "${CMAKE_SOURCE_DIR}/shared"
+	"${MY_ALLEGRO_SOURCE_DIR}/include"
+	"${MY_ALLEGRO_BINARY_DIR}/include"
+	}
 )
 
 # Install information - lib & include

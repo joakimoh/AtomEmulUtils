@@ -1,9 +1,15 @@
 #include "PIA8255.h"
+#include "Device.h"
 #include <iostream>
 #include <filesystem>
+#include "AtomKeyBoard.h"
+#include <allegro5/allegro5.h>
+#include <allegro5/allegro_font.h>
+#include "AtomKeyBoard.h"
+
 using namespace std;
 
-PIA8255::PIA8255(uint16_t adr, DebugInfo debugInfo) : Device(PIA8255_DEV, adr, 4, debugInfo)
+PIA8255::PIA8255(uint16_t adr, AtomKeyBoard *keyboard, DebugInfo debugInfo) : Device(PIA8255_DEV, adr, 4, debugInfo), mKeyBoard(keyboard)
 {
 
 	// Set the size of the PIA register vector
