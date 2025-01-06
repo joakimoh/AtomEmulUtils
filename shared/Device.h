@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 #include "DebugInfo.h"
-#include "KeyBoard.h"
+#include "Keyboard.h"
 
 using namespace std;
 
@@ -64,9 +64,11 @@ private:
 
 public:
 
-	Devices(std::string memMapFile, KeyBoard *keyboard, DebugInfo debugInfo, Program program);
+	Devices(std::string memMapFile, Keyboard *keyboard, DebugInfo debugInfo, Program program);
 
 	~Devices();
+
+	void toggle60Hz();
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

@@ -14,7 +14,7 @@
 #include "ArgParser.h"
 #include "../shared/P6502.h"
 #include "../shared/Codec6502.h"
-#include "../shared/AtomKeyBoard.h"
+#include "../shared/AtomKeyboard.h"
 
 
 using namespace std;
@@ -24,7 +24,7 @@ int main(int argc, const char* argv[])
     al_init();
     al_install_keyboard();
 
-    ALLEGRO_TIMER* timer = al_create_timer(1.0 / 60.0); // 60 Hz update frequency as a base
+    ALLEGRO_TIMER* timer_60_hz = al_create_timer(1.0 / 60.0); // 60 Hz update frequency as a base
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
     //ALLEGRO_DISPLAY* disp = al_create_display(720, 576); // PAL screen with 576 (out of 625) visible lines of 720 (out of 768) visible 'pixels' each
     ALLEGRO_DISPLAY* disp = al_create_display(648, 486); // NTSC screen with 486 (out of 525) visible lines of 648 (out of 720?) visible 'pixels' each
@@ -33,7 +33,7 @@ int main(int argc, const char* argv[])
 
     al_register_event_source(queue, al_get_keyboard_event_source());
     al_register_event_source(queue, al_get_display_event_source(disp));
-    al_register_event_source(queue, al_get_timer_event_source(timer));
+    al_register_event_source(queue, al_get_timer_event_source(timer_60_hz));
 
     bool redraw = true;
     ALLEGRO_EVENT event;
@@ -45,19 +45,27 @@ int main(int argc, const char* argv[])
     if (arg_parser.failed())
         return -1;
 
-    AtomKeyBoard atom_keyboard;
-    Devices devices(arg_parser.mapFileName, (KeyBoard *) &atom_keyboard, arg_parser.debugInfo, arg_parser.program);
+    AtomKeyboard atom_keyboard;
+    Devices devices(arg_parser.mapFileName, (Keyboard *) &atom_keyboard, arg_parser.debugInfo, arg_parser.program);
     
+    // Create processor object
+    P6502 processor(arg_parser.cMHz, devices, arg_parser.debugInfo);
 
-    al_start_timer(timer);
+
+    // Start processor thread (run method of processor)
+    std::thread processor_t(&P6502::run, &processor);
+
+    al_start_timer(timer_60_hz);
     while (true)
     {
         al_wait_for_event(queue, &event);
 
         atom_keyboard.checkForKey(event);
 
-        if (event.type == ALLEGRO_EVENT_TIMER)
+        if (event.type == ALLEGRO_EVENT_TIMER) {
             redraw = true;
+            devices.toggle60Hz();
+        }
         else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
             break;
 
@@ -73,17 +81,8 @@ int main(int argc, const char* argv[])
 
     al_destroy_font(font);
     al_destroy_display(disp);
-    al_destroy_timer(timer);
+    al_destroy_timer(timer_60_hz);
     al_destroy_event_queue(queue);
-
-    return 0;
-    
-
-    // Create processor object
-    P6502 processor(arg_parser.cMHz, devices, arg_parser.debugInfo);
-
-    // Start processor thread (run method of processor)
-    std::thread processor_t(&P6502::run, &processor);
 
     // Wait for processor thread to complete
     processor_t.join();

@@ -3,15 +3,14 @@
 
 #include <allegro5/allegro5.h>
 
-class KeyBoard {
+class Keyboard {
 
 public:
 	bool checkForKey(ALLEGRO_EVENT event);	
 
 protected:
-	virtual void keyAction(int pressedKey) = 0;
-	int pressedKeyMask;
-	unsigned pressedModifierMask;
+	virtual void keyDown(int key, unsigned modifiers) = 0;
+	virtual void keyUp(int key) = 0;
 };
 
 #endif

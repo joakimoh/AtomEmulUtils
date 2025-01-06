@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <allegro5/allegro.h>
 
 using namespace std;
 
@@ -26,7 +27,18 @@ bool Device::validAdr(uint16_t adr)
 	return selected(adr);
 }
 
-Devices::Devices(std::string memMapFile, KeyBoard *keyboard, DebugInfo debugInfo, Program program) : mDebugInfo(debugInfo)
+void Devices::toggle60Hz()
+{
+	for (int i = 0; i < mDevices.size(); i++) {
+		Device* dev = mDevices[i];
+		if (dev->devType == DeviceEnum::PIA8255_DEV) {
+			((PIA8255*)dev)->toggle60Hz();
+			break;
+		}
+	}
+}
+
+Devices::Devices(std::string memMapFile, Keyboard *keyboard, DebugInfo debugInfo, Program program) : mDebugInfo(debugInfo)
 {
 
 	ifstream fin(memMapFile, ios::in | ios::ate);
@@ -91,7 +103,7 @@ Devices::Devices(std::string memMapFile, KeyBoard *keyboard, DebugInfo debugInfo
 		}
 		case DeviceEnum::PIA8255_DEV:
 		{
-			PIA8255* pia = new PIA8255(a.startAdr, (AtomKeyBoard *) keyboard, mDebugInfo);
+			PIA8255* pia = new PIA8255(a.startAdr, (AtomKeyboard *) keyboard, mDebugInfo);
 			mDevices.push_back(pia);
 			break;
 		}

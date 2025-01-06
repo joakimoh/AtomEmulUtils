@@ -542,6 +542,7 @@ bool P6502::executeInstr(
 			mProgramCounter = PC_h * 256 + PC_l + 1;
 			//cout << "JMP($208) with A=0x" << hex << (int)mAcc << "\n";
 		}
+		/*
 		else if (calc_op_adr == 0xfe94) { // OSRDCH is executed via JSR $FFE3:JMP($20a) where Mem[0x20a] = 0xfe94
 			// Read char into A
 			uint8_t c = (uint8_t)getch();
@@ -557,6 +558,7 @@ bool P6502::executeInstr(
 			mDevices.read(0x100 + (uint16_t)++mStackPointer, PC_h);
 			mProgramCounter = PC_h * 256 + PC_l + 1;
 		}
+		*/
 		else {
 			mProgramCounter = calc_op_adr;
 		}
@@ -571,6 +573,7 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
+		/*
 		if (calc_op_adr == 0xffe6) { // OSECHO
 			// Read character
 			uint8_t c = (uint8_t)getch();
@@ -582,7 +585,8 @@ bool P6502::executeInstr(
 				mAcc = c;
 			// Write it
 			calc_op_adr = 0xfff4;
-		}
+		} else
+		*/
 		if (calc_op_adr == 0xfff4) { // OSWRCH (normally 0xfe52)
 			// Output A content on screen
 			if (mAcc >= 0x20 && mAcc < 0x7f)
@@ -591,6 +595,7 @@ bool P6502::executeInstr(
 				cout << "\n";
 			//cout << "JSR $fff4 with A=0x" << hex << (int)mAcc << "\n";
 		}
+		/*
 		else if (calc_op_adr == 0xffe3) { // OSRDCH (normally 0xfe94)
 			// Read char into A
 			uint8_t c = (uint8_t)getch();
@@ -601,6 +606,7 @@ bool P6502::executeInstr(
 			else
 				mAcc = c;
 		}
+		*/
 		else {
 			uint16_t PC_push_val = opcode_PC + 2;
 			mDevices.write(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
