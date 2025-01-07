@@ -20,10 +20,12 @@ bool PIA8255::reset()
 bool PIA8255::advance(uint64_t stopCycle)
 {
 	mCycleCount = stopCycle;
-	if (mCycleCount % mN60HzCycles < mN60HzCycles / 2)
+	if (mCycleCount % mN60HzCycles < mN60HzCycles / 2) {
 		mSync60HzEvent = 1;
-	else
+	}
+	else {
 		mSync60HzEvent = 0;
+	}
 
 	return true;
 }

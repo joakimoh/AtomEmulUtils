@@ -48,12 +48,7 @@ int main(int argc, const char* argv[])
     AtomKeyboard atom_keyboard;
     int n_cycles_per_60_hz = (int)round(arg_parser.cMHz * 1000000/ 60);
     Devices devices(arg_parser.mapFileName, n_cycles_per_60_hz, (Keyboard *) &atom_keyboard, arg_parser.debugInfo, arg_parser.program);
-    
-    vector<Device*> *device_list = NULL;
-    if (!devices.getDevices(device_list)) {
-        cout << "Failed to get a list of devices!\n";
-        return -1;
-    }
+   
     
     // Create processor object
     P6502 processor(arg_parser.cMHz, devices, arg_parser.debugInfo);
@@ -63,6 +58,16 @@ int main(int argc, const char* argv[])
     
     int cycles_step = 10;
     uint64_t cycle_count = 0;
+
+    // RESET all devices
+    for (int d = 0; d < devices.size(); d++) {
+        Device* dev = NULL;
+        if (devices.getDevice(d, dev)) {
+            dev->reset();
+        }
+    }
+    processor.reset();
+    cout << "All devices now reset...\n";
 
     while (true)
     {
@@ -76,11 +81,17 @@ int main(int argc, const char* argv[])
 
                 cycle_count += cycles_step;
 
+                // advance time for the 6502 until clock cycle cycle_count has been reached
+                processor.advance(cycle_count);
+
                 // advance time for each device (when applicable) until clock cycle cycle_count has been reached
-                for (int d = 0; d < device_list->size(); d++) {
-                    Device *dev = (*device_list)[d];
-                    dev->advance(cycle_count);
+                for (int d = 0; d < devices.size(); d++) {
+                    Device* dev = NULL;
+                    if (devices.getDevice(d, dev)) {
+                        dev->advance(cycle_count);
+                    }
                 }
+                
                 
             }
         }

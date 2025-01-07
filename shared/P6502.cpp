@@ -12,9 +12,30 @@
 P6502::P6502(double clockSpeed, Devices &devices, DebugInfo debugInfo) : mDevices(devices), mDebugInfo(debugInfo)
 {
 	cPeriod = (int) round(1000 / clockSpeed);
-	reset();
 }
 
+//
+// Emulate RESET sequence which should take 7 clock cycles
+//
+bool P6502::reset()
+{
+	if (mDebugInfo.verbose)
+		cout << "RESET\n";
+
+	mCycleCount = 0;
+
+	// Fetch RESET vector
+	uint8_t adr_L, adr_H;
+	if (!mDevices.read(0xfffc, adr_L) || !mDevices.read(0xfffd, adr_H))
+		return false;
+
+	mProgramCounter = adr_H * 256 + adr_L;
+
+	// Increase time by 7 clock cycles for the RESET
+	tick(7);
+
+	return true;
+}
 // 
 // Advance until clock cycle stopcycle has been reached
 //
@@ -23,6 +44,8 @@ bool P6502::advance(uint64_t stopCycle)
 	bool success = true;
 
 	while (mCycleCount < stopCycle) {	
+
+		
 
 		if (mDebugInfo.traceAdr > 0) {
 			if (mProgramCounter == mDebugInfo.traceAdr) {
@@ -993,28 +1016,7 @@ bool P6502::executeInstr(
 	return true;
 }
 
-//
-// Emulate RESET sequence which should take 7 clock cycles
-//
-bool P6502::reset()
-{
-	if (mDebugInfo.verbose)
-		cout << "RESET\n";
 
-	mCycleCount = 0;
-
-	// Fetch RESET vector
-	uint8_t adr_L, adr_H;
-	if (!mDevices.read(0xfffc, adr_L) || !mDevices.read(0xfffd, adr_H))
-		return false;
-
-	mProgramCounter = adr_H * 256 + adr_L;
-
-	// Increase time by 7 clock cycles for the RESET
-	tick(7);
-
-	return true;
-}
 
 
 //

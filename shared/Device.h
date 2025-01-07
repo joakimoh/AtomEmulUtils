@@ -75,7 +75,17 @@ public:
 
 	~Devices();
 
-	bool getDevices(vector<Device*> *devices) { return &mDevices; }
+	bool getDevice(int n, Device* &device) {
+		device = NULL;
+		if (n >= 0 && n < mDevices.size()) {
+			device = mDevices[n];
+			return true;
+		}
+		else
+			return false;
+	}
+
+	int size() { return mDevices.size(); }
 
 
 	bool read(uint16_t adr, uint8_t& data);
