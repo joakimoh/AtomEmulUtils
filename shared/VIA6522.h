@@ -15,6 +15,12 @@ public:
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);
 
+	// Reset device
+	bool reset();
+
+	// Advance until clock cycle stopcycle has been reached
+	bool advance(uint64_t stopCycle);
+
 };
 
 #endif

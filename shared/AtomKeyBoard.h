@@ -39,8 +39,8 @@ private:
 		{ALLEGRO_KEY_7,				{ALLEGRO_KEY_7,				6,		2,	"7"}},		// 7 '
 		{ALLEGRO_KEY_8,				{ALLEGRO_KEY_8,				5,		2,	"8"}},		// 8 (
 		{ALLEGRO_KEY_9,				{ALLEGRO_KEY_9,				4,		2,	"9"}},		// 9 )
-		{ALLEGRO_KEY_MINUS,			{ALLEGRO_KEY_MINUS,			0,		2,	"-"}},		// -=
-		{ALLEGRO_KEY_COLON2,		{ALLEGRO_KEY_COLON2,		3,		2,	":"}},		// :*
+		{ALLEGRO_KEY_MINUS,			{ALLEGRO_KEY_MINUS,			0,		2,	"-"}},		// -=	
+		{ALLEGRO_KEY_DELETE,		{ALLEGRO_KEY_DELETE,		3,		2,	":"}},		// :*
 		{ALLEGRO_KEY_TILDE,			{ALLEGRO_KEY_TILDE,			5,		0,	"^"}},		// ^~
 		{ALLEGRO_KEY_PAUSE,			{ALLEGRO_KEY_PAUSE,			-1,    -1,  "BREAK"}},	// BREAK (not mapped to rows/cols)
 
@@ -61,7 +61,8 @@ private:
 		{ALLEGRO_KEY_P,				{ALLEGRO_KEY_P,				1,		4,	"P"}},		// P
 		{ALLEGRO_KEY_PGDN,			{ALLEGRO_KEY_PGDN,			7,		3,	"@"}},		// @
 		{ALLEGRO_KEY_BACKSLASH,		{ALLEGRO_KEY_BACKSLASH,		7,		0,	"\\"}},		// "\"
-		{ALLEGRO_KEY_DELETE,		{ALLEGRO_KEY_DELETE,		4,		1,	"DEL"}},	// DEL
+		{ALLEGRO_KEY_BACKSPACE,		{ALLEGRO_KEY_BACKSPACE,		4,		1,	"DEL"}},	// DEL
+
 
 		// Third row UP_DOWN_ARROW CTRL A S D F G H J K L ;+ [ ] RET
 
@@ -102,7 +103,8 @@ private:
 		{ALLEGRO_KEY_SPACE,			{ALLEGRO_KEY_SPACE,			9,   0,    " "}},
 
 		// Unmapped keys
-		{ALLEGRO_KEY_BACKSPACE,		{ALLEGRO_KEY_BACKSPACE,		-1,    -1,    ""}},
+		{ALLEGRO_KEY_PAD_DELETE,    {ALLEGRO_KEY_PAD_DELETE,    -1,    -1,    ""}},
+		{ALLEGRO_KEY_PRINTSCREEN,	{ALLEGRO_KEY_PRINTSCREEN,   -1,    -1,    ""}},		// :*
 		{ALLEGRO_KEY_SEMICOLON,		{ALLEGRO_KEY_SEMICOLON,		-1,    -1,    ""}},
 		{ALLEGRO_KEY_SLASH,			{ALLEGRO_KEY_SLASH,			-1,	   -1,    ""}},
 		{ALLEGRO_KEY_PAD_0,			{ALLEGRO_KEY_PAD_0,			-1,    -1,    ""}},
@@ -115,7 +117,7 @@ private:
 		{ALLEGRO_KEY_PAD_7,			{ALLEGRO_KEY_PAD_7,			-1,    -1,    ""}},
 		{ALLEGRO_KEY_PAD_8,			{ALLEGRO_KEY_PAD_8,			-1,    -1,    ""}},
 		{ALLEGRO_KEY_PAD_9,			{ALLEGRO_KEY_PAD_9,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_F1,			{ALLEGRO_KEY_F1,			-1,    -1,    ""}},
+		{ALLEGRO_KEY_F1,			{ALLEGRO_KEY_F1,			-1,    -1,   ":*"}},
 		{ALLEGRO_KEY_F2,			{ALLEGRO_KEY_F2,			-1,    -1,    ""}},
 		{ALLEGRO_KEY_F3,			{ALLEGRO_KEY_F3,			-1,    -1,    ""}},
 		{ALLEGRO_KEY_F4,			{ALLEGRO_KEY_F4,			-1,    -1,    ""}},
@@ -132,14 +134,13 @@ private:
 		{ALLEGRO_KEY_CLOSEBRACE,    {ALLEGRO_KEY_CLOSEBRACE,    -1,    -1,    ""}},
 		{ALLEGRO_KEY_QUOTE,			{ALLEGRO_KEY_QUOTE,			-1,    -1,    ""}},
 		{ALLEGRO_KEY_BACKSLASH2,    {ALLEGRO_KEY_BACKSLASH2,    -1,    -1,    ""}},
-		{ALLEGRO_KEY_INSERT,		{ALLEGRO_KEY_INSERT,		-1,    -1,    ""}},
+		{ALLEGRO_KEY_COLON2,		{ALLEGRO_KEY_COLON2,		-1,		-1,	""} },
 		{ALLEGRO_KEY_PAD_SLASH,		{ALLEGRO_KEY_PAD_SLASH,		-1,    -1,    ""}},
 		{ALLEGRO_KEY_PAD_ASTERISK,	{ALLEGRO_KEY_PAD_ASTERISK,	-1,    -1,    ""}},
 		{ALLEGRO_KEY_PAD_MINUS,		{ALLEGRO_KEY_PAD_MINUS,		-1,    -1,    ""}},
 		{ALLEGRO_KEY_PAD_PLUS,		{ALLEGRO_KEY_PAD_PLUS,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_DELETE,    {ALLEGRO_KEY_PAD_DELETE,    -1,    -1,    ""}},
 		{ALLEGRO_KEY_PAD_ENTER,		{ALLEGRO_KEY_PAD_ENTER,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_PRINTSCREEN,	{ALLEGRO_KEY_PRINTSCREEN,   -1,    -1,    ""}},
+		{ALLEGRO_KEY_INSERT,		{ALLEGRO_KEY_INSERT,		-1,   -1,    ""} },
 		{ALLEGRO_KEY_ABNT_C1,		{ALLEGRO_KEY_ABNT_C1,		-1,    -1,    ""}},
 		{ALLEGRO_KEY_YEN,			{ALLEGRO_KEY_YEN,			-1,    -1,    ""}},
 		{ALLEGRO_KEY_KANA,			{ALLEGRO_KEY_KANA,			-1,    -1,    ""}},

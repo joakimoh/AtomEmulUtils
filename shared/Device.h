@@ -20,6 +20,7 @@ typedef struct DeviceAllocation_struct {
 	uint16_t startAdr;
 	uint16_t size;
 	std::string ROMFileName;
+	uint16_t videoMemAdr; // only for VDU6847
 } DeviceAllocation;
 
 typedef struct Program_struct {
@@ -37,6 +38,7 @@ protected:
 
 	DebugInfo mDebugInfo;
 
+	uint64_t mCycleCount = 0;
 
 public:
 
@@ -50,7 +52,11 @@ public:
 	bool selected(uint16_t adr);
 	bool validAdr(uint16_t adr);
 
+	// Reset device
+	virtual bool reset() { mCycleCount = 0; return true; }
 
+	//  Advance until clock cycle stopcycle has been reached
+	virtual bool advance(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }
 
 
 };
@@ -62,13 +68,15 @@ private:
 	vector<Device*> mDevices;
 	DebugInfo mDebugInfo;
 
+
 public:
 
-	Devices(std::string memMapFile, Keyboard *keyboard, DebugInfo debugInfo, Program program);
+	Devices(std::string memMapFile, int n60HzCycles, Keyboard *keyboard, DebugInfo debugInfo, Program program);
 
 	~Devices();
 
-	void toggle60Hz();
+	bool getDevices(vector<Device*> *devices) { return &mDevices; }
+
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

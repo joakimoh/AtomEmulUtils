@@ -6,8 +6,27 @@
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_font.h>
 #include "AtomKeyboard.h"
+#include "VDU6847.h"
 
 using namespace std;
+
+
+bool PIA8255::reset()
+{
+	Device::reset();
+	return true;
+}
+
+bool PIA8255::advance(uint64_t stopCycle)
+{
+	mCycleCount = stopCycle;
+	if (mCycleCount % mN60HzCycles < mN60HzCycles / 2)
+		mSync60HzEvent = 1;
+	else
+		mSync60HzEvent = 0;
+
+	return true;
+}
 
 /*
 	Port A - #B000
@@ -74,8 +93,13 @@ using namespace std;
 #define PIA8255_PORT_C (mDevAdr + 2)
 #define PIA8255_CONTROL (mDevAdr + 3)
 
-PIA8255::PIA8255(uint16_t adr, AtomKeyboard *keyboard, DebugInfo debugInfo) : 
-	Device(PIA8255_DEV, adr, 4, debugInfo), mKeyboard(keyboard)
+void PIA8255::setVdu(VDU6847 *vdu)
+{
+	mVdu = vdu;
+}
+
+PIA8255::PIA8255(uint16_t adr, int n60HzCycles, AtomKeyboard *keyboard, DebugInfo debugInfo) :
+	Device(PIA8255_DEV, adr, 4, debugInfo), mKeyboard(keyboard), mN60HzCycles(n60HzCycles)
 {
 
 	// Set the size of the PIA register vector
@@ -120,7 +144,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 		// 4 2.4 kHz input, 5 Cassette input, 6 REPT key(low when pressed), 7 60 Hz sync signal (low during flyback)
 		if (mKeyboard->PC6_repeat)
 			data &= ~0x40;
-		if (mSync60HzState == 1)
+		if (mSync60HzEvent == 1)
 			data |= 0x80;
 		//cout << "READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
 	}
@@ -138,6 +162,8 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 
 	if (adr == PIA8255_PORT_A) {
 		// 0 - 3 Keyboard row, 4 - 7 Graphics mode
+		if (mVdu != NULL)
+			mVdu->setGraphicMode((data & 0xf0) >> 4);
 	}
 	else if (adr == PIA8255_PORT_B) {
 		// No bits  should be configured as writable
@@ -167,9 +193,4 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 	//cout << "WROTE 0x" << setw(2) << setfill('0') << hex << (int)data << " to 0x" << setw(4) << adr << "\n";
 
 	return true;
-}
-
-void PIA8255::toggle60Hz()
-{
-	mSync60HzState = 1 - mSync60HzState;
 }

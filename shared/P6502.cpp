@@ -15,26 +15,17 @@ P6502::P6502(double clockSpeed, Devices &devices, DebugInfo debugInfo) : mDevice
 	reset();
 }
 
-// Execution method
-// Will continue to execute instructions until the stop()
-// method is called.
-// Must be started as a thread.
+// 
+// Advance until clock cycle stopcycle has been reached
 //
-void P6502::run()
+bool P6502::advance(uint64_t stopCycle)
 {
-	bool cont = true;
+	bool success = true;
 
-	while (cont) {
-
-		// Check for stop condition
-		mMutex.lock();
-		if (mStop)
-			cont = false;
-		mMutex.unlock();
+	while (mCycleCount < stopCycle) {	
 
 		if (mDebugInfo.traceAdr > 0) {
 			if (mProgramCounter == mDebugInfo.traceAdr) {
-				mTriggered = true;
 				mDebugInfo.verbose = true;
 				mTraceCount = 0;
 				for (int i = 0; i < mBufferedTraceLines.size(); i++)
@@ -42,14 +33,13 @@ void P6502::run()
 			}
 			if (mTraceCount > mDebugInfo.postTraceLen) {
 				mDebugInfo.verbose = false;
-				mTriggered = false;
+				mEndOfTracingReached = true;
 			}
 			mTraceCount++;
 		}
 
 
 		if (mDebugInfo.stopAdr > 0 && mProgramCounter == mDebugInfo.stopAdr) {
-			cont = false;
 			std::cout << "Execution stop triggered!\n";
 			if (mDebugInfo.dumpAdr > 0) {
 				// Output pre post tracing
@@ -66,14 +56,14 @@ void P6502::run()
 		uint8_t opcode;
 		uint16_t opcode_PC = mProgramCounter;
 		if (!mDevices.read(mProgramCounter++, opcode)) {
-			cont = false;
+			success = false;
 			std::cout << "Failed to read instruction!\n";		
 		}
 
 		// Decode the opcode
 		Codec6502::InstructionInfo instr;
 		if (!mCodec.decodeInstruction(opcode, instr)) {
-			cont = false;
+			success = false;
 			std::cout << "Invalid instruction 0x" << hex << (int) opcode << " encountered at address 0x" << hex << mProgramCounter << "!\n";
 		}
 
@@ -82,22 +72,20 @@ void P6502::run()
 		uint16_t calc_op_adr = 0x0;
 		uint8_t read_val = 0x0;
 		if (!getOperand(instr, operand, calc_op_adr, read_val)) {
-			cont = false;
+			success = false;
 			std::cout << "Failed to get operand for instruction 0x" << hex << (int)opcode << " at address 0x" << opcode_PC << "!\n";
 		}
 
 		// Execute the instruction
 		uint8_t written_val;
 		if (!executeInstr(instr, opcode_PC, operand, calc_op_adr, read_val, written_val)) {
-			cont = false;
+			success = false;
 			std::cout << "Failed to execute instruction!\n";
 		}
 
-		if (mDebugInfo.verbose && cont || mDebugInfo.traceAdr > 0) {
+		if (mDebugInfo.verbose  || (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached)) {
 			string instr_s = mCodec.decode(opcode_PC, opcode, operand);
 			stringstream sout;
-			//cout << "operand = 0x" << hex << operand << ", calc adr = 0x" << calc_op_adr << ", read val = 0x" << (int)read_val <<
-			//	", mem acc = " << (instr.readsMem && instr.writesMem?"R/W": (instr.readsMem ? "R" : (instr.writesMem ? "W" : "-"))) << "\n";
 			sout << setfill(' ') << setw(30) << left << instr_s << right <<
 				" " << getState();
 			if (instr.readsMem || instr.writesMem)
@@ -107,9 +95,9 @@ void P6502::run()
 			if (instr.writesMem)
 				sout << " WROTE 0x" << setw(2) << (int)written_val;
 			sout << "\n";
-			if (mDebugInfo.verbose && cont)
+			if (mDebugInfo.verbose)
 				cout << sout.str();
-			if (mDebugInfo.traceAdr > 0) {
+			if (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached) {
 				mBufferedTraceLines.push_back(sout.str());
 				while (mBufferedTraceLines.size() > mDebugInfo.preTraceLen)
 					mBufferedTraceLines.erase(mBufferedTraceLines.begin());
@@ -122,6 +110,8 @@ void P6502::run()
 		// This excludes extra cycle at page boundary as this is instead address in getOperand().
 		tick(instr.cycles);
 	}
+
+	return success;
 }
 
 bool P6502::executeInstr(
@@ -1011,6 +1001,8 @@ bool P6502::reset()
 	if (mDebugInfo.verbose)
 		cout << "RESET\n";
 
+	mCycleCount = 0;
+
 	// Fetch RESET vector
 	uint8_t adr_L, adr_H;
 	if (!mDevices.read(0xfffc, adr_L) || !mDevices.read(0xfffd, adr_H))
@@ -1024,16 +1016,6 @@ bool P6502::reset()
 	return true;
 }
 
-
-// Stop run method()
-void P6502::stop()
-{
-	mMutex.lock();
-
-	mStop = true;
-
-	mMutex.unlock();
-}
 
 //
 // Evaluates the operand part of an instruction
@@ -1403,7 +1385,7 @@ bool P6502::pageBoundaryCrossed(uint16_t before, uint16_t after)
 
 void P6502::tick(int cycles)
 {
-	//std::this_thread::sleep_for(std::chrono::nanoseconds(cycles * cPeriod));
+	mCycleCount += cycles;
 }
 
 void P6502::setNZflags(uint8_t val_8_u)

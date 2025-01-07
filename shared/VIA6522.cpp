@@ -3,6 +3,17 @@
 #include <iostream>
 using namespace std;
 
+bool VIA6522::reset()
+{
+	Device::reset();
+	return true;
+}
+
+bool VIA6522::advance(uint64_t stopCycle)
+{
+	return true;
+}
+
 
 VIA6522::VIA6522(uint16_t adr, DebugInfo debugInfo): Device(VIA6522_DEV, adr, 0x10, debugInfo)
 {

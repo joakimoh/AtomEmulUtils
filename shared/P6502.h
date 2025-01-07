@@ -15,6 +15,7 @@ private:
 
 	int cPeriod = 1000; // clock period in ns
 
+	uint64_t cycleCount = 0; // #clock cycles passed since RESET
 
 	mutex mMutex;
 
@@ -73,16 +74,19 @@ private:
 
 	int mTraceCount = 0;
 	std::vector<string> mBufferedTraceLines;
-	bool mTriggered = false;
+	bool mEndOfTracingReached = false;;
+
+	uint64_t mCycleCount = 0;
 
 public:
 
 	P6502(double clockSpeed, Devices &devices, DebugInfo debugInfo);
 
-	void run();
+	// Reset device
+	bool reset(); 
 
-	bool reset();
-	void stop();
+	// Advance until clock cycle stopcycle has been reached
+	bool advance(uint64_t stopCycle);
 
 
 };

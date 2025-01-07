@@ -24,7 +24,7 @@ int main(int argc, const char* argv[])
     al_init();
     al_install_keyboard();
 
-    ALLEGRO_TIMER* timer_60_hz = al_create_timer(1.0 / 60.0); // 60 Hz update frequency as a base
+    ALLEGRO_TIMER* timer_60_hz = al_create_timer(1.0 / 60); // 60 Hz frequency as a base
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
     //ALLEGRO_DISPLAY* disp = al_create_display(720, 576); // PAL screen with 576 (out of 625) visible lines of 720 (out of 768) visible 'pixels' each
     ALLEGRO_DISPLAY* disp = al_create_display(648, 486); // NTSC screen with 486 (out of 525) visible lines of 648 (out of 720?) visible 'pixels' each
@@ -46,16 +46,24 @@ int main(int argc, const char* argv[])
         return -1;
 
     AtomKeyboard atom_keyboard;
-    Devices devices(arg_parser.mapFileName, (Keyboard *) &atom_keyboard, arg_parser.debugInfo, arg_parser.program);
+    int n_cycles_per_60_hz = (int)round(arg_parser.cMHz * 1000000/ 60);
+    Devices devices(arg_parser.mapFileName, n_cycles_per_60_hz, (Keyboard *) &atom_keyboard, arg_parser.debugInfo, arg_parser.program);
+    
+    vector<Device*> *device_list = NULL;
+    if (!devices.getDevices(device_list)) {
+        cout << "Failed to get a list of devices!\n";
+        return -1;
+    }
     
     // Create processor object
     P6502 processor(arg_parser.cMHz, devices, arg_parser.debugInfo);
 
-
-    // Start processor thread (run method of processor)
-    std::thread processor_t(&P6502::run, &processor);
-
     al_start_timer(timer_60_hz);
+
+    
+    int cycles_step = 10;
+    uint64_t cycle_count = 0;
+
     while (true)
     {
         al_wait_for_event(queue, &event);
@@ -63,9 +71,20 @@ int main(int argc, const char* argv[])
         atom_keyboard.checkForKey(event);
 
         if (event.type == ALLEGRO_EVENT_TIMER) {
-            redraw = true;
-            devices.toggle60Hz();
+
+            for (int c = 0; c < n_cycles_per_60_hz; c++) {
+
+                cycle_count += cycles_step;
+
+                // advance time for each device (when applicable) until clock cycle cycle_count has been reached
+                for (int d = 0; d < device_list->size(); d++) {
+                    Device *dev = (*device_list)[d];
+                    dev->advance(cycle_count);
+                }
+                
+            }
         }
+
         else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
             break;
 
@@ -83,9 +102,6 @@ int main(int argc, const char* argv[])
     al_destroy_display(disp);
     al_destroy_timer(timer_60_hz);
     al_destroy_event_queue(queue);
-
-    // Wait for processor thread to complete
-    processor_t.join();
 
     return 0;
 
