@@ -69,7 +69,7 @@ Devices::Devices(std::string memMapFile, int n60HzCycles, Keyboard *keyboard, De
 			string video_mem_adr_s;
 			sin >> video_mem_adr_s;
 			a.videoMemAdr = stoi(video_mem_adr_s, 0, 16);
-			vdu = new VDU6847(a.startAdr, a.videoMemAdr, mDebugInfo);
+			vdu = new VDU6847(a.startAdr, n60HzCycles, a.videoMemAdr, mDebugInfo);
 			mDevices.push_back(vdu);
 		}
 		else if (dev_typ_s == "ROM") {

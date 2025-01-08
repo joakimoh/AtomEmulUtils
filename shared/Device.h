@@ -85,7 +85,7 @@ public:
 			return false;
 	}
 
-	int size() { return mDevices.size(); }
+	int size() { return (int) mDevices.size(); }
 
 
 	bool read(uint16_t adr, uint8_t& data);

@@ -101,9 +101,9 @@ int main(int argc, const char* argv[])
 
         if (redraw && al_is_event_queue_empty(queue))
         {
-            al_clear_to_color(al_map_rgb(0, 0, 0));
-            al_draw_text(font, al_map_rgb(255, 255, 255), 0, 0, 0, "Hello world!");
-            al_flip_display();
+            //al_clear_to_color(al_map_rgb(0, 0, 0));
+            //al_draw_text(font, al_map_rgb(255, 255, 255), 0, 0, 0, "Hello world!");
+            //al_flip_display();
 
             redraw = false;
         }
