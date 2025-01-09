@@ -10,11 +10,15 @@
 #define ALLEGRO_STATICLINK
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
+#include <allegro5/allegro_primitives.h>
+#include <allegro5/allegro_image.h>
 
 #include "ArgParser.h"
 #include "../shared/P6502.h"
 #include "../shared/Codec6502.h"
 #include "../shared/AtomKeyboard.h"
+
+#include "../shared/VDU6847.h"
 
 
 using namespace std;
@@ -23,6 +27,7 @@ int main(int argc, const char* argv[])
 {
     al_init();
     al_install_keyboard();
+    al_init_image_addon();
 
     ALLEGRO_TIMER* timer_60_hz = al_create_timer(1.0 / 60); // 60 Hz frequency as a base
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
@@ -101,9 +106,46 @@ int main(int argc, const char* argv[])
 
         if (redraw && al_is_event_queue_empty(queue))
         {
-            //al_clear_to_color(al_map_rgb(0, 0, 0));
-            //al_draw_text(font, al_map_rgb(255, 255, 255), 0, 0, 0, "Hello world!");
-            //al_flip_display();
+            
+            al_clear_to_color(al_map_rgb(0, 0, 0));
+            /*
+            al_draw_text(font, al_map_rgb(255, 255, 255), 0, 0, 0, "Hello world!");
+            */
+            int symbol = 0;
+            
+            float pixel_width = 2.24;// One 3.58 Mhz 1/2 cycle per pixel
+            float pixel_height = 1; // One scan line per pixel
+            ALLEGRO_COLOR green = al_map_rgb(0, 0xff, 0);
+            ALLEGRO_BITMAP* char_row_bitmap = al_create_bitmap(8 * pixel_width, 12 * pixel_height);
+            cout << "CREATED " << 8 * pixel_width << " x " << 12 * pixel_height << " bitmap\n";
+            for (int row = 0; row < 16; row++) {
+                for (int col = 0; col < 32; col++) {  
+                    ALLEGRO_BITMAP* display = al_get_target_bitmap();
+                    VDU6847::CharDef char_symbol = VDU6847::mCharRom[symbol];
+                    symbol = (symbol + 1) % 64;               
+                    al_set_target_bitmap(char_row_bitmap);
+                    al_clear_to_color(al_map_rgb(0, 0, 0));
+                    for (int char_pixel_row = 0; char_pixel_row < 12; char_pixel_row++) {
+                        uint8_t char_row_bitmap = char_symbol.rows[char_pixel_row];
+                        float y = char_pixel_row * pixel_height;
+                        for (int char_pixel_col = 0; char_pixel_col < 8; char_pixel_col++) {
+                            float x = char_pixel_col * pixel_width; 
+                            cout << "0x" << hex << (int) char_row_bitmap << ","  << dec << x << "," << y << ":\n";
+                            if (char_row_bitmap & 0x80) {
+                                cout << "DRAW rectangle " << x << "," << y << "," << x + pixel_width - 1 << "," << y + pixel_height - 1 << "\n";
+                                al_draw_filled_rectangle(x, y, x + pixel_width - 1, y + pixel_height - 1, green);
+                                //al_put_pixel(char_pixel_col, char_pixel_row, green);
+                            }
+                            char_row_bitmap = char_row_bitmap << 1;
+                        }
+                    }
+                    al_set_target_bitmap(display);
+                    al_draw_bitmap(char_row_bitmap, col * 8 * pixel_width, row * 12 * pixel_height, 0);
+                }
+            }
+            al_destroy_bitmap(char_row_bitmap);         
+            
+            al_flip_display();
 
             redraw = false;
         }

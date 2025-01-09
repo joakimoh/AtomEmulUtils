@@ -30,74 +30,15 @@ bool VDU6847::advance(uint64_t stopCycle)
 		else { 
 
 			// draw one row of a character (8 pixels)
-			
-
-			int pixel_line = (int)round((line - timing.vBlankinglines));
-			int char_symbol_line = pixel_line % 12;
-			int char_row = (int)round(pixel_line / timing.visibleLines * 16);
-			int char_col = mRowPixel / 8;
-
-			ALLEGRO_COLOR green = al_map_rgb(0, 0xff, 0);
-			ALLEGRO_COLOR black = al_map_rgb(0, 0, 0);
-			uint8_t data;
-			mVideoMem->read(mVideoMemAdr + char_row * 32 + char_col, data);
-			CharDef char_symbol = mCharRom[data & 0x3f];
-
-
-			
-			ALLEGRO_BITMAP* display = al_get_target_bitmap();
-
-			// Create bitmap for one row of the character to be displayed
-			ALLEGRO_BITMAP* char_row_bitmap = al_create_bitmap(8, 1);
-			al_set_target_bitmap(char_row_bitmap);
-
-			uint8_t char_bitmap = 0x0;
-			if (char_symbol_line >= 3 && char_symbol_line <= 9)
-				char_bitmap = char_symbol.rows[char_symbol_line - 3];
-
-			cout << "DRAW ROW " << dec << (int)char_symbol_line << hex << " (0x" << (int) char_bitmap << ") of symbol '" << dec <<
-				(char)char_symbol.asc <<
-				"' at [" << char_row << ", " << char_col << "] and specified by memory 0x" <<
-				hex << mVideoMemAdr + char_row * 32 + char_col << "\n";
-
-			for (int x = 0; x < 8; x++) {
-				int pixel = 0;
-				if (x >= 2 && x <= 7)
-					pixel = char_bitmap & (1 << x);
-				if (pixel)
-					al_put_pixel(x, 0, green);
-				else
-					al_put_pixel(x, 0, black);
-			}
-
-			al_set_target_bitmap(display);
-			
-			// Draw one line of the symbol on the display
-			al_draw_bitmap_region(char_row_bitmap, 0, 0, 8, 12, mRowPixel, pixel_line, 0);
-			
-
-			// Dispose of the temporary char row bitmpap
-			al_destroy_bitmap(char_row_bitmap);
-
-			mRowPixel = (mRowPixel + 8) % 256;
 
 			// Advance time taken to draw eight horizontal pixels
-			mCycleCount += timing.hzPixelduration * 8;
+			mCycleCount += 10;
 
 		}
 
-		//cout << "CycleCount for VDU: " << dec << mCycleCount << "\n";
-
 	}
 
-	//cout << "CycleCount for VDU: " << dec << mCycleCount << "\n";
-	//cout << timing.toString() << "\n";
 
-	// Update display (i.e make changes visible) with 60 Hz frequency
-	if (mCycleCount % (int)round(timing.linesPerField) == 0) {
-		cout << "Update display!\n";
-		al_flip_display();
-	}
 
 	return true;
 }
@@ -110,9 +51,9 @@ bool VDU6847::advance(uint64_t stopCycle)
 // Supported Alphanumeric (major mode 1) modes:
 // 
 // INT/EXT	INV
-// 0		0		Internal alphanumerics (standard 5 x 7 dot matrix characters)
+// 0		0		Internal alphanumerics (standard 5 x 7 dot matrix characters) - Semigraphic 4
 // 0		1		Internal alphanumerics inverted (standard 5 x 7 dot matrix characters - inverted)
-// 1		0		External alphanumerics (external 8 x 12 dot matrix characters)
+// 1		0		External alphanumerics (external 8 x 12 dot matrix characters) - Semigraphic 6
 // 1		1		External alphanumerics inverted (external 8 x 12 dot matrix characters - inverted)
 // 
 // For the Acorn Atom, INV is connected to b7 of read graphics memory data, INT/EXT to b6. But Acorn Atom

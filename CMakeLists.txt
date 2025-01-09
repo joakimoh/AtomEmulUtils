@@ -62,7 +62,7 @@ add_executable (
 
 target_include_directories(Emu6502 PUBLIC ${allegro5_SOURCE_DIR}/include)
 target_include_directories(Emu6502 PUBLIC ${allegro5_BINARY_DIR}/include)
-target_link_libraries(Emu6502 PUBLIC shared allegro allegro_main allegro_font allegro_primitives)# allegro_font-debug)
+target_link_libraries(Emu6502 PUBLIC shared allegro allegro_main allegro_font allegro_primitives allegro_image)
 
 # These include files are typically copied into the correct places via allegro's install
 # target, but we do it manually.
@@ -70,6 +70,9 @@ file(COPY ${allegro5_SOURCE_DIR}/addons/font/allegro5/allegro_font.h
 	DESTINATION ${allegro5_SOURCE_DIR}/include/allegro5
 )
 file(COPY ${allegro5_SOURCE_DIR}/addons/primitives/allegro5/allegro_primitives.h
+	DESTINATION ${allegro5_SOURCE_DIR}/include/allegro5
+)
+file(COPY ${allegro5_SOURCE_DIR}/addons/image/allegro5/allegro_image.h
 	DESTINATION ${allegro5_SOURCE_DIR}/include/allegro5
 )
 

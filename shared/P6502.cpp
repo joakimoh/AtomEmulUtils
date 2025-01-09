@@ -541,7 +541,7 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
-		if (false && calc_op_adr == 0xfe52) { // OSWRCH is executed via JSR $fff4:JMP($208) where Mem[0x208] = 0xfe52
+		if (calc_op_adr == 0xfe52) { // OSWRCH is executed via JSR $fff4:JMP($208) where Mem[0x208] = 0xfe52
 			// Output A content on screen
 			if (mAcc >= 0x20 && mAcc < 0x7f)
 				cout.put((char)mAcc).flush();
@@ -600,7 +600,7 @@ bool P6502::executeInstr(
 			calc_op_adr = 0xfff4;
 		} else
 		*/
-		if (false && calc_op_adr == 0xfff4) { // OSWRCH (normally 0xfe52)
+		if (calc_op_adr == 0xfff4) { // OSWRCH (normally 0xfe52)
 			// Output A content on screen
 			if (mAcc >= 0x20 && mAcc < 0x7f)
 				cout.put((char)mAcc).flush();
