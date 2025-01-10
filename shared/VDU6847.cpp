@@ -13,32 +13,91 @@ bool VDU6847::reset()
 	return true;
 }
 
+
+//
+// M6847 displays 256 x 192 pixels in 60 Hz non-interlaced mode
+//
+// The 262 1/2 scan lines of an NTSC field (525 / 2) is split into
+// 13 (vertical blanking) + top border (25) + pixels (192) + bottom border (26) + vertical retrace (6)
+//
+// Each scan line lasts 63.5 us and is horizontally split into:
+// 12.3 us (left & right hz blanking) +  15.9 us (left & right border) + 35.8 us (256 pixels)
+//
 bool VDU6847::advance(uint64_t stopCycle)
 {
 	VideoTiming timing;
+	float proc_clk_rate_Mhz = mN60HzCycles * 60 / 1e6;
+	int first_visible_scan_line = 13 + 25;
+	int last_visible_scan_line = 262 - 26 - 6;
 
 	while (mCycleCount < stopCycle) {
 
-		int field_cycle = mCycleCount % mN60HzCycles;
+		if (mScanLine == 0) {
 
-		int line = (int)round(timing.linesPerField * (mCycleCount % mN60HzCycles) / mN60HzCycles);
+			// Direct drawing to the display
+			al_set_target_bitmap(mDisplay);
 
-		if (line < timing.vBlankinglines) {
-			mRowPixel = 0;
-			mCycleCount += 2;
+			// Clear the display
+			al_clear_to_color(al_map_rgb(0, 0, 0));
+
+			// Draw the 256 x 192 display bitmap while scaling it to 648 x 486
+			al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, 256, 192, 0, 0, 648, 486, 0);
+
+			// Make the updates visible on the display
+			al_flip_display();
+
 		}
-		else { 
+		
+		else if (mScanLine >= first_visible_scan_line && mScanLine <= last_visible_scan_line) { // middle visible lines
 
-			// draw one row of a character (8 pixels)
 
-			// Advance time taken to draw eight horizontal pixels
-			mCycleCount += 10;
+			
+			ALLEGRO_COLOR green = al_map_rgb(0, 0xff, 0);
+			ALLEGRO_COLOR black = al_map_rgb(0, 0, 0);
+
+			// draw one scan line consisting of 32 characters
+			int pixel_line = mScanLine - first_visible_scan_line;
+			int y = pixel_line % 12;
+			for (int char_col = 0; char_col < 32; char_col++) {
+
+				al_set_target_bitmap(mCharBitmap);
+				al_clear_to_color(black);
+
+				uint8_t mem_data;
+				int mem_row = pixel_line / 12;
+				int mem_adr = mVideoMemAdr + mem_row * 32 + char_col;
+				if (!mVideoMem->read(mem_adr, mem_data))
+					return false;
+				uint8_t symbol = (mem_data & 0x3f);
+				CharDef symbol_def = mCharRom[symbol];
+				uint8_t symbol_mask = symbol_def.rows[y];
+				for (int x = 0; x < 8; x++) {
+					if (symbol_mask & 0x80)
+						al_put_pixel(x, 0, green);
+					symbol_mask = symbol_mask << 1;
+				}
+
+				al_set_target_bitmap(mDisplayBitmap);
+				al_draw_bitmap(mCharBitmap, char_col * 8, pixel_line, 0);
+
+				/*
+				if (mem_adr < 0x8080 && symbol_def.asc == 'A')
+					cout << "Line " << dec << y << " of symbol: '" << symbol_def.asc << "' with " <<
+					" bitmask 0x" << hex << (int)symbol_mask << " at 0x" << hex << mem_adr <<
+					" drawn at position " << dec << char_col * 8 << "," << pixel_line << "\n";
+					*/
+			}
 
 		}
+		
+		// Advance time taken to process one scan line
+		mCycleCount += 63.5 / proc_clk_rate_Mhz;
+
+		// Next scan line
+		mScanLine = (mScanLine + 1) % 262;
+		//cout << dec << mScanLine << "\n";
 
 	}
-
-
 
 	return true;
 }
@@ -57,7 +116,7 @@ bool VDU6847::advance(uint64_t stopCycle)
 // 1		1		External alphanumerics inverted (external 8 x 12 dot matrix characters - inverted)
 // 
 // For the Acorn Atom, INV is connected to b7 of read graphics memory data, INT/EXT to b6. But Acorn Atom
-// doesn't have external aplhanumerics.
+// doesn't have external alphanumerics so b6 needs always to be '0'.
 // 
 // Supported Graphic (Major Mode 2) modes: 
 //
@@ -84,8 +143,8 @@ bool VDU6847::setVideoRam(RAM* ram)
 	return true;
 }
 
-VDU6847::VDU6847(uint16_t adr, int n60HzCycles, uint16_t videoMemAdr, DebugInfo debugInfo) :
-	Device(VDU6847_DEV, adr, 0x100, debugInfo), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles)
+VDU6847::VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo) :
+	Device(VDU6847_DEV, adr, 0x100, debugInfo), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
 {
 	// Set the size of the VDU register vector
 	mMem.resize((size_t) mDevSz);
@@ -96,6 +155,20 @@ VDU6847::VDU6847(uint16_t adr, int n60HzCycles, uint16_t videoMemAdr, DebugInfo 
 	if (mDebugInfo.verbose)
 		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
 		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
+
+	// Create 256 x 192 display bitmap and clear it
+	mDisplayBitmap = al_create_bitmap(256, 192);
+	al_set_target_bitmap(mDisplayBitmap);
+	al_clear_to_color(al_map_rgb(0, 0, 0));
+	al_set_target_bitmap(mDisplay);
+
+	mCharBitmap = al_create_bitmap(8, 1);
+}
+
+VDU6847::~VDU6847()
+{
+	al_destroy_bitmap(mCharBitmap);
+	al_destroy_bitmap(mDisplayBitmap);
 }
 
 

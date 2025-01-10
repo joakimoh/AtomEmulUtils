@@ -10,8 +10,8 @@ void AtomKeyboard::keyDown(int k, unsigned modifiers)
 		AtomKey key = mKeycodes[k];
 		if (key.row != -1 && key.col != -1) {
 			PA0_03_selectedRow_keys[key.row][key.col]++;
-			//cout << "KEY '" << key.atomKeyName << "' sets row " << (int)key.row << " and col " << (int)key.col <<
-			//	"=> count = " << (int) PA0_03_selectedRow_keys[key.row][key.col] << "\n";
+			cout << "KEY '" << key.atomKeyName << "' sets row " << (int)key.row << " and col " << (int)key.col <<
+				"=> count = " << (int) PA0_03_selectedRow_keys[key.row][key.col] << "\n";
 		}
 		else if (key.atomKeyName == "SHIFT")
 			PB7_shift = true;

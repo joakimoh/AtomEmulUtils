@@ -27,7 +27,9 @@ bool Device::validAdr(uint16_t adr)
 	return selected(adr);
 }
 
-Devices::Devices(std::string memMapFile, int n60HzCycles, Keyboard *keyboard, DebugInfo debugInfo, Program program) : mDebugInfo(debugInfo)
+Devices::Devices(
+	std::string memMapFile, int n60HzCycles, ALLEGRO_BITMAP* disp, Keyboard *keyboard, DebugInfo debugInfo, Program program) :
+	mDebugInfo(debugInfo)
 {
 
 	ifstream fin(memMapFile, ios::in | ios::ate);
@@ -69,7 +71,7 @@ Devices::Devices(std::string memMapFile, int n60HzCycles, Keyboard *keyboard, De
 			string video_mem_adr_s;
 			sin >> video_mem_adr_s;
 			a.videoMemAdr = stoi(video_mem_adr_s, 0, 16);
-			vdu = new VDU6847(a.startAdr, n60HzCycles, a.videoMemAdr, mDebugInfo);
+			vdu = new VDU6847(a.startAdr, n60HzCycles, disp, a.videoMemAdr, mDebugInfo);
 			mDevices.push_back(vdu);
 		}
 		else if (dev_typ_s == "ROM") {

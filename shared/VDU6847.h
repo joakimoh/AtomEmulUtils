@@ -103,11 +103,15 @@ public:
 	uint16_t mVideoMemAdr = 0x0;
 
 	int mN60HzCycles;
-	int mRowPixel = 0;
+	ALLEGRO_BITMAP* mDisplayBitmap = NULL;
+	ALLEGRO_BITMAP* mDisplay = NULL;
+	ALLEGRO_BITMAP* mCharBitmap = NULL;
+	int mScanLine = 0;
 
 public:
 
-	VDU6847(uint16_t adr, int n60HzCycles, uint16_t videoMemAdr, DebugInfo debugInfo);
+	VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo);
+	VDU6847::~VDU6847();
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);
