@@ -20,19 +20,31 @@ bool VDU6847::reset()
 // The 262 1/2 scan lines of an NTSC field (525 / 2) is split into
 // 13 (vertical blanking) + top border (25) + pixels (192) + bottom border (26) + vertical retrace (6)
 //
-// Each scan line lasts 63.5 us and is horizontally split into:
-// 12.3 us (left & right hz blanking) +  15.9 us (left & right border) + 35.8 us (256 pixels)
+// Each scan line lasts 63.5 us. The visible part is 128/3.58 = 35.8 us, visible part + left & right borders = 185.5/3.58 = 51.8 us.
+// The horizontal blanking then becomes 63.5 - 51.8 = 11.7 us. The border than takes 51.8 - 35.8 = 16.0 us.
+// The left part of the border and blanking becomes (11.7 + 16.0) / 2 = 13.8 us
+// 
+// 12.3 us (left & right hz blanking) +  15.9 us (left & right border) + 35.8 us (256 pixels) = 28.2 us + 35.8 us = 64 us
+//
+// The pixel part of the scan line (35.8 us). A character (8 pixels) takes 35.8 / 32 = 1.12 us. If we measure the scan line in
+// this unit we will have 56.7 such units per scan line and the first visible one starts after 13.8 / 1.12 = 12.4 units,
+// lasts 32 units (as their are 32 visible characters per scan line) and is followed by 12.4 non-visible units.
+//
+// advance() advances one scan line (but only if the stop cycle hasn't already been reached)
 //
 bool VDU6847::advance(uint64_t stopCycle)
 {
 	VideoTiming timing;
 	float proc_clk_rate_Mhz = mN60HzCycles * 60 / 1e6;
 	int first_visible_scan_line = 13 + 25;
-	int last_visible_scan_line = 262 - 26 - 6;
+	int last_visible_scan_line = 262 - (26 + 6);
+	int first_visible_scan_pos = 14;
 
-	while (mCycleCount < stopCycle) {
+	if (mCycleCount < stopCycle) {
 
 		if (mScanLine == 0) {
+
+			// Refresh the display at the start of a new field
 
 			// Direct drawing to the display
 			al_set_target_bitmap(mDisplay);
@@ -47,18 +59,18 @@ bool VDU6847::advance(uint64_t stopCycle)
 			al_flip_display();
 
 		}
-		
-		else if (mScanLine >= first_visible_scan_line && mScanLine <= last_visible_scan_line) { // middle visible lines
 
-
+		else if (mScanLine >= first_visible_scan_line && mScanLine <= last_visible_scan_line ) {
 			
-			ALLEGRO_COLOR green = al_map_rgb(0, 0xff, 0);
-			ALLEGRO_COLOR black = al_map_rgb(0, 0, 0);
-
-			// draw one scan line consisting of 32 characters
-			int pixel_line = mScanLine - first_visible_scan_line;
-			int y = pixel_line % 12;
+			// Draw a visible line
+			
 			for (int char_col = 0; char_col < 32; char_col++) {
+				ALLEGRO_COLOR green = al_map_rgb(0, 0xff, 0);
+				ALLEGRO_COLOR black = al_map_rgb(0, 0, 0);
+
+				// draw one character of a scan line
+				int pixel_line = mScanLine - first_visible_scan_line;
+				int y = pixel_line % 12;
 
 				al_set_target_bitmap(mCharBitmap);
 				al_clear_to_color(black);
@@ -85,17 +97,16 @@ bool VDU6847::advance(uint64_t stopCycle)
 					cout << "Line " << dec << y << " of symbol: '" << symbol_def.asc << "' with " <<
 					" bitmask 0x" << hex << (int)symbol_mask << " at 0x" << hex << mem_adr <<
 					" drawn at position " << dec << char_col * 8 << "," << pixel_line << "\n";
-					*/
+				*/
 			}
 
 		}
 		
 		// Advance time taken to process one scan line
-		mCycleCount += 63.5 / proc_clk_rate_Mhz;
+		mCycleCount += (int) round(63.5/ proc_clk_rate_Mhz);
 
-		// Next scan line
+		// Next scan line if a complete line has been scanned
 		mScanLine = (mScanLine + 1) % 262;
-		//cout << dec << mScanLine << "\n";
 
 	}
 
@@ -146,6 +157,7 @@ bool VDU6847::setVideoRam(RAM* ram)
 VDU6847::VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo) :
 	Device(VDU6847_DEV, adr, 0x100, debugInfo), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
 {
+
 	// Set the size of the VDU register vector
 	mMem.resize((size_t) mDevSz);
 

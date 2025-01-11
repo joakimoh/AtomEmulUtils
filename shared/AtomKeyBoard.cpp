@@ -42,3 +42,27 @@ void AtomKeyboard::keyUp(int k)
 		//cout << "KEY '" << key.atomKeyName << "' released!\n";
 	}
 }
+
+AtomKeyboard::AtomKeyboard() : Keyboard()
+{
+	// Create 10 rows by 6 columns vector with key data
+	map<int, AtomKey>::iterator keys_it;
+	for (keys_it = mKeycodes.begin(); keys_it != mKeycodes.end(); keys_it++) {
+		AtomKey *key = &(keys_it->second);
+		if (key->row >= 0 && key->row <= 9 && key->col >= 0 && key->col <= 5)
+			mKeyboardRows[key->row][key->col] = key;
+	}
+
+	for (int r = 0; r < 10; r++) {
+		for (int c = 0; c < 6; c++) {
+			AtomKey* key = mKeyboardRows[r][c];
+			if (key != NULL)
+				cout << "'" << key->atomKeyName << "'";
+			else
+				cout << "-";
+			if (c < 5)
+				cout << " ";
+		}
+		cout << "\n";
+	}
+}

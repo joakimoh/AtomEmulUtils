@@ -1,8 +1,12 @@
 #include <allegro5/allegro5.h>
 #include "Keyboard.h"
+#include <iostream>
+
+using namespace std;
 
 bool Keyboard::checkForKey(ALLEGRO_EVENT event)
 {
+
     switch (event.type) {
 
         /* ALLEGRO_EVENT_KEY_DOWN - a keyboard key was pressed.
@@ -20,4 +24,8 @@ bool Keyboard::checkForKey(ALLEGRO_EVENT event)
     default:
         return false;
     }
+}
+
+Keyboard::Keyboard()
+{
 }

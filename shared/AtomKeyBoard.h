@@ -4,6 +4,8 @@
 #include <allegro5/allegro.h>
 #include "Keyboard.h"
 #include <string>
+#include <vector>
+#include <iterator>
 
 using namespace std;
 
@@ -162,6 +164,19 @@ private:
 		{ALLEGRO_KEY_COMMAND,		{ALLEGRO_KEY_COMMAND,		-1,    -1,    ""}},
 	};
 
+	vector<vector<AtomKey*>> mKeyboardRows = {
+		{NULL, NULL, NULL, NULL, NULL, NULL},
+		{NULL, NULL, NULL, NULL, NULL, NULL},
+		{NULL, NULL, NULL, NULL, NULL, NULL},
+		{NULL, NULL, NULL, NULL, NULL, NULL},
+		{NULL, NULL, NULL, NULL, NULL, NULL},
+		{NULL, NULL, NULL, NULL, NULL, NULL},
+		{NULL, NULL, NULL, NULL, NULL, NULL},
+		{NULL, NULL, NULL, NULL, NULL, NULL},
+		{NULL, NULL, NULL, NULL, NULL, NULL},
+		{NULL, NULL, NULL, NULL, NULL, NULL}
+	};
+
 	map<unsigned, AtomModifier> mModifiers = {
 	{ALLEGRO_KEYMOD_SHIFT,		{ALLEGRO_KEYMOD_SHIFT,		false, true, false}},
 	{ALLEGRO_KEYMOD_CTRL,		{ALLEGRO_KEYMOD_CTRL,		true, false, false}},
@@ -190,6 +205,8 @@ public:
 public:
 	void keyDown(int key, unsigned modifiers);
 	void keyUp(int key);
+
+	AtomKeyboard();
 };
 
 #endif

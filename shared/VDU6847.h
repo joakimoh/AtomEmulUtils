@@ -26,7 +26,7 @@ public:
 	// Each symbol is 8 1/2 cycles wide <=> 8*1/3.58 = 2.24 CPU cycles.
 	//
 	// In Semigraphics 4, a graphical symbols consists of 2 x 2 pixels, each of 4 1/2 cycles width and 6 lines height
-	// In Semigraphics 4, a graphical symbols consists of 2 x 3 pixels, each of 4 1/2 cycles width and 4 lines height
+	// In Semigraphics 6, a graphical symbols consists of 2 x 3 pixels, each of 4 1/2 cycles width and 4 lines height
 	//
 	//
 	static const inline vector<CharDef> mCharRom = {
@@ -106,7 +106,7 @@ public:
 	ALLEGRO_BITMAP* mDisplayBitmap = NULL;
 	ALLEGRO_BITMAP* mDisplay = NULL;
 	ALLEGRO_BITMAP* mCharBitmap = NULL;
-	int mScanLine = 0;
+	int mScanLine = 0; // 0 to 262 [field scan lines]
 
 public:
 

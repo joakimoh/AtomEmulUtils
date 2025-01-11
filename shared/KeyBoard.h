@@ -11,6 +11,7 @@ public:
 protected:
 	virtual void keyDown(int key, unsigned modifiers) = 0;
 	virtual void keyUp(int key) = 0;
+	Keyboard();
 };
 
 #endif
