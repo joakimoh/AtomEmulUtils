@@ -142,8 +142,8 @@ public:
 
 private:
 	int mSelectedRow = 0;
-	int mCtrlKeyCode = -1;
-	int mShiftKeyCode = -1;
+	int mCtrlKeyCode =  -1 ;
+	int mShiftKeyCodes[2] = { -1 };
 	int mRepeatKeyCode = -1;
 
 public:
@@ -155,7 +155,7 @@ public:
 	bool shiftPressed();
 	bool repeatPressed();
 
-	AtomKeyboard();
+	AtomKeyboard(DebugInfo debugInfo);
 };
 
 #endif

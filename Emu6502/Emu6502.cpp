@@ -53,7 +53,7 @@ int main(int argc, const char* argv[])
     if (arg_parser.failed())
         return -1;
 
-    AtomKeyboard atom_keyboard;
+    AtomKeyboard atom_keyboard(arg_parser.debugInfo);
     int n_cycles_per_60_hz = (int)round(arg_parser.cMHz * 1000000/ 60);
     ALLEGRO_BITMAP* display = al_get_target_bitmap();
     Devices devices(arg_parser.mapFileName, n_cycles_per_60_hz, display, (Keyboard *) &atom_keyboard, arg_parser.debugInfo, arg_parser.program);
@@ -79,6 +79,7 @@ int main(int argc, const char* argv[])
         }
     }
     processor.reset();
+    if (arg_parser.debugInfo.dbgLevel & DBG_VERBOSE)
     cout << "All devices now reset...\n";
 
     al_clear_to_color(al_map_rgb(0, 0, 0));

@@ -22,9 +22,15 @@ void ArgParser::printUsage(const char* name)
 	cout << "\nADVANCED OPTIONS:\n";
 	cout << "-stop <hex address>: stop execution at this address\n\n";
 	cout << "-dump <hex address> <hex size>: dump memory content address to address+size-1 after stopping execution\n\n";
-	cout << "-trace <hex address> <pre trace len> <post trace len>: turn on verbose mode when an certain address is read\n";
+	cout << "-trace <hex address> <pre trace len> <post trace len>: turn on 'all debug mode when an certain address is read\n";
 	cout << "\tor written to. The tracing starts <pre trace len> instructions prior to the trigger and lasts <post trace len>\n";
 	cout << "\tinstructions after the trigger.\n\n";
+	cout << "-dbg 'w' | 'e' | 'u' | 'd' | 'a': Debugging of different detail.\n";
+	cout << "\t'w' errors only\n";
+	cout << "\t'w' warning and errors\n";
+	cout << "\t'u' microcontroller execution (and warnings & errors)\n";
+	cout << "\t'd' device execution  (and warnings & errors)\n";
+	cout << "\t'a' all the above\n\n";
 }
 
 ArgParser::ArgParser(int argc, const char* argv[])
@@ -87,7 +93,28 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			a++;
 		}
 		else if (strcmp(argv[a], "-v") == 0) {
-			debugInfo.verbose = true;
+			debugInfo.dbgLevel |= DBG_VERBOSE;
+		}
+		else if (strcmp(argv[a], "-dbg") == 0) {
+			a++;
+			if (a >= argc) {
+				printUsage(argv[0]);
+				return;
+			}
+			if (strcmp(argv[a ], "e") == 0)
+				debugInfo.dbgLevel |= DBG_ERROR;
+			else if (strcmp(argv[a], "w") == 0)
+				debugInfo.dbgLevel |= DBG_WARNING;
+			else if (strcmp(argv[a], "d") == 0)
+				debugInfo.dbgLevel |= DBG_DEVICE;
+			else if (strcmp(argv[a], "u") == 0)
+				debugInfo.dbgLevel |= DBG_6502;
+			else if (strcmp(argv[a], "a") == 0)
+				debugInfo.dbgLevel |= DBG_ALL;
+			else {
+				printUsage(argv[0]);
+				return;
+			}
 		}
 		else {
 			cout << "Unknown option " << argv[a] << "\n";

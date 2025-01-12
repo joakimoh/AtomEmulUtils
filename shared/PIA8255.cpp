@@ -110,7 +110,7 @@ PIA8255::PIA8255(uint16_t adr, int n60HzCycles, AtomKeyboard *keyboard, DebugInf
 	// Initialise the PIA registers with zeros
 	mMem.assign(mDevSz, 0);
 
-	if (mDebugInfo.verbose)
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 		cout << "PIA 8255 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
 		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
 }
@@ -142,7 +142,8 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 		if (mSync60HzEvent == 1)
 			data |= 0x80;
 
-		//cout << "READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
+		if (mDebugInfo.dbgLevel & DBG_DEVICE)
+			cout << "READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
 	}
 	else { // adr == PIA8255_CONTROL
 		data = mMem[adr - mDevAdr];
@@ -172,23 +173,27 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 	else if (adr == PIA8255_CONTROL) {
 		// 
 		if (data & 0x80) {
-			cout << "I/O Mode: ";
-			cout << " Port A " << (data & 0x40 ? "M0" : ((data & 0x60) == 0x40 ? "M1" : "M2"));
-			cout << " " << (data & 0x10 ? "IN" : "OUT");
-			cout << ", Port B " << (data & 0x04 ? "M1" : "M0");
-			cout << " " << (data & 0x02 ? "IN" : "OUT");
-			cout << ", Port C upper " << (data & 0x08 ? "IN" : "OUT");
-			cout << ", Port C lower " << (data & 0x01 ? "IN" : "OUT");
-			cout << "\n";
+			if (mDebugInfo.dbgLevel & DBG_DEVICE) {
+				cout << "I/O Mode: ";
+				cout << " Port A " << (data & 0x40 ? "M0" : ((data & 0x60) == 0x40 ? "M1" : "M2"));
+				cout << " " << (data & 0x10 ? "IN" : "OUT");
+				cout << ", Port B " << (data & 0x04 ? "M1" : "M0");
+				cout << " " << (data & 0x02 ? "IN" : "OUT");
+				cout << ", Port C upper " << (data & 0x08 ? "IN" : "OUT");
+				cout << ", Port C lower " << (data & 0x01 ? "IN" : "OUT");
+				cout << "\n";
+			}
 		} 
 		else {
-			cout << "BSR Mode\n";
+			if (mDebugInfo.dbgLevel & DBG_DEVICE)
+				cout << "BSR Mode\n";
 		}
 	}
 
 	mMem[adr - mDevAdr] = data;
 
-	//cout << "WROTE 0x" << setw(2) << setfill('0') << hex << (int)data << " to 0x" << setw(4) << adr << "\n";
+	if (mDebugInfo.dbgLevel & DBG_DEVICE)
+		cout << "WROTE 0x" << setw(2) << setfill('0') << hex << (int)data << " to 0x" << setw(4) << adr << "\n";
 
 	return true;
 }

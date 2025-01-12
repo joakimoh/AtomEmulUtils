@@ -19,7 +19,7 @@ P6502::P6502(double clockSpeed, Devices &devices, DebugInfo debugInfo) : mDevice
 //
 bool P6502::reset()
 {
-	if (mDebugInfo.verbose)
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 		cout << "RESET\n";
 
 	mCycleCount = 0;
@@ -45,22 +45,19 @@ bool P6502::advance(uint64_t stopCycle)
 
 	while (mCycleCount < stopCycle) {	
 
-		
-
 		if (mDebugInfo.traceAdr > 0) {
 			if (mProgramCounter == mDebugInfo.traceAdr) {
-				mDebugInfo.verbose = true;
+				mDebugInfo.dbgLevel |= DBG_6502;
 				mTraceCount = 0;
 				for (int i = 0; i < mBufferedTraceLines.size(); i++)
 					cout << mBufferedTraceLines[i];
 			}
 			if (mTraceCount > mDebugInfo.postTraceLen) {
-				mDebugInfo.verbose = false;
+				mDebugInfo.dbgLevel &= ~DBG_6502;
 				mEndOfTracingReached = true;
 			}
 			mTraceCount++;
 		}
-
 
 		if (mDebugInfo.stopAdr > 0 && mProgramCounter == mDebugInfo.stopAdr) {
 			std::cout << "Execution stop triggered!\n";
@@ -80,14 +77,16 @@ bool P6502::advance(uint64_t stopCycle)
 		uint16_t opcode_PC = mProgramCounter;
 		if (!mDevices.read(mProgramCounter++, opcode)) {
 			success = false;
-			std::cout << "Failed to read instruction!\n";		
+			if (mDebugInfo.dbgLevel & DBG_ERROR)
+				std::cout << "Failed to read instruction!\n";
 		}
 
 		// Decode the opcode
 		Codec6502::InstructionInfo instr;
 		if (!mCodec.decodeInstruction(opcode, instr)) {
 			success = false;
-			std::cout << "Invalid instruction 0x" << hex << (int) opcode << " encountered at address 0x" << hex << mProgramCounter << "!\n";
+			if (mDebugInfo.dbgLevel & DBG_ERROR)
+				std::cout << "Invalid instruction 0x" << hex << (int) opcode << " encountered at address 0x" << hex << mProgramCounter << "!\n";
 		}
 
 		// Get the operand
@@ -96,17 +95,19 @@ bool P6502::advance(uint64_t stopCycle)
 		uint8_t read_val = 0x0;
 		if (!getOperand(instr, operand, calc_op_adr, read_val)) {
 			success = false;
-			std::cout << "Failed to get operand for instruction 0x" << hex << (int)opcode << " at address 0x" << opcode_PC << "!\n";
+			if (mDebugInfo.dbgLevel & DBG_ERROR)
+				std::cout << "Failed to get operand for instruction 0x" << hex << (int)opcode << " at address 0x" << opcode_PC << "!\n";
 		}
 
 		// Execute the instruction
 		uint8_t written_val;
 		if (!executeInstr(instr, opcode_PC, operand, calc_op_adr, read_val, written_val)) {
 			success = false;
-			std::cout << "Failed to execute instruction!\n";
+			if (mDebugInfo.dbgLevel & DBG_ERROR)
+				std::cout << "Failed to execute instruction!\n";
 		}
 
-		if (mDebugInfo.verbose  || (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached)) {
+		if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0)  || (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached)) {
 			string instr_s = mCodec.decode(opcode_PC, opcode, operand);
 			stringstream sout;
 			sout << setfill(' ') << setw(30) << left << instr_s << right <<
@@ -118,7 +119,7 @@ bool P6502::advance(uint64_t stopCycle)
 			if (instr.writesMem)
 				sout << " WROTE 0x" << setw(2) << (int)written_val;
 			sout << "\n";
-			if (mDebugInfo.verbose)
+			if (mDebugInfo.dbgLevel & DBG_6502)
 				cout << sout.str();
 			if (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached) {
 				mBufferedTraceLines.push_back(sout.str());
@@ -330,7 +331,6 @@ bool P6502::executeInstr(
 		// -	-	-	1	-	-
 	{
 		// Force Break
-		//mDebugInfo.verbose = true;
 		
 		// Save PC & Status to stack
 		uint16_t PC_push_val = opcode_PC + 2;
@@ -541,41 +541,8 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
-
-		if (false && calc_op_adr == 0xfe52) { // OSWRCH is executed via JSR $fff4:JMP($208) where Mem[0x208] = 0xfe52
-			// Output A content on screen
-			if (mAcc >= 0x20 && mAcc < 0x7f)
-				cout.put((char)mAcc).flush();
-			else if (mAcc == 0xd)
-				cout << "\n";
-
-			// Emulate RTS instruction
-			uint8_t PC_l, PC_h;
-			mDevices.read(0x100 + (uint16_t)++mStackPointer, PC_l);
-			mDevices.read(0x100 + (uint16_t)++mStackPointer, PC_h);
-			mProgramCounter = PC_h * 256 + PC_l + 1;
-			//cout << "JMP($208) with A=0x" << hex << (int)mAcc << "\n";
-		}
-		/*
-		else if (calc_op_adr == 0xfe94) { // OSRDCH is executed via JSR $FFE3:JMP($20a) where Mem[0x20a] = 0xfe94
-			// Read char into A
-			uint8_t c = (uint8_t)getch();
-			if (c == '\n')
-				mAcc = 0xd;
-			else if (c == 0x3)
-				return false;
-			else
-				mAcc = c;
-			// Emulate RTS instruction
-			uint8_t PC_l, PC_h;
-			mDevices.read(0x100 + (uint16_t)++mStackPointer, PC_l);
-			mDevices.read(0x100 + (uint16_t)++mStackPointer, PC_h);
-			mProgramCounter = PC_h * 256 + PC_l + 1;
-		}
-		*/
-		else {
-			mProgramCounter = calc_op_adr;
-		}
+		
+		mProgramCounter = calc_op_adr;
 
 		break;
 	}
@@ -587,46 +554,11 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
-		/*
-		if (calc_op_adr == 0xffe6) { // OSECHO
-			// Read character
-			uint8_t c = (uint8_t)getch();
-			if (c == '\n')
-				mAcc = 0xd;
-			else if (c == 0x3)
-				return false;
-			else
-				mAcc = c;
-			// Write it
-			calc_op_adr = 0xfff4;
-		} else
-		*/
-		if (false && calc_op_adr == 0xfff4) { // OSWRCH (normally 0xfe52)
-			// Output A content on screen
-			if (mAcc >= 0x20 && mAcc < 0x7f)
-				cout.put((char)mAcc).flush();
-			else if (mAcc == 0xd)
-				cout << "\n";
-			//cout << "JSR $fff4 with A=0x" << hex << (int)mAcc << "\n";
-		}
-		/*
-		else if (calc_op_adr == 0xffe3) { // OSRDCH (normally 0xfe94)
-			// Read char into A
-			uint8_t c = (uint8_t)getch();
-			if (c == '\n')
-				mAcc = 0xd;
-			else if (c == 0x3)
-				return false;
-			else
-				mAcc = c;
-		}
-		*/
-		else {
-			uint16_t PC_push_val = opcode_PC + 2;
-			mDevices.write(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
-			mDevices.write(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
-			mProgramCounter = calc_op_adr;
-		}
+		
+		uint16_t PC_push_val = opcode_PC + 2;
+		mDevices.write(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
+		mDevices.write(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
+		mProgramCounter = calc_op_adr;
 
 		break;
 	}
@@ -1017,9 +949,6 @@ bool P6502::executeInstr(
 	return true;
 }
 
-
-
-
 //
 // Evaluates the operand part of an instruction
 //
@@ -1380,7 +1309,6 @@ string P6502::getState()
 	return sout.str();
 }
 
-
 bool P6502::pageBoundaryCrossed(uint16_t before, uint16_t after)
 {
 	return (((before >> 8) ^ (after >> 8)) != 0);
@@ -1424,7 +1352,6 @@ void P6502::setNZVflags(uint8_t N, uint8_t Z, uint8_t V)
 	if (V)
 		mStatusRegister |= V_set_mask;
 }
-
 
 void P6502::setNZCVflags(uint8_t N, uint8_t Z, uint8_t C, uint8_t V)
 {

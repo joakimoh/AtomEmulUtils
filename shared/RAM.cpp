@@ -12,7 +12,7 @@ RAM::RAM(uint16_t adr, uint16_t sz, DebugInfo debugInfo) : Device(RAM_DEV, adr, 
 	// Initialise RAM with zeros
 	mMem.assign(mDevSz, 0);
 
-	if (mDebugInfo.verbose)
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 		cout << "RAM at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
 		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
 }
@@ -48,7 +48,7 @@ bool RAM::write(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
 			return false;
 	}
 
-	if (mDebugInfo.verbose)
+	if (mDebugInfo.dbgLevel & DBG_DEVICE)
 		cout << "Wrote " << dec << sz << " bytes to RAM at location " << hex << setw(4) << setfill('0') << adr << "\n";
 
 	return true;

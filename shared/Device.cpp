@@ -107,13 +107,15 @@ Devices::Devices(
 	if (pia != NULL && vdu != NULL) {
 			
 			pia->setVdu(vdu);
-			cout << "PIA8255 got pointer to VDU6847\n";
+			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+				cout << "PIA8255 got pointer to VDU6847\n";
 			
 			// Get RAM address that matches VDU6847 video memory address
 			// Get RAM device that matches the program load address
 			RAM* ram = NULL;
 			uint16_t video_mem_start_adr = vdu -> getVideoMemAdr();
-			cout << "Video Memory starts at address 0x" << hex << video_mem_start_adr << "\n";
+			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+				cout << "Video Memory starts at address 0x" << hex << video_mem_start_adr << "\n";
 			for (int i = 0; i < mDevices.size(); i++) {
 				Device* dev = mDevices[i];
 				if (dev->selected(video_mem_start_adr) && dev->devType == RAM_DEV) {
@@ -126,9 +128,11 @@ Devices::Devices(
 				cout << "couldn't find a RAM device large enough to become video memory\n";
 				throw runtime_error("couldn't find a RAM device large enough to become video memory");
 			}
-			cout << "Found RAM that matches video memory range\n";
+			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+				cout << "Found RAM that matches video memory range\n";
 			vdu-> setVideoRam(ram);
-			cout << "Video RAM set for VDU6847\n";
+			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+				cout << "Video RAM set for VDU6847\n";
 
 	}
 
@@ -190,7 +194,7 @@ bool Devices::read(uint16_t adr, uint8_t & data)
 		Device* dev = mDevices[i];
 		if (dev->selected(adr)) {
 			bool success = dev->read(adr, data);
-			if (mDebugInfo.verbose)
+			if (mDebugInfo.dbgLevel & DBG_DEVICE)
 				cout << "READ 0x" << hex << adr << " => " << (int)data << "\n";
 			return success;
 		}
@@ -209,7 +213,7 @@ bool Devices::write(uint16_t adr, uint8_t data)
 	for (int i = 0; i < mDevices.size(); i++) {
 		Device* dev = mDevices[i];
 		if (dev->selected(adr)) {
-			if (mDebugInfo.verbose)
+			if (mDebugInfo.dbgLevel & DBG_DEVICE)
 				cout << "WRITE 0x" << hex << (int)data << " to 0x" << adr << "\n";
 			return dev->write(adr, data);
 		}

@@ -1,9 +1,10 @@
 #include "AtomKeyboard.h"
 #include <iostream>
+#include "DebugInfo.h"
 
 using namespace std;
 
-AtomKeyboard::AtomKeyboard() : Keyboard()
+AtomKeyboard::AtomKeyboard(DebugInfo debugInfo): Keyboard(debugInfo)
 {
 	// Create 10 rows by 6 columns vector with key data
 	// Also get keycodes for SHIFT, CTRL & REPEAT keys
@@ -12,28 +13,35 @@ AtomKeyboard::AtomKeyboard() : Keyboard()
 		AtomKey *key = &(keys_it->second);
 		if (key->row >= 0 && key->row <= 9 && key->col >= 0 && key->col <= 5)
 			mKeyboardMatrix[key->row][key->col] = key;
-		else if (key->atomKeyName == "SHIFT")
-			mShiftKeyCode = key->keyCode;
-		else if (key->atomKeyName == "CTRL")
+		else if (key->atomKeyName == "SHIFT") {
+			if (mShiftKeyCodes[0] == -1)
+				mShiftKeyCodes[0] = key->keyCode;
+			else
+				mShiftKeyCodes[1] = key->keyCode;
+		}
+		else if (key->atomKeyName == "CTRL") {
 			mCtrlKeyCode = key->keyCode;
+		}
 		else if (key->atomKeyName == "REPEAT")
 			mRepeatKeyCode = key->keyCode;
 	}
 
-	cout << "KeyBoard initialised\n";
-	cout << "SHIFT key has keycode 0x" << hex << mShiftKeyCode << dec << "\n";
-	cout << "CTRL key has keycode 0x" << hex << mCtrlKeyCode << dec << "\n";
-	cout << "REPEAT key has keycode 0x" << hex << mRepeatKeyCode << dec << "\n";
-	cout << "Keyboard matrix is:\n";
-	for (int r = 0; r < 10; r++) {
-		for (int c = 0; c < 6; c++) {
-			AtomKey *key = mKeyboardMatrix[r][c];
-			if (key != NULL && key->row != -1 && key->col != -1)
-				cout << key->atomKeyName << "\t(0x" << hex << key->keyCode << dec << ")\t";
-			else
-				cout << "-\t\t";
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE) {
+		cout << "KeyBoard initialised\n";
+		cout << "SHIFT keys have keycodes 0x" << hex << mShiftKeyCodes[0] << " and " << mShiftKeyCodes[1] << dec << "\n";
+		cout << "CTRL key has keycodes 0x" << hex << mCtrlKeyCode << dec << "\n";
+		cout << "REPEAT key has keycode 0x" << hex << mRepeatKeyCode << dec << "\n";
+		cout << "Keyboard matrix is:\n";
+		for (int r = 0; r < 10; r++) {
+			for (int c = 0; c < 6; c++) {
+				AtomKey* key = mKeyboardMatrix[r][c];
+				if (key != NULL && key->row != -1 && key->col != -1)
+					cout << key->atomKeyName << "\t(0x" << hex << key->keyCode << dec << ")\t";
+				else
+					cout << "-\t\t";
+			}
+			cout << "\n";
 		}
-		cout << "\n";
 	}
 
 }
@@ -44,13 +52,10 @@ uint8_t AtomKeyboard::readColumn()
 	uint8_t column = 0xff;
 	for (uint8_t c = 0; c < 6; c++) {
 		AtomKey* key = mKeyboardMatrix[mSelectedRow][c];
-		if (key != NULL) {
-			if (keyDown(key->keyCode))
-				column &= ~(0x1 >> c);
-		}
+		if (key != NULL && keyDown(key->keyCode))
+				column &= ~(0x1 << c);
 	}
-	if (column != 0xff)
-		cout << "Key pressed => Keyboard Column: 0x" << hex << (int) column << dec << "\n";
+
 	return column;
 }
 
@@ -61,24 +66,15 @@ void AtomKeyboard::selectRow(uint8_t row)
 
 bool AtomKeyboard::ctrlPressed()
 {
-	bool key_pressed = keyDown(mCtrlKeyCode);
-	if (key_pressed)
-		cout << "CTRL pressed\n";
-	return key_pressed;
+	return keyDown(mCtrlKeyCode);
 }
 
 bool AtomKeyboard::shiftPressed()
 {
-	bool key_pressed = keyDown(mShiftKeyCode);
-	if (key_pressed)
-		cout << "SHIFT pressed\n";
-	return key_pressed;
+	return keyDown(mShiftKeyCodes[0]) || keyDown(mShiftKeyCodes[1]);
 }
 
 bool AtomKeyboard::repeatPressed()
 {
-	bool key_pressed = keyDown(mRepeatKeyCode);
-	if (key_pressed)
-		cout << "REPEAT pressed\n";
-	return key_pressed;
+	return keyDown(mRepeatKeyCode);
 }

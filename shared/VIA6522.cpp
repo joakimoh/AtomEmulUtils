@@ -23,7 +23,7 @@ VIA6522::VIA6522(uint16_t adr, DebugInfo debugInfo): Device(VIA6522_DEV, adr, 0x
 	// Initialise the VIA registers with zeros
 	mMem.assign(mDevSz, 0);
 
-	if (mDebugInfo.verbose)
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 		cout << "VIA 6522 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
 		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
 }

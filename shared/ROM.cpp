@@ -28,11 +28,13 @@ ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo) :
 
 	uint16_t upper_sz = mDevSz;
 	if (file_sz < (streamsize) sz) {
-		cout << "Warning - size of ROM file " << binaryContent << " (" << file_sz <<
+		if (mDebugInfo.dbgLevel & DBG_WARNING)
+			cout << "Warning - size of ROM file " << binaryContent << " (" << file_sz <<
 			" ) is smaller than the expected one(" << sz << ") => filling up with zeros...\n";
 		upper_sz = (uint16_t) file_sz;
 	} else if (file_sz > (streamsize)sz) {
-		cout << "Warning - size of ROM file " << binaryContent << " (" << file_sz <<
+		if (mDebugInfo.dbgLevel & DBG_WARNING)
+			cout << "Warning - size of ROM file " << binaryContent << " (" << file_sz <<
 			" ) is larger than the expected one(" << sz << ") => truncating...\n";
 		upper_sz = mDevSz;
 	}
@@ -47,10 +49,11 @@ ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo) :
 	// Read ROM content
 	fin.read((char*)&mMem[0], upper_sz);
 
-	if (mDebugInfo.verbose) {
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE) {
 		filesystem::path path = binaryContent;
 		string file_name = path.filename().string();
-		cout << "ROM at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
+		if (mDebugInfo.dbgLevel & DBG_ALL)
+			cout << "ROM at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
 			" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes) ['" <<
 			file_name << "']\n";
 	}
@@ -60,7 +63,8 @@ ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo) :
 bool ROM::read(uint16_t adr, uint8_t& data)
 {
 	if (!validAdr(adr)) {
-		cout << "Invalid read address 0x" << hex << adr << " for ROM at 0x" << mDevAdr << " to " << mDevAdr + mDevSz - 1 << "\n";
+		if (mDebugInfo.dbgLevel & DBG_WARNING)
+			cout << "Invalid read address 0x" << hex << adr << " for ROM at 0x" << mDevAdr << " to " << mDevAdr + mDevSz - 1 << "\n";
 		return false;
 	}
 

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
+#include <allegro5/allegro_primitives.h>
 #include "Video.h"
 using namespace std;
 
@@ -52,21 +53,22 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 	
 
-	if (mScanLine == 0) {
-
-		// Refresh the display at the start of a new field
+	if (mScanLine == 192) {
 
 		// Direct drawing to the display
 		al_set_target_bitmap(mDisplay);
-
-		// Clear the display
-		al_clear_to_color(al_map_rgb(0, 0, 0));
 
 		// Draw the 256 x 192 display bitmap while scaling it to 648 x 486
 		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, 256, 192, 0, 0, 648, 486, 0);
 
 		// Make the updates visible on the display
 		al_flip_display();
+
+		// Clear the display
+		al_clear_to_color(black);
+
+
+		mFieldCount++;
 
 	}
 
@@ -75,15 +77,11 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 		// Draw a visible line
 			
 		for (int char_col = 0; char_col < 32; char_col++) {
-			ALLEGRO_COLOR green = al_map_rgb(0, 0xff, 0);
-			ALLEGRO_COLOR black = al_map_rgb(0, 0, 0);
 
 			// draw one character of a scan line
+
 			int pixel_line = mScanLine - first_visible_scan_line;
 			int y = pixel_line % 12;
-
-			al_set_target_bitmap(mCharBitmap);
-			al_clear_to_color(black);
 
 			uint8_t mem_data;
 			int mem_row = pixel_line / 12;
@@ -93,21 +91,24 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 			uint8_t symbol = (mem_data & 0x3f);
 			CharDef symbol_def = mCharRom[symbol];
 			uint8_t symbol_mask = symbol_def.rows[y];
+
+
+			ALLEGRO_VERTEX char_vertex[8];
 			for (int x = 0; x < 8; x++) {
 				if (symbol_mask & 0x80)
-					al_put_pixel(x, 0, green);
+					char_vertex[x].color = green;
+				else
+					char_vertex[x].color = black;
+				char_vertex[x].x = char_col * 8 + x;
+				char_vertex[x].y = pixel_line;
+				char_vertex[x].z = 0;
 				symbol_mask = symbol_mask << 1;
 			}
-
+			
 			al_set_target_bitmap(mDisplayBitmap);
-			al_draw_bitmap(mCharBitmap, char_col * 8, pixel_line, 0);
+			al_draw_prim(char_vertex, NULL, NULL, 0, 8, ALLEGRO_PRIM_POINT_LIST);		
 
-			/*
-			if (mem_adr < 0x8080 && symbol_def.asc == 'A')
-				cout << "Line " << dec << y << " of symbol: '" << symbol_def.asc << "' with " <<
-				" bitmask 0x" << hex << (int)symbol_mask << " at 0x" << hex << mem_adr <<
-				" drawn at position " << dec << char_col * 8 << "," << pixel_line << "\n";
-			*/
+
 		}
 
 	}
@@ -174,7 +175,7 @@ VDU6847::VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t v
 	// Initialise the VDU registers with zeros
 	mMem.assign(mDevSz, 0);
 
-	if (mDebugInfo.verbose)
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
 		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
 
@@ -185,6 +186,11 @@ VDU6847::VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t v
 	al_set_target_bitmap(mDisplay);
 
 	mCharBitmap = al_create_bitmap(8, 1);
+
+	green = al_map_rgb(0, 0xff, 0);
+	black = al_map_rgb(0, 0, 0);
+
+
 }
 
 VDU6847::~VDU6847()

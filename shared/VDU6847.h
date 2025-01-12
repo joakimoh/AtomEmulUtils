@@ -107,8 +107,11 @@ public:
 	ALLEGRO_BITMAP* mDisplay = NULL;
 	ALLEGRO_BITMAP* mCharBitmap = NULL;
 	int mScanLine = 0; // 0 to 262 [field scan lines]
+	uint64_t mFieldCount = 0;
 
 public:
+
+	ALLEGRO_COLOR green, black;
 
 	VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo);
 	VDU6847::~VDU6847();
