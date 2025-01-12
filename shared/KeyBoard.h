@@ -5,13 +5,14 @@
 
 class Keyboard {
 
-public:
-	bool checkForKey(ALLEGRO_EVENT event);	
-
 protected:
-	virtual void keyDown(int key, unsigned modifiers) = 0;
-	virtual void keyUp(int key) = 0;
+
+	ALLEGRO_KEYBOARD_STATE mKeyboardState;
+
 	Keyboard();
+
+	bool keyDown(int keycode);
+
 };
 
 #endif

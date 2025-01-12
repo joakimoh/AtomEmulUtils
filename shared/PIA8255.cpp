@@ -125,18 +125,11 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 		data = mMem[adr - mDevAdr];
 	}
 	else if (adr == PIA8255_PORT_B) {
-		// 0 - 5 Keyboard column (low when a key pressed), 6 CTRL key(low when pressed), 7 SHIFT keys(low when pressed)
-		uint8_t selected_row = mMem[PIA8255_PORT_A - mDevAdr] & 0x0f;
-		data = 0xff; // set all key bits (as they are low only if a key is pressed)
-		for (uint8_t col = 0; col < 6; col++) {
-			if (mKeyboard->PA0_03_selectedRow_keys[selected_row][col] > 0) {
-				data &= ~(1 << col);
-				//cout << "COL " << (int)col << " SELECTED\n";
-			}
-		}
-		if (mKeyboard->PB6_ctrl)
+		// 0 - 5 Keyboard column (low when a key pressed), 6 CTRL key(low when pressed), 7 SHIFT key (low when pressed)
+		data = mKeyboard->readColumn();
+		if (mKeyboard->ctrlPressed())
 			data &= ~0x40;
-		if (mKeyboard->PB7_shift)
+		if (mKeyboard->shiftPressed())
 			data &= ~0x80;
 		
 	}
@@ -144,7 +137,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 		data |= 0x40; // set REPEAT key bit (inactive LOW)
 		data &= ~0x80; // clear 60 Hz sync bit
 		// 4 2.4 kHz input, 5 Cassette input, 6 REPT key(low when pressed), 7 60 Hz sync signal (low during flyback)
-		if (mKeyboard->PC6_repeat)
+		if (mKeyboard->repeatPressed())
 			data &= ~0x40;
 		if (mSync60HzEvent == 1)
 			data |= 0x80;
@@ -164,6 +157,8 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 
 	if (adr == PIA8255_PORT_A) {
 		// 0 - 3 Keyboard row, 4 - 7 Graphics mode
+		if (mKeyboard != NULL)
+			mKeyboard->selectRow(data & 0xf);
 		if (mVdu != NULL)
 			mVdu->setGraphicMode((data & 0xf0) >> 4);
 	}

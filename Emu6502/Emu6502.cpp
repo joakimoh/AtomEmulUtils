@@ -36,12 +36,11 @@ int main(int argc, const char* argv[])
     ALLEGRO_TIMER* emu_speed_timer = al_create_timer(1.0 / 60); // 60 Hz frequency as default emulation speed
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
     ALLEGRO_DISPLAY* disp = al_create_display(648, 486); 
-    ALLEGRO_KEYBOARD_STATE keyboard_state;
     
 
     ALLEGRO_FONT* font = al_create_builtin_font();
 
-    al_register_event_source(queue, al_get_keyboard_event_source());
+    //al_register_event_source(queue, al_get_keyboard_event_source());
     al_register_event_source(queue, al_get_display_event_source(disp));
     al_register_event_source(queue, al_get_timer_event_source(emu_speed_timer));
 
@@ -101,17 +100,14 @@ int main(int argc, const char* argv[])
         al_wait_for_event(queue, &event);
 
         // act on event
-        al_get_keyboard_state(&keyboard_state);
-        atom_keyboard.checkForKey(event);
         if (event.type == ALLEGRO_EVENT_TIMER) {
             // The timer event comes from the emulation speed timer (defaults to 60 Hz)
+            // This will synchronise the execution on 60 Hz basis (via the wait event above)
         } 
         else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
             break;
         }
-        else if (event.type == ALLEGRO_EVENT_KEY_CHAR) {
 
-        }
     }
 
     al_destroy_font(font);

@@ -102,69 +102,10 @@ private:
 		{ALLEGRO_KEY_RIGHT,			{ALLEGRO_KEY_RIGHT,			-1,    -1,	"REPEAT"}},	// REPEAT (PC6)
 
 		// Fifth row
-		{ALLEGRO_KEY_SPACE,			{ALLEGRO_KEY_SPACE,			9,   0,    " "}},
-
-		// Unmapped keys
-		{ALLEGRO_KEY_PAD_DELETE,    {ALLEGRO_KEY_PAD_DELETE,    -1,    -1,    ""}},
-		{ALLEGRO_KEY_PRINTSCREEN,	{ALLEGRO_KEY_PRINTSCREEN,   -1,    -1,    ""}},		// :*
-		{ALLEGRO_KEY_SEMICOLON,		{ALLEGRO_KEY_SEMICOLON,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_SLASH,			{ALLEGRO_KEY_SLASH,			-1,	   -1,    ""}},
-		{ALLEGRO_KEY_PAD_0,			{ALLEGRO_KEY_PAD_0,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_1,			{ALLEGRO_KEY_PAD_1,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_2,			{ALLEGRO_KEY_PAD_2,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_3,			{ALLEGRO_KEY_PAD_3,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_4,			{ALLEGRO_KEY_PAD_4,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_5,			{ALLEGRO_KEY_PAD_5,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_6,			{ALLEGRO_KEY_PAD_6,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_7,			{ALLEGRO_KEY_PAD_7,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_8,			{ALLEGRO_KEY_PAD_8,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_9,			{ALLEGRO_KEY_PAD_9,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_F1,			{ALLEGRO_KEY_F1,			-1,    -1,   ":*"}},
-		{ALLEGRO_KEY_F2,			{ALLEGRO_KEY_F2,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_F3,			{ALLEGRO_KEY_F3,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_F4,			{ALLEGRO_KEY_F4,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_F5,			{ALLEGRO_KEY_F5,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_F6,			{ALLEGRO_KEY_F6,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_F7,			{ALLEGRO_KEY_F7,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_F8,			{ALLEGRO_KEY_F8,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_F9,			{ALLEGRO_KEY_F9,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_F10,			{ALLEGRO_KEY_F10,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_F11,			{ALLEGRO_KEY_F11,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_F12,			{ALLEGRO_KEY_F12,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_EQUALS,		{ALLEGRO_KEY_EQUALS,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_OPENBRACE,		{ALLEGRO_KEY_OPENBRACE,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_CLOSEBRACE,    {ALLEGRO_KEY_CLOSEBRACE,    -1,    -1,    ""}},
-		{ALLEGRO_KEY_QUOTE,			{ALLEGRO_KEY_QUOTE,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_BACKSLASH2,    {ALLEGRO_KEY_BACKSLASH2,    -1,    -1,    ""}},
-		{ALLEGRO_KEY_COLON2,		{ALLEGRO_KEY_COLON2,		-1,		-1,	""} },
-		{ALLEGRO_KEY_PAD_SLASH,		{ALLEGRO_KEY_PAD_SLASH,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_ASTERISK,	{ALLEGRO_KEY_PAD_ASTERISK,	-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_MINUS,		{ALLEGRO_KEY_PAD_MINUS,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_PLUS,		{ALLEGRO_KEY_PAD_PLUS,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_ENTER,		{ALLEGRO_KEY_PAD_ENTER,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_INSERT,		{ALLEGRO_KEY_INSERT,		-1,   -1,    ""} },
-		{ALLEGRO_KEY_ABNT_C1,		{ALLEGRO_KEY_ABNT_C1,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_YEN,			{ALLEGRO_KEY_YEN,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_KANA,			{ALLEGRO_KEY_KANA,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_CONVERT,		{ALLEGRO_KEY_CONVERT,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_NOCONVERT,		{ALLEGRO_KEY_NOCONVERT,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_AT,			{ALLEGRO_KEY_AT,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_KANJI,			{ALLEGRO_KEY_KANJI,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_RCTRL,			{ALLEGRO_KEY_RCTRL,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_ALT,			{ALLEGRO_KEY_ALT,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_ALTGR,			{ALLEGRO_KEY_ALTGR,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_LWIN,			{ALLEGRO_KEY_LWIN,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_RWIN,			{ALLEGRO_KEY_RWIN,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_MENU,			{ALLEGRO_KEY_MENU,			-1,    -1,    ""}},
-		{ALLEGRO_KEY_SCROLLLOCK,    {ALLEGRO_KEY_SCROLLLOCK,    -1,    -1,    ""}},
-		{ALLEGRO_KEY_NUMLOCK,		{ALLEGRO_KEY_NUMLOCK,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_PAD_EQUALS,    {ALLEGRO_KEY_PAD_EQUALS,    -1,    -1,    ""}},
-		{ALLEGRO_KEY_BACKQUOTE,		{ALLEGRO_KEY_BACKQUOTE,		-1,    -1,    ""}},
-		{ALLEGRO_KEY_SEMICOLON2,    {ALLEGRO_KEY_SEMICOLON2,    -1,    -1,    ""}},
-		{ALLEGRO_KEY_COMMAND,		{ALLEGRO_KEY_COMMAND,		-1,    -1,    ""}},
+		{ALLEGRO_KEY_SPACE,			{ALLEGRO_KEY_SPACE,			9,   0,    " "}}
 	};
 
-	vector<vector<AtomKey*>> mKeyboardRows = {
+	vector<vector<AtomKey*>> mKeyboardMatrix = {
 		{NULL, NULL, NULL, NULL, NULL, NULL},
 		{NULL, NULL, NULL, NULL, NULL, NULL},
 		{NULL, NULL, NULL, NULL, NULL, NULL},
@@ -197,14 +138,22 @@ private:
 	};
 
 public:
-	int PA0_03_selectedRow_keys[10][6] = {0}; // selected row (PA0:3) and key count for each related column PB0:5
-	int PB6_ctrl = 0; // ctrl key status
-	int PB7_shift = 0; // shift keys status
-	int PC6_repeat = 0; // repeat key status
+
+
+private:
+	int mSelectedRow = 0;
+	int mCtrlKeyCode = -1;
+	int mShiftKeyCode = -1;
+	int mRepeatKeyCode = -1;
 
 public:
-	void keyDown(int key, unsigned modifiers);
-	void keyUp(int key);
+
+	uint8_t readColumn();
+	void selectRow(uint8_t row);
+
+	bool ctrlPressed();
+	bool shiftPressed();
+	bool repeatPressed();
 
 	AtomKeyboard();
 };
