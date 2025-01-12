@@ -67,7 +67,6 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 		// Clear the display
 		al_clear_to_color(black);
 
-
 		mFieldCount++;
 
 	}
@@ -92,7 +91,29 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 			CharDef symbol_def = mCharRom[symbol];
 			uint8_t symbol_mask = symbol_def.rows[y];
 
+			// Save allegro state and lock display bitmap for update
+			al_store_state(&mAllegroState, ALLEGRO_STATE_TARGET_BITMAP);
+			al_set_target_bitmap(mDisplayBitmap);
+			mLockedDisplayBitMap = al_lock_bitmap(mDisplayBitmap, ALLEGRO_PIXEL_FORMAT_ANY, ALLEGRO_LOCK_WRITEONLY);
 
+			// Get pointer to bitmap data for the concerned scan line (pitch <=> bytes/line; data <=> pixel bytes with left-most pixel first
+			unsigned int* bitmap_data_p = (unsigned int*)((char*) mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * pixel_line);
+
+			// Update display bitmap with one line of a character (starting with the left-most pixel)
+			// Windows seems to prefer to use ALLEGRO_PIXEL_FORMAT_ARGB_8888 (0x9)
+			for (int x = 0; x < 8; x++) {
+				if (symbol_mask & 0x1)
+					*bitmap_data_p++ = 0xff00ff00; // opaque green
+				else
+					*bitmap_data_p++ = 0xff000000; // opaque black
+				symbol_mask = symbol_mask >> 1;
+			}
+
+			// Restore allegro state and unlock display for update
+			al_unlock_bitmap(mDisplayBitmap);
+			al_restore_state(&mAllegroState);
+
+			/*
 			ALLEGRO_VERTEX char_vertex[8];
 			for (int x = 0; x < 8; x++) {
 				if (symbol_mask & 0x80)
@@ -104,9 +125,9 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 				char_vertex[x].z = 0;
 				symbol_mask = symbol_mask << 1;
 			}
+			*/
 			
-			al_set_target_bitmap(mDisplayBitmap);
-			al_draw_prim(char_vertex, NULL, NULL, 0, 8, ALLEGRO_PRIM_POINT_LIST);		
+			//al_draw_prim(char_vertex, NULL, NULL, 0, 8, ALLEGRO_PRIM_POINT_LIST);		
 
 
 		}
@@ -139,6 +160,8 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 // 
 // For the Acorn Atom, INV is connected to b7 of read graphics memory data, INT/EXT to b6. But Acorn Atom
 // doesn't have external alphanumerics so b6 needs always to be '0'.
+// 
+// The graphics mode inputs A/G:GM01:GM1:GM2 are connect to the 8255 PIA's PA4-7
 // 
 // Supported Graphic (Major Mode 2) modes: 
 //
@@ -185,8 +208,6 @@ VDU6847::VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t v
 	al_clear_to_color(al_map_rgb(0, 0, 0));
 	al_set_target_bitmap(mDisplay);
 
-	mCharBitmap = al_create_bitmap(8, 1);
-
 	green = al_map_rgb(0, 0xff, 0);
 	black = al_map_rgb(0, 0, 0);
 
@@ -195,7 +216,6 @@ VDU6847::VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t v
 
 VDU6847::~VDU6847()
 {
-	al_destroy_bitmap(mCharBitmap);
 	al_destroy_bitmap(mDisplayBitmap);
 }
 

@@ -103,9 +103,12 @@ public:
 	uint16_t mVideoMemAdr = 0x0;
 
 	int mN60HzCycles;
+
 	ALLEGRO_BITMAP* mDisplayBitmap = NULL;
 	ALLEGRO_BITMAP* mDisplay = NULL;
-	ALLEGRO_BITMAP* mCharBitmap = NULL;
+	ALLEGRO_LOCKED_REGION *mLockedDisplayBitMap;
+	ALLEGRO_STATE mAllegroState;
+
 	int mScanLine = 0; // 0 to 262 [field scan lines]
 	uint64_t mFieldCount = 0;
 

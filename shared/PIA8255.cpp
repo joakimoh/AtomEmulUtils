@@ -136,7 +136,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 	else if (adr == PIA8255_PORT_C) {
 		data |= 0x40; // set REPEAT key bit (inactive LOW)
 		data &= ~0x80; // clear 60 Hz sync bit
-		// 4 2.4 kHz input, 5 Cassette input, 6 REPT key(low when pressed), 7 60 Hz sync signal (low during flyback)
+		// 4 2.4 kHz input, 5 Cassette input, 6 REPT key(low when pressed), 7 60 Hz sync signal (low during flyback) - from 6847's Field Sync (FS)
 		if (mKeyboard->repeatPressed())
 			data &= ~0x40;
 		if (mSync60HzEvent == 1)
