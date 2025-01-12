@@ -73,13 +73,24 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 	else if (mScanLine >= first_visible_scan_line && mScanLine <= last_visible_scan_line ) {
 			
+		int pixel_line = mScanLine - first_visible_scan_line;
+
 		// Draw a visible line
+
+		// Save allegro state and lock display bitmap for update
+		al_store_state(&mAllegroState, ALLEGRO_STATE_TARGET_BITMAP);
+		al_set_target_bitmap(mDisplayBitmap);
+		mLockedDisplayBitMap = al_lock_bitmap(mDisplayBitmap, ALLEGRO_PIXEL_FORMAT_ANY, ALLEGRO_LOCK_WRITEONLY);
+
+		// Get pointer to bitmap data for the concerned scan line.
+		// pitch <=> bytes/line; data <=> pixel bytes with left-most pixel first
+		unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * pixel_line);
 			
+		// Iterate over all horizontal pixels
 		for (int char_col = 0; char_col < 32; char_col++) {
 
 			// draw one character of a scan line
 
-			int pixel_line = mScanLine - first_visible_scan_line;
 			int y = pixel_line % 12;
 
 			uint8_t mem_data;
@@ -91,47 +102,22 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 			CharDef symbol_def = mCharRom[symbol];
 			uint8_t symbol_mask = symbol_def.rows[y];
 
-			// Save allegro state and lock display bitmap for update
-			al_store_state(&mAllegroState, ALLEGRO_STATE_TARGET_BITMAP);
-			al_set_target_bitmap(mDisplayBitmap);
-			mLockedDisplayBitMap = al_lock_bitmap(mDisplayBitmap, ALLEGRO_PIXEL_FORMAT_ANY, ALLEGRO_LOCK_WRITEONLY);
-
-			// Get pointer to bitmap data for the concerned scan line (pitch <=> bytes/line; data <=> pixel bytes with left-most pixel first
-			unsigned int* bitmap_data_p = (unsigned int*)((char*) mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * pixel_line);
-
-			// Update display bitmap with one line of a character (starting with the left-most pixel)
+			// Update display bitmap with character (starting with the left-most pixel)
 			// Windows seems to prefer to use ALLEGRO_PIXEL_FORMAT_ARGB_8888 (0x9)
-			for (int x = 0; x < 8; x++) {
-				if (symbol_mask & 0x1)
-					*bitmap_data_p++ = 0xff00ff00; // opaque green
-				else
-					*bitmap_data_p++ = 0xff000000; // opaque black
-				symbol_mask = symbol_mask >> 1;
-			}
-
-			// Restore allegro state and unlock display for update
-			al_unlock_bitmap(mDisplayBitmap);
-			al_restore_state(&mAllegroState);
-
-			/*
-			ALLEGRO_VERTEX char_vertex[8];
+			// The bitmap pointer has been advanced 8 pixels (one character) when completed.
 			for (int x = 0; x < 8; x++) {
 				if (symbol_mask & 0x80)
-					char_vertex[x].color = green;
+					*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
 				else
-					char_vertex[x].color = black;
-				char_vertex[x].x = char_col * 8 + x;
-				char_vertex[x].y = pixel_line;
-				char_vertex[x].z = 0;
+					*bitmap_data_p++ = 0xff000000; // opaque black ARGB 8888
 				symbol_mask = symbol_mask << 1;
 			}
-			*/
-			
-			//al_draw_prim(char_vertex, NULL, NULL, 0, 8, ALLEGRO_PRIM_POINT_LIST);		
-
 
 		}
 
+		// Restore allegro state and unlock display for update
+		al_unlock_bitmap(mDisplayBitmap);
+		al_restore_state(&mAllegroState);
 	}
 		
 	// Advance time taken to process one scan line
