@@ -65,14 +65,17 @@ int main(int argc, const char* argv[])
     al_start_timer(emu_speed_timer);
 
     
-    int cycle_step = 64;
+    int cycle_step = 2;
     uint64_t cycle_count = 0;
 
     // RESET all devices
+    VDU6847* vdu = NULL;
     for (int d = 0; d < devices.size(); d++) {
         Device* dev = NULL;
         if (devices.getDevice(d, dev)) {
             dev->reset();
+            if (dev->devType == VDU6847_DEV)
+                vdu = (VDU6847*)dev;
         }
     }
     processor.reset();
@@ -81,19 +84,37 @@ int main(int argc, const char* argv[])
     al_clear_to_color(al_map_rgb(0, 0, 0));
 
     while (true)
-    {
- 
-        cycle_count += cycle_step;
+    {   
 
-        // advance time for the 6502 until cycle_count has been reached
-        processor.advance(cycle_count);
+        // Advance time one 60 Hz NTSC field scan scan_line at a time until a complete field (262 lines) has been scanned
+        for (int scan_line = 0; scan_line < 262; scan_line++) {
 
-        // advance time for each device (when applicable) until cycle_count has been reached
-        for (int d = 0; d < devices.size(); d++) {
-            Device* dev = NULL;
-            if (devices.getDevice(d, dev)) {
-                dev->advance(cycle_count);
+            // Scan one field scan_line and save time passed in target cycle count to be used as reference
+            // target time for the 6502 and the other devices (PIA, VIA, RAM & ROM). This
+            // is required to keep execution synchronised with the field updating.
+            uint64_t target_cycle_count;
+            vdu->advanceLine(target_cycle_count);
+
+            // Advance each device in steps (cycle_step) until it has reached a time corresponding to one scan scan_line
+            while (cycle_count < target_cycle_count) {
+
+                cycle_count += cycle_step;
+
+                // advance time for the 6502 until cycle_count has been reached (or slightly passed)
+                processor.advance(cycle_count);
+
+                // advance time for each device (when applicable) until cycle_count has been reached  (or slightly passed)
+                for (int d = 0; d < devices.size(); d++) {
+                    Device* dev = NULL;
+                    if (devices.getDevice(d, dev)) {
+                        if (dev != vdu)
+                            dev->advance(cycle_count);
+                    }
+                }
+
             }
+
+            
         }
 
         // wait for event

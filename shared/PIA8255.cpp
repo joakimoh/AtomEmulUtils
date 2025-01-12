@@ -141,6 +141,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 			data &= ~0x40;
 		if (mSync60HzEvent == 1)
 			data |= 0x80;
+
 		//cout << "READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
 	}
 	else { // adr == PIA8255_CONTROL

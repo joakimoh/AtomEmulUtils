@@ -125,6 +125,8 @@ public:
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
 
+	bool advanceLine(uint64_t& endCycle);
+
 	uint16_t getVideoMemAdr() {
 		return mVideoMemAdr;
 	}
