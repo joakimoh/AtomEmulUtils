@@ -51,12 +51,14 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	int last_visible_scan_line = 262 - (26 + 6);
 	int first_visible_scan_pos = 14;
 
-	
+	int pixel_line = mScanLine - first_visible_scan_line;
 
-	if (mScanLine == 192) {
+	if (pixel_line == 192) {
 
-		// Direct drawing to the display
-		al_set_target_bitmap(mDisplay);
+
+		// Restore allegro state and unlock display for update
+		al_unlock_bitmap(mDisplayBitmap);
+		al_restore_state(&mAllegroState);
 
 		// Draw the 256 x 192 display bitmap while scaling it to 648 x 486
 		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, 256, 192, 0, 0, 648, 486, 0);
@@ -69,18 +71,16 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 		mFieldCount++;
 
-	}
-
-	else if (mScanLine >= first_visible_scan_line && mScanLine <= last_visible_scan_line ) {
-			
-		int pixel_line = mScanLine - first_visible_scan_line;
-
-		// Draw a visible line
-
 		// Save allegro state and lock display bitmap for update
 		al_store_state(&mAllegroState, ALLEGRO_STATE_TARGET_BITMAP);
 		al_set_target_bitmap(mDisplayBitmap);
 		mLockedDisplayBitMap = al_lock_bitmap(mDisplayBitmap, ALLEGRO_PIXEL_FORMAT_ANY, ALLEGRO_LOCK_WRITEONLY);
+
+	}
+
+	else if (pixel_line >= 0 && pixel_line < 192) {		
+
+		// Draw a visible line
 
 		// Get pointer to bitmap data for the concerned scan line.
 		// pitch <=> bytes/line; data <=> pixel bytes with left-most pixel first
@@ -115,9 +115,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 		}
 
-		// Restore allegro state and unlock display for update
-		al_unlock_bitmap(mDisplayBitmap);
-		al_restore_state(&mAllegroState);
+		;
 	}
 		
 	// Advance time taken to process one scan line
@@ -190,12 +188,14 @@ VDU6847::VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t v
 
 	// Create 256 x 192 display bitmap and clear it
 	mDisplayBitmap = al_create_bitmap(256, 192);
-	al_set_target_bitmap(mDisplayBitmap);
-	al_clear_to_color(al_map_rgb(0, 0, 0));
-	al_set_target_bitmap(mDisplay);
 
 	green = al_map_rgb(0, 0xff, 0);
 	black = al_map_rgb(0, 0, 0);
+
+	// Save allegro state and lock display bitmap for update
+	al_store_state(&mAllegroState, ALLEGRO_STATE_TARGET_BITMAP);
+	al_set_target_bitmap(mDisplayBitmap);
+	mLockedDisplayBitMap = al_lock_bitmap(mDisplayBitmap, ALLEGRO_PIXEL_FORMAT_ANY, ALLEGRO_LOCK_WRITEONLY);
 
 
 }
