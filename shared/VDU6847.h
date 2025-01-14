@@ -97,8 +97,11 @@ public:
 	};
 
 
-	uint8_t mMajorMode = 0x0;
-	uint8_t mGraphicMode = 0x0;
+	// M6847 inputs A/G, GM0:2 & CSS used to select operation
+	uint8_t mAG = 0x0;
+	uint8_t mGM = 0x0;
+	uint8_t mCSS = 0x0;
+
 	RAM* mVideoMem = NULL;
 	uint16_t mVideoMemAdr = 0x0;
 
@@ -112,6 +115,34 @@ public:
 	int mScanLine = 0; // 0 to 262 [field scan lines]
 	uint64_t mFieldCount = 0;
 
+	// Display regions
+	const int mActiveAreaW = 256;		// Active visible area 256 x 192
+	const int mActiveAreaH = 192;
+	const int mTopBorderH = 25;			// Top & Bottom (inactive but still) visible borders
+	const int mBottomBorderH = 26; 
+	const int mLeftBorderW = 57;		// Left & Right (inactive but still) visiblevertical borders
+	const int mRightBorderW = 57;		// (tAVB - tAV) / 2 = (185.5/3.58-128/3.58)/2 = (51.82 - 35.75)/2 = 8.03 us <=> 57.5 'pixels' (3.58 Mhz half cycles)
+	const int mVisibleW = mLeftBorderW + mActiveAreaW + mRightBorderW; // Visible aera 371 x 242 'pixels' (horizontal 'pixel' <=> one 3.58 Mhz half cycles)
+	const int mVisibleH = mTopBorderH + mActiveAreaH + mBottomBorderH; //
+	const int mTopVBlankingH = 13;
+	const int mBottomVBlankingH = 6;
+	const int mScanLines = 262; // mTVBlanking + mVisibleH + mBVBlanking
+
+	uint32_t mColours[2][4] = {
+						{
+							0xff00ff00, // opaque green ARGB 8888,
+							0xffffff00, // opaque yellow ARGB 8888
+							0xff0000ff, // opaque blue ARGB 8888
+							0xffff0000 // opaque red ARGB 8888},
+						},
+							{
+							0xff00ff00, // -,
+							0xff00ffff, // opaque cyan ARGB 8888,
+							0xffff00ff, // opaque magenta ARGB 8888,
+							0xffff4500 // opaque orange ARGB 8888
+						}
+	};
+
 public:
 
 	ALLEGRO_COLOR green, black;
@@ -123,6 +154,7 @@ public:
 	bool write(uint16_t adr, uint8_t data);
 
 	bool setGraphicMode(uint8_t mode);
+	bool setCSS(uint8_t css);
 	bool setVideoRam(RAM* ram);
 
 	// Reset device
@@ -136,6 +168,9 @@ public:
 	uint16_t getVideoMemAdr() {
 		return mVideoMemAdr;
 	}
+
+	void lockDisplay();
+	void unlockDisplay();
 
 };
 

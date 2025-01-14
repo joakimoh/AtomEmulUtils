@@ -162,13 +162,14 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		if (mKeyboard != NULL)
 			mKeyboard->selectRow(data & 0xf);
 		if (mVdu != NULL)
-			mVdu->setGraphicMode((data & 0xf0) >> 4);
+			mVdu->setGraphicMode((data >> 4) & 0xf);
 	}
 	else if (adr == PIA8255_PORT_B) {
 		// No bits  should be configured as writable
 	}
 	else if (adr == PIA8255_PORT_C) {
-		// 0 Tape output, 1 Enable 2.4 kHz to cassette output, 2 Loudspeaker, 3 Not used
+		// 0 Tape output, 1 Enable 2.4 kHz to cassette output, 2 Loudspeaker, 3 Not used, 4 colour selection for semigraphics mode 5 (css)
+		mVdu->setCSS((data >> 4) & 0x1);
 	}
 	else if (adr == PIA8255_CONTROL) {
 		// 

@@ -47,21 +47,17 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 {
 	VideoTiming timing;
 	float proc_clk_rate_Mhz = mN60HzCycles * 60 / 1e6;
-	int first_visible_scan_line = 13 + 25;
-	int last_visible_scan_line = 262 - (26 + 6);
-	int first_visible_scan_pos = 14;
-
-	int pixel_line = mScanLine - first_visible_scan_line;
-
-	if (pixel_line == 192) {
 
 
-		// Restore allegro state and unlock display for update
-		al_unlock_bitmap(mDisplayBitmap);
-		al_restore_state(&mAllegroState);
+	int pixel_line = mScanLine - (mTopVBlankingH + mTopBorderH);
+	int visible_line = mScanLine - mTopVBlankingH;
+
+	if (mScanLine == mTopVBlankingH + mVisibleH) {
+
+		unlockDisplay();
 
 		// Draw the 256 x 192 display bitmap while scaling it to 648 x 486
-		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, 256, 192, 0, 0, 648, 486, 0);
+		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mVisibleW, mVisibleH, 0, 0, 648, 486, 0);
 
 		// Make the updates visible on the display
 		al_flip_display();
@@ -71,53 +67,150 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 		mFieldCount++;
 
-		// Save allegro state and lock display bitmap for update
-		al_store_state(&mAllegroState, ALLEGRO_STATE_TARGET_BITMAP);
-		al_set_target_bitmap(mDisplayBitmap);
-		mLockedDisplayBitMap = al_lock_bitmap(mDisplayBitmap, ALLEGRO_PIXEL_FORMAT_ANY, ALLEGRO_LOCK_WRITEONLY);
+		lockDisplay();
 
 	}
 
-	else if (pixel_line >= 0 && pixel_line < 192) {		
-
-		// Draw a visible line
+	else if (pixel_line >= 0 && pixel_line < mActiveAreaH)
+		// Draw a visible active line
+	{		
 
 		// Get pointer to bitmap data for the concerned scan line.
 		// pitch <=> bytes/line; data <=> pixel bytes with left-most pixel first
-		unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * pixel_line);
+		unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_line);
 			
-		// Iterate over all horizontal pixels
-		for (int char_col = 0; char_col < 32; char_col++) {
-
-			// draw one character of a scan line
-
-			int y = pixel_line % 12;
-
-			uint8_t mem_data;
-			int mem_row = pixel_line / 12;
-			int mem_adr = mVideoMemAdr + mem_row * 32 + char_col;
-			if (!mVideoMem->read(mem_adr, mem_data))
-				return false;
-			uint8_t symbol = (mem_data & 0x3f);
-			CharDef symbol_def = mCharRom[symbol];
-			uint8_t symbol_mask = symbol_def.rows[y];
-
-			// Update display bitmap with character (starting with the left-most pixel)
-			// Windows seems to prefer to use ALLEGRO_PIXEL_FORMAT_ARGB_8888 (0x9)
-			// The bitmap pointer has been advanced 8 pixels (one character) when completed.
-			for (int x = 0; x < 8; x++) {
-				if (symbol_mask & 0x80)
-					*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
-				else
-					*bitmap_data_p++ = 0xff000000; // opaque black ARGB 8888
-				symbol_mask = symbol_mask << 1;
-			}
-
+		// Draw left border
+		for (int p = 0; p < mLeftBorderW; p++) {
+			*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
 		}
 
-		;
-	}
+		int y = pixel_line % 12;
+
+		// Iterate over all horizontal bytes
+
+		uint8_t mem_data;
+
+		if (mAG)
+			// Graphic mode
+		{		
+			switch (mGM) {
+			case 0: // CG1:  64 x  64, 4 colours, 1   kB, 16 bytes/line <=> Acorn Atom mode 1a
+				// byte c1 c0 c1 c0 c1 c0 c1 c0 c1 c0 => pixels e3 e2 e1 e0
+				for (int pixel_byte = 0; pixel_byte < 16; pixel_byte++) {
+					int mem_adr = mVideoMemAdr + pixel_line * 16 + pixel_byte;
+					if (!mVideoMem->read(mem_adr, mem_data))
+						return false;
+					for (int p = 0; p < 4; p++) {
+						uint8_t pixel_data = (mem_data >> 6) & 0x3;
+						uint8_t colour = mColours[mCSS][pixel_data];
+						*bitmap_data_p = *(bitmap_data_p + 1) = colour;
+						mem_data = mem_data << 2;
+						bitmap_data_p += 2;
+					}
+				}
+				break;
+			case 1: // CG1: 128 x  64, 2 colours, 1   kB, 16 bytes/line <=> Acorn Atom mode 1
+				break;
+			case 2: // CG2: 128 x  64, 4 colours, 2   kB, 32 bytes/line <=> Acorn Atom mode 2a
+				break;
+			case 3: // CG3: 128 x  96, 2 colours, 1.5 kB, 16 bytes/line <=> Acorn Atom mode 2
+				break;
+			case 4: // CG4: 128 x  96, 4 colours, 3   kB, 32 bytes/line <=> Acorn Atom mode 3a
+				break;
+			case 5: // CG5: 128 x 192, 2 colours, 3   kB, 16 bytes/line <=> Acorn Atom mode 3
+				break;
+			case 6: // CG6: 128 x 192, 4 colours, 6   kB, 32 bytes/line <=> Acorn Atom mode 4a
+				break;
+			case 7: // CG7: 256 x 192, 2 colours, 6   kB, 32 bytes/line <=> Acorn Atom mode 4
+				for (int pixel_byte = 0; pixel_byte < 32; pixel_byte++) {
+					for (int p = 0; p < 8; p++) {
+						if (mem_data & 0x80)
+							*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
+						else
+							*bitmap_data_p++ = 0xff000000; // opaque black ARGB 8888
+						mem_data = mem_data << 1;
+					}
+				}
+				break;
+			default: // ERROR - should never happen
+				break;
+			}
+		}
+		else 
+				// Alphanumeric or semigraphic mode
+			{
+				for (int char_col = 0; char_col < 32; char_col++) {
+					int mem_row = pixel_line / 12;
+					int mem_adr = mVideoMemAdr + mem_row * 32 + char_col;
+					if (!mVideoMem->read(mem_adr, mem_data))
+						return false;
+
+					uint8_t AS_INT_EXT = (mem_data >> 6) & 0x1;
+					uint8_t INV = (mem_data >> 7) & 0x1;
+
+					if (!mAG && AS_INT_EXT)
+						// Semigraphic mode 6 with 2 x 3 graphic symbols
+					{
+						// Pixel value '0' => Black
+						// CSS '0' => 00 = Green, 01 = yellow, 10 = Blue, 11 = Red
+						// CSS '1' => 00 = -, 01 = Green, 01 = Cyan, 10 = Magenta, 11 = Orange
+						uint8_t colour = (mem_data >> 6) & 0x3;
+						int pixel_row = (pixel_line % 12) / 4;
+						uint8_t pixel_data = ((mem_data & 0x3f) >> 2 * (2 - pixel_row)) & 0x3;
+
+						for (int pixel = 0; pixel < 2; pixel++) {
+							if (pixel_data & (1 << (1 - pixel))) {
+								*bitmap_data_p = *(bitmap_data_p + 1) = *(bitmap_data_p + 2) = *(bitmap_data_p + 3) = mColours[mCSS][colour];
+							}
+							else {
+								*bitmap_data_p = *(bitmap_data_p + 1) = *(bitmap_data_p + 2) = *(bitmap_data_p + 3) = 0xff000000; // opaque black ARGB 8888;
+							}
+							bitmap_data_p += 4;
+						}
+					}
+					else {
+						uint8_t symbol = (mem_data & 0x3f);
+						CharDef symbol_def = mCharRom[symbol];
+						uint8_t symbol_mask;
+						symbol_mask = symbol_def.rows[y];
+						if (INV) {
+							symbol_mask = ~symbol_mask; // inverted character
+						}
+
+						// Update display bitmap with character (starting with the left-most pixel)
+						// Windows seems to prefer to use ALLEGRO_PIXEL_FORMAT_ARGB_8888 (0x9)
+						// The bitmap pointer has been advanced 8 pixels (one character) when completed.
+						for (int x = 0; x < 8; x++) {
+							if (symbol_mask & 0x80)
+								*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
+							else
+								*bitmap_data_p++ = 0xff000000; // opaque black ARGB 8888
+							symbol_mask = symbol_mask << 1;
+						}
+					}
+				}
+			}
+
 		
+		
+
+		// Draw right border
+		for (int p = 0; p < mRightBorderW; p++) {
+			*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
+		}
+
+	}
+	
+
+	else if (mScanLine >= mTopVBlankingH && mScanLine < mScanLines - mBottomVBlankingH)
+		// Draw top or bottom border
+	{	
+		unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_line);
+		for (int p = 0; p < mVisibleW; p++) {
+			*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
+		}
+	}
+
 	// Advance time taken to process one scan line
 	mCycleCount += (int) round(63.5/ proc_clk_rate_Mhz);
 
@@ -129,40 +222,89 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	return true;
 }
 
+void VDU6847::lockDisplay()
+{
+	// Save allegro state and lock display bitmap for update
+	al_store_state(&mAllegroState, ALLEGRO_STATE_TARGET_BITMAP);
+	al_set_target_bitmap(mDisplayBitmap);
+	mLockedDisplayBitMap = al_lock_bitmap(mDisplayBitmap, ALLEGRO_PIXEL_FORMAT_ANY, ALLEGRO_LOCK_WRITEONLY);
+}
+
+void VDU6847::unlockDisplay()
+{
+	// Restore allegro state and unlock display for update
+	al_unlock_bitmap(mDisplayBitmap);
+	al_restore_state(&mAllegroState);
+}
+
 //
 // 
-// Can be in either Alphanumeric (major mode 1) or Graphic mode (major mode 2)
+// Can be in either Alphanumeric/Semigraphics (major mode 1, A/G=0) or Graphics mode (major mode 2, A/G=1)
 // 
 // 
-// Supported Alphanumeric (major mode 1) modes:
+// Supported Alphanumeric modes (major mode 1, A/S=0) :
 // 
-// INT/EXT	INV
-// 0		0		Internal alphanumerics (standard 5 x 7 dot matrix characters) - Semigraphic 4
-// 0		1		Internal alphanumerics inverted (standard 5 x 7 dot matrix characters - inverted)
-// 1		0		External alphanumerics (external 8 x 12 dot matrix characters) - Semigraphic 6
-// 1		1		External alphanumerics inverted (external 8 x 12 dot matrix characters - inverted)
+// A/G (PA4)	A/S (b6)	INT/EXT (b6)	INV (b7)	Description																#Colours	Memory usage	Used by Atom
+// 0			0			0				0			Internal alphanumerics (standard 5 x 7 dot matrix characters)			2			512 bytes		Yes
+// 0			0			0				1			Internal alphanumerics inverted (standard 5 x 7 dot matrix characters)	2			512 bytes		Yes
+// 0			0			1				0			External alphanumerics (external 8 x 12 dot matrix characters)			2			512 bytes		No
+// 0			0			1				1			External alphanumerics inverted (external 8 x 12 dot matrix characters)	2			512 bytes		No
 // 
-// For the Acorn Atom, INV is connected to b7 of read graphics memory data, INT/EXT to b6. But Acorn Atom
-// doesn't have external alphanumerics so b6 needs always to be '0'.
+// For the Acorn Atom, INV is connected to b7 of read graphics memory data, A/S and INT/EXT to b6. But Acorn Atom
+// doesn't have external alphanumerics so b6 needs always to be '0'. The CSS imput is onnected to the PIA output PC4 and selects the colour palette for the
+// semigraphics modes.
 // 
-// The graphics mode inputs A/G:GM01:GM1:GM2 are connect to the 8255 PIA's PA4-7
+// 
+// Graphics memory Byte content: c1 c0 l5 l4 l3 l2 l1 l0
+// 
+// Pixel structure (2 scan lines per pixel row and 4 'character' pixels per graphics pixel (two 3.58 Mhz half clocks)
+// l5 l4
+// l3 l2
+// l1 l0
+// 
+// // Pixel value '0' => Black
+// CSS	Pixel bit	Colour bits		Colour
+// -	0			-				Black
+// 0	1			00				Green
+// 0	1			01				Yellow
+// 0	1			10				Blue
+// 0	1			11				Red
+// 1	1			00				-
+// 1	1			01				Cyan
+// 1	1			10				Magenta
+// 1	1			11				Orange
+// 			
+// 
+// The graphics mode inputs A/G:GM01:GM1:GM2 are connected to the 8255 PIA's PA4-7 (this is the mode input below).
+// 
+// Supported Semigraphics modes (major mode 1, A/S=1):
+// 
+// A/G (PA4)	A/S (b6)		INT/EXT (b6)	Description								Resolution	#Colours	Memory usage	Used by Atom
+// 0			1				0				Supported Semigraphics mode 4 (SG4)		64 x 32		8			512 bytes		No
+// 0			1				1				Supported Semigraphics mode 4 (SG6)		64 x 48		8			512 bytes		Yes - Graphics mode 0
+// 
+// Semigraphics 4
 // 
 // Supported Graphic (Major Mode 2) modes: 
 //
-// Mode	resolution	#colours	memory usage		description
-// 0	64 x 64		4			1kB					colour graphics (CG1)
-// 1	128 x 64	2			1kB					resolution graphics one (RG1)
-// 2	128 x 64	4			2kB					colour graphics two (CG2)
-// 3	128 x 96	2			1.5kB				resolution graphics two (RG2)
-// 4	128 x 96	4			3kB					colour graphics three (CG3)
-// 5	128 x 192	2			3kB					resolution graphics three (RG3)
-// 6	128 x 192	4			6kB					colour graphics six (CG6)
-// 7	256 x 192	2			6kB					resolution graphics six (RG6)
+// A/G	GM2	GM1	GM3	Mode	resolution	#colours	Memory usage		Description							Used by Atom
+// 1	0	0	0	0		64 x 64		4			1kB					colour graphics (CG1)				Yes - Graphics mode 1a
+// 1	0	0	1	1		128 x 64	2			1kB					resolution graphics one (RG1)		Yes - Graphics mode 1
+// 1	0	1	0	2		128 x 64	4			2kB					colour graphics two (CG2)			Yes - Graphics mode 2a
+// 1	0	1	1	3		128 x 96	2			1.5kB				resolution graphics two (RG2)		Yes - Graphics mode 2
+// 1	1	0	0	4		128 x 96	4			3kB					colour graphics three (CG3)			Yes - Graphics mode 3a
+// 1	1	0	1	5		128 x 192	2			3kB					resolution graphics three (RG3)		Yes - Graphics mode 3
+// 1	1	1	0	6		128 x 192	4			6kB					colour graphics six (CG6)			Yes - Graphics mode 4a
+// 1	1	1	1	7		256 x 192	2			6kB					resolution graphics six (RG6)		Yes - Graphics mode 4
 //
 bool VDU6847::setGraphicMode(uint8_t mode)
 {
-	mMajorMode = (mode >> 3) & 0x1;
-	mGraphicMode = mode & 0x7;
+	uint8_t pAG = mAG;
+	uint8_t pGM = mGM;
+	mAG = mode & 0x1; // Alphanumerics/SemiGraphics (0) or Graphic (G) selection as decided by the A/G input connected to the PIA output PA4
+	mGM = (mode >> 1) & 0x7;		// Graphic mode selecion as decided by the GM0-2 inputs connected to the PIA outputs PA5-7
+	if (pAG != mAG || pGM != mGM)
+		cout << "mode 0x" << hex << (int) mode << " => AG:GM = " << (int) mAG << ":" << (int)mGM << "\n";
 	return true;
 }
 
@@ -187,15 +329,12 @@ VDU6847::VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t v
 		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
 
 	// Create 256 x 192 display bitmap and clear it
-	mDisplayBitmap = al_create_bitmap(256, 192);
+	mDisplayBitmap = al_create_bitmap(mVisibleW, mVisibleH);
 
 	green = al_map_rgb(0, 0xff, 0);
 	black = al_map_rgb(0, 0, 0);
 
-	// Save allegro state and lock display bitmap for update
-	al_store_state(&mAllegroState, ALLEGRO_STATE_TARGET_BITMAP);
-	al_set_target_bitmap(mDisplayBitmap);
-	mLockedDisplayBitMap = al_lock_bitmap(mDisplayBitmap, ALLEGRO_PIXEL_FORMAT_ANY, ALLEGRO_LOCK_WRITEONLY);
+	lockDisplay();
 
 
 }
@@ -226,5 +365,11 @@ bool VDU6847::write(uint16_t adr, uint8_t data)
 
 	mMem[adr - mDevAdr] = data;
 
+	return true;
+}
+
+bool VDU6847::setCSS(uint8_t css)
+{
+	mCSS = css;
 	return true;
 }
