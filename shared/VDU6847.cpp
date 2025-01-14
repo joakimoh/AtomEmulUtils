@@ -84,8 +84,6 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 			*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
 		}
 
-		int y = pixel_line % 12;
-
 		// Iterate over all horizontal bytes
 
 		uint8_t mem_data;
@@ -97,15 +95,16 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 			case 0: // CG1:  64 x  64, 4 colours, 1   kB, 16 bytes/line <=> Acorn Atom mode 1a
 				// byte c1 c0 c1 c0 c1 c0 c1 c0 c1 c0 => pixels e3 e2 e1 e0
 				for (int pixel_byte = 0; pixel_byte < 16; pixel_byte++) {
-					int mem_adr = mVideoMemAdr + pixel_line * 16 + pixel_byte;
+					int big_pixel_line = pixel_line / 3;
+					int mem_adr = mVideoMemAdr + big_pixel_line * 16 + pixel_byte;
 					if (!mVideoMem->read(mem_adr, mem_data))
 						return false;
 					for (int p = 0; p < 4; p++) {
 						uint8_t pixel_data = (mem_data >> 6) & 0x3;
 						uint8_t colour = mColours[mCSS][pixel_data];
-						*bitmap_data_p = *(bitmap_data_p + 1) = colour;
+						*bitmap_data_p = *(bitmap_data_p + 1) = *(bitmap_data_p + 2) = *(bitmap_data_p + 3) = colour;
 						mem_data = mem_data << 2;
-						bitmap_data_p += 2;
+						bitmap_data_p += 4;
 					}
 				}
 				break;
@@ -123,6 +122,9 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 				break;
 			case 7: // CG7: 256 x 192, 2 colours, 6   kB, 32 bytes/line <=> Acorn Atom mode 4
 				for (int pixel_byte = 0; pixel_byte < 32; pixel_byte++) {
+					int mem_adr = mVideoMemAdr + pixel_line * 32 + pixel_byte;
+					if (!mVideoMem->read(mem_adr, mem_data))
+						return false;
 					for (int p = 0; p < 8; p++) {
 						if (mem_data & 0x80)
 							*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
@@ -172,6 +174,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 						uint8_t symbol = (mem_data & 0x3f);
 						CharDef symbol_def = mCharRom[symbol];
 						uint8_t symbol_mask;
+						int y = pixel_line % 12;
 						symbol_mask = symbol_def.rows[y];
 						if (INV) {
 							symbol_mask = ~symbol_mask; // inverted character
@@ -370,6 +373,9 @@ bool VDU6847::write(uint16_t adr, uint8_t data)
 
 bool VDU6847::setCSS(uint8_t css)
 {
+	uint8_t pCSS = mCSS;
 	mCSS = css;
+	if (pCSS != mCSS)
+		cout << "CSS = " << (int)mCSS << "\n";
 	return true;
 }

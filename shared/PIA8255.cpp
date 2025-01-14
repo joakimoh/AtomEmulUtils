@@ -168,8 +168,8 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		// No bits  should be configured as writable
 	}
 	else if (adr == PIA8255_PORT_C) {
-		// 0 Tape output, 1 Enable 2.4 kHz to cassette output, 2 Loudspeaker, 3 Not used, 4 colour selection for semigraphics mode 5 (css)
-		mVdu->setCSS((data >> 4) & 0x1);
+		// 0 Tape output, 1 Enable 2.4 kHz to cassette output, 2 Loudspeaker, 3 colour palette selection for (semi)graphics
+		mVdu->setCSS((data >> 3) & 0x1);
 	}
 	else if (adr == PIA8255_CONTROL) {
 		// 
