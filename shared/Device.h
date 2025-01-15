@@ -71,9 +71,11 @@ private:
 
 public:
 
-	Devices(std::string memMapFile, int n60HzCycles, ALLEGRO_BITMAP* disp, Keyboard *keyboard, DebugInfo debugInfo, Program program);
+	Devices(std::string memMapFile, int n60HzCycles, ALLEGRO_BITMAP* disp, Keyboard *keyboard, DebugInfo debugInfo, Program program, Program data);
 
 	~Devices();
+
+	bool loadData(Program data);
 
 	bool getDevice(int n, Device* &device) {
 		device = NULL;

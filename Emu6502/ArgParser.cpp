@@ -77,8 +77,8 @@ ArgParser::ArgParser(int argc, const char* argv[])
 		}
 		debugInfo.dumpSz = stoi(argv[a + 1], 0, 16);
 		a++;
-	}
-	else if (strcmp(argv[a], "-pgm") == 0) {
+		}
+		else if (strcmp(argv[a], "-pgm") == 0) {
 			program.fileName = argv[a + 1];
 			a++;
 			if (a >= argc) {
@@ -86,6 +86,16 @@ ArgParser::ArgParser(int argc, const char* argv[])
 				return;
 			}
 			program.loadAdr = stoi(argv[a + 1], 0, 16);
+			a++;
+		}
+		else if (strcmp(argv[a], "-data") == 0) {
+			data.fileName = argv[a + 1];
+			a++;
+			if (a >= argc) {
+				printUsage(argv[0]);
+				return;
+			}
+			data.loadAdr = stoi(argv[a + 1], 0, 16);
 			a++;
 		}
 		else if (strcmp(argv[a], "-map") == 0) {

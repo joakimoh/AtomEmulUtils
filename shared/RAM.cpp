@@ -40,7 +40,7 @@ bool RAM::write(uint16_t adr, uint8_t data)
 
 bool RAM::write(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
 {
-	if (!(adr >= mDevAdr && adr + sz < mDevAdr + mDevSz))
+	if (!(adr >= mDevAdr && adr + sz <= mDevAdr + mDevSz))
 		return false;
 
 	for (int a = adr; a < adr + sz; a++) {

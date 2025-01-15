@@ -14,8 +14,8 @@ public:
 
 	double cMHz = 1.0;
 	string mapFileName;
-	Program program;
-
+	Program program, data;
+	
 	DebugInfo debugInfo;
 
 

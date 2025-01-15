@@ -28,7 +28,7 @@ bool Device::validAdr(uint16_t adr)
 }
 
 Devices::Devices(
-	std::string memMapFile, int n60HzCycles, ALLEGRO_BITMAP* disp, Keyboard *keyboard, DebugInfo debugInfo, Program program) :
+	std::string memMapFile, int n60HzCycles, ALLEGRO_BITMAP* disp, Keyboard *keyboard, DebugInfo debugInfo, Program program, Program data) :
 	mDebugInfo(debugInfo)
 {
 
@@ -136,47 +136,64 @@ Devices::Devices(
 
 	}
 
+	if (!loadData(program))
+		throw runtime_error("");
 
-	if (program.loadAdr > 0) {
+	if (!loadData(data))
+		throw runtime_error("");
 
-		ifstream pin(program.fileName, ios::in | ios::binary | ios::ate);
+}
+
+
+bool Devices::loadData(Program data)
+{
+	if (data.loadAdr > 0) {
+
+		ifstream pin(data.fileName, ios::in | ios::binary | ios::ate);
 
 		if (!pin) {
-			cout << "couldn't open program file " << program.fileName << "\n";
-			throw runtime_error("couldn't open program file");
+			cout << "couldn't open data file " << data.fileName << "\n";
+			return false;
 		}
 
-		// Get program size
+		// Get data size
 		pin.seekg(0, ios::end);
-		int program_size = (int) pin.tellg();
+		int program_size = (int)pin.tellg();
 		pin.seekg(0);
 
-		// Get RAM device that matches the program load address
+		// Get RAM device that matches the data load address
 		RAM* ram = NULL;
 		for (int i = 0; i < mDevices.size(); i++) {
 			Device* dev = mDevices[i];
-			if (dev->selected(program.loadAdr) && dev->devType == RAM_DEV) {
+			if (dev->selected(data.loadAdr) && dev->devType == RAM_DEV) {
 				ram = (RAM*)dev;
 				break;
 			}
 		}
-		if (ram == NULL || !ram->selected(program.loadAdr + program_size - 1)) {
-			throw runtime_error("couldn't find a RAM device large enough to hold the program '" + program.fileName + "'");
+		if (ram == NULL || !ram->selected(data.loadAdr + program_size - 1)) {
+			cout << "couldn't find a RAM device large enough to hold the data '" + data.fileName + "'\n";
+			return false;
 		}
 
-		vector<uint8_t> data(program_size);
-		pin.read((char*) &data[0], (streamsize) program_size);
+		vector<uint8_t> d(program_size);
+		pin.read((char*)&d[0], (streamsize)program_size);
 
-		if ( pin.fail() || (int) pin.gcount() < program_size) {
-			throw runtime_error("couldn't read all bytes from the program file '" + program.fileName + "'");
+		if (true || mDebugInfo.dbgLevel & DBG_VERBOSE)
+			cout << "Data from file '" << data.fileName << "' of size " << dec << program_size << " bytes (0x" << hex << program_size << ")" <<
+			" will be written to memory at address 0x" << data.loadAdr << " to 0x" << data.loadAdr + program_size - 1 << "\n";
+
+		if (pin.fail() || (int)pin.gcount() < program_size) {
+			cout << "couldn't read all bytes from the data file '" + data.fileName + "'\n";
+			return false;
 		}
-
-		if (!ram->write(program.loadAdr, data, program_size)) {
-			throw runtime_error("couldn't update a RAM with the program file '" + program.fileName + "'");
+		if (!ram->write(data.loadAdr, d, program_size)) {
+			cout << "couldn't update a RAM with the data file '" + data.fileName + "\n'";
+			return false;
 		}
 
 	}
 
+	return true;
 }
 
 Devices::~Devices()

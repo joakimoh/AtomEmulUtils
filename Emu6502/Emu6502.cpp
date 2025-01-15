@@ -56,7 +56,7 @@ int main(int argc, const char* argv[])
     AtomKeyboard atom_keyboard(arg_parser.debugInfo);
     int n_cycles_per_60_hz = (int)round(arg_parser.cMHz * 1000000/ 60);
     ALLEGRO_BITMAP* display = al_get_target_bitmap();
-    Devices devices(arg_parser.mapFileName, n_cycles_per_60_hz, display, (Keyboard *) &atom_keyboard, arg_parser.debugInfo, arg_parser.program);
+    Devices devices(arg_parser.mapFileName, n_cycles_per_60_hz, display, (Keyboard *) &atom_keyboard, arg_parser.debugInfo, arg_parser.program, arg_parser.data);
    
     
     // Create processor object
