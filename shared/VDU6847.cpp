@@ -93,47 +93,70 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 		{		
 			switch (mGM) {
 			case 0: // CG1:  64 x  64, 4 colours, 1   kB, 16 bytes/line <=> Acorn Atom mode 1a
+			case 2: // CG2: 128 x  64, 4 colours, 2   kB, 32 bytes/line <=> Acorn Atom mode 2a
+			case 4: // CG4: 128 x  96, 4 colours, 3   kB, 32 bytes/line <=> Acorn Atom mode 3a
+			case 6: // CG6: 128 x 192, 4 colours, 6   kB, 32 bytes/line <=> Acorn Atom mode 4a
+			{
+				int bytes_per_line = 32;
+				int pixel_width = 2;
+				int pixel_height = 4;
+				if (mGM == 0) {
+					bytes_per_line = 16;
+					pixel_width = 4;
+				}
+				else if (mGM == 4)
+					pixel_height = 2;
+				else if (mGM == 6)
+					pixel_height = 1;
+				int big_pixel_line = pixel_line / pixel_height;
 				// byte c1 c0 c1 c0 c1 c0 c1 c0 c1 c0 => pixels e3 e2 e1 e0
-				for (int pixel_byte = 0; pixel_byte < 16; pixel_byte++) {
-					int big_pixel_line = pixel_line / 3;
-					int mem_adr = mVideoMemAdr + big_pixel_line * 16 + pixel_byte;
+				for (int pixel_byte = 0; pixel_byte < bytes_per_line; pixel_byte++) {
+					int mem_adr = mVideoMemAdr + big_pixel_line * bytes_per_line + pixel_byte;
 					if (!mVideoMem->read(mem_adr, mem_data))
 						return false;
 					for (int p = 0; p < 4; p++) {
-						uint8_t pixel_data = (mem_data >> 6) & 0x3;
-						uint8_t colour = mColours[mCSS][pixel_data];
-						*bitmap_data_p = *(bitmap_data_p + 1) = *(bitmap_data_p + 2) = *(bitmap_data_p + 3) = colour;
+						uint8_t colour = (mem_data >> 6) & 0x3; 
+						for (int pw = 0; pw < pixel_width; pw++)
+							*bitmap_data_p++ = mColours[mCSS][colour];
 						mem_data = mem_data << 2;
-						bitmap_data_p += 4;
 					}
 				}
 				break;
+			}
 			case 1: // CG1: 128 x  64, 2 colours, 1   kB, 16 bytes/line <=> Acorn Atom mode 1
-				break;
-			case 2: // CG2: 128 x  64, 4 colours, 2   kB, 32 bytes/line <=> Acorn Atom mode 2a
-				break;
 			case 3: // CG3: 128 x  96, 2 colours, 1.5 kB, 16 bytes/line <=> Acorn Atom mode 2
-				break;
-			case 4: // CG4: 128 x  96, 4 colours, 3   kB, 32 bytes/line <=> Acorn Atom mode 3a
-				break;
 			case 5: // CG5: 128 x 192, 2 colours, 3   kB, 16 bytes/line <=> Acorn Atom mode 3
-				break;
-			case 6: // CG6: 128 x 192, 4 colours, 6   kB, 32 bytes/line <=> Acorn Atom mode 4a
-				break;
 			case 7: // CG7: 256 x 192, 2 colours, 6   kB, 32 bytes/line <=> Acorn Atom mode 4
-				for (int pixel_byte = 0; pixel_byte < 32; pixel_byte++) {
-					int mem_adr = mVideoMemAdr + pixel_line * 32 + pixel_byte;
+			{
+				int bytes_per_line = 16;
+				int pixel_width = 2;
+				int pixel_height = 1;			
+				if (mGM == 7) {
+					bytes_per_line = 32;
+					pixel_width = 1;
+				}
+				else if (mGM == 1)
+					pixel_height = 3;
+				else if (mGM == 3)
+					pixel_height = 2;
+				int big_pixel_line = pixel_line / pixel_height;
+				for (int pixel_byte = 0; pixel_byte < bytes_per_line; pixel_byte++) {					
+					int mem_adr = mVideoMemAdr + big_pixel_line * bytes_per_line + pixel_byte;
 					if (!mVideoMem->read(mem_adr, mem_data))
 						return false;
 					for (int p = 0; p < 8; p++) {
-						if (mem_data & 0x80)
-							*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
-						else
-							*bitmap_data_p++ = 0xff000000; // opaque black ARGB 8888
+						for (int pw = 0; pw < pixel_width; pw++) {
+							if (mem_data & 0x80)
+								*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
+							else
+								*bitmap_data_p++ = 0xff000000; // opaque black ARGB 8888
+						}
 						mem_data = mem_data << 1;
 					}
 				}
-				break;
+			}
+
+			
 			default: // ERROR - should never happen
 				break;
 			}
@@ -159,6 +182,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 						uint8_t colour = (mem_data >> 6) & 0x3;
 						int pixel_row = (pixel_line % 12) / 4;
 						uint8_t pixel_data = ((mem_data & 0x3f) >> 2 * (2 - pixel_row)) & 0x3;
+						//cout << dec << (int)colour << "\n";
 
 						for (int pixel = 0; pixel < 2; pixel++) {
 							if (pixel_data & (1 << (1 - pixel))) {
@@ -240,6 +264,72 @@ void VDU6847::unlockDisplay()
 	al_restore_state(&mAllegroState);
 }
 
+
+
+bool VDU6847::setVideoRam(RAM* ram)
+{
+	mVideoMem = ram;
+	return true;
+}
+
+VDU6847::VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo) :
+	Device(VDU6847_DEV, adr, 0x100, debugInfo), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
+{
+
+	// Set the size of the VDU register vector
+	mMem.resize((size_t) mDevSz);
+
+	// Initialise the VDU registers with zeros
+	mMem.assign(mDevSz, 0);
+
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
+		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
+
+	// Create 256 x 192 display bitmap and clear it
+	mDisplayBitmap = al_create_bitmap(mVisibleW, mVisibleH);
+
+	green = al_map_rgb(0, 0xff, 0);
+	black = al_map_rgb(0, 0, 0);
+
+	lockDisplay();
+
+
+}
+
+VDU6847::~VDU6847()
+{
+	al_destroy_bitmap(mDisplayBitmap);
+}
+
+bool VDU6847::read(uint16_t adr, uint8_t& data)
+{
+
+	if (!validAdr(adr))
+		return false;
+
+	data = mMem[adr - mDevAdr];
+
+	return true;
+
+}
+bool VDU6847::write(uint16_t adr, uint8_t data)
+{
+
+	if (!validAdr(adr))
+		return false;
+
+	mMem[adr - mDevAdr] = data;
+
+	return true;
+}
+
+bool VDU6847::setCSS(uint8_t css)
+{
+	mCSS = css;
+	return true;
+}
+
 //
 // 
 // Can be in either Alphanumeric/Semigraphics (major mode 1, A/G=0) or Graphics mode (major mode 2, A/G=1)
@@ -302,80 +392,7 @@ void VDU6847::unlockDisplay()
 //
 bool VDU6847::setGraphicMode(uint8_t mode)
 {
-	uint8_t pAG = mAG;
-	uint8_t pGM = mGM;
 	mAG = mode & 0x1; // Alphanumerics/SemiGraphics (0) or Graphic (G) selection as decided by the A/G input connected to the PIA output PA4
 	mGM = (mode >> 1) & 0x7;		// Graphic mode selecion as decided by the GM0-2 inputs connected to the PIA outputs PA5-7
-	if (pAG != mAG || pGM != mGM)
-		cout << "mode 0x" << hex << (int) mode << " => AG:GM = " << (int) mAG << ":" << (int)mGM << "\n";
-	return true;
-}
-
-bool VDU6847::setVideoRam(RAM* ram)
-{
-	mVideoMem = ram;
-	return true;
-}
-
-VDU6847::VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo) :
-	Device(VDU6847_DEV, adr, 0x100, debugInfo), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
-{
-
-	// Set the size of the VDU register vector
-	mMem.resize((size_t) mDevSz);
-
-	// Initialise the VDU registers with zeros
-	mMem.assign(mDevSz, 0);
-
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
-		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
-
-	// Create 256 x 192 display bitmap and clear it
-	mDisplayBitmap = al_create_bitmap(mVisibleW, mVisibleH);
-
-	green = al_map_rgb(0, 0xff, 0);
-	black = al_map_rgb(0, 0, 0);
-
-	lockDisplay();
-
-
-}
-
-VDU6847::~VDU6847()
-{
-	al_destroy_bitmap(mDisplayBitmap);
-}
-
-
-
-bool VDU6847::read(uint16_t adr, uint8_t& data)
-{
-
-	if (!validAdr(adr))
-		return false;
-
-	data = mMem[adr - mDevAdr];
-
-	return true;
-
-}
-bool VDU6847::write(uint16_t adr, uint8_t data)
-{
-
-	if (!validAdr(adr))
-		return false;
-
-	mMem[adr - mDevAdr] = data;
-
-	return true;
-}
-
-bool VDU6847::setCSS(uint8_t css)
-{
-	uint8_t pCSS = mCSS;
-	mCSS = css;
-	if (pCSS != mCSS)
-		cout << "CSS = " << (int)mCSS << "\n";
 	return true;
 }

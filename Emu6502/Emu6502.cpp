@@ -84,7 +84,8 @@ int main(int argc, const char* argv[])
 
     al_clear_to_color(al_map_rgb(0, 0, 0));
 
-    while (true)
+    bool quit = false;
+    while (!quit)
     {   
 
         // Advance time one 60 Hz NTSC field scan scan_line at a time until a complete field (262 lines) has been scanned
@@ -127,7 +128,7 @@ int main(int argc, const char* argv[])
             // This will synchronise the execution on 60 Hz basis (via the wait event above)
         } 
         else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
-            break;
+            quit = true;
         }
 
     }
