@@ -15,7 +15,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 }
 
 
-VIA6522::VIA6522(uint16_t adr, DebugInfo debugInfo): Device(VIA6522_DEV, adr, 0x10, debugInfo)
+VIA6522::VIA6522(string name, uint16_t adr, DebugInfo debugInfo, ConnectionManager* connectionManager): Device(name, VIA6522_DEV, adr, 0x10, debugInfo, connectionManager)
 {
 	// // Set the size of the VIA register vector
 	mMem.resize((size_t) mDevSz);

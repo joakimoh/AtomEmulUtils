@@ -7,13 +7,18 @@
 #include <allegro5/allegro_font.h>
 #include "AtomKeyboard.h"
 #include "VDU6847.h"
+#include "Connectionmanager.h"
 
 using namespace std;
-
 
 bool PIA8255::reset()
 {
 	Device::reset();
+	mPortA = 0x0;
+	mPortB = 0x0;
+	mPortC = 0x0;
+	mCR = 0x0;
+
 	return true;
 }
 
@@ -87,7 +92,7 @@ bool PIA8255::advance(uint64_t stopCycle)
 				can be generated.
 
 
-		
+
 */
 
 #define PIA8255_PORT_A (mDevAdr + 0)
@@ -95,14 +100,21 @@ bool PIA8255::advance(uint64_t stopCycle)
 #define PIA8255_PORT_C (mDevAdr + 2)
 #define PIA8255_CONTROL (mDevAdr + 3)
 
-void PIA8255::setVdu(VDU6847 *vdu)
-{
-	mVdu = vdu;
-}
 
-PIA8255::PIA8255(uint16_t adr, int n60HzCycles, AtomKeyboard *keyboard, DebugInfo debugInfo) :
-	Device(PIA8255_DEV, adr, 4, debugInfo), mKeyboard(keyboard), mN60HzCycles(n60HzCycles)
+
+PIA8255::PIA8255(string name, uint16_t adr, int n60HzCycles, AtomKeyboard* keyboard, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+	Device(name, PIA8255_DEV, adr, 4, debugInfo, connectionManager), mKeyboard(keyboard), mN60HzCycles(n60HzCycles)
 {
+	// Specify the inputs to allow other devices to connect
+#define PORT_A 0
+#define PORT_B 1
+#define PORT_C 2
+	DevicePort A_port = { "PortA", PORT_A, -1, &mPortA };
+	DevicePort B_port = { "PortB", PORT_B, -1, &mPortB };
+	DevicePort C_port = { "PortC", PORT_C, -1, &mPortC };
+	mPorts[PORT_A] = A_port;
+	mPorts[PORT_B] = B_port;
+	mPorts[PORT_C] = C_port;
 
 	// Set the size of the PIA register vector
 	mMem.resize((size_t)mDevSz);
@@ -115,6 +127,8 @@ PIA8255::PIA8255(uint16_t adr, int n60HzCycles, AtomKeyboard *keyboard, DebugInf
 		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
 }
 
+
+
 bool PIA8255::read(uint16_t adr, uint8_t& data)
 {
 	if (!validAdr(adr))
@@ -122,7 +136,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 
 	if (adr == PIA8255_PORT_A) {
 		// No bits  should be configured as readable?
-		data = mMem[adr - mDevAdr];
+		data = mPortA;
 	}
 	else if (adr == PIA8255_PORT_B) {
 		// 0 - 5 Keyboard column (low when a key pressed), 6 CTRL key(low when pressed), 7 SHIFT key (low when pressed)
@@ -131,7 +145,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 			data &= ~0x40;
 		if (mKeyboard->shiftPressed())
 			data &= ~0x80;
-		
+
 	}
 	else if (adr == PIA8255_PORT_C) {
 		data |= 0x40; // set REPEAT key bit (inactive LOW)
@@ -147,7 +161,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 	}
 	else { // adr == PIA8255_CONTROL
 		data = mMem[adr - mDevAdr];
-	}	
+	}
 
 	return true;
 
@@ -158,6 +172,7 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		return false;
 
 	if (adr == PIA8255_PORT_A) {
+		mPortA = data;
 		// 0 - 3 Keyboard row, 4 - 7 Graphics mode
 		if (mKeyboard != NULL)
 			mKeyboard->selectRow(data & 0xf);
@@ -165,36 +180,63 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 			mVdu->setGraphicMode((data >> 4) & 0xf);
 	}
 	else if (adr == PIA8255_PORT_B) {
+		mPortB = data;
 		// No bits  should be configured as writable
 	}
 	else if (adr == PIA8255_PORT_C) {
+		if ((mCR & 0x80) && (mCR & 0x08)) { // Port C upper bits are writable
+			mPortC &= 0x0f;
+			mPortC |= (data << 4) & 0xf0;
+		}
+		if ((mCR & 0x80) && (mCR & 0x02)) { // Port C lower bits are writable
+			mPortC &= 0xf0;
+			mPortC |= data& 0x0f;
+		}
+
 		// 0 Tape output, 1 Enable 2.4 kHz to cassette output, 2 Loudspeaker, 3 colour palette selection for (semi)graphics
 		mVdu->setCSS((data >> 3) & 0x1);
 	}
 	else if (adr == PIA8255_CONTROL) {
+		mCR = data;
 		// 
-		if (data & 0x80) {
+		if (mCR & 0x80) {
 			if (mDebugInfo.dbgLevel & DBG_DEVICE) {
 				cout << "I/O Mode: ";
-				cout << " Port A " << (data & 0x40 ? "M0" : ((data & 0x60) == 0x40 ? "M1" : "M2"));
-				cout << " " << (data & 0x10 ? "IN" : "OUT");
-				cout << ", Port B " << (data & 0x04 ? "M1" : "M0");
-				cout << " " << (data & 0x02 ? "IN" : "OUT");
-				cout << ", Port C upper " << (data & 0x08 ? "IN" : "OUT");
-				cout << ", Port C lower " << (data & 0x01 ? "IN" : "OUT");
+				cout << " Port A " << (mCR & 0x40 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2"));
+				cout << " " << (mCR & 0x10 ? "IN" : "OUT");
+				cout << ", Port B " << (mCR & 0x04 ? "M1" : "M0");
+				cout << " " << (mCR & 0x02 ? "IN" : "OUT");
+				cout << ", Port C upper " << (mCR & 0x08 ? "IN" : "OUT");
+				cout << ", Port C lower " << (mCR & 0x01 ? "IN" : "OUT");
 				cout << "\n";
 			}
 		} 
 		else {
+			uint8_t bit = (mCR << 1) & 0x7;
+			uint8_t val = mCR & 0x1;
+			mPortC &= ~(1 << bit);
+			mPortC |= (val << bit);
+			updateOutput(PORT_C, mPortC);
 			if (mDebugInfo.dbgLevel & DBG_DEVICE)
-				cout << "BSR Mode\n";
+				cout << "Set PIA Port C b" << bit << " to '" << val << "'\n";
 		}
 	}
-
-	mMem[adr - mDevAdr] = data;
 
 	if (mDebugInfo.dbgLevel & DBG_DEVICE)
 		cout << "WROTE 0x" << setw(2) << setfill('0') << hex << (int)data << " to 0x" << setw(4) << adr << "\n";
 
 	return true;
+}
+
+void PIA8255::updateInput(uint8_t port, uint8_t bit, uint8_t val)
+{
+	if (port >= 0 && port <= 2 && bit >= 0 && bit <= 7 && val >= 0 && val <= 1) {
+		mMem[port] &= ~(1 << bit);
+		mMem[port] |= (val << bit);
+	}
+}
+
+void PIA8255::setVdu(VDU6847* vdu)
+{
+	mVdu = vdu;
 }

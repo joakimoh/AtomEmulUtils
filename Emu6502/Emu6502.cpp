@@ -88,7 +88,7 @@ int main(int argc, const char* argv[])
     while (!quit)
     {   
 
-        // Advance time one 60 Hz NTSC field scan scan_line at a time until a complete field (262 lines) has been scanned
+        // Advance time one 60 Hz NTSC field scan line at a time until a complete field (262 lines) has been scanned
         for (int scan_line = 0; scan_line < 262; scan_line++) {
 
             // Scan one field scan_line and save time passed in target cycle count to be used as reference
@@ -126,6 +126,7 @@ int main(int argc, const char* argv[])
         if (event.type == ALLEGRO_EVENT_TIMER) {
             // The timer event comes from the emulation speed timer (defaults to 60 Hz)
             // This will synchronise the execution on 60 Hz basis (via the wait event above)
+
         } 
         else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
             quit = true;

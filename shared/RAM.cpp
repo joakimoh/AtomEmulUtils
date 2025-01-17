@@ -3,7 +3,7 @@
 #include <iostream>
 #include <filesystem>
 
-RAM::RAM(uint16_t adr, uint16_t sz, DebugInfo debugInfo) : Device(RAM_DEV, adr, sz, debugInfo)
+RAM::RAM(string name, uint16_t adr, uint16_t sz, DebugInfo debugInfo) : Device(name, RAM_DEV, adr, sz, debugInfo, NULL)
 {
 
 	// Resize the RAM vector

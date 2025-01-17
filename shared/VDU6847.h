@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "Device.h"
 #include "RAM.h"
-#include <cstdint>
+
 
 class VDU6847 : public Device {
 
@@ -98,9 +98,19 @@ public:
 
 
 	// M6847 inputs A/G, GM0:2 & CSS used to select operation
+#define PORT_AG 0
+#define PORT_GM 1
+#define PORT_CSS 2
+
 	uint8_t mAG = 0x0;
 	uint8_t mGM = 0x0;
 	uint8_t mCSS = 0x0;
+	
+
+	// M6847 outputs
+#define PORT_FS 3
+	uint8_t mFS = 1; // The Field Sync (FS) signal goes High to Low at the end of the active display area
+						// It goes High again at the end of the vertical synchronisation pulse
 
 	RAM* mVideoMem = NULL;
 	uint16_t mVideoMemAdr = 0x0;
@@ -136,7 +146,7 @@ public:
 							0xffff0000 // opaque red ARGB 8888},
 						},
 							{
-							0xff00ff00, // -,
+							0xfff0dc82, // opaque buff (brown) ARGB 8888
 							0xff00ffff, // opaque cyan ARGB 8888,
 							0xffff00ff, // opaque magenta ARGB 8888,
 							0xffff4500 // opaque orange ARGB 8888
@@ -147,7 +157,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo);
+	VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
 	VDU6847::~VDU6847();
 
 	bool read(uint16_t adr, uint8_t& data);

@@ -52,7 +52,13 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	int pixel_line = mScanLine - (mTopVBlankingH + mTopBorderH);
 	int visible_line = mScanLine - mTopVBlankingH;
 
+	
+
 	if (mScanLine == mTopVBlankingH + mVisibleH) {
+
+		// The Field Sync (FS) signal goes High to Low at the end of the active display area
+		mFS = 0;
+		updateOutput(PORT_FS, mFS);  // set PIA port C, b7 to '0'
 
 		unlockDisplay();
 
@@ -244,6 +250,12 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	// Next scan line if a complete line has been scanned
 	mScanLine = (mScanLine + 1) % 262;
 
+	if (mScanLine == 261) {
+		// The Field Sync (FS) signal goes High at the end of the vertical synchronisation pulse
+		mFS = 1;
+		updateOutput(PORT_FS, mFS);
+	}
+
 	endCycle = mCycleCount;
 
 	return true;
@@ -272,9 +284,19 @@ bool VDU6847::setVideoRam(RAM* ram)
 	return true;
 }
 
-VDU6847::VDU6847(uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo) :
-	Device(VDU6847_DEV, adr, 0x100, debugInfo), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
+VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+	Device(name, VDU6847_DEV, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
 {
+	// Specify the inputs to allow other devices to connect
+
+	DevicePort AG_port = { "A/G", PORT_AG, -1, &mAG };
+	DevicePort GM_port = { "GM", PORT_GM, -1, &mGM };
+	DevicePort CSS_port = { "CSS", PORT_CSS, -1, &mCSS };
+	DevicePort FS_port = { "FS", PORT_FS, -1, &mFS };
+	mPorts[PORT_AG] = AG_port;
+	mPorts[PORT_GM] = GM_port;
+	mPorts[PORT_CSS] = CSS_port;
+	mPorts[PORT_FS] = FS_port;
 
 	// Set the size of the VDU register vector
 	mMem.resize((size_t) mDevSz);

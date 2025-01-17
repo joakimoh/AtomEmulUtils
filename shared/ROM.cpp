@@ -6,7 +6,7 @@
 
 using namespace std;
 
-ROM::ROM(uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo) : Device(ROM_DEV, adr, sz, debugInfo)
+ROM::ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo) : Device(name, ROM_DEV, adr, sz, debugInfo, NULL)
 {
 
 	ifstream fin(binaryContent, ios::in | ios::binary | ios::ate);

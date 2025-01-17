@@ -12,8 +12,12 @@
 
 using namespace std;
 
-Device::Device(DeviceEnum typ, uint16_t adr, uint16_t sz, DebugInfo debugInfo) : devType(typ), mDevAdr(adr), mDevSz(sz),
-mDebugInfo(debugInfo)
+//
+// Device class
+//
+
+Device::Device(string n, DeviceEnum typ,uint16_t adr, uint16_t sz, DebugInfo debugInfo, ConnectionManager *connectionManager) :
+	devType(typ), mDevAdr(adr), mDevSz(sz),mConnectionManager(connectionManager), mDebugInfo(debugInfo), name(n)
 {
 }
 
@@ -27,10 +31,83 @@ bool Device::validAdr(uint16_t adr)
 	return selected(adr);
 }
 
+// Update of an input by another device via the connection manager
+// Called by the connection manager
+bool Device::updateInput(Connection &connection, uint8_t val)
+{
+	if (mPorts.find(connection.dstPort.localPort.index) == mPorts.end())
+		return false;
+
+	DevicePort port = mPorts[connection.dstPort.localPort.index];
+
+	if (port.val == NULL)
+		return false;
+
+	// Extract bits of src port to use
+	uint8_t v = val;
+	v &= connection.srcPort.mask;
+	v = v >> connection.srcPort.lowBit;
+
+	// Update the selected dst port bits only
+	*(port.val) &= ~connection.dstPort.mask;
+	*(port.val) |= ((v << connection.dstPort.lowBit) & connection.dstPort.mask);
+
+	return true;
+}
+
+
+// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
+bool Device::updateOutput(int index, uint8_t val)
+{
+	if (mPorts.find(index) == mPorts.end())
+		return false;
+
+	DevicePort port = mPorts[index];
+
+	if (port.val == NULL)
+		return false;
+
+	*(port.val) = val;
+
+	mConnectionManager->receiveUpdate(port.globalIndex, val);
+
+	return true;
+}
+
+bool Device::getPortIndex(string name, int& index) {
+	index = -1;
+	map<int, DevicePort>::iterator it;
+	for (it = mPorts.begin(); it != mPorts.end(); it++) {
+		if (it->second.name == name) {
+			index = it->second.index;
+			return true;
+		}
+	}
+	return false;
+}
+
+bool Device::assingGlobalPortIndex(int localIndex, int globalIndex)
+{
+	if (mPorts.find(localIndex) != mPorts.end()) {
+		DevicePort port = mPorts[localIndex];
+		port.globalIndex = globalIndex;
+		return true;
+	}
+	else
+		return false;
+}
+
+//
+// Devices class
+//
+
+
+
 Devices::Devices(
 	std::string memMapFile, int n60HzCycles, ALLEGRO_BITMAP* disp, Keyboard *keyboard, DebugInfo debugInfo, Program program, Program data) :
 	mDebugInfo(debugInfo)
 {
+
 
 	ifstream fin(memMapFile, ios::in | ios::ate);
 
@@ -63,7 +140,7 @@ Devices::Devices(
 
 		if (dev_typ_s == "RAM") {
 			a.deviceType = DeviceEnum::RAM_DEV;
-			RAM* ram = new RAM(a.startAdr, a.size, mDebugInfo);
+			RAM* ram = new RAM("", a.startAdr, a.size, mDebugInfo);
 			mDevices.push_back(ram);
 		}
 		else if (dev_typ_s == "VDU6847") {
@@ -71,7 +148,7 @@ Devices::Devices(
 			string video_mem_adr_s;
 			sin >> video_mem_adr_s;
 			a.videoMemAdr = stoi(video_mem_adr_s, 0, 16);
-			vdu = new VDU6847(a.startAdr, n60HzCycles, disp, a.videoMemAdr, mDebugInfo);
+			vdu = new VDU6847("VDU", a.startAdr, n60HzCycles, disp, a.videoMemAdr, mDebugInfo, NULL);
 			mDevices.push_back(vdu);
 		}
 		else if (dev_typ_s == "ROM") {
@@ -83,17 +160,17 @@ Devices::Devices(
 			filesystem::path map_dir_path = map_file_path.parent_path();
 			filesystem::path ROM_file_path = a.ROMFileName;
 			filesystem::path file_path = map_dir_path / ROM_file_path;
-			ROM* rom = new ROM(a.startAdr, a.size, file_path.string(), mDebugInfo);
+			ROM* rom = new ROM("", a.startAdr, a.size, file_path.string(), mDebugInfo);
 			mDevices.push_back(rom);
 		}
 		else if (dev_typ_s == "PIA8255") {
 			a.deviceType = DeviceEnum::PIA8255_DEV;
-			pia = new PIA8255(a.startAdr, n60HzCycles, (AtomKeyboard*)keyboard, mDebugInfo);
+			pia = new PIA8255("PIA", a.startAdr, n60HzCycles, (AtomKeyboard*)keyboard, mDebugInfo, NULL);
 			mDevices.push_back(pia);
 		}
 		else if (dev_typ_s == "VIA6522") {
 			a.deviceType = DeviceEnum::VIA6522_DEV;
-			VIA6522* via = new VIA6522(a.startAdr, mDebugInfo);
+			VIA6522* via = new VIA6522("VIA", a.startAdr, mDebugInfo, NULL);
 			mDevices.push_back(via);
 		}
 		else {

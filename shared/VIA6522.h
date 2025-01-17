@@ -10,7 +10,7 @@ private:
 
 public:
 
-	VIA6522(uint16_t adr, DebugInfo debugInfo);
+	VIA6522(string name, uint16_t adr, DebugInfo debugInfo, ConnectionManager* connectionManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

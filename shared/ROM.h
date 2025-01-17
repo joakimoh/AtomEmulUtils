@@ -16,7 +16,7 @@ private:
 public:
 
 
-	ROM(uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo);
+	ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);
