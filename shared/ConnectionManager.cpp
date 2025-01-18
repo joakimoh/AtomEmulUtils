@@ -32,6 +32,7 @@ bool ConnectionManager::addDevicePort(Device* dev, LocalPort localPort)
 
 bool ConnectionManager::receiveUpdate(Device *dev, int index, uint8_t val)
 {
+
 	cout << "RECEIVE UPDATE\n";
 	cout << "DEVICE '" << dev->name << "' local port #" << dec << index << " = " << (int)val << "\n";
 	cout << "#devices with connectable ports: " << mUniquePorts.size() << "\n";
@@ -118,11 +119,13 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 {
 	try {
 
+		cout << "PORT SELECTION WAS '" << name << "'\n";
 		// Get device ("_" <=> data bus input of the device itself)
 		Tokeniser dev_tok(name, ':');
 		string dev_name;
 		if (!dev_tok.nextToken(dev_name))
 			return false;
+		cout << "DEVICE NAME WAS '" << dev_name << "'\n";
 		Device* dev;
 		if (!mDevices->getDevice(dev_name, dev))
 				return false;
@@ -131,17 +134,19 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 		string port_ref;
 		if (!dev_tok.nextToken(port_ref))
 			return false;
+		cout << "PORT REFERENCE NAME WAS '" << port_ref << "'\n";
 	
 		// Get port name
 		Tokeniser port_tok(port_ref, ';');
 		string port_name;
-		if (port_tok.nextToken(port_name))
+		if (!port_tok.nextToken(port_name))
 			return false;
 		int local_port_index = -1;
 		if (port_name != "_") {
 			if (!dev->getPortIndex(port_name, local_port_index))
 				return false;
 		}
+		cout << "PORT NAME WAS '" << port_name << "'\n";
 
 		// Get bit range (if present)
 		string hb_s, lb_s;
@@ -151,10 +156,11 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 			hb = stoi(hb_s);
 			lb = hb;
 		}
-		if (dev_tok.nextToken(lb_s))
+		if (port_tok.nextToken(lb_s))
 			lb = stoi(lb_s);
 		if (hb < 0 || hb > 7 || lb < 0 || hb > 7)
 			return false;
+		cout << "PORT BIT SELECTION WAS b" << dec << hb << ":" << lb << "\n";
 
 		// Create I/O port
 
@@ -173,9 +179,11 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 		if (mUniquePorts.find(dev) == mUniquePorts.end()) 
 			return false;
 		map<int,UniquePort>& unique_ports = mUniquePorts[dev];
+		cout << "UNIQUE PORTS SIZE WAS " << unique_ports.size() << "\n";
 		if (unique_ports.find(local_port_index) == unique_ports.end())
 			return false;
 		UniquePort unique_port = unique_ports[local_port_index];
+		cout << "UNIQUE PORT WAS " << unique_port.dev->name << ":" << unique_port.localPort.name << " (" << unique_port.globalIndex << ")\n";
 
 		port_selection.port.globalIndex = unique_port.globalIndex;
 		
@@ -189,7 +197,7 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 }
 
 //
-bool ConnectionManager::connect(string srcName, string dstName, int &index)
+bool ConnectionManager::connect(string srcName, string dstName)
 {
 	PortSelection src_port;
 	if (!extractPort(srcName, src_port)) {

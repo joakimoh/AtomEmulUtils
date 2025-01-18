@@ -112,24 +112,26 @@ Devices::Devices(
 	VDU6847* vdu = NULL;
 	while (getline(fin, line)) {
 
-		string dev_typ_s, dev_adr_s, dev_sz_s;
+		string dev_typ_s, dev_adr_s, dev_sz_s, dev_name;
 		stringstream sin(line);
 		int dev_adr, dev_sz;
 
 		sin >> dev_typ_s;
-		sin >> dev_adr_s;
-		dev_adr = stoi(dev_adr_s, 0, 16);
-		sin >> dev_sz_s;
-		dev_sz = stoi(dev_sz_s, 0, 16);
 
 		DeviceAllocation a;
-		a.startAdr = dev_adr;
-		a.size = dev_sz;
-
+		if (dev_typ_s != "CONNECT") {
+			sin >> dev_name;
+			sin >> dev_adr_s;
+			dev_adr = stoi(dev_adr_s, 0, 16);
+			sin >> dev_sz_s;
+			dev_sz = stoi(dev_sz_s, 0, 16);			
+			a.startAdr = dev_adr;
+			a.size = dev_sz;
+		}
 
 		if (dev_typ_s == "RAM") {
 			a.deviceType = DeviceEnum::RAM_DEV;
-			RAM* ram = new RAM("", a.startAdr, a.size, mDebugInfo);
+			RAM* ram = new RAM(dev_name, a.startAdr, a.size, mDebugInfo);
 			mDevices.push_back(ram);
 		}
 		else if (dev_typ_s == "VDU6847") {
@@ -137,7 +139,7 @@ Devices::Devices(
 			string video_mem_adr_s;
 			sin >> video_mem_adr_s;
 			a.videoMemAdr = stoi(video_mem_adr_s, 0, 16);
-			vdu = new VDU6847("VDU", a.startAdr, n60HzCycles, disp, a.videoMemAdr, mDebugInfo, &connection_manager);
+			vdu = new VDU6847(dev_name, a.startAdr, n60HzCycles, disp, a.videoMemAdr, mDebugInfo, &connection_manager);
 			mDevices.push_back(vdu);
 		}
 		else if (dev_typ_s == "ROM") {
@@ -149,21 +151,31 @@ Devices::Devices(
 			filesystem::path map_dir_path = map_file_path.parent_path();
 			filesystem::path ROM_file_path = a.ROMFileName;
 			filesystem::path file_path = map_dir_path / ROM_file_path;
-			ROM* rom = new ROM("", a.startAdr, a.size, file_path.string(), mDebugInfo);
+			ROM* rom = new ROM(dev_name, a.startAdr, a.size, file_path.string(), mDebugInfo);
 			mDevices.push_back(rom);
 		}
 		else if (dev_typ_s == "PIA8255") {
 			a.deviceType = DeviceEnum::PIA8255_DEV;
-			pia = new PIA8255("PIA", a.startAdr, n60HzCycles, (AtomKeyboard*)keyboard, mDebugInfo, &connection_manager);
+			pia = new PIA8255(dev_name, a.startAdr, n60HzCycles, (AtomKeyboard*)keyboard, mDebugInfo, &connection_manager);
 			mDevices.push_back(pia);
 		}
 		else if (dev_typ_s == "VIA6522") {
 			a.deviceType = DeviceEnum::VIA6522_DEV;
-			VIA6522* via = new VIA6522("VIA", a.startAdr, mDebugInfo, &connection_manager);
+			VIA6522* via = new VIA6522(dev_name, a.startAdr, mDebugInfo, &connection_manager);
 			mDevices.push_back(via);
 		}
 		else if (dev_typ_s == "CONNECT") {
-
+			// CONNECT	VDU:FS			PIA:PortC;7			- Connect VDU FS output to PIA PortSelection C b7			
+			// CONNECT	PIA:PortA;7		VDU:A/G				- Connect PIA PortSelection A b7:4 to VDU A/G input and GM0:2 inputs
+			// CONNECT	PIA:PortA;6;4	VDU:GM
+			// CONNECT	PIA:_;7			VDU:INV				- Connect data bus b7:6 to VDU inputs INV,A/S & INT/EXT
+			// CONNECT	PIA:_;6			VDU:A/S
+			// CONNECT	PIA:_;6			VUD:INT/EXT
+			string src_port, dst_port;
+			sin >> src_port;
+			sin >> dst_port;
+			cout << "CONNECT PORT '" << src_port << " TO '" << dst_port << "'\n";
+			connection_manager.connect(src_port, dst_port);
 		}
 		else {
 			a.deviceType = DeviceEnum::UNDEFINED_DEV;

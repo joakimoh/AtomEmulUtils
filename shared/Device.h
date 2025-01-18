@@ -175,7 +175,6 @@ private:
 	map<int, Routing>					mRouting;		// each output will have a device-independent unique index which is used to lookup the routing
 	Devices*							mDevices;
 	map<Device*, map<int,UniquePort>>	mUniquePorts;	// device port to global index mapping
-
 	int mUniqueIndex = 0;
 
 	bool getRoutingIndex(PortSelection port, Routing *routing);
@@ -192,8 +191,8 @@ public:
 	// Based on the device-independent unique index of a device's output, propagate the update to all connected devices
 	bool receiveUpdate(Device *dev, int index, uint8_t val);
 
-	// Connect one device's output with the input of another device and return the unqiue index for this output
-	bool connect(string srcName, string dstName, int& index);
+	// Connect one device's output with the input of another device
+	bool connect(string srcName, string dstName);
 
 };
 
