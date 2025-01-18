@@ -172,11 +172,11 @@ class ConnectionManager {
 
 private:
 
-	map<int, Routing> mRouting; // each output will have a device-independent unique index which is used to lookup the routing
-	Devices* mDevices;
-	map<Device*, map<int,UniquePort>> mPorts; // device port to global index mapping
+	map<int, Routing>					mRouting;		// each output will have a device-independent unique index which is used to lookup the routing
+	Devices*							mDevices;
+	map<Device*, map<int,UniquePort>>	mUniquePorts;	// device port to global index mapping
 
-	int mIndex = 0;
+	int mUniqueIndex = 0;
 
 	bool getRoutingIndex(PortSelection port, Routing *routing);
 
@@ -189,7 +189,7 @@ public:
 	// Used by a device to make a port available for routing
 	bool addDevicePort(Device* dev, LocalPort localPort);
 
-	// Based on a the device-independent unique index of a device's output, propagate the update to all connected devices
+	// Based on the device-independent unique index of a device's output, propagate the update to all connected devices
 	bool receiveUpdate(Device *dev, int index, uint8_t val);
 
 	// Connect one device's output with the input of another device and return the unqiue index for this output

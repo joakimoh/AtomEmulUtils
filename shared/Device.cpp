@@ -18,7 +18,7 @@ using namespace std;
 //
 
 Device::Device(string n, DeviceEnum typ,uint16_t adr, uint16_t sz, DebugInfo debugInfo, ConnectionManager *connectionManager) :
-	devType(typ), mDevAdr(adr), mDevSz(sz),mConnectionManager(connectionManager), mDebugInfo(debugInfo), name(n)
+	devType(typ), mDevAdr(adr), mDevSz(sz), mConnectionManager(connectionManager), mDebugInfo(debugInfo), name(n)
 {
 }
 
@@ -36,7 +36,6 @@ bool Device::validAdr(uint16_t adr)
 bool Device::addPort(string name, int index, uint8_t *portVal)
 {
 	
-	cout << "ADD local PORT '" << name << "' with local INDEX " << dec << index << "\n";
 	LocalPort local_port = { name, index };
 	mConnectionManager->addDevicePort(this, local_port);
 	DevicePort device_port = { local_port , portVal };
@@ -68,6 +67,7 @@ bool Device::updateInput(PortSelection &port_selection, uint8_t val)
 // Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 bool Device::updateOutput(int index, uint8_t val)
 {
+	cout << "OUTPUT #" << dec << index << " = " << (int)val << "\n";
 	mConnectionManager->receiveUpdate(this, index, val);
 	return true;
 }
@@ -96,6 +96,7 @@ Devices::Devices(
 	mDebugInfo(debugInfo)
 {
 
+	ConnectionManager connection_manager(this);
 
 	ifstream fin(memMapFile, ios::in | ios::ate);
 
@@ -136,7 +137,7 @@ Devices::Devices(
 			string video_mem_adr_s;
 			sin >> video_mem_adr_s;
 			a.videoMemAdr = stoi(video_mem_adr_s, 0, 16);
-			vdu = new VDU6847("VDU", a.startAdr, n60HzCycles, disp, a.videoMemAdr, mDebugInfo, NULL);
+			vdu = new VDU6847("VDU", a.startAdr, n60HzCycles, disp, a.videoMemAdr, mDebugInfo, &connection_manager);
 			mDevices.push_back(vdu);
 		}
 		else if (dev_typ_s == "ROM") {
@@ -153,13 +154,16 @@ Devices::Devices(
 		}
 		else if (dev_typ_s == "PIA8255") {
 			a.deviceType = DeviceEnum::PIA8255_DEV;
-			pia = new PIA8255("PIA", a.startAdr, n60HzCycles, (AtomKeyboard*)keyboard, mDebugInfo, NULL);
+			pia = new PIA8255("PIA", a.startAdr, n60HzCycles, (AtomKeyboard*)keyboard, mDebugInfo, &connection_manager);
 			mDevices.push_back(pia);
 		}
 		else if (dev_typ_s == "VIA6522") {
 			a.deviceType = DeviceEnum::VIA6522_DEV;
-			VIA6522* via = new VIA6522("VIA", a.startAdr, mDebugInfo, NULL);
+			VIA6522* via = new VIA6522("VIA", a.startAdr, mDebugInfo, &connection_manager);
 			mDevices.push_back(via);
+		}
+		else if (dev_typ_s == "CONNECT") {
+
 		}
 		else {
 			a.deviceType = DeviceEnum::UNDEFINED_DEV;
@@ -243,7 +247,7 @@ bool Devices::loadData(Program data)
 		vector<uint8_t> d(program_size);
 		pin.read((char*)&d[0], (streamsize)program_size);
 
-		if (true || mDebugInfo.dbgLevel & DBG_VERBOSE)
+		if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 			cout << "Data from file '" << data.fileName << "' of size " << dec << program_size << " bytes (0x" << hex << program_size << ")" <<
 			" will be written to memory at address 0x" << data.loadAdr << " to 0x" << data.loadAdr + program_size - 1 << "\n";
 

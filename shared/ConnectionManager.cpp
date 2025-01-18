@@ -13,36 +13,47 @@ ConnectionManager::ConnectionManager(Devices* devices) : mDevices(devices)
 bool ConnectionManager::addDevicePort(Device* dev, LocalPort localPort)
 {
 
-	cout << "ADD DEVICE '" << dev->name << "' PORT '" << localPort.name << "' with local INDEX " << dec << localPort.localIndex << "\n";
-	int unique_index = mIndex++;
-	return true;
+	int unique_index = mUniqueIndex++;
 	UniquePort unique_port;
 	unique_port.dev = dev;
-	unique_port.localPort.localIndex = localPort.localIndex;
-	unique_port.localPort.name = localPort.name;
+	unique_port.localPort = localPort;
 	unique_port.globalIndex = unique_index;
 	
-	mPorts[dev][unique_index] = unique_port;
+	mUniquePorts[dev][localPort.localIndex] = unique_port;
+
+	cout << "ADD DEVICE '" << unique_port.dev->name << "' PORT '" << unique_port.localPort.name << "' with local INDEX " << dec << unique_port.localPort.localIndex <<
+		" and global INDEX " << unique_port.globalIndex << "\n";
+	cout << "#devices with connectable ports: " << mUniquePorts.size() << "\n";
+	cout << "ADD " << mUniquePorts[dev][localPort.localIndex].dev->name << ":" << mUniquePorts[dev][localPort.localIndex].localPort.name << " #" << dec <<
+		mUniquePorts[dev][localPort.localIndex].globalIndex << "\n";
 
 	return true;
 }
 
 bool ConnectionManager::receiveUpdate(Device *dev, int index, uint8_t val)
 {
+	cout << "RECEIVE UPDATE\n";
+	cout << "DEVICE '" << dev->name << "' local port #" << dec << index << " = " << (int)val << "\n";
+	cout << "#devices with connectable ports: " << mUniquePorts.size() << "\n";
+	cout << "#routings: " << mRouting.size() << "\n";
+
 	// Check for errors
 	if (dev == NULL) {
 		cout << "INTERNAL ERROR detected in receiveUpdate: NULL pointer provided for device!\n";
 		return false;
 	}
 	
-	if (mPorts.find(dev) == mPorts.end()) {
+	if (mUniquePorts.find(dev) == mUniquePorts.end()) {
 		cout << "Port #" << dec << index << " for device " << dev->name << "' doesn't exist!\n";
 		return false;
 	}
 
 	// Get global port index
-	map<int,UniquePort> &unique_ports = mPorts[dev];
+	map<int,UniquePort> &unique_ports = mUniquePorts[dev];
 	UniquePort &unique_port = unique_ports[index];
+
+	cout << "DEVICE '" << dev->name << "' local port #" << dec << index << "'" << unique_port.localPort.name << "' (" << unique_port.globalIndex << ") = " <<
+		(int)val << "\n";
 
 	// Check that routing exists for the port (not an error if it doesn't exist!)
 	if (mRouting.find(unique_port.globalIndex) == mRouting.end())
@@ -159,9 +170,9 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 			port_selection.bits.mask |= (1 << i);
 
 		// Get global index
-		if (mPorts.find(dev) == mPorts.end()) 
+		if (mUniquePorts.find(dev) == mUniquePorts.end()) 
 			return false;
-		map<int,UniquePort>& unique_ports = mPorts[dev];
+		map<int,UniquePort>& unique_ports = mUniquePorts[dev];
 		if (unique_ports.find(local_port_index) == unique_ports.end())
 			return false;
 		UniquePort unique_port = unique_ports[local_port_index];
