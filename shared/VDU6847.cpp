@@ -58,7 +58,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 		// The Field Sync (FS) signal goes High to Low at the end of the active display area
 		mFS = 0;
-		updateOutput(PORT_FS, mFS);  // set PIA port C, b7 to '0'
+		updateOutput(VDU_PORT_FS, mFS);  // set PIA port C, b7 to '0'
 
 		unlockDisplay();
 
@@ -253,7 +253,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	if (mScanLine == 261) {
 		// The Field Sync (FS) signal goes High at the end of the vertical synchronisation pulse
 		mFS = 1;
-		updateOutput(PORT_FS, mFS);
+		updateOutput(VDU_PORT_FS, mFS); // set PIA port C, b7 to '0'
 	}
 
 	endCycle = mCycleCount;
@@ -287,16 +287,12 @@ bool VDU6847::setVideoRam(RAM* ram)
 VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager) :
 	Device(name, VDU6847_DEV, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
 {
-	// Specify the inputs to allow other devices to connect
+	// Specify ports that can be connectde to other devices
+	addPort("A/G", VDU_PORT_AG, &mAG);
+	addPort("GM", VDU_PORT_GM, &mGM);
+	addPort("CSS", VDU_PORT_CSS, &mCSS);
+	addPort("FS", VDU_PORT_FS, &mFS);
 
-	DevicePort AG_port = { "A/G", PORT_AG, -1, &mAG };
-	DevicePort GM_port = { "GM", PORT_GM, -1, &mGM };
-	DevicePort CSS_port = { "CSS", PORT_CSS, -1, &mCSS };
-	DevicePort FS_port = { "FS", PORT_FS, -1, &mFS };
-	mPorts[PORT_AG] = AG_port;
-	mPorts[PORT_GM] = GM_port;
-	mPorts[PORT_CSS] = CSS_port;
-	mPorts[PORT_FS] = FS_port;
 
 	// Set the size of the VDU register vector
 	mMem.resize((size_t) mDevSz);

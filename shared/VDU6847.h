@@ -97,20 +97,13 @@ public:
 	};
 
 
-	// M6847 inputs A/G, GM0:2 & CSS used to select operation
-#define PORT_AG 0
-#define PORT_GM 1
-#define PORT_CSS 2
-
-	uint8_t mAG = 0x0;
-	uint8_t mGM = 0x0;
-	uint8_t mCSS = 0x0;
 	
-
-	// M6847 outputs
-#define PORT_FS 3
-	uint8_t mFS = 1; // The Field Sync (FS) signal goes High to Low at the end of the active display area
-						// It goes High again at the end of the vertical synchronisation pulse
+	// Ports that can be connected to other devices
+	enum VduPorts { VDU_PORT_AG = 0, VDU_PORT_GM = 1, VDU_PORT_CSS = 2, VDU_PORT_FS };
+	uint8_t mAG = 0x0; // input - selects alphanumeric/semigraphics (A) or graphics (G)
+	uint8_t mGM = 0x0; // input - selects graphic mode (0-7)
+	uint8_t mCSS = 0x0; // input - selects colour palette
+	uint8_t mFS = 1; // The Field Sync (FS) signal goes Low at the end of the active display area and High at the end of the vertical synchronisation pulse
 
 	RAM* mVideoMem = NULL;
 	uint16_t mVideoMemAdr = 0x0;

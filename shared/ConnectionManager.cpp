@@ -1,43 +1,89 @@
-#include "ConnectionManager.h"
+#include "Device.h"
 #include "Tokeniser.h"
+#include <iostream>
+
+using namespace std;
 
 ConnectionManager::ConnectionManager(Devices* devices) : mDevices(devices)
 {
 
 }
 
-bool ConnectionManager::receiveUpdate(int index, uint8_t val)
+// Used by a device to tell the availability of a port for routing
+bool ConnectionManager::addDevicePort(Device* dev, LocalPort localPort)
 {
-	if (mRouting.find(index) == mRouting.end())
-		return false;
+
+	cout << "ADD DEVICE '" << dev->name << "' PORT '" << localPort.name << "' with local INDEX " << dec << localPort.localIndex << "\n";
+	int unique_index = mIndex++;
+	return true;
+	UniquePort unique_port;
+	unique_port.dev = dev;
+	unique_port.localPort.localIndex = localPort.localIndex;
+	unique_port.localPort.name = localPort.name;
+	unique_port.globalIndex = unique_index;
 	
-	Routing routing = mRouting[index];
+	mPorts[dev][unique_index] = unique_port;
 
-	vector<Connection>::iterator connections = routing.connections;
+	return true;
+}
+
+bool ConnectionManager::receiveUpdate(Device *dev, int index, uint8_t val)
+{
+	// Check for errors
+	if (dev == NULL) {
+		cout << "INTERNAL ERROR detected in receiveUpdate: NULL pointer provided for device!\n";
+		return false;
+	}
+	
+	if (mPorts.find(dev) == mPorts.end()) {
+		cout << "Port #" << dec << index << " for device " << dev->name << "' doesn't exist!\n";
+		return false;
+	}
+
+	// Get global port index
+	map<int,UniquePort> &unique_ports = mPorts[dev];
+	UniquePort &unique_port = unique_ports[index];
+
+	// Check that routing exists for the port (not an error if it doesn't exist!)
+	if (mRouting.find(unique_port.globalIndex) == mRouting.end())
+		return true;
+	
+	// Get routing for the port
+	Routing &routing = mRouting[unique_port.globalIndex];
+
+	// Get all the specified connections
+	vector<Connection> &connections = routing.connections;
 		
-	// Iterate over all connections
-	for (vector<Connection>::iterator it = connector.begin(); ; it != connections.end(); it++) {
+	// Iterate over the connections
+	for (int i = 0; i < connections.size(); i++) {
 
-		it->dstPort.dev->updateInput(it, val);
+		Connection &connection = connections[i];
+		PortSelection& dst_port = connection.dstPort;
 
-		cout << "UPDATE: " << connector.srcName << " => " << connector.dstName << " = 0x" << hex << src_val << dec << "\n";
+		// Extract bits of src port to use
+		uint8_t v = val;
+		v &= connection.srcBits.mask;
+		v = v >> connection.srcBits.lowBit;
+
+		dst_port.port.dev->updateInput(dst_port, v);
+
 	}
 
 	return true;
 
 }
 
-bool ConnectionManager::getRoutingIndex(Port port, Routing &routing)
+bool ConnectionManager::getRoutingIndex(PortSelection portSelection, Routing *routing)
 {
-	inex = -1;
-	map<int, vector<Routing>>::iterator it;
-	for (it = mRouting.begin(); it != mRouting.size();) {
-		routing = it->second;
-		if (routing.srcDev->name == port.dev->name && routing.srcPortName == port.name) {
-			return true;
-		}
-	}
-	return false;
+	routing = NULL;
+	int index = portSelection.port.globalIndex;
+
+	if (mRouting.find(index) == mRouting.end())
+		return false;
+
+	routing = &mRouting[index];
+	return true;
+
 }
 
 
@@ -50,14 +96,14 @@ bool ConnectionManager::getRoutingIndex(Port port, Routing &routing)
 //
 // Routing examples:
 // 
-// CONNECT	VDU:FS			PIA:PortC;7			- Connect VDU FS output to PIA Port C b7			
-// CONNECT	PIA:PortA;7		VDU:A/G				- Connect PIA Port A b7:4 to VDU A/G input and GM0:2 inputs
+// CONNECT	VDU:FS			PIA:PortC;7			- Connect VDU FS output to PIA PortSelection C b7			
+// CONNECT	PIA:PortA;7		VDU:A/G				- Connect PIA PortSelection A b7:4 to VDU A/G input and GM0:2 inputs
 // CONNECT	PIA:PortA;6;4	VDU:GM
 // CONNECT	PIA:_;7			VDU:INV				- Connect data bus b7:6 to VDU inputs INV,A/S & INT/EXT
 // CONNECT	PIA:_;6			VDU:A/S
 // CONNECT	PIA:_;6			VUD:INT/EXT
 //
-bool ConnectionManager::extractPort(string name, Port &port)
+bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 {
 	try {
 
@@ -66,8 +112,8 @@ bool ConnectionManager::extractPort(string name, Port &port)
 		string dev_name;
 		if (!dev_tok.nextToken(dev_name))
 			return false;
-		Device* dev =  mDevices->getDevice(dev_name);
-		if (dev == NULL)
+		Device* dev;
+		if (!mDevices->getDevice(dev_name, dev))
 				return false;
 
 		// Get port reference
@@ -78,43 +124,55 @@ bool ConnectionManager::extractPort(string name, Port &port)
 		// Get port name
 		Tokeniser port_tok(port_ref, ';');
 		string port_name;
-		if (1port_tok.nextToken(port_name))
+		if (port_tok.nextToken(port_name))
 			return false;
-		int index = -1;
+		int local_port_index = -1;
 		if (port_name != "_") {
-			if (!dev->getPortIndex(port_name, &index))
+			if (!dev->getPortIndex(port_name, local_port_index))
 				return false;
 		}
 
 		// Get bit range (if present)
-		Tokeniser bits_tok(port, ';';
 		string hb_s, lb_s;
 		int lb = 0;
 		int hb = 7;
-		if (port_tok.nextToken(hb)) {
+		if (port_tok.nextToken(hb_s)) {
 			hb = stoi(hb_s);
 			lb = hb;
 		}
-		if (dev_tok.nextToken(lb))
+		if (dev_tok.nextToken(lb_s))
 			lb = stoi(lb_s);
 		if (hb < 0 || hb > 7 || lb < 0 || hb > 7)
 			return false;
 
 		// Create I/O port
-		port.dev = dev;
-		port.lowBit = lb;
-		port.mask = 0;
-		for (int i = lb; i < hb; i++) {
-			port.mask |= (1 << i);
-		}
-		port.name = port_name;
-		port.index = index;
+
+		// Update device-specific part
+		port_selection.port.dev = dev;
+		port_selection.port.localPort.name = port_name;
+		port_selection.port.localPort.localIndex = local_port_index;
+
+		// Update the bit selection part
+		port_selection.bits.lowBit = lb;
+		port_selection.bits.mask = 0;
+		for (int i = lb; i < hb; i++)
+			port_selection.bits.mask |= (1 << i);
+
+		// Get global index
+		if (mPorts.find(dev) == mPorts.end()) 
+			return false;
+		map<int,UniquePort>& unique_ports = mPorts[dev];
+		if (unique_ports.find(local_port_index) == unique_ports.end())
+			return false;
+		UniquePort unique_port = unique_ports[local_port_index];
+
+		port_selection.port.globalIndex = unique_port.globalIndex;
 		
 		return true;
-		
-		
+	
 	}
-	catch {
+	
+	catch (...) {
 		return false;
 	}
 }
@@ -122,35 +180,31 @@ bool ConnectionManager::extractPort(string name, Port &port)
 //
 bool ConnectionManager::connect(string srcName, string dstName, int &index)
 {
-	Port src_port;
+	PortSelection src_port;
 	if (!extractPort(srcName, src_port)) {
 		cout << "Invalid format for source routing '" << srcName << "'\n";
 		return false;
 	}
 
-	Port dst_port;
+	PortSelection dst_port;
 	if (!extractPort(dstName, dst_port)) {
 		cout << "Invalid format for destination routing '" << dstName << "'\n";
 		return false;
 	}
 
 	Connection connection;
-	connection.srcPort = src_port;
+	connection.srcBits = src_port.bits;
 	connection.dstPort = dst_port;
 
-	// Lookup existing routing (if existing). If not existing, create a new one
-	Routing routing;
-	if (!getRoutingIndex(src_port, routing)) {		
-		routing.index = mIndex++;
-		routing.srcDev = src_dev;
-		routing.srcPortIndex = src_port.localPort.index;
-		routing.srcName = scrName;
+	// Lookup routing (if existing). If not existing, create a new one
+	Routing *routing_p = NULL;
+	if (!getRoutingIndex(src_port, routing_p)) {
+		Routing routing;
+		routing.srcPort = src_port.port;
+		mRouting[src_port.port.globalIndex] = routing;
+		routing_p = &routing;
 	}
-
-	routing.connections.push_back(connection);
-	routing.srcDev.assingGlobalPortIndex(src_port.localPort.index, routing.index);
-
-	cout << "CONNECTING " << connector.srcName << " WITH " << connector.dstName << "\n";
+	routing_p->connections.push_back(connection);
 
 	return true;
 }

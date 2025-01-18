@@ -9,6 +9,7 @@
 #include <fstream>
 #include <sstream>
 #include <allegro5/allegro.h>
+#include <string>
 
 using namespace std;
 
@@ -31,26 +32,34 @@ bool Device::validAdr(uint16_t adr)
 	return selected(adr);
 }
 
+// Used by a device to make a port available for routing
+bool Device::addPort(string name, int index, uint8_t *portVal)
+{
+	
+	cout << "ADD local PORT '" << name << "' with local INDEX " << dec << index << "\n";
+	LocalPort local_port = { name, index };
+	mConnectionManager->addDevicePort(this, local_port);
+	DevicePort device_port = { local_port , portVal };
+	mPorts[index] = device_port;
+
+	return true;
+}
+
 // Update of an input by another device via the connection manager
 // Called by the connection manager
-bool Device::updateInput(Connection &connection, uint8_t val)
+bool Device::updateInput(PortSelection &port_selection, uint8_t val)
 {
-	if (mPorts.find(connection.dstPort.localPort.index) == mPorts.end())
+	if (mPorts.find(port_selection.port.localPort.localIndex) == mPorts.end())
 		return false;
 
-	DevicePort port = mPorts[connection.dstPort.localPort.index];
+	DevicePort port = mPorts[port_selection.port.localPort.localIndex];
 
 	if (port.val == NULL)
 		return false;
 
-	// Extract bits of src port to use
-	uint8_t v = val;
-	v &= connection.srcPort.mask;
-	v = v >> connection.srcPort.lowBit;
-
 	// Update the selected dst port bits only
-	*(port.val) &= ~connection.dstPort.mask;
-	*(port.val) |= ((v << connection.dstPort.lowBit) & connection.dstPort.mask);
+	*(port.val) &= ~port_selection.bits.mask;
+	*(port.val) |= ((val << port_selection.bits.lowBit) & port_selection.bits.mask);
 
 	return true;
 }
@@ -59,18 +68,7 @@ bool Device::updateInput(Connection &connection, uint8_t val)
 // Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 bool Device::updateOutput(int index, uint8_t val)
 {
-	if (mPorts.find(index) == mPorts.end())
-		return false;
-
-	DevicePort port = mPorts[index];
-
-	if (port.val == NULL)
-		return false;
-
-	*(port.val) = val;
-
-	mConnectionManager->receiveUpdate(port.globalIndex, val);
-
+	mConnectionManager->receiveUpdate(this, index, val);
 	return true;
 }
 
@@ -78,24 +76,14 @@ bool Device::getPortIndex(string name, int& index) {
 	index = -1;
 	map<int, DevicePort>::iterator it;
 	for (it = mPorts.begin(); it != mPorts.end(); it++) {
-		if (it->second.name == name) {
-			index = it->second.index;
+		if (it->second.port.name == name) {
+			index = it->second.port.localIndex;
 			return true;
 		}
 	}
 	return false;
 }
 
-bool Device::assingGlobalPortIndex(int localIndex, int globalIndex)
-{
-	if (mPorts.find(localIndex) != mPorts.end()) {
-		DevicePort port = mPorts[localIndex];
-		port.globalIndex = globalIndex;
-		return true;
-	}
-	else
-		return false;
-}
 
 //
 // Devices class

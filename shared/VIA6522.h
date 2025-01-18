@@ -2,7 +2,11 @@
 #define VIA6522_H
 
 #include <cstdint>
+#include <string>
 #include "Device.h"
+
+using namespace std;
+
 
 class VIA6522 : public Device {
 

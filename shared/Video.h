@@ -2,6 +2,7 @@
 #define VIDEO_H
 
 #include <sstream>
+#include <string>
 
 using namespace std;
 
@@ -43,7 +44,7 @@ public:
 		hzPixelduration = lineDuration / pixelsPerLine;
 	}
 
-	string toString()
+	std::string toString()
 	{
 		stringstream sout;
 

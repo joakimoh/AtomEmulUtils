@@ -1,9 +1,10 @@
-"#ifndef TOKENISER_H
+#ifndef TOKENISER_H
 #define TOKENISER_H
 
 #include <string>
+#include <sstream>
 
-using namesapce std;
+using namespace std;
 
 class Tokeniser {
 
@@ -14,18 +15,9 @@ private:
 
 public:
 
-	Tokeniser(string s, char del) : mSS(s), mDel(del)
-	{
-	}
+	Tokeniser(string s, char del);
 
-	bool nextToken(string& token)
-	{
-		if (!mSS.eof())
-			return false;
-		
-		getline(mSS, token, mDel);
-		return true;
-	}
+	bool nextToken(string& token);
 };
 
 

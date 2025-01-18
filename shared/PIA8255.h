@@ -3,11 +3,12 @@
 
 #include <cstdint>
 #include <vector>
+#include <string>
+#include <allegro5/allegro.h>
 #include "Device.h"
 #include "AtomKeyboard.h"
-#include <allegro5/allegro.h>
 #include "VDU6847.h"
-#include <cstdint>
+
 
 using namespace std;
 
@@ -22,6 +23,11 @@ private:
 
 	// PIA registers
 	uint8_t mPortA, mPortB, mPortC, mCR;
+
+	// Ports that can be connected to other devices
+	enum PiaPorts {PIA_PORT_A = 0, PIA_PORT_B = 1, PIA_PORT_C = 2};
+
+
 
 public:
 

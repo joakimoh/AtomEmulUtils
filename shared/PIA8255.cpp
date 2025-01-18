@@ -7,7 +7,7 @@
 #include <allegro5/allegro_font.h>
 #include "AtomKeyboard.h"
 #include "VDU6847.h"
-#include "Connectionmanager.h"
+#include "Device.h"
 
 using namespace std;
 
@@ -36,20 +36,20 @@ bool PIA8255::advance(uint64_t stopCycle)
 }
 
 /*
-	Port A - #B000
+	PortSelection A - #B000
 
 		Output bits
 		0 - 3 Keyboard row
 		4 - 7 Graphics mode
 
-	Port B - #B001
+	PortSelection B - #B001
 
 		Input bits
 		0 - 5 Keyboard column
 		6 CTRL key (low when pressed)
 		7 SHIFT keys (low when pressed)
 
-	Port C - #B002
+	PortSelection C - #B002
 
 		Output bits
 		0 Tape output
@@ -67,17 +67,17 @@ bool PIA8255::advance(uint64_t stopCycle)
 
 		Bit set reset (BSR) mode 
 			0 Set value for port C output line (1 SET 0 CLEAR)
-			1-3 Port C bit no
+			1-3 PortSelection C bit no
 			4-6 Not used
 			7 Set to '0' for BSR mode
 
 		Input-Output mode
 			0 I/O function of port C lower
 			1 I/O function of port B
-			2 Port B Mode (0: M1, 1: M2)
+			2 PortSelection B Mode (0: M1, 1: M2)
 			3 I/O function of port C upper
-			4 I/O function of Port A
-			6-5 Port A Mode (00: M0, 01: M1, 1x: M2)
+			4 I/O function of PortSelection A
+			6-5 PortSelection A Mode (00: M0, 01: M1, 1x: M2)
 			7 Set to '1' for Input-Output mode
 
 			M0: Simple I/O without interrupts
@@ -87,8 +87,8 @@ bool PIA8255::advance(uint64_t stopCycle)
 				handshake signals before actual data transmission.
 				It has interrupt handling capacity and input and output
 				are latched.
-			M2:	Port A is bi-directional Port Bcan be in M0 or M1.
-				Port C (6 bits) are used for handshaking. Interrupts
+			M2:	PortSelection A is bi-directional PortSelection Bcan be in M0 or M1.
+				PortSelection C (6 bits) are used for handshaking. Interrupts
 				can be generated.
 
 
@@ -105,16 +105,10 @@ bool PIA8255::advance(uint64_t stopCycle)
 PIA8255::PIA8255(string name, uint16_t adr, int n60HzCycles, AtomKeyboard* keyboard, DebugInfo debugInfo, ConnectionManager* connectionManager) :
 	Device(name, PIA8255_DEV, adr, 4, debugInfo, connectionManager), mKeyboard(keyboard), mN60HzCycles(n60HzCycles)
 {
-	// Specify the inputs to allow other devices to connect
-#define PORT_A 0
-#define PORT_B 1
-#define PORT_C 2
-	DevicePort A_port = { "PortA", PORT_A, -1, &mPortA };
-	DevicePort B_port = { "PortB", PORT_B, -1, &mPortB };
-	DevicePort C_port = { "PortC", PORT_C, -1, &mPortC };
-	mPorts[PORT_A] = A_port;
-	mPorts[PORT_B] = B_port;
-	mPorts[PORT_C] = C_port;
+	// Specify ports that can be connectde to other devices
+	addPort("PortA", PIA_PORT_A, &mPortA);
+	addPort("PortB", PIA_PORT_B, &mPortB);
+	addPort("PortC", PIA_PORT_C, &mPortC);
 
 	// Set the size of the PIA register vector
 	mMem.resize((size_t)mDevSz);
@@ -178,23 +172,26 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 			mKeyboard->selectRow(data & 0xf);
 		if (mVdu != NULL)
 			mVdu->setGraphicMode((data >> 4) & 0xf);
+		updateOutput(PIA_PORT_A, mPortA);
 	}
 	else if (adr == PIA8255_PORT_B) {
 		mPortB = data;
-		// No bits  should be configured as writable
+		updateOutput(PIA_PORT_B, mPortB);
 	}
 	else if (adr == PIA8255_PORT_C) {
-		if ((mCR & 0x80) && (mCR & 0x08)) { // Port C upper bits are writable
+		if ((mCR & 0x80) && (mCR & 0x08)) { // PortSelection C upper bits are writable
 			mPortC &= 0x0f;
 			mPortC |= (data << 4) & 0xf0;
 		}
-		if ((mCR & 0x80) && (mCR & 0x02)) { // Port C lower bits are writable
+		if ((mCR & 0x80) && (mCR & 0x02)) { // PortSelection C lower bits are writable
 			mPortC &= 0xf0;
 			mPortC |= data& 0x0f;
 		}
 
 		// 0 Tape output, 1 Enable 2.4 kHz to cassette output, 2 Loudspeaker, 3 colour palette selection for (semi)graphics
 		mVdu->setCSS((data >> 3) & 0x1);
+
+		updateOutput(PIA_PORT_C, mPortC);
 	}
 	else if (adr == PIA8255_CONTROL) {
 		mCR = data;
@@ -202,12 +199,12 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		if (mCR & 0x80) {
 			if (mDebugInfo.dbgLevel & DBG_DEVICE) {
 				cout << "I/O Mode: ";
-				cout << " Port A " << (mCR & 0x40 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2"));
+				cout << " PortSelection A " << (mCR & 0x40 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2"));
 				cout << " " << (mCR & 0x10 ? "IN" : "OUT");
-				cout << ", Port B " << (mCR & 0x04 ? "M1" : "M0");
+				cout << ", PortSelection B " << (mCR & 0x04 ? "M1" : "M0");
 				cout << " " << (mCR & 0x02 ? "IN" : "OUT");
-				cout << ", Port C upper " << (mCR & 0x08 ? "IN" : "OUT");
-				cout << ", Port C lower " << (mCR & 0x01 ? "IN" : "OUT");
+				cout << ", PortSelection C upper " << (mCR & 0x08 ? "IN" : "OUT");
+				cout << ", PortSelection C lower " << (mCR & 0x01 ? "IN" : "OUT");
 				cout << "\n";
 			}
 		} 
@@ -216,9 +213,9 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 			uint8_t val = mCR & 0x1;
 			mPortC &= ~(1 << bit);
 			mPortC |= (val << bit);
-			updateOutput(PORT_C, mPortC);
+			updateOutput(PIA_PORT_C, mPortC);
 			if (mDebugInfo.dbgLevel & DBG_DEVICE)
-				cout << "Set PIA Port C b" << bit << " to '" << val << "'\n";
+				cout << "Set PIA PortSelection C b" << bit << " to '" << val << "'\n";
 		}
 	}
 
