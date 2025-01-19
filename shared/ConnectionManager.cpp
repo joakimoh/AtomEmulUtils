@@ -21,11 +21,9 @@ bool ConnectionManager::addDevicePort(Device* dev, LocalPort localPort)
 	
 	mUniquePorts[dev][localPort.localIndex] = unique_port;
 
-	cout << "ADD DEVICE '" << unique_port.dev->name << "' PORT '" << unique_port.localPort.name << "' with local INDEX " << dec << unique_port.localPort.localIndex <<
-		" and global INDEX " << unique_port.globalIndex << "\n";
-	cout << "#devices with connectable ports: " << mUniquePorts.size() << "\n";
 	cout << "ADD " << mUniquePorts[dev][localPort.localIndex].dev->name << ":" << mUniquePorts[dev][localPort.localIndex].localPort.name << " #" << dec <<
-		mUniquePorts[dev][localPort.localIndex].globalIndex << "\n";
+		mUniquePorts[dev][localPort.localIndex].globalIndex << " (" << _PORT_DIR(mUniquePorts[dev][localPort.localIndex].localPort.dir) << ", #" << dec <<
+		mUniquePorts[dev][localPort.localIndex].localPort.localIndex << ")\n";
 
 	return true;
 }
@@ -94,6 +92,8 @@ bool ConnectionManager::getRoutingIndex(PortSelection portSelection, Routing *ro
 		return false;
 
 	routing = &mRouting[index];
+	cout << "ROUTING " << mRouting[index].srcPort.dev->name << ":" << mRouting[index].srcPort.localPort.name <<
+		" FOUND WITH #" << mRouting[index].connections.size() << " CONNECTIONS!\n";
 	return true;
 
 }
@@ -119,13 +119,11 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 {
 	try {
 
-		cout << "PORT SELECTION WAS '" << name << "'\n";
 		// Get device ("_" <=> data bus input of the device itself)
 		Tokeniser dev_tok(name, ':');
 		string dev_name;
 		if (!dev_tok.nextToken(dev_name))
 			return false;
-		cout << "DEVICE NAME WAS '" << dev_name << "'\n";
 		Device* dev;
 		if (!mDevices->getDevice(dev_name, dev))
 				return false;
@@ -134,7 +132,6 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 		string port_ref;
 		if (!dev_tok.nextToken(port_ref))
 			return false;
-		cout << "PORT REFERENCE NAME WAS '" << port_ref << "'\n";
 	
 		// Get port name
 		Tokeniser port_tok(port_ref, ';');
@@ -142,11 +139,8 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 		if (!port_tok.nextToken(port_name))
 			return false;
 		int local_port_index = -1;
-		if (port_name != "_") {
-			if (!dev->getPortIndex(port_name, local_port_index))
+		if (!dev->getPortIndex(port_name, local_port_index))
 				return false;
-		}
-		cout << "PORT NAME WAS '" << port_name << "'\n";
 
 		// Get bit range (if present)
 		string hb_s, lb_s;
@@ -160,7 +154,6 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 			lb = stoi(lb_s);
 		if (hb < 0 || hb > 7 || lb < 0 || hb > 7)
 			return false;
-		cout << "PORT BIT SELECTION WAS b" << dec << hb << ":" << lb << "\n";
 
 		// Create I/O port
 
@@ -172,18 +165,16 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 		// Update the bit selection part
 		port_selection.bits.lowBit = lb;
 		port_selection.bits.mask = 0;
-		for (int i = lb; i < hb; i++)
+		for (int i = lb; i <= hb; i++)
 			port_selection.bits.mask |= (1 << i);
 
 		// Get global index
 		if (mUniquePorts.find(dev) == mUniquePorts.end()) 
 			return false;
 		map<int,UniquePort>& unique_ports = mUniquePorts[dev];
-		cout << "UNIQUE PORTS SIZE WAS " << unique_ports.size() << "\n";
 		if (unique_ports.find(local_port_index) == unique_ports.end())
 			return false;
 		UniquePort unique_port = unique_ports[local_port_index];
-		cout << "UNIQUE PORT WAS " << unique_port.dev->name << ":" << unique_port.localPort.name << " (" << unique_port.globalIndex << ")\n";
 
 		port_selection.port.globalIndex = unique_port.globalIndex;
 		
@@ -199,17 +190,27 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 //
 bool ConnectionManager::connect(string srcName, string dstName)
 {
+	cout << "\nCONNECT " << srcName << " AND " << dstName << "\n";
+
 	PortSelection src_port;
 	if (!extractPort(srcName, src_port)) {
 		cout << "Invalid format for source routing '" << srcName << "'\n";
 		return false;
 	}
+	cout << "\tSRC: " << src_port.port.dev->name << ":" << src_port.port.localPort.name << 
+		hex << " MASK 0x" << (int) src_port.bits.mask << ", FIRST BIT " << (int) src_port.bits.lowBit <<
+		"\n";
 
 	PortSelection dst_port;
 	if (!extractPort(dstName, dst_port)) {
 		cout << "Invalid format for destination routing '" << dstName << "'\n";
 		return false;
 	}
+	cout << "\tDST: " << dst_port.port.dev->name << ":" << dst_port.port.localPort.name <<
+		hex << " MASK 0x" << (int)dst_port.bits.mask << ", FIRST BIT " << (int)dst_port.bits.lowBit <<
+		"\n";
+
+	
 
 	Connection connection;
 	connection.srcBits = src_port.bits;
@@ -224,6 +225,9 @@ bool ConnectionManager::connect(string srcName, string dstName)
 		routing_p = &routing;
 	}
 	routing_p->connections.push_back(connection);
+
+	cout << "\tPORTS CONNECTED, ROUTING INDEX IS " << dec << src_port.port.globalIndex << " AND #CONNECTIONS IS " << routing_p->connections.size() <<
+		"\n";
 
 	return true;
 }

@@ -57,8 +57,8 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	if (mScanLine == mTopVBlankingH + mVisibleH) {
 
 		// The Field Sync (FS) signal goes High to Low at the end of the active display area
-		mFS = 0;
-		updateOutput(VDU_PORT_FS, mFS);  // set PIA port C, b7 to '0'
+		//mFS = 0;
+		updateOutput(VDU_PORT_FS, 0);  // set PIA port C, b7 to '0'
 
 		unlockDisplay();
 
@@ -118,7 +118,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 				// byte c1 c0 c1 c0 c1 c0 c1 c0 c1 c0 => pixels e3 e2 e1 e0
 				for (int pixel_byte = 0; pixel_byte < bytes_per_line; pixel_byte++) {
 					int mem_adr = mVideoMemAdr + big_pixel_line * bytes_per_line + pixel_byte;
-					if (!mVideoMem->read(mem_adr, mem_data))
+					if (!readGraphicsMem(mem_adr, mem_data))
 						return false;
 					for (int p = 0; p < 4; p++) {
 						uint8_t colour = (mem_data >> 6) & 0x3; 
@@ -148,7 +148,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 				int big_pixel_line = pixel_line / pixel_height;
 				for (int pixel_byte = 0; pixel_byte < bytes_per_line; pixel_byte++) {					
 					int mem_adr = mVideoMemAdr + big_pixel_line * bytes_per_line + pixel_byte;
-					if (!mVideoMem->read(mem_adr, mem_data))
+					if (!readGraphicsMem(mem_adr, mem_data))
 						return false;
 					for (int p = 0; p < 8; p++) {
 						for (int pw = 0; pw < pixel_width; pw++) {
@@ -173,14 +173,15 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 				for (int char_col = 0; char_col < 32; char_col++) {
 					int mem_row = pixel_line / 12;
 					int mem_adr = mVideoMemAdr + mem_row * 32 + char_col;
-					if (!mVideoMem->read(mem_adr, mem_data))
+					if (!readGraphicsMem(mem_adr, mem_data))
 						return false;
 
-					uint8_t AS_INT_EXT = (mem_data >> 6) & 0x1;
-					uint8_t INV = (mem_data >> 7) & 0x1;
+					//mIntExt = (mem_data >> 6) & 0x1;
+					//mIntAS = (mem_data >> 6) & 0x1;
+					//mInv = (mem_data >> 7) & 0x1;
 
-					if (!mAG && AS_INT_EXT)
-						// Semigraphic mode 6 with 2 x 3 graphic symbols
+					if (mAS)
+						// Semigraphic mode 6 with 2 x 3 graphic symbols (A/S HIGH)
 					{
 						// Pixel value '0' => Black
 						// CSS '0' => 00 = Green, 01 = yellow, 10 = Blue, 11 = Red
@@ -200,13 +201,23 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 							bitmap_data_p += 4;
 						}
 					}
-					else {
+					else
+						// Alpanumeric mode (A/S LOW)
+					{
 						uint8_t symbol = (mem_data & 0x3f);
-						CharDef symbol_def = mCharRom[symbol];
+						CharDef symbol_def;
+						if (!mIntExt) // INT/EXT LOW => internal char ROM
+							symbol_def = mCharRom[symbol];
+						else
+							// INT/EXT HIGH => external char ROM
+							// Not yet supported!!!
+						{
+							symbol_def = mCharRom[symbol];
+						}
 						uint8_t symbol_mask;
 						int y = pixel_line % 12;
 						symbol_mask = symbol_def.rows[y];
-						if (INV) {
+						if (mInv) {
 							symbol_mask = ~symbol_mask; // inverted character
 						}
 
@@ -252,8 +263,8 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 	if (mScanLine == 261) {
 		// The Field Sync (FS) signal goes High at the end of the vertical synchronisation pulse
-		mFS = 1;
-		updateOutput(VDU_PORT_FS, mFS); // set PIA port C, b7 to '0'
+		//mFS = 1;
+		updateOutput(VDU_PORT_FS, 1); // set PIA port C, b7 to '0'
 	}
 
 	endCycle = mCycleCount;
@@ -288,10 +299,14 @@ VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* dis
 	Device(name, VDU6847_DEV, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
 {
 	// Specify ports that can be connectde to other devices
-	addPort("A/G", VDU_PORT_AG, &mAG);
-	addPort("GM", VDU_PORT_GM, &mGM);
-	addPort("CSS", VDU_PORT_CSS, &mCSS);
-	addPort("FS", VDU_PORT_FS, &mFS);
+	addPort("A/S",		VDU_PORT_AS,		IN_PORT,	&mAS);
+	addPort("A/G",		VDU_PORT_AG,		IN_PORT,	&mAG);
+	addPort("GM",		VDU_PORT_GM,		IN_PORT,	&mGM);
+	addPort("CSS",		VDU_PORT_CSS,		IN_PORT,	&mCSS);	
+	addPort("INT/EXT",	VDU_PORT_INT_EXT,	IN_PORT,	&mIntExt);
+	addPort("INV", VDU_PORT_INV, IN_PORT, &mInv);
+	addPort("FS",		VDU_PORT_FS,		OUT_PORT,	&mFS);
+	addPort("Din",		VDU_PORT_DIN,		OUT_PORT,	&mDin);
 
 
 	// Set the size of the VDU register vector
@@ -413,4 +428,9 @@ bool VDU6847::setGraphicMode(uint8_t mode)
 	mAG = mode & 0x1; // Alphanumerics/SemiGraphics (0) or Graphic (G) selection as decided by the A/G input connected to the PIA output PA4
 	mGM = (mode >> 1) & 0x7;		// Graphic mode selecion as decided by the GM0-2 inputs connected to the PIA outputs PA5-7
 	return true;
+}
+
+bool VDU6847::readGraphicsMem(uint16_t adr, uint8_t& data)
+{
+	return mVideoMem->read(adr, data) && updateOutput(VDU_PORT_DIN, data);
 }

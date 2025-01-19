@@ -99,11 +99,19 @@ public:
 
 	
 	// Ports that can be connected to other devices
-	enum VduPorts { VDU_PORT_AG = 0, VDU_PORT_GM = 1, VDU_PORT_CSS = 2, VDU_PORT_FS };
-	uint8_t mAG = 0x0; // input - selects alphanumeric/semigraphics (A) or graphics (G)
-	uint8_t mGM = 0x0; // input - selects graphic mode (0-7)
-	uint8_t mCSS = 0x0; // input - selects colour palette
-	uint8_t mFS = 1; // The Field Sync (FS) signal goes Low at the end of the active display area and High at the end of the vertical synchronisation pulse
+	enum VduPorts { 
+		VDU_PORT_AS =	0,	VDU_PORT_AG =		1,	VDU_PORT_GM =	2,
+		VDU_PORT_CSS =	3,	VDU_PORT_INT_EXT =	4,	VDU_PORT_INV =	5,
+		VDU_PORT_FS =	6,	VDU_PORT_DIN = 7
+	};
+	uint8_t mAS = 0x0;		// input  - selects alphanumeric (LOW) or semigraphics (HIGH)
+	uint8_t mAG = 0x0;		// input  - selects alphanumeric/semigraphics (LOW) or graphics (HIGH)
+	uint8_t mGM = 0x0;		// input  - selects graphic mode (0-7)
+	uint8_t mCSS = 0x0;		// input  - selects colour palette
+	uint8_t mInv = 0x0;		// input  - when HIGH selects inverted character
+	uint8_t mIntExt = 0x0;	// input  - when HIGH selects external char ROM
+	uint8_t mFS = 1;		// output - The Field Sync (FS) signal goes Low at the end of the active display area and High at the end of the vertical synchronisation pulse
+	uint8_t mDin = 0x0;		// output - Data read from the graphics memory are provided as 'output' to be able to connect it directly to the inputs A/G, GM & CSS as required
 
 	RAM* mVideoMem = NULL;
 	uint16_t mVideoMemAdr = 0x0;
@@ -145,6 +153,8 @@ public:
 							0xffff4500 // opaque orange ARGB 8888
 						}
 	};
+
+	bool readGraphicsMem(uint16_t adr, uint8_t& data);
 
 public:
 

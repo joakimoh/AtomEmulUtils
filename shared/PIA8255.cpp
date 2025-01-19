@@ -106,9 +106,9 @@ PIA8255::PIA8255(string name, uint16_t adr, int n60HzCycles, AtomKeyboard* keybo
 	Device(name, PIA8255_DEV, adr, 4, debugInfo, connectionManager), mKeyboard(keyboard), mN60HzCycles(n60HzCycles)
 {
 	// Specify ports that can be connectde to other devices
-	addPort("PortA", PIA_PORT_A, &mPortA);
-	addPort("PortB", PIA_PORT_B, &mPortB);
-	addPort("PortC", PIA_PORT_C, &mPortC);
+	addPort("PortA", PIA_PORT_A, IO_PORT, &mPortA);
+	addPort("PortB", PIA_PORT_B, IO_PORT, &mPortB);
+	addPort("PortC", PIA_PORT_C, IO_PORT, &mPortC);
 
 	// Set the size of the PIA register vector
 	mMem.resize((size_t)mDevSz);

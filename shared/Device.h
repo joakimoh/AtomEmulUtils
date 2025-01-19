@@ -26,7 +26,7 @@ typedef struct DeviceAllocation_struct {
 	DeviceEnum deviceType;
 	uint16_t startAdr;
 	uint16_t size;
-	std::string ROMFileName;
+	string ROMFileName;
 	uint16_t videoMemAdr; // only for VDU6847
 } DeviceAllocation;
 
@@ -35,9 +35,13 @@ typedef struct Program_struct {
 	int loadAdr = -1;
 } Program;
 
+enum PortDirection {IN_PORT, OUT_PORT, IO_PORT};
+#define _PORT_DIR(x) (x==IN_PORT?"IN":(x==OUT_PORT?"OUT":"IN/OUT"))
+
 typedef struct LocalPort_struct {
-	string name = "";			// name of the I/O port
-	int localIndex = -1;		// local device index for the I/O port ('-1' <=> data bus, >= 0 <=> other port)		
+	string			name = "";			// name of the I/O port
+	int				localIndex = -1;	// local device index for the I/O port
+	PortDirection	dir = IO_PORT;		// I/O direction
 } LocalPort; 
 
 typedef struct DevicePort_struct {
@@ -121,7 +125,7 @@ public:
 	bool getPortIndex(string name, int &index);
 
 	// Used by a device to make a port available for routing
-	bool addPort(string name, int index, uint8_t* portVal);
+	bool addPort(string name, int index, PortDirection dir, uint8_t* portVal);
 
 };
 
