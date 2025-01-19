@@ -177,7 +177,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 						return false;
 
 					//mIntExt = (mem_data >> 6) & 0x1;
-					//mIntAS = (mem_data >> 6) & 0x1;
+					//mAS = (mem_data >> 6) & 0x1;
 					//mInv = (mem_data >> 7) & 0x1;
 
 					if (mAS)
@@ -295,74 +295,6 @@ bool VDU6847::setVideoRam(RAM* ram)
 	return true;
 }
 
-VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager) :
-	Device(name, VDU6847_DEV, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
-{
-	// Specify ports that can be connectde to other devices
-	addPort("A/S",		VDU_PORT_AS,		IN_PORT,	&mAS);
-	addPort("A/G",		VDU_PORT_AG,		IN_PORT,	&mAG);
-	addPort("GM",		VDU_PORT_GM,		IN_PORT,	&mGM);
-	addPort("CSS",		VDU_PORT_CSS,		IN_PORT,	&mCSS);	
-	addPort("INT/EXT",	VDU_PORT_INT_EXT,	IN_PORT,	&mIntExt);
-	addPort("INV", VDU_PORT_INV, IN_PORT, &mInv);
-	addPort("FS",		VDU_PORT_FS,		OUT_PORT,	&mFS);
-	addPort("Din",		VDU_PORT_DIN,		OUT_PORT,	&mDin);
-
-
-	// Set the size of the VDU register vector
-	mMem.resize((size_t) mDevSz);
-
-	// Initialise the VDU registers with zeros
-	mMem.assign(mDevSz, 0);
-
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
-		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
-
-	// Create 256 x 192 display bitmap and clear it
-	mDisplayBitmap = al_create_bitmap(mVisibleW, mVisibleH);
-
-	green = al_map_rgb(0, 0xff, 0);
-	black = al_map_rgb(0, 0, 0);
-
-	lockDisplay();
-
-
-}
-
-VDU6847::~VDU6847()
-{
-	al_destroy_bitmap(mDisplayBitmap);
-}
-
-bool VDU6847::read(uint16_t adr, uint8_t& data)
-{
-
-	if (!validAdr(adr))
-		return false;
-
-	data = mMem[adr - mDevAdr];
-
-	return true;
-
-}
-bool VDU6847::write(uint16_t adr, uint8_t data)
-{
-
-	if (!validAdr(adr))
-		return false;
-
-	mMem[adr - mDevAdr] = data;
-
-	return true;
-}
-
-bool VDU6847::setCSS(uint8_t css)
-{
-	mCSS = css;
-	return true;
-}
-
 //
 // 
 // Can be in either Alphanumeric/Semigraphics (major mode 1, A/G=0) or Graphics mode (major mode 2, A/G=1)
@@ -423,10 +355,66 @@ bool VDU6847::setCSS(uint8_t css)
 // 1	1	1	0	6		128 x 192	4			6kB					colour graphics six (CG6)			Yes - Graphics mode 4a
 // 1	1	1	1	7		256 x 192	2			6kB					resolution graphics six (RG6)		Yes - Graphics mode 4
 //
-bool VDU6847::setGraphicMode(uint8_t mode)
+
+VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+	Device(name, VDU6847_DEV, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
 {
-	mAG = mode & 0x1; // Alphanumerics/SemiGraphics (0) or Graphic (G) selection as decided by the A/G input connected to the PIA output PA4
-	mGM = (mode >> 1) & 0x7;		// Graphic mode selecion as decided by the GM0-2 inputs connected to the PIA outputs PA5-7
+	// Specify ports that can be connectde to other devices
+	addPort("A/S",		VDU_PORT_AS,		IN_PORT,	0x01,	&mAS);
+	addPort("A/G",		VDU_PORT_AG,		IN_PORT,	0x01,	&mAG);
+	addPort("GM",		VDU_PORT_GM,		IN_PORT,	0x03,	&mGM);
+	addPort("CSS",		VDU_PORT_CSS,		IN_PORT,	0x01,	&mCSS);	
+	addPort("INT/EXT",	VDU_PORT_INT_EXT,	IN_PORT,	0x01,	&mIntExt);
+	addPort("INV",		VDU_PORT_INV,		IN_PORT,	0x01,	&mInv);
+	addPort("FS",		VDU_PORT_FS,		OUT_PORT,	0x01,	&mFS);
+	addPort("Din",		VDU_PORT_DIN,		OUT_PORT,	0xff,	&mDin);
+
+
+	// Set the size of the VDU register vector
+	mMem.resize((size_t) mDevSz);
+
+	// Initialise the VDU registers with zeros
+	mMem.assign(mDevSz, 0);
+
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
+		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
+
+	// Create 256 x 192 display bitmap and clear it
+	mDisplayBitmap = al_create_bitmap(mVisibleW, mVisibleH);
+
+	green = al_map_rgb(0, 0xff, 0);
+	black = al_map_rgb(0, 0, 0);
+
+	lockDisplay();
+
+
+}
+
+VDU6847::~VDU6847()
+{
+	al_destroy_bitmap(mDisplayBitmap);
+}
+
+bool VDU6847::read(uint16_t adr, uint8_t& data)
+{
+
+	if (!validAdr(adr))
+		return false;
+
+	data = mMem[adr - mDevAdr];
+
+	return true;
+
+}
+bool VDU6847::write(uint16_t adr, uint8_t data)
+{
+
+	if (!validAdr(adr))
+		return false;
+
+	mMem[adr - mDevAdr] = data;
+
 	return true;
 }
 

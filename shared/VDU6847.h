@@ -166,8 +166,6 @@ public:
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);
 
-	bool setGraphicMode(uint8_t mode);
-	bool setCSS(uint8_t css);
 	bool setVideoRam(RAM* ram);
 
 	// Reset device

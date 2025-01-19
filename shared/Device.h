@@ -42,6 +42,7 @@ typedef struct LocalPort_struct {
 	string			name = "";			// name of the I/O port
 	int				localIndex = -1;	// local device index for the I/O port
 	PortDirection	dir = IO_PORT;		// I/O direction
+	uint8_t			mask = 0x1;			// mask to select only the implemented bits
 } LocalPort; 
 
 typedef struct DevicePort_struct {
@@ -125,7 +126,7 @@ public:
 	bool getPortIndex(string name, int &index);
 
 	// Used by a device to make a port available for routing
-	bool addPort(string name, int index, PortDirection dir, uint8_t* portVal);
+	bool addPort(string name, int index, PortDirection dir, uint8_t mask, uint8_t* portVal);
 
 };
 

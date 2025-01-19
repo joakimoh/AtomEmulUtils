@@ -33,10 +33,10 @@ bool Device::validAdr(uint16_t adr)
 }
 
 // Used by a device to make a port available for routing
-bool Device::addPort(string name, int index, PortDirection dir, uint8_t *portVal)
+bool Device::addPort(string name, int index, PortDirection dir, uint8_t bitMask, uint8_t *portVal)
 {
 	
-	LocalPort local_port = { name, index, dir };
+	LocalPort local_port = { name, index, dir, bitMask };
 	mConnectionManager->addDevicePort(this, local_port);
 	DevicePort device_port = { local_port , portVal };
 	mPorts[index] = device_port;
@@ -48,6 +48,7 @@ bool Device::addPort(string name, int index, PortDirection dir, uint8_t *portVal
 // Called by the connection manager
 bool Device::updateInput(PortSelection &port_selection, uint8_t val)
 {
+	
 	if (mPorts.find(port_selection.port.localPort.localIndex) == mPorts.end())
 		return false;
 
@@ -61,7 +62,10 @@ bool Device::updateInput(PortSelection &port_selection, uint8_t val)
 
 	// Update the selected dst port bits only
 	*(device_port.val) &= ~port_selection.bits.mask;
-	*(device_port.val) |= ((val << port_selection.bits.lowBit) & port_selection.bits.mask);
+	*(device_port.val) |= (((val & device_port.port.mask) << port_selection.bits.lowBit) & port_selection.bits.mask);
+
+	if (mDebugInfo.dbgLevel & DBG_DEVICE)
+		cout << "UPDATE INPUT " << port_selection.port.localPort.name << " WITH VALUE " << dec << (int)val << " & 0x" << hex << (int) port_selection.bits.mask << "\n";
 
 	return true;
 }
@@ -201,7 +205,7 @@ Devices::Devices(
 	
 	if (pia != NULL && vdu != NULL) {
 			
-			pia->setVdu(vdu);
+			//pia->setVdu(vdu);
 			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 				cout << "PIA8255 got pointer to VDU6847\n";
 			

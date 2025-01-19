@@ -105,10 +105,10 @@ bool PIA8255::advance(uint64_t stopCycle)
 PIA8255::PIA8255(string name, uint16_t adr, int n60HzCycles, AtomKeyboard* keyboard, DebugInfo debugInfo, ConnectionManager* connectionManager) :
 	Device(name, PIA8255_DEV, adr, 4, debugInfo, connectionManager), mKeyboard(keyboard), mN60HzCycles(n60HzCycles)
 {
-	// Specify ports that can be connectde to other devices
-	addPort("PortA", PIA_PORT_A, IO_PORT, &mPortA);
-	addPort("PortB", PIA_PORT_B, IO_PORT, &mPortB);
-	addPort("PortC", PIA_PORT_C, IO_PORT, &mPortC);
+	// Specify ports that can be connected to other devices
+	addPort("PortA", PIA_PORT_A, IO_PORT, 0xff, &mPortA);
+	addPort("PortB", PIA_PORT_B, IO_PORT, 0xff, &mPortB);
+	addPort("PortC", PIA_PORT_C, IO_PORT, 0xff, &mPortC);
 
 	// Set the size of the PIA register vector
 	mMem.resize((size_t)mDevSz);
@@ -129,10 +129,14 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 		return false;
 
 	if (adr == PIA8255_PORT_A) {
-		// No bits  should be configured as readable?
+
 		data = mPortA;
 	}
+
 	else if (adr == PIA8255_PORT_B) {
+
+		data = mPortB;
+
 		// 0 - 5 Keyboard column (low when a key pressed), 6 CTRL key(low when pressed), 7 SHIFT key (low when pressed)
 		data = mKeyboard->readColumn();
 		if (mKeyboard->ctrlPressed())
@@ -141,20 +145,24 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 			data &= ~0x80;
 
 	}
+
 	else if (adr == PIA8255_PORT_C) {
+
+		data = mPortC;
+
 		data |= 0x40; // set REPEAT key bit (inactive LOW)
-		data &= ~0x80; // clear 60 Hz sync bit
+		//data &= ~0x80; // clear 60 Hz sync bit
 		// 4 2.4 kHz input, 5 Cassette input, 6 REPT key(low when pressed), 7 60 Hz sync signal (low during flyback) - from 6847's Field Sync (FS)
 		if (mKeyboard->repeatPressed())
 			data &= ~0x40;
-		if (mSync60HzEvent == 1)
-			data |= 0x80;
+		//if (mSync60HzEvent == 1)
+			//data |= 0x80;
 
 		if (mDebugInfo.dbgLevel & DBG_DEVICE)
 			cout << "READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
 	}
 	else { // adr == PIA8255_CONTROL
-		data = mMem[adr - mDevAdr];
+		data = mCR;
 	}
 
 	return true;
@@ -166,19 +174,29 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		return false;
 
 	if (adr == PIA8255_PORT_A) {
+
 		mPortA = data;
+
 		// 0 - 3 Keyboard row, 4 - 7 Graphics mode
 		if (mKeyboard != NULL)
 			mKeyboard->selectRow(data & 0xf);
-		if (mVdu != NULL)
-			mVdu->setGraphicMode((data >> 4) & 0xf);
+		//if (mVdu != NULL)
+		//	mVdu->setGraphicMode((data >> 4) & 0xf);
+
 		updateOutput(PIA_PORT_A, mPortA);
 	}
+
 	else if (adr == PIA8255_PORT_B) {
+
 		mPortB = data;
+
 		updateOutput(PIA_PORT_B, mPortB);
 	}
+
 	else if (adr == PIA8255_PORT_C) {
+
+		mPortC = data;
+
 		if ((mCR & 0x80) && (mCR & 0x08)) { // PortSelection C upper bits are writable
 			mPortC &= 0x0f;
 			mPortC |= (data << 4) & 0xf0;
@@ -189,14 +207,18 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		}
 
 		// 0 Tape output, 1 Enable 2.4 kHz to cassette output, 2 Loudspeaker, 3 colour palette selection for (semi)graphics
-		mVdu->setCSS((data >> 3) & 0x1);
+		//mVdu->setCSS((data >> 3) & 0x1);
 
 		updateOutput(PIA_PORT_C, mPortC);
 	}
+
 	else if (adr == PIA8255_CONTROL) {
+
 		mCR = data;
-		// 
-		if (mCR & 0x80) {
+
+		if (mCR & 0x80)
+		// I/O Mode
+		{
 			if (mDebugInfo.dbgLevel & DBG_DEVICE) {
 				cout << "I/O Mode: ";
 				cout << " PortSelection A " << (mCR & 0x40 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2"));
@@ -208,7 +230,9 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 				cout << "\n";
 			}
 		} 
-		else {
+		else
+		// Bit Set Mode in which PortC is directly controlled by the writing to the Control Register
+		{
 			uint8_t bit = (mCR << 1) & 0x7;
 			uint8_t val = mCR & 0x1;
 			mPortC &= ~(1 << bit);
@@ -231,9 +255,4 @@ void PIA8255::updateInput(uint8_t port, uint8_t bit, uint8_t val)
 		mMem[port] &= ~(1 << bit);
 		mMem[port] |= (val << bit);
 	}
-}
-
-void PIA8255::setVdu(VDU6847* vdu)
-{
-	mVdu = vdu;
 }
