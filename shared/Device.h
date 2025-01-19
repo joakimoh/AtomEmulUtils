@@ -35,26 +35,31 @@ typedef struct Program_struct {
 	int loadAdr = -1;
 } Program;
 
+
+class DevicePort;
+//typedef struct DevicePort_struct DevicePort;
+
+// input = (output >> shifts) & mask
+typedef struct InputReference_struct {
+	DevicePort *	port;
+	int				shifts = 0;		// no of steps to downshift
+	uint8_t			mask = 0xff;	// mask to be applied after downshifting
+} InputReference;
+
 enum PortDirection {IN_PORT, OUT_PORT, IO_PORT};
 #define _PORT_DIR(x) (x==IN_PORT?"IN":(x==OUT_PORT?"OUT":"IN/OUT"))
 
-typedef struct LocalPort_struct {
-	string			name = "";			// name of the I/O port
-	int				localIndex = -1;	// local device index for the I/O port
-	PortDirection	dir = IO_PORT;		// I/O direction
-	uint8_t			mask = 0x1;			// mask to select only the implemented bits
-} LocalPort; 
-
-typedef struct DevicePort_struct {
-	LocalPort	port;	// port identity
-	uint8_t		*val;	// pointer to variable holding the port's value
-} DevicePort;
-
-typedef struct UniquePort_struct {
-	Device* dev = NULL;	// name of the device
-	LocalPort localPort; // local port info
-	int globalIndex = -1; // unique global index for the port
-} UniquePort;
+class DevicePort {
+public:
+	Device *				dev = NULL;			// name of the device
+	string					name = "";			// name of the I/O port
+	int						localIndex = -1;	// local device index for the I/O port
+	int						globalIndex = -1;	// unique global index for the port
+	PortDirection			dir = IO_PORT;		// I/O direction
+	uint8_t					mask = 0x1;			// mask to select only the implemented bits
+	uint8_t	*				val;				// pointer to variable holding the port's value
+	vector<InputReference>	inputs;				// connected inputs (used only if the port is an output port)
+};
 
 typedef struct BitsSelection_struct {
 	uint8_t mask = 0x0;	// specifies the bits of the I/O port to be connected
@@ -62,8 +67,8 @@ typedef struct BitsSelection_struct {
 } BitsSelection;
 
 typedef struct PortBitsSel_struct {
-	UniquePort port;	// port identity
-	BitsSelection bits;	// bits selection
+	DevicePort *	port;	// port identity
+	BitsSelection	bits;	// bits selection
 } PortSelection;
 
 typedef struct Connector_struct { // specifies the receiving unique part of a routing
@@ -72,8 +77,8 @@ typedef struct Connector_struct { // specifies the receiving unique part of a ro
 } Connection;
 
 typedef struct Routing_struct { // specifies how an output port of one device is connected to the input ports of one or more receving devices
-	UniquePort srcPort;
-	vector <Connection> connections;
+	DevicePort *		srcPort;
+	vector <Connection>	connections;
 } Routing;
 
 class Device {
@@ -87,12 +92,12 @@ protected:
 	DebugInfo mDebugInfo;
 
 	uint64_t mCycleCount = 0;
-
-	vector<Device*> mConnectedDevices; // other devices that connects to inputs of the device
 	
-	map<int, DevicePort> mPorts; // the device's input ports that can be connected to by other devices
+	vector<DevicePort*> mPorts; // the device's input ports that can be connected to by other devices
 
 	ConnectionManager* mConnectionManager;
+
+	int mPortIndex = 0;
 
 
 public:
@@ -117,16 +122,16 @@ public:
 	virtual bool advance(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }
 
 	// Update of an input by another device via the connection manager
-	bool updateInput(PortSelection &port, uint8_t val);
+	//bool updateInput(PortSelection &port, uint8_t val);
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 	bool updateOutput(int index, uint8_t val);
 
 	// Get local port index for a named I/O (used by connection manager at initialisation)
-	bool getPortIndex(string name, int &index);
+	bool getPortIndex(string name, DevicePort * &port);
 
 	// Used by a device to make a port available for routing
-	bool addPort(string name, int index, PortDirection dir, uint8_t mask, uint8_t* portVal);
+	bool addPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* val);
 
 };
 
@@ -182,8 +187,8 @@ private:
 
 	map<int, Routing>					mRouting;		// each output will have a device-independent unique index which is used to lookup the routing
 	Devices*							mDevices = NULL;
-	map<Device*, map<int,UniquePort>>	mUniquePorts;	// device port to global index mapping
-	int									mUniqueIndex = 0;
+	map<Device*, map<int,DevicePort*>>	mDevicePorts;	// device port to global index mapping
+	int									mDevicePortIndex = 0;
 
 	bool extractPort(string name, PortSelection& port);
 
@@ -193,16 +198,17 @@ private:
 public:
 
 	void printRouting();
+	void printDevicePort(DevicePort& device_port);
 
 	ConnectionManager(DebugInfo debugInfo);
 
 	void setDevices(Devices* devices);
 
 	// Used by a device to make a port available for routing
-	bool addDevicePort(Device* dev, LocalPort localPort);
+	bool addDevicePort(Device* dev, DevicePort *localPort);
 
 	// Based on the device-independent unique index of a device's output, propagate the update to all connected devices
-	bool receiveUpdate(Device *dev, int index, uint8_t val);
+	//bool receiveUpdate(Device *dev, int index, uint8_t val);
 
 	// Connect one device's output with the input of another device
 	bool connect(string srcName, string dstName);

@@ -22,9 +22,9 @@ private:
 
 	// PIA registers
 	uint8_t mPortA, mPortB, mPortC, mCR;
-
+	
 	// Ports that can be connected to other devices
-	enum PiaPorts {PIA_PORT_A = 0, PIA_PORT_B = 1, PIA_PORT_C = 2};
+	int PIA_PORT_A, PIA_PORT_B, PIA_PORT_C;
 
 
 

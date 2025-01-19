@@ -99,11 +99,9 @@ public:
 
 	
 	// Ports that can be connected to other devices
-	enum VduPorts { 
-		VDU_PORT_AS =	0,	VDU_PORT_AG =		1,	VDU_PORT_GM =	2,
-		VDU_PORT_CSS =	3,	VDU_PORT_INT_EXT =	4,	VDU_PORT_INV =	5,
-		VDU_PORT_FS =	6,	VDU_PORT_DIN = 7
-	};
+	int VDU_PORT_AS, VDU_PORT_AG, VDU_PORT_GM;
+	int VDU_PORT_CSS, VDU_PORT_INT_EXT, VDU_PORT_INV;
+	int VDU_PORT_FS, VDU_PORT_DIN;
 	uint8_t mAS = 0x0;		// input  - selects alphanumeric (LOW) or semigraphics (HIGH)
 	uint8_t mAG = 0x0;		// input  - selects alphanumeric/semigraphics (LOW) or graphics (HIGH)
 	uint8_t mGM = 0x0;		// input  - selects graphic mode (0-7)

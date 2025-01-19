@@ -33,19 +33,30 @@ bool Device::validAdr(uint16_t adr)
 }
 
 // Used by a device to make a port available for routing
-bool Device::addPort(string name, int index, PortDirection dir, uint8_t bitMask, uint8_t *portVal)
+
+bool Device::addPort(string name, PortDirection dir, uint8_t mask, int &index, uint8_t *val)
 {
+	index = mPortIndex++;
+	DevicePort *device_port = new DevicePort();
+	device_port->name = name;
+	device_port->dir = dir;
+	device_port->mask = mask;
+	device_port->localIndex = index;
+	device_port->val = val;
+	device_port->globalIndex = -1;
+	mConnectionManager->printDevicePort(*device_port);
+
+	mPorts.push_back(device_port);
 	
-	LocalPort local_port = { name, index, dir, bitMask };
-	mConnectionManager->addDevicePort(this, local_port);
-	DevicePort device_port = { local_port , portVal };
-	mPorts[index] = device_port;
+	mConnectionManager->addDevicePort(this, device_port);
+	
 
 	return true;
 }
 
 // Update of an input by another device via the connection manager
 // Called by the connection manager
+/*
 bool Device::updateInput(PortSelection &port_selection, uint8_t val)
 {
 	
@@ -69,9 +80,10 @@ bool Device::updateInput(PortSelection &port_selection, uint8_t val)
 
 	return true;
 }
-
+*/
 
 // Update an output and propagate it to inputs of potentially connected other devices via the connection manager
+/*
 bool Device::updateOutput(int index, uint8_t val)
 {
 	if (mDebugInfo.dbgLevel & DBG_DEVICE)
@@ -79,13 +91,25 @@ bool Device::updateOutput(int index, uint8_t val)
 	mConnectionManager->receiveUpdate(this, index, val);
 	return true;
 }
+*/
 
-bool Device::getPortIndex(string name, int& index) {
-	index = -1;
-	map<int, DevicePort>::iterator it;
-	for (it = mPorts.begin(); it != mPorts.end(); it++) {
-		if (it->second.port.name == name) {
-			index = it->second.port.localIndex;
+
+bool Device::updateOutput(int index, uint8_t val)
+{
+	if (index < 0 && index >= mPorts.size())
+		return false;
+	*(mPorts[index]->val) = val;
+	for (int i = 0; i < mPorts[index]->inputs.size(); i++) {
+		InputReference input = mPorts[index]->inputs[i];
+		*(input.port->val) = (val >> input.shifts) & input.mask;
+	}
+	return true;
+}
+
+bool Device::getPortIndex(string name, DevicePort * &port) {
+	for (int i = 0; i < mPorts.size(); i++) {
+		if (mPorts[i]->name == name) {
+			port = mPorts[i];
 			return true;
 		}
 	}

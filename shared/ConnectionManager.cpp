@@ -15,30 +15,28 @@ void ConnectionManager::setDevices(Devices* devices)
 }
 
 // Used by a device to tell the availability of a port for routing
-bool ConnectionManager::addDevicePort(Device* dev, LocalPort localPort)
+bool ConnectionManager::addDevicePort(Device* dev, DevicePort *localPort)
 {
+	localPort->globalIndex = mDevicePortIndex++;
 
-	int unique_index = mUniqueIndex++;
-	UniquePort unique_port;
-	unique_port.dev = dev;
-	unique_port.localPort = localPort;
-	unique_port.globalIndex = unique_index;
+	printDevicePort(*localPort);
 	
-	mUniquePorts[dev][localPort.localIndex] = unique_port;
+	mDevicePorts[dev][localPort->localIndex] = localPort;
+	
 
-	cout << "ADD " << mUniquePorts[dev][localPort.localIndex].dev->name << ":" << mUniquePorts[dev][localPort.localIndex].localPort.name << " #" << dec <<
-		mUniquePorts[dev][localPort.localIndex].globalIndex << " (" << _PORT_DIR(mUniquePorts[dev][localPort.localIndex].localPort.dir) << ", #" << dec <<
-		mUniquePorts[dev][localPort.localIndex].localPort.localIndex << ")\n";
+	cout << "ADD " << mDevicePorts[dev][localPort->localIndex]->dev->name << ":" << mDevicePorts[dev][localPort->localIndex]->name << " #" << dec <<
+		mDevicePorts[dev][localPort->localIndex]->globalIndex << " (" << _PORT_DIR(mDevicePorts[dev][localPort->localIndex]->dir) << ", #" << dec <<
+		mDevicePorts[dev][localPort->localIndex]->localIndex << ")\n";
 
 	return true;
 }
-
+/*
 bool ConnectionManager::receiveUpdate(Device *dev, int index, uint8_t val)
 {
 	if (mDebugInfo.dbgLevel & DBG_DEVICE) {
 		cout << "RECEIVE UPDATE\n";
 		cout << "DEVICE '" << dev->name << "' local port #" << dec << index << " = " << (int)val << "\n";
-		cout << "#devices with connectable ports: " << mUniquePorts.size() << "\n";
+		cout << "#devices with connectable ports: " << mDevicePorts.size() << "\n";
 		cout << "#routings: " << mRouting.size() << "\n";
 	}
 
@@ -48,14 +46,14 @@ bool ConnectionManager::receiveUpdate(Device *dev, int index, uint8_t val)
 		return false;
 	}
 	
-	if (mUniquePorts.find(dev) == mUniquePorts.end()) {
+	if (mDevicePorts.find(dev) == mDevicePorts.end()) {
 		cout << "Port #" << dec << index << " for device " << dev->name << "' doesn't exist!\n";
 		return false;
 	}
 
 	// Get global port index
-	map<int,UniquePort> &unique_ports = mUniquePorts[dev];
-	UniquePort &unique_port = unique_ports[index];
+	map<int,DevicePort> &unique_ports = mDevicePorts[dev];
+	DevicePort &unique_port = unique_ports[index];
 
 	if (mDebugInfo.dbgLevel & DBG_DEVICE) {
 		cout << "DEVICE '" << dev->name << "' local port #" << dec << index << "'" << unique_port.localPort.name << "' (" << unique_port.globalIndex << ") = " <<
@@ -90,6 +88,7 @@ bool ConnectionManager::receiveUpdate(Device *dev, int index, uint8_t val)
 	return true;
 
 }
+*/
 
 //
 // Extract I/O port reference from string literal
@@ -111,7 +110,7 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 {
 	try {
 
-		// Get device ("_" <=> data bus input of the device itself)
+		// Get device 
 		Tokeniser dev_tok(name, ':');
 		string dev_name;
 		if (!dev_tok.nextToken(dev_name))
@@ -130,8 +129,10 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 		string port_name;
 		if (!port_tok.nextToken(port_name))
 			return false;
-		int local_port_index = -1;
-		if (!dev->getPortIndex(port_name, local_port_index))
+
+		// Get port
+		DevicePort * device_port;
+		if (!dev->getPortIndex(port_name, device_port))
 				return false;
 
 		// Get bit range (if present)
@@ -149,26 +150,14 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 
 		// Create I/O port
 
-		// Update device-specific part
-		port_selection.port.dev = dev;
-		port_selection.port.localPort.name = port_name;
-		port_selection.port.localPort.localIndex = local_port_index;
+		// Update port selection with the device's port info
+		port_selection.port = device_port;
 
 		// Update the bit selection part
 		port_selection.bits.lowBit = lb;
 		port_selection.bits.mask = 0;
 		for (int i = lb; i <= hb; i++)
 			port_selection.bits.mask |= (1 << i);
-
-		// Get global index
-		if (mUniquePorts.find(dev) == mUniquePorts.end()) 
-			return false;
-		map<int,UniquePort>& unique_ports = mUniquePorts[dev];
-		if (unique_ports.find(local_port_index) == unique_ports.end())
-			return false;
-		UniquePort unique_port = unique_ports[local_port_index];
-
-		port_selection.port.globalIndex = unique_port.globalIndex;
 		
 		return true;
 	
@@ -196,20 +185,24 @@ bool ConnectionManager::connect(string srcName, string dstName)
 		return false;
 	}
 
-
-	
-
 	Connection connection;
 	connection.srcBits = src_port.bits;
 	connection.dstPort = dst_port;
 
 	// Lookup routing (if existing). If not existing, create a new one
-	if (mRouting.find(src_port.port.globalIndex) == mRouting.end()) {
+	if (mRouting.find(src_port.port->globalIndex) == mRouting.end()) {
 		Routing routing;
 		routing.srcPort = src_port.port;
-		mRouting[src_port.port.globalIndex] = routing;
+		mRouting[src_port.port->globalIndex] = routing;
 	}
-	mRouting[src_port.port.globalIndex].connections.push_back(connection);
+	mRouting[src_port.port->globalIndex].connections.push_back(connection);
+
+	// Add dst port to src device port's list ot connected inputs
+	InputReference input_ref;
+	input_ref.port = dst_port.port;
+	input_ref.mask = src_port.bits.mask >> src_port.bits.lowBit;
+	input_ref.shifts = src_port.bits.lowBit;
+	src_port.port->inputs.push_back(input_ref);
 
 
 	return true;
@@ -220,16 +213,22 @@ void ConnectionManager::printRouting()
 	map<int, Routing>::iterator it;
 	for (it = mRouting.begin(); it != mRouting.end(); it++) {
 		Routing& routing = it->second;
-		cout << "#" << routing.srcPort.globalIndex << " " << routing.srcPort.dev->name << ":" << routing.srcPort.localPort.name << 
-			" (" << routing.srcPort.localPort.localIndex << "):\n";
+		cout << "#" << routing.srcPort->globalIndex << " " << routing.srcPort->dev->name << ":" << routing.srcPort->name << 
+			" (" << routing.srcPort->localIndex << "):\n";
 		vector<Connection> &connections = routing.connections;
 		for (int c = 0; c < connections.size(); c++) {
 			Connection connection = connections[c];
 			cout << "\t0x" << hex << (int)connection.srcBits.mask << ", " << dec << (int)connection.srcBits.lowBit << " => " <<
-				connection.dstPort.port.dev->name << 
-				":" << connection.dstPort.port.localPort.name << " (" << connection.dstPort.port.localPort.localIndex <<
+				connection.dstPort.port->dev->name << 
+				":" << connection.dstPort.port->name << " (" << connection.dstPort.port->localIndex <<
 				") 0x" << hex << (int)connection.dstPort.bits.mask << "," << dec << (int)connection.dstPort.bits.lowBit << "\n";
 		}
 	}
 
+}
+
+void ConnectionManager::printDevicePort(DevicePort& device_port)
+{
+	cout << device_port.dev->name << ":" << device_port.name << " " << _PORT_DIR(device_port.dir) << " 0x" << hex << (int) device_port.mask <<
+		"\n";
 }

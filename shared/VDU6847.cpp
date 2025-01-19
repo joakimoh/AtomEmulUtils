@@ -355,14 +355,14 @@ VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* dis
 	Device(name, VDU6847_DEV, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
 {
 	// Specify ports that can be connectde to other devices
-	addPort("A/S",		VDU_PORT_AS,		IN_PORT,	0x01,	&mAS);
-	addPort("A/G",		VDU_PORT_AG,		IN_PORT,	0x01,	&mAG);
-	addPort("GM",		VDU_PORT_GM,		IN_PORT,	0x07,	&mGM);
-	addPort("CSS",		VDU_PORT_CSS,		IN_PORT,	0x01,	&mCSS);	
-	addPort("INT/EXT",	VDU_PORT_INT_EXT,	IN_PORT,	0x01,	&mIntExt);
-	addPort("INV",		VDU_PORT_INV,		IN_PORT,	0x01,	&mInv);
-	addPort("FS",		VDU_PORT_FS,		OUT_PORT,	0x01,	&mFS);
-	addPort("Din",		VDU_PORT_DIN,		OUT_PORT,	0xff,	&mDin);
+	addPort("A/S",		IN_PORT,	0x01, VDU_PORT_AS, &mAS);
+	addPort("A/G",		IN_PORT,	0x01, VDU_PORT_AG, &mAG);
+	addPort("GM",		IN_PORT,	0x07, VDU_PORT_GM, &mGM);
+	addPort("CSS",		IN_PORT,	0x01, VDU_PORT_CSS, &mCSS);
+	addPort("INT/EXT",	IN_PORT,	0x01, VDU_PORT_INT_EXT, &mIntExt);
+	addPort("INV",		IN_PORT,	0x01, VDU_PORT_INV, &mInv);
+	addPort("FS",		OUT_PORT,	0x01, VDU_PORT_FS, &mFS);
+	addPort("Din",		OUT_PORT,	0xff, VDU_PORT_DIN, &mDin);
 
 
 	// Set the size of the VDU register vector
