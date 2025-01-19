@@ -138,7 +138,10 @@ private:
 
 public:
 
-	Devices(std::string memMapFile, int n60HzCycles, ALLEGRO_BITMAP* disp, Keyboard *keyboard, DebugInfo debugInfo, Program program, Program data);
+	Devices(
+		string memMapFile, int n60HzCycles, ALLEGRO_BITMAP* disp, Keyboard *keyboard, DebugInfo debugInfo,
+		Program program, Program data, ConnectionManager &connectionManager
+	);
 
 	~Devices();
 
@@ -177,17 +180,22 @@ class ConnectionManager {
 private:
 
 	map<int, Routing>					mRouting;		// each output will have a device-independent unique index which is used to lookup the routing
-	Devices*							mDevices;
+	Devices*							mDevices = NULL;
 	map<Device*, map<int,UniquePort>>	mUniquePorts;	// device port to global index mapping
-	int mUniqueIndex = 0;
-
-	bool getRoutingIndex(PortSelection port, Routing *routing);
+	int									mUniqueIndex = 0;
 
 	bool extractPort(string name, PortSelection& port);
 
+	DebugInfo mDebugInfo;
+	
+
 public:
 
-	ConnectionManager(Devices* devices);
+	void printRouting();
+
+	ConnectionManager(DebugInfo debugInfo);
+
+	void setDevices(Devices* devices);
 
 	// Used by a device to make a port available for routing
 	bool addDevicePort(Device* dev, LocalPort localPort);

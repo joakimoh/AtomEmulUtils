@@ -4,9 +4,14 @@
 
 using namespace std;
 
-ConnectionManager::ConnectionManager(Devices* devices) : mDevices(devices)
+ConnectionManager::ConnectionManager(DebugInfo debugInfo) : mDebugInfo(debugInfo)
 {
 
+}
+
+void ConnectionManager::setDevices(Devices* devices)
+{
+	mDevices = devices;
 }
 
 // Used by a device to tell the availability of a port for routing
@@ -30,11 +35,12 @@ bool ConnectionManager::addDevicePort(Device* dev, LocalPort localPort)
 
 bool ConnectionManager::receiveUpdate(Device *dev, int index, uint8_t val)
 {
-
-	cout << "RECEIVE UPDATE\n";
-	cout << "DEVICE '" << dev->name << "' local port #" << dec << index << " = " << (int)val << "\n";
-	cout << "#devices with connectable ports: " << mUniquePorts.size() << "\n";
-	cout << "#routings: " << mRouting.size() << "\n";
+	if (mDebugInfo.dbgLevel & DBG_DEVICE) {
+		cout << "RECEIVE UPDATE\n";
+		cout << "DEVICE '" << dev->name << "' local port #" << dec << index << " = " << (int)val << "\n";
+		cout << "#devices with connectable ports: " << mUniquePorts.size() << "\n";
+		cout << "#routings: " << mRouting.size() << "\n";
+	}
 
 	// Check for errors
 	if (dev == NULL) {
@@ -51,8 +57,10 @@ bool ConnectionManager::receiveUpdate(Device *dev, int index, uint8_t val)
 	map<int,UniquePort> &unique_ports = mUniquePorts[dev];
 	UniquePort &unique_port = unique_ports[index];
 
-	cout << "DEVICE '" << dev->name << "' local port #" << dec << index << "'" << unique_port.localPort.name << "' (" << unique_port.globalIndex << ") = " <<
-		(int)val << "\n";
+	if (mDebugInfo.dbgLevel & DBG_DEVICE) {
+		cout << "DEVICE '" << dev->name << "' local port #" << dec << index << "'" << unique_port.localPort.name << "' (" << unique_port.globalIndex << ") = " <<
+			(int)val << "\n";
+	}
 
 	// Check that routing exists for the port (not an error if it doesn't exist!)
 	if (mRouting.find(unique_port.globalIndex) == mRouting.end())
@@ -82,22 +90,6 @@ bool ConnectionManager::receiveUpdate(Device *dev, int index, uint8_t val)
 	return true;
 
 }
-
-bool ConnectionManager::getRoutingIndex(PortSelection portSelection, Routing *routing)
-{
-	routing = NULL;
-	int index = portSelection.port.globalIndex;
-
-	if (mRouting.find(index) == mRouting.end())
-		return false;
-
-	routing = &mRouting[index];
-	cout << "ROUTING " << mRouting[index].srcPort.dev->name << ":" << mRouting[index].srcPort.localPort.name <<
-		" FOUND WITH #" << mRouting[index].connections.size() << " CONNECTIONS!\n";
-	return true;
-
-}
-
 
 //
 // Extract I/O port reference from string literal
@@ -190,25 +182,20 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 //
 bool ConnectionManager::connect(string srcName, string dstName)
 {
-	cout << "\nCONNECT " << srcName << " AND " << dstName << "\n";
 
 	PortSelection src_port;
 	if (!extractPort(srcName, src_port)) {
 		cout << "Invalid format for source routing '" << srcName << "'\n";
 		return false;
 	}
-	cout << "\tSRC: " << src_port.port.dev->name << ":" << src_port.port.localPort.name << 
-		hex << " MASK 0x" << (int) src_port.bits.mask << ", FIRST BIT " << (int) src_port.bits.lowBit <<
-		"\n";
+
 
 	PortSelection dst_port;
 	if (!extractPort(dstName, dst_port)) {
 		cout << "Invalid format for destination routing '" << dstName << "'\n";
 		return false;
 	}
-	cout << "\tDST: " << dst_port.port.dev->name << ":" << dst_port.port.localPort.name <<
-		hex << " MASK 0x" << (int)dst_port.bits.mask << ", FIRST BIT " << (int)dst_port.bits.lowBit <<
-		"\n";
+
 
 	
 
@@ -217,17 +204,32 @@ bool ConnectionManager::connect(string srcName, string dstName)
 	connection.dstPort = dst_port;
 
 	// Lookup routing (if existing). If not existing, create a new one
-	Routing *routing_p = NULL;
-	if (!getRoutingIndex(src_port, routing_p)) {
+	if (mRouting.find(src_port.port.globalIndex) == mRouting.end()) {
 		Routing routing;
 		routing.srcPort = src_port.port;
 		mRouting[src_port.port.globalIndex] = routing;
-		routing_p = &routing;
 	}
-	routing_p->connections.push_back(connection);
+	mRouting[src_port.port.globalIndex].connections.push_back(connection);
 
-	cout << "\tPORTS CONNECTED, ROUTING INDEX IS " << dec << src_port.port.globalIndex << " AND #CONNECTIONS IS " << routing_p->connections.size() <<
-		"\n";
 
 	return true;
+}
+
+void ConnectionManager::printRouting()
+{
+	map<int, Routing>::iterator it;
+	for (it = mRouting.begin(); it != mRouting.end(); it++) {
+		Routing& routing = it->second;
+		cout << "#" << routing.srcPort.globalIndex << " " << routing.srcPort.dev->name << ":" << routing.srcPort.localPort.name << 
+			" (" << routing.srcPort.localPort.localIndex << "):\n";
+		vector<Connection> &connections = routing.connections;
+		for (int c = 0; c < connections.size(); c++) {
+			Connection connection = connections[c];
+			cout << "\t0x" << hex << (int)connection.srcBits.mask << ", " << dec << (int)connection.srcBits.lowBit << " => " <<
+				connection.dstPort.port.dev->name << 
+				":" << connection.dstPort.port.localPort.name << " (" << connection.dstPort.port.localPort.localIndex <<
+				") 0x" << hex << (int)connection.dstPort.bits.mask << "," << dec << (int)connection.dstPort.bits.lowBit << "\n";
+		}
+	}
+
 }

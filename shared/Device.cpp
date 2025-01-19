@@ -70,7 +70,8 @@ bool Device::updateInput(PortSelection &port_selection, uint8_t val)
 // Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 bool Device::updateOutput(int index, uint8_t val)
 {
-	cout << "OUTPUT #" << dec << index << " = " << (int)val << "\n";
+	if (mDebugInfo.dbgLevel & DBG_DEVICE)
+		cout << "OUTPUT #" << dec << index << " = " << (int)val << "\n";
 	mConnectionManager->receiveUpdate(this, index, val);
 	return true;
 }
@@ -95,11 +96,12 @@ bool Device::getPortIndex(string name, int& index) {
 
 
 Devices::Devices(
-	std::string memMapFile, int n60HzCycles, ALLEGRO_BITMAP* disp, Keyboard *keyboard, DebugInfo debugInfo, Program program, Program data) :
+	string memMapFile, int n60HzCycles, ALLEGRO_BITMAP* disp, Keyboard* keyboard, DebugInfo debugInfo,
+	Program program, Program data, ConnectionManager &connection_manager) :
 	mDebugInfo(debugInfo)
 {
 
-	ConnectionManager connection_manager(this);
+	connection_manager.setDevices(this);
 
 	ifstream fin(memMapFile, ios::in | ios::ate);
 
@@ -180,6 +182,7 @@ Devices::Devices(
 				sin >> src_port;
 				sin >> dst_port;
 				connection_manager.connect(src_port, dst_port);
+				
 			}
 			else {
 				a.deviceType = DeviceEnum::UNDEFINED_DEV;
@@ -233,6 +236,9 @@ Devices::Devices(
 
 	if (!loadData(data))
 		throw runtime_error("");
+
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+		connection_manager.printRouting();
 
 }
 
