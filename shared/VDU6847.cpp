@@ -176,10 +176,6 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 					if (!readGraphicsMem(mem_adr, mem_data))
 						return false;
 
-					//mIntExt = (mem_data >> 6) & 0x1;
-					//mAS = (mem_data >> 6) & 0x1;
-					//mInv = (mem_data >> 7) & 0x1;
-
 					if (mAS)
 						// Semigraphic mode 6 with 2 x 3 graphic symbols (A/S HIGH)
 					{
@@ -189,7 +185,6 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 						uint8_t colour = (mem_data >> 6) & 0x3;
 						int pixel_row = (pixel_line % 12) / 4;
 						uint8_t pixel_data = ((mem_data & 0x3f) >> 2 * (2 - pixel_row)) & 0x3;
-						//cout << dec << (int)colour << "\n";
 
 						for (int pixel = 0; pixel < 2; pixel++) {
 							if (pixel_data & (1 << (1 - pixel))) {
@@ -362,7 +357,7 @@ VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* dis
 	// Specify ports that can be connectde to other devices
 	addPort("A/S",		VDU_PORT_AS,		IN_PORT,	0x01,	&mAS);
 	addPort("A/G",		VDU_PORT_AG,		IN_PORT,	0x01,	&mAG);
-	addPort("GM",		VDU_PORT_GM,		IN_PORT,	0x03,	&mGM);
+	addPort("GM",		VDU_PORT_GM,		IN_PORT,	0x07,	&mGM);
 	addPort("CSS",		VDU_PORT_CSS,		IN_PORT,	0x01,	&mCSS);	
 	addPort("INT/EXT",	VDU_PORT_INT_EXT,	IN_PORT,	0x01,	&mIntExt);
 	addPort("INV",		VDU_PORT_INV,		IN_PORT,	0x01,	&mInv);
