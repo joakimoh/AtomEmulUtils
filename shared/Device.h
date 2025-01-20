@@ -108,6 +108,7 @@ public:
 	DeviceEnum devType;
 
 	Device(string name, DeviceEnum typ, uint16_t adr, uint16_t sz, DebugInfo debugInfo, ConnectionManager *connectionManager);
+	~Device();
 
 	virtual bool read(uint16_t adr, uint8_t& data) = 0;
 	virtual bool write(uint16_t adr, uint8_t data) = 0;
@@ -185,7 +186,7 @@ class ConnectionManager {
 
 private:
 
-	map<int, Routing>					mRouting;		// each output will have a device-independent unique index which is used to lookup the routing
+	//map<int, Routing>					mRouting;		// each output will have a device-independent unique index which is used to lookup the routing
 	Devices*							mDevices = NULL;
 	map<Device*, map<int,DevicePort*>>	mDevicePorts;	// device port to global index mapping
 	int									mDevicePortIndex = 0;
@@ -198,9 +199,11 @@ private:
 public:
 
 	void printRouting();
-	void printDevicePort(DevicePort& device_port);
+	string printDevicePort(DevicePort * device_port);
+	string printPortSelection(PortSelection & port_selection);
 
 	ConnectionManager(DebugInfo debugInfo);
+	~ConnectionManager();
 
 	void setDevices(Devices* devices);
 

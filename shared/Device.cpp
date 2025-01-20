@@ -22,6 +22,12 @@ Device::Device(string n, DeviceEnum typ,uint16_t adr, uint16_t sz, DebugInfo deb
 {
 }
 
+Device::~Device()
+{
+	for (int i = 0; i < mPorts.size(); i++)
+		delete mPorts[i];
+}
+
 bool Device::selected(uint16_t adr)
 {
 	return (adr >= mDevAdr && adr < mDevAdr + mDevSz);
@@ -38,13 +44,14 @@ bool Device::addPort(string name, PortDirection dir, uint8_t mask, int &index, u
 {
 	index = mPortIndex++;
 	DevicePort *device_port = new DevicePort();
+	device_port->dev = this;
 	device_port->name = name;
 	device_port->dir = dir;
 	device_port->mask = mask;
 	device_port->localIndex = index;
 	device_port->val = val;
 	device_port->globalIndex = -1;
-	mConnectionManager->printDevicePort(*device_port);
+	cout << "DEVICE ADDS PORT " << mConnectionManager->printDevicePort(device_port) << "\n";
 
 	mPorts.push_back(device_port);
 	
@@ -53,46 +60,6 @@ bool Device::addPort(string name, PortDirection dir, uint8_t mask, int &index, u
 
 	return true;
 }
-
-// Update of an input by another device via the connection manager
-// Called by the connection manager
-/*
-bool Device::updateInput(PortSelection &port_selection, uint8_t val)
-{
-	
-	if (mPorts.find(port_selection.port.localPort.localIndex) == mPorts.end())
-		return false;
-
-	DevicePort device_port = mPorts[port_selection.port.localPort.localIndex];
-
-	if (device_port.val == NULL)
-		return false;
-
-	if (device_port.port.dir == OUT_PORT)
-		return false;
-
-	// Update the selected dst port bits only
-	*(device_port.val) &= ~port_selection.bits.mask;
-	*(device_port.val) |= (((val & device_port.port.mask) << port_selection.bits.lowBit) & port_selection.bits.mask);
-
-	if (mDebugInfo.dbgLevel & DBG_DEVICE)
-		cout << "UPDATE INPUT " << port_selection.port.localPort.name << " WITH VALUE " << dec << (int)val << " & 0x" << hex << (int) port_selection.bits.mask << "\n";
-
-	return true;
-}
-*/
-
-// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
-/*
-bool Device::updateOutput(int index, uint8_t val)
-{
-	if (mDebugInfo.dbgLevel & DBG_DEVICE)
-		cout << "OUTPUT #" << dec << index << " = " << (int)val << "\n";
-	mConnectionManager->receiveUpdate(this, index, val);
-	return true;
-}
-*/
-
 
 bool Device::updateOutput(int index, uint8_t val)
 {
@@ -265,11 +232,16 @@ Devices::Devices(
 	if (!loadData(data))
 		throw runtime_error("");
 
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+	if (true || (mDebugInfo.dbgLevel & DBG_VERBOSE))
 		connection_manager.printRouting();
 
 }
 
+Devices::~Devices()
+{
+	for (int i = 0; i < mDevices.size(); i++)
+		delete mDevices[i];
+}
 
 bool Devices::loadData(Program data)
 {
@@ -320,12 +292,6 @@ bool Devices::loadData(Program data)
 	}
 
 	return true;
-}
-
-Devices::~Devices()
-{
-	for (int i = 0; i < mDevices.size(); i++)
-		delete mDevices[i];
 }
 
 //
