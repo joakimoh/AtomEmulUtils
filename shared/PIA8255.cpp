@@ -25,12 +25,6 @@ bool PIA8255::reset()
 bool PIA8255::advance(uint64_t stopCycle)
 {
 	mCycleCount = stopCycle;
-	if (mCycleCount % mN60HzCycles < mN60HzCycles / 2) {
-		mSync60HzEvent = 1;
-	}
-	else {
-		mSync60HzEvent = 0;
-	}
 
 	return true;
 }
@@ -133,11 +127,16 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 		data = mPortA;
 	}
 
-	else if (adr == PIA8255_PORT_B) {
-
+	else if (adr == PIA8255_PORT_B)
+		// For the Acorn Atom the bits ar eused according to below:
+		//	0-5		Keyboard column (low when a key pressed)
+		//	6		CTRL key(low when pressed)
+		//	7		SHIFT key (low when pressed)
+	{
+		
 		data = mPortB;
 
-		// 0 - 5 Keyboard column (low when a key pressed), 6 CTRL key(low when pressed), 7 SHIFT key (low when pressed)
+		
 		data = mKeyboard->readColumn();
 		if (mKeyboard->ctrlPressed())
 			data &= ~0x40;
@@ -146,17 +145,21 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 
 	}
 
-	else if (adr == PIA8255_PORT_C) {
+	else if (adr == PIA8255_PORT_C)
+		// For the Acorn Atom the bits are used according to below:
+		//	0-3		Writable bits - see write method below
+		//	4		2.4 kHz input
+		//	5		Cassette input
+		//	6		REPT key (low when pressed)
+		//	7		60 Hz sync signal (low during VDU flyback) - from 6847's Field Sync (FS)
+	{
 
 		data = mPortC;
 
-		data |= 0x40; // set REPEAT key bit (inactive LOW)
-		//data &= ~0x80; // clear 60 Hz sync bit
-		// 4 2.4 kHz input, 5 Cassette input, 6 REPT key(low when pressed), 7 60 Hz sync signal (low during flyback) - from 6847's Field Sync (FS)
+		// Update REPEAT key bit (inactive LOW)
+		data |= 0x40; 
 		if (mKeyboard->repeatPressed())
 			data &= ~0x40;
-		//if (mSync60HzEvent == 1)
-			//data |= 0x80;
 
 		if (mDebugInfo.dbgLevel & DBG_DEVICE)
 			cout << "READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
@@ -173,43 +176,42 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 	if (!validAdr(adr))
 		return false;
 
-	if (adr == PIA8255_PORT_A) {
-
-		mPortA = data;
-
-		// 0 - 3 Keyboard row, 4 - 7 Graphics mode
+	if (adr == PIA8255_PORT_A)
+		// For the Acorn Atom the bits are used according to below:
+		//	0-3		Keyboard row
+		//	4-7		Graphics mode
+	{
+		// Update keyboard row
 		if (mKeyboard != NULL)
 			mKeyboard->selectRow(data & 0xf);
-		//if (mVdu != NULL)
-		//	mVdu->setGraphicMode((data >> 4) & 0xf);
 
-		updateOutput(PIA_PORT_A, mPortA);
+		updateOutput(PIA_PORT_A, data);
 	}
 
 	else if (adr == PIA8255_PORT_B) {
 
-		mPortB = data;
-
-		updateOutput(PIA_PORT_B, mPortB);
+		updateOutput(PIA_PORT_B, data);
 	}
 
-	else if (adr == PIA8255_PORT_C) {
-
-		mPortC = data;
+	else if (adr == PIA8255_PORT_C)
+		// For the Acorn Atom the bits are used according to below:
+		//	0		Tape output
+		//	1		Enable 2.4 kHz to cassette output
+		//	2		Loudspeaker
+		//	3		Colour palette selection for (semi)graphics
+		//	4-7		Not writable (used as inputs instead - see read  method above)
+	{
 
 		if ((mCR & 0x80) && (mCR & 0x08)) { // PortSelection C upper bits are writable
-			mPortC &= 0x0f;
-			mPortC |= (data << 4) & 0xf0;
+			data &= 0x0f;
+			data |= (data << 4) & 0xf0;
 		}
 		if ((mCR & 0x80) && (mCR & 0x02)) { // PortSelection C lower bits are writable
-			mPortC &= 0xf0;
-			mPortC |= data& 0x0f;
+			data &= 0xf0;
+			data |= data& 0x0f;
 		}
 
-		// 0 Tape output, 1 Enable 2.4 kHz to cassette output, 2 Loudspeaker, 3 colour palette selection for (semi)graphics
-		//mVdu->setCSS((data >> 3) & 0x1);
-
-		updateOutput(PIA_PORT_C, mPortC);
+		updateOutput(PIA_PORT_C, data);
 	}
 
 	else if (adr == PIA8255_CONTROL) {
@@ -235,9 +237,10 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		{
 			uint8_t bit = (mCR << 1) & 0x7;
 			uint8_t val = mCR & 0x1;
-			mPortC &= ~(1 << bit);
-			mPortC |= (val << bit);
-			updateOutput(PIA_PORT_C, mPortC);
+			uint8_t port_C_data;
+			port_C_data &= ~(1 << bit);
+			port_C_data |= (val << bit);
+			updateOutput(PIA_PORT_C, port_C_data);
 			if (mDebugInfo.dbgLevel & DBG_DEVICE)
 				cout << "Set PIA PortSelection C b" << bit << " to '" << val << "'\n";
 		}

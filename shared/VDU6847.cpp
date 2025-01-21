@@ -57,8 +57,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	if (mScanLine == mTopVBlankingH + mVisibleH) {
 
 		// The Field Sync (FS) signal goes High to Low at the end of the active display area
-		//mFS = 0;
-		updateOutput(VDU_PORT_FS, 0);  // set PIA port C, b7 to '0'
+		updateOutput(VDU_PORT_FS, 0);  // for Acorn atom this will set PIA port C:b7 to '0'
 
 		unlockDisplay();
 
@@ -175,7 +174,6 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 					int mem_adr = mVideoMemAdr + mem_row * 32 + char_col;
 					if (!readGraphicsMem(mem_adr, mem_data))
 						return false;
-
 					if (mAS)
 						// Semigraphic mode 6 with 2 x 3 graphic symbols (A/S HIGH)
 					{
@@ -258,8 +256,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 	if (mScanLine == 261) {
 		// The Field Sync (FS) signal goes High at the end of the vertical synchronisation pulse
-		//mFS = 1;
-		updateOutput(VDU_PORT_FS, 1); // set PIA port C, b7 to '0'
+		updateOutput(VDU_PORT_FS, 1); // For Acorn Atom this will set PIA port C:b7 to '0'
 	}
 
 	endCycle = mCycleCount;
@@ -413,7 +410,7 @@ bool VDU6847::write(uint16_t adr, uint8_t data)
 	return true;
 }
 
-bool VDU6847::readGraphicsMem(uint16_t adr, uint8_t& data)
+inline bool VDU6847::readGraphicsMem(uint16_t adr, uint8_t& data)
 {
 	return mVideoMem->read(adr, data) && updateOutput(VDU_PORT_DIN, data);
 }

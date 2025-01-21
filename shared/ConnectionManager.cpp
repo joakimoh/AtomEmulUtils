@@ -151,7 +151,7 @@ bool ConnectionManager::connect(string srcName, string dstName)
 	input_ref.mask = dst_port.bits.mask;
 	input_ref.shifts = src_port.bits.lowBit - dst_port.bits.lowBit;
 	src_port.port->inputs.push_back(input_ref);
-	if (mDebugInfo.dbgLevel & DBG_DEVICE)
+	if (true || mDebugInfo.dbgLevel & DBG_DEVICE)
 		cout << "CONNECT " << srcName << " AND " << dstName << " => shifts = " << dec << input_ref.shifts  << " & mask = 0x" << hex << (int) input_ref.mask  << dec << "\n";
 
 	return true;

@@ -99,7 +99,6 @@ protected:
 
 	int mPortIndex = 0;
 
-
 public:
 
 

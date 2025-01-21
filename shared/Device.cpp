@@ -78,9 +78,9 @@ bool Device::updateOutput(int index, uint8_t val)
 		InputReference input = mPorts[index]->inputs[i];
 		uint8_t pval = *(input.port->val);
 		if (input.shifts >= 0)
-			*(input.port->val) = (pval & ~input.mask) | ((val >> input.shifts) & input.mask);
+			*(input.port->val) = ((pval & ~input.mask) | ((val >> input.shifts) & input.mask)) & input.port->mask;
 		else
-			*(input.port->val) = (pval & ~input.mask) | ((val << (-input.shifts)) & input.mask);
+			*(input.port->val) = ((pval & ~input.mask) | ((val << (-input.shifts)) & input.mask)) & input.port->mask;
 
 		if (mDebugInfo.dbgLevel & DBG_DEVICE) {
 			string shift_s, c_dir;
@@ -88,7 +88,7 @@ bool Device::updateOutput(int index, uint8_t val)
 				shift_s = "((src >> shifts) & mask)";
 			else
 				shift_s = "((src << shifts) & mask)";
-			cout << input.port->dev->name << ":" << input.port->name <<
+			cout << input.port->dev->name << ":" << input.port->name << " = " <<
 				input.port->name << " &  ~mask | " << shift_s << " = 0x" << hex <<
 				(int)pval << " & 0x" << hex << setfill('0') << setw(2) << (int)(uint8_t)(~input.mask) << " | ((0x" << hex << (int)val <<
 				(input.shifts >= 0 ? " >> " : " << ") << setfill(' ') << dec << (input.shifts >= 0 ? input.shifts : -input.shifts) <<
