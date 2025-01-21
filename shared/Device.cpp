@@ -51,7 +51,8 @@ bool Device::addPort(string name, PortDirection dir, uint8_t mask, int &index, u
 	device_port->localIndex = index;
 	device_port->val = val;
 	device_port->globalIndex = -1;
-	cout << "DEVICE ADDS PORT " << mConnectionManager->printDevicePort(device_port) << "\n";
+	if (mDebugInfo.dbgLevel & DBG_DEVICE)
+		cout << "DEVICE ADDS PORT " << mConnectionManager->printDevicePort(device_port) << "\n";
 
 	mPorts.push_back(device_port);
 	
@@ -61,6 +62,13 @@ bool Device::addPort(string name, PortDirection dir, uint8_t mask, int &index, u
 	return true;
 }
 
+//
+// Update each connected input port (dst) based on the output port (src)
+// 
+// dst = dst & ~mask | (src & mask) when shifts = 0
+// dst = dst & ~mask | ((src >> shifts) & mask) when shifts > 0
+// dst = dst & ~mask | ((src << -shifts) & mask) when shifts < 0
+//
 bool Device::updateOutput(int index, uint8_t val)
 {
 	if (index < 0 && index >= mPorts.size())
@@ -68,7 +76,25 @@ bool Device::updateOutput(int index, uint8_t val)
 	*(mPorts[index]->val) = val;
 	for (int i = 0; i < mPorts[index]->inputs.size(); i++) {
 		InputReference input = mPorts[index]->inputs[i];
-		*(input.port->val) = (val >> input.shifts) & input.mask;
+		uint8_t pval = *(input.port->val);
+		if (input.shifts >= 0)
+			*(input.port->val) = (pval & ~input.mask) | ((val >> input.shifts) & input.mask);
+		else
+			*(input.port->val) = (pval & ~input.mask) | ((val << (-input.shifts)) & input.mask);
+
+		if (mDebugInfo.dbgLevel & DBG_DEVICE) {
+			string shift_s, c_dir;
+			if (input.shifts >= 0) 
+				shift_s = "((src >> shifts) & mask)";
+			else
+				shift_s = "((src << shifts) & mask)";
+			cout << input.port->dev->name << ":" << input.port->name <<
+				input.port->name << " &  ~mask | " << shift_s << " = 0x" << hex <<
+				(int)pval << " & 0x" << hex << setfill('0') << setw(2) << (int)(uint8_t)(~input.mask) << " | ((0x" << hex << (int)val <<
+				(input.shifts >= 0 ? " >> " : " << ") << setfill(' ') << dec << (input.shifts >= 0 ? input.shifts : -input.shifts) <<
+				") & 0x" << hex << (int)input.mask << ")" << setfill('0') << setw(2) <<
+				" = 0x" << hex << (int)*(input.port->val) << dec << "\n";
+		}
 	}
 	return true;
 }
@@ -232,7 +258,7 @@ Devices::Devices(
 	if (!loadData(data))
 		throw runtime_error("");
 
-	if (true || (mDebugInfo.dbgLevel & DBG_VERBOSE))
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 		connection_manager.printRouting();
 
 }

@@ -22,12 +22,13 @@ void ConnectionManager::setDevices(Devices* devices)
 bool ConnectionManager::addDevicePort(Device* dev, DevicePort *localPort)
 {
 	localPort->globalIndex = mDevicePortIndex++;
-
-	printDevicePort(localPort);
 	
 	mDevicePorts[dev][localPort->localIndex] = localPort;
 	
-	cout << "CONNECTION MANAGER ADDS " << printDevicePort(mDevicePorts[dev][localPort->localIndex]) << "\n";
+	if (mDebugInfo.dbgLevel & DBG_DEVICE) {
+		printDevicePort(localPort);
+		cout << "CONNECTION MANAGER ADDS " << printDevicePort(mDevicePorts[dev][localPort->localIndex]) << "\n";
+	}
 
 	return true;
 }
@@ -141,14 +142,17 @@ bool ConnectionManager::connect(string srcName, string dstName)
 	//mRouting[src_port.port->globalIndex].connections.push_back(connection);
 */
 	// Add dst port to src device port's list of connected inputs
+	// mask and shifts to be set so that
+	// dst = dst & ~mask | (src & mask) when shifts = 0
+	// dst = dst & ~mask | ((src >> shifts) & mask) when shifts > 0
+	// dst = dst & ~mask | ((src << -shifts) & mask) when shifts < 0
 	InputReference input_ref;
 	input_ref.port = dst_port.port;
-	input_ref.mask = src_port.bits.mask >> src_port.bits.lowBit;
-	input_ref.shifts = src_port.bits.lowBit;
+	input_ref.mask = dst_port.bits.mask;
+	input_ref.shifts = src_port.bits.lowBit - dst_port.bits.lowBit;
 	src_port.port->inputs.push_back(input_ref);
-
-	cout << "CONNECT " << srcName << " AND " << dstName << "\n";
-	//cout << "CONNECT " << printPortSelection(src_port) << " AND " << printPortSelection(dst_port) << "\n";
+	if (mDebugInfo.dbgLevel & DBG_DEVICE)
+		cout << "CONNECT " << srcName << " AND " << dstName << " => shifts = " << dec << input_ref.shifts  << " & mask = 0x" << hex << (int) input_ref.mask  << dec << "\n";
 
 	return true;
 }

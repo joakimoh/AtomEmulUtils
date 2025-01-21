@@ -39,11 +39,11 @@ typedef struct Program_struct {
 class DevicePort;
 //typedef struct DevicePort_struct DevicePort;
 
-// input = (output >> shifts) & mask
+// dst = dst & ~mask | ((src >> shifts) & mask)
 typedef struct InputReference_struct {
 	DevicePort *	port;
-	int				shifts = 0;		// no of steps to downshift
-	uint8_t			mask = 0xff;	// mask to be applied after downshifting
+	int				shifts = 0;		// no of steps to downshift src value to fit dst start bit
+	uint8_t			mask = 0xff;	// mask specifiyng the bits of the dst to be updated (set bit <= update)
 } InputReference;
 
 enum PortDirection {IN_PORT, OUT_PORT, IO_PORT};
