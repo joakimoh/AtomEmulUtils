@@ -75,7 +75,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 	}
 
-	else if (pixel_line >= 0 && pixel_line < mActiveAreaH)
+	if (pixel_line >= 0 && pixel_line < mActiveAreaH)
 		// Draw a visible active line
 	{		
 

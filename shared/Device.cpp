@@ -135,7 +135,6 @@ Devices::Devices(
 
 	string line;
 	int line_no = 1;
-	PIA8255* pia = NULL;
 	VDU6847* vdu = NULL;
 	while (getline(fin, line)) {
 
@@ -184,7 +183,7 @@ Devices::Devices(
 			}
 			else if (dev_typ_s == "PIA8255") {
 				a.deviceType = DeviceEnum::PIA8255_DEV;
-				pia = new PIA8255(dev_name, a.startAdr, n60HzCycles, (AtomKeyboard*)keyboard, mDebugInfo, &connection_manager);
+				PIA8255* pia = new PIA8255(dev_name, a.startAdr, n60HzCycles, (AtomKeyboard*)keyboard, mDebugInfo, &connection_manager);
 				mDevices.push_back(pia);
 			}
 			else if (dev_typ_s == "VIA6522") {
@@ -220,9 +219,8 @@ Devices::Devices(
 	}
 
 	
-	if (pia != NULL && vdu != NULL) {
+	if (vdu != NULL) {
 			
-			//pia->setVdu(vdu);
 			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 				cout << "PIA8255 got pointer to VDU6847\n";
 			

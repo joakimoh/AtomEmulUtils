@@ -135,15 +135,17 @@ int main(int argc, const char* argv[])
         } 
         else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
             quit = true;
+            al_flush_event_queue(queue);
         }
 
     }
 
+    al_stop_timer(emu_speed_timer);
     al_destroy_font(font);
     al_destroy_display(disp);
     al_destroy_timer(emu_speed_timer);
     al_destroy_event_queue(queue);
-
+ 
     return 0;
 
 }
