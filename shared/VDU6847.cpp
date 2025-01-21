@@ -53,8 +53,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	int visible_line = mScanLine - mTopVBlankingH;
 
 	
-
-	if (mScanLine == mTopVBlankingH + mVisibleH) {
+	if (pixel_line == mActiveAreaH) {
 
 		// The Field Sync (FS) signal goes High to Low at the end of the active display area
 		updateOutput(VDU_PORT_FS, 0);  // for Acorn atom this will set PIA port C:b7 to '0'
