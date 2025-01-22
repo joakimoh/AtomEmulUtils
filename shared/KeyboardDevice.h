@@ -1,13 +1,12 @@
-#ifndef ATOM_KEYBOARD_H
-#define ATOM_KEYBOARD_H
-#include <map>
-#include <allegro5/allegro.h>
-#include "Keyboard.h"
-#include <string>
-#include <vector>
-#include <iterator>
+#ifndef KEYBOARD_DEVICE_H
+#define KEYBOARD_DEVICE_H
 
-using namespace std;
+#include <vector>
+#include <map>
+#include "Device.h"
+#include <allegro5/allegro5.h>
+#include "DebugInfo.h"
+
 
 typedef struct AtomKey_struct {
 	int		keyCode;
@@ -23,9 +22,11 @@ typedef struct AtomModifier_struct {
 	bool repeat;
 } AtomModifier;
 
-class AtomKeyboard : public Keyboard {
+class KeyboardDevice : public Device {
 
 private:
+
+	ALLEGRO_KEYBOARD_STATE mKeyboardState;
 
 	map<int, AtomKey> mKeycodes = {
 
@@ -44,7 +45,7 @@ private:
 		{ALLEGRO_KEY_MINUS,			{ALLEGRO_KEY_MINUS,			0,		2,	"-"}},		// -=	
 		{ALLEGRO_KEY_DELETE,		{ALLEGRO_KEY_DELETE,		3,		2,	":"}},		// :*
 		{ALLEGRO_KEY_TILDE,			{ALLEGRO_KEY_TILDE,			5,		0,	"^"}},		// ^~
-		{ALLEGRO_KEY_PAUSE,			{ALLEGRO_KEY_PAUSE,			-1,    -1,  "BREAK"}},	// BREAK (not mapped to rows/cols)
+		{ALLEGRO_KEY_PAUSE,			{ALLEGRO_KEY_PAUSE,			-1,    -1,  "BREAK"}},	// BREAK (mapped as COL_H b1)
 
 
 		// Second row <-> COPY Q W E R T Y U I O P @ \ DEL
@@ -70,7 +71,7 @@ private:
 
 		// UP/DOWN arrow
 		{ALLEGRO_KEY_UP,			{ALLEGRO_KEY_UP,			5,		0,	"VTARROW"}}, // UP/DOWN ARROW
-		{ALLEGRO_KEY_LCTRL,			{ALLEGRO_KEY_LCTRL,			-1,		-1,	"CTRL"}},	// CTRL (PB6)
+		{ALLEGRO_KEY_LCTRL,			{ALLEGRO_KEY_LCTRL,			-1,		-1,	"CTRL"}},	// CTRL (mapped as COL_L b6)
 		{ALLEGRO_KEY_A,				{ALLEGRO_KEY_A,             6,		3,	"A"}},
 		{ALLEGRO_KEY_S,				{ALLEGRO_KEY_S,				8,		5,	"S"}},
 		{ALLEGRO_KEY_D,				{ALLEGRO_KEY_D,             3,		3,	"D"}},
@@ -87,7 +88,7 @@ private:
 
 		// Forth row LOCK SHIFT Z X C V B N M ,< .> /? SHIFT REPEAT
 		{ALLEGRO_KEY_CAPSLOCK,		{ALLEGRO_KEY_CAPSLOCK,		4,		0,	"LOCK"}},	// LOCK
-		{ALLEGRO_KEY_LSHIFT,		{ALLEGRO_KEY_LSHIFT,		-1,    -1,	"SHIFT"}},	// SHIFT (PB7)
+		{ALLEGRO_KEY_LSHIFT,		{ALLEGRO_KEY_LSHIFT,		-1,    -1,	"SHIFT"}},	// SHIFT (mapped as COL_L b7)
 		{ALLEGRO_KEY_Z,				{ALLEGRO_KEY_Z,				1,		5,	"Z"}},		// Z
 		{ALLEGRO_KEY_X,				{ALLEGRO_KEY_X,				3,		5,	"X"}},		// X
 		{ALLEGRO_KEY_C,				{ALLEGRO_KEY_C,             4,		3,	"C"}},		// C
@@ -98,8 +99,8 @@ private:
 		{ALLEGRO_KEY_COMMA,			{ALLEGRO_KEY_COMMA,			1,		2,	","}},		// ,<
 		{ALLEGRO_KEY_FULLSTOP,		{ALLEGRO_KEY_FULLSTOP,		9,		3,	"."}},		// .>
 		{ALLEGRO_KEY_END,			{ALLEGRO_KEY_END,			8,		3,	"/"}},		// /?
-		{ALLEGRO_KEY_RSHIFT,		{ALLEGRO_KEY_RSHIFT,		-1,    -1,	"SHIFT"}},	// SHIFT (PB7)
-		{ALLEGRO_KEY_RIGHT,			{ALLEGRO_KEY_RIGHT,			-1,    -1,	"REPEAT"}},	// REPEAT (PC6)
+		{ALLEGRO_KEY_RSHIFT,		{ALLEGRO_KEY_RSHIFT,		-1,    -1,	"SHIFT"}},	// SHIFT (mapped as COL_L b7)
+		{ALLEGRO_KEY_RIGHT,			{ALLEGRO_KEY_RIGHT,			-1,    -1,	"REPEAT"}},	// REPEAT (mapped as COL_H b0)
 
 		// Fifth row
 		{ALLEGRO_KEY_SPACE,			{ALLEGRO_KEY_SPACE,			9,   0,    " "}}
@@ -118,44 +119,33 @@ private:
 		{NULL, NULL, NULL, NULL, NULL, NULL}
 	};
 
-	map<unsigned, AtomModifier> mModifiers = {
-	{ALLEGRO_KEYMOD_SHIFT,		{ALLEGRO_KEYMOD_SHIFT,		false, true, false}},
-	{ALLEGRO_KEYMOD_CTRL,		{ALLEGRO_KEYMOD_CTRL,		true, false, false}},
-	{ALLEGRO_KEYMOD_ALT,		{ALLEGRO_KEYMOD_ALT,		false, false, false}},
-	{ALLEGRO_KEYMOD_LWIN,		{ALLEGRO_KEYMOD_LWIN,		false, false, false}},
-	{ALLEGRO_KEYMOD_RWIN,		{ALLEGRO_KEYMOD_RWIN,		false, false, false}},
-	{ALLEGRO_KEYMOD_MENU,		{ALLEGRO_KEYMOD_MENU,		false, false, false}},
-	{ALLEGRO_KEYMOD_ALTGR,		{ALLEGRO_KEYMOD_ALTGR,		false, false, false}},
-	{ALLEGRO_KEYMOD_COMMAND,	{ALLEGRO_KEYMOD_COMMAND,	false, false, false}},
-	{ALLEGRO_KEYMOD_SCROLLLOCK,	{ALLEGRO_KEYMOD_SCROLLLOCK,	false, false, false}},
-	{ALLEGRO_KEYMOD_NUMLOCK,	{ALLEGRO_KEYMOD_NUMLOCK,	false, false, false}},
-	{ALLEGRO_KEYMOD_CAPSLOCK,	{ALLEGRO_KEYMOD_CAPSLOCK,	false, false, false}},
-	{ALLEGRO_KEYMOD_INALTSEQ,	{ALLEGRO_KEYMOD_INALTSEQ,	false, false, false}},
-	{ALLEGRO_KEYMOD_ACCENT1,	{ALLEGRO_KEYMOD_ACCENT1,	false, false, false}},
-	{ALLEGRO_KEYMOD_ACCENT2,	{ALLEGRO_KEYMOD_ACCENT2,	false, false, false}},
-	{ALLEGRO_KEYMOD_ACCENT3,	{ALLEGRO_KEYMOD_ACCENT3,	false, false, false}},
-	{ALLEGRO_KEYMOD_ACCENT4,	{ALLEGRO_KEYMOD_ACCENT4,	false, false, false}}
-	};
+	// Ports that can be connected to other devices
+	int KB_ROW, KB_COL_L, KB_COL_H;
+	uint8_t mSelectedRow = 0x0;
+	uint8_t mColumnL = 0xff;
+	uint8_t mColumnH = 0x3;
 
-public:
-
-
-private:
-	int mSelectedRow = 0;
-	int mCtrlKeyCode =  -1 ;
+	int mCtrlKeyCode = -1;
 	int mShiftKeyCodes[2] = { -1 };
 	int mRepeatKeyCode = -1;
+	int mBreakKeyCode = -1;
 
 public:
 
-	uint8_t readColumn();
-	void selectRow(uint8_t row);
+	KeyboardDevice(string name, DebugInfo debugInfo, ConnectionManager* connectionManager);
 
-	bool ctrlPressed();
-	bool shiftPressed();
-	bool repeatPressed();
+	// The Keyboard Device is not a memory-mapped device so we have to
+	// return false on all attempts to access it...
+	bool read(uint16_t adr, uint8_t& data) { data = 0xff; return false; }
+	bool write(uint16_t adr, uint8_t data) { return false;  }
+	bool selected(uint16_t adr) { return false; }
+	bool validAdr(uint16_t adr) { return false; }
 
-	AtomKeyboard(DebugInfo debugInfo);
+	// Reset device
+	bool reset() { mCycleCount = 0; return true; }
+
+	//  Advance until clock cycle stopcycle has been reached
+	bool advance(uint64_t stopCycle);
 };
 
 #endif

@@ -2,10 +2,8 @@
 #include "Device.h"
 #include <iostream>
 #include <filesystem>
-#include "AtomKeyboard.h"
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_font.h>
-#include "AtomKeyboard.h"
 #include "VDU6847.h"
 #include "Device.h"
 
@@ -96,8 +94,8 @@ bool PIA8255::advance(uint64_t stopCycle)
 
 
 
-PIA8255::PIA8255(string name, uint16_t adr, int n60HzCycles, AtomKeyboard* keyboard, DebugInfo debugInfo, ConnectionManager* connectionManager) :
-	Device(name, PIA8255_DEV, adr, 4, debugInfo, connectionManager), mKeyboard(keyboard), mN60HzCycles(n60HzCycles)
+PIA8255::PIA8255(string name, uint16_t adr, int n60HzCycles, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+	Device(name, PIA8255_DEV, PERIPERHAL, adr, 4, debugInfo, connectionManager), mN60HzCycles(n60HzCycles)
 {
 	// Specify ports that can be connected to other devices
 	addPort("PortA", IO_PORT, 0xff, PIA_PORT_A, &mPortA);
@@ -128,20 +126,13 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 	}
 
 	else if (adr == PIA8255_PORT_B)
-		// For the Acorn Atom the bits ar eused according to below:
+		// For the Acorn Atom the bits are used according to below:
 		//	0-5		Keyboard column (low when a key pressed)
 		//	6		CTRL key(low when pressed)
 		//	7		SHIFT key (low when pressed)
 	{
 		
 		data = mPortB;
-
-		
-		data = mKeyboard->readColumn();
-		if (mKeyboard->ctrlPressed())
-			data &= ~0x40;
-		if (mKeyboard->shiftPressed())
-			data &= ~0x80;
 
 	}
 
@@ -155,11 +146,6 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 	{
 
 		data = mPortC;
-
-		// Update REPEAT key bit (inactive LOW)
-		data |= 0x40; 
-		if (mKeyboard->repeatPressed())
-			data &= ~0x40;
 
 		if (mDebugInfo.dbgLevel & DBG_DEVICE)
 			cout << "READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
@@ -181,9 +167,6 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		//	0-3		Keyboard row
 		//	4-7		Graphics mode
 	{
-		// Update keyboard row
-		if (mKeyboard != NULL)
-			mKeyboard->selectRow(data & 0xf);
 
 		updateOutput(PIA_PORT_A, data);
 	}
@@ -250,12 +233,4 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		cout << "WROTE 0x" << setw(2) << setfill('0') << hex << (int)data << " to 0x" << setw(4) << adr << "\n";
 
 	return true;
-}
-
-void PIA8255::updateInput(uint8_t port, uint8_t bit, uint8_t val)
-{
-	if (port >= 0 && port <= 2 && bit >= 0 && bit <= 7 && val >= 0 && val <= 1) {
-		mMem[port] &= ~(1 << bit);
-		mMem[port] |= (val << bit);
-	}
 }

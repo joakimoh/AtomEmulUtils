@@ -12,14 +12,10 @@
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_image.h>
-
 #include "ArgParser.h"
 #include "../shared/P6502.h"
 #include "../shared/Codec6502.h"
-#include "../shared/AtomKeyboard.h"
-
 #include "../shared/VDU6847.h"
-#include "../shared/PIA8255.h"
 
 #include <chrono>
 
@@ -53,19 +49,20 @@ int main(int argc, const char* argv[])
     if (arg_parser.failed())
         return -1;
 
-    AtomKeyboard atom_keyboard(arg_parser.debugInfo);
     int n_cycles_per_60_hz = (int)round(arg_parser.cMHz * 1000000/ 60);
     ALLEGRO_BITMAP* display = al_get_target_bitmap();
 
     ConnectionManager connection_manager(arg_parser.debugInfo);
+
+    Device* vdu_device = NULL;
+    vector<Device*> non_vdu_devices;
     Devices devices(
-        arg_parser.mapFileName, n_cycles_per_60_hz, display, (Keyboard *) &atom_keyboard,
-        arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager
+        arg_parser.mapFileName, n_cycles_per_60_hz, 1.0, display,
+        arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, vdu_device, non_vdu_devices
+
     );
+    VDU6847 * vdu = (VDU6847*)vdu_device;
    
-    
-    // Create processor object
-    P6502 processor(arg_parser.cMHz, devices, arg_parser.debugInfo);
 
     al_start_timer(emu_speed_timer);
 
@@ -74,16 +71,9 @@ int main(int argc, const char* argv[])
     uint64_t cycle_count = 0;
 
     // RESET all devices
-    VDU6847* vdu = NULL;
-    for (int d = 0; d < devices.size(); d++) {
-        Device* dev = NULL;
-        if (devices.getDevice(d, dev)) {
-            dev->reset();
-            if (dev->devType == VDU6847_DEV)
-                vdu = (VDU6847*)dev;
-        }
-    }
-    processor.reset();
+    for (int d = 0; d < devices.size(); d++)
+        non_vdu_devices[d]->reset();
+    vdu->reset();
     if (arg_parser.debugInfo.dbgLevel & DBG_VERBOSE)
     cout << "All devices now reset...\n";
 
@@ -107,17 +97,9 @@ int main(int argc, const char* argv[])
 
                 cycle_count += cycle_step;
 
-                // advance time for the 6502 until cycle_count has been reached (or slightly passed)
-                processor.advance(cycle_count);
-
-                // advance time for each device (when applicable) until cycle_count has been reached  (or slightly passed)
-                for (int d = 0; d < devices.size(); d++) {
-                    Device* dev = NULL;
-                    if (devices.getDevice(d, dev)) {
-                        if (dev != vdu)
-                            dev->advance(cycle_count);
-                    }
-                }
+                // advance time for each device until cycle_count has been reached  (or slightly passed)
+                for (int d = 0; d < non_vdu_devices.size(); d++)
+                    non_vdu_devices[d]->advance(cycle_count);
 
             }
 

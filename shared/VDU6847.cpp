@@ -347,18 +347,18 @@ bool VDU6847::setVideoRam(RAM* ram)
 // 1	1	1	1	7		256 x 192	2			6kB					resolution graphics six (RG6)		Yes - Graphics mode 4
 //
 
-VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager) :
-	Device(name, VDU6847_DEV, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
+VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager):
+	Device(name, VDU6847_DEV, PERIPERHAL, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
 {
 	// Specify ports that can be connectde to other devices
-	addPort("A/S",		IN_PORT,	0x01, VDU_PORT_AS, &mAS);
-	addPort("A/G",		IN_PORT,	0x01, VDU_PORT_AG, &mAG);
-	addPort("GM",		IN_PORT,	0x07, VDU_PORT_GM, &mGM);
-	addPort("CSS",		IN_PORT,	0x01, VDU_PORT_CSS, &mCSS);
-	addPort("INT/EXT",	IN_PORT,	0x01, VDU_PORT_INT_EXT, &mIntExt);
-	addPort("INV",		IN_PORT,	0x01, VDU_PORT_INV, &mInv);
-	addPort("FS",		OUT_PORT,	0x01, VDU_PORT_FS, &mFS);
-	addPort("Din",		OUT_PORT,	0xff, VDU_PORT_DIN, &mDin);
+	addPort("A/S",		IN_PORT,	0x01, VDU_PORT_AS,		&mAS);
+	addPort("A/G",		IN_PORT,	0x01, VDU_PORT_AG,		&mAG);
+	addPort("GM",		IN_PORT,	0x07, VDU_PORT_GM,		&mGM);
+	addPort("CSS",		IN_PORT,	0x01, VDU_PORT_CSS,		&mCSS);
+	addPort("INT/EXT",	IN_PORT,	0x01, VDU_PORT_INT_EXT,	&mIntExt);
+	addPort("INV",		IN_PORT,	0x01, VDU_PORT_INV,		&mInv);
+	addPort("FS",		OUT_PORT,	0x01, VDU_PORT_FS,		&mFS);
+	addPort("Din",		OUT_PORT,	0xff, VDU_PORT_DIN,		&mDin);
 
 
 	// Set the size of the VDU register vector

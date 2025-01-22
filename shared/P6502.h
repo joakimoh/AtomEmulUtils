@@ -2,14 +2,15 @@
 #define P6502_H
 
 #include "Codec6502.h"
-#include "VIA6522.h"
-#include "ROM.h"
 #include "Device.h"
 #include <vector>
 #include <mutex>
 #include "DebugInfo.h"
+#include <cstdint>
 
-class P6502 {
+using namespace std;
+
+class P6502 : public Device {
 
 private:
 
@@ -25,7 +26,7 @@ private:
 
 	// Registers
 	uint16_t mProgramCounter;	// Program Counter
-	uint8_t mAcc;		// Accumulator
+	uint8_t mAcc;				// Accumulator
 	uint8_t mRegisterX;			// Index Register mRegisterX
 	uint8_t mRegisterY;			// Index Register mRegisterY
 	uint8_t mStackPointer;		// Stack Pointer
@@ -68,25 +69,40 @@ private:
 
 	string getState();
 
-	DebugInfo mDebugInfo;
-
-	Devices mDevices;
-
 	int mTraceCount = 0;
 	std::vector<string> mBufferedTraceLines;
 	bool mEndOfTracingReached = false;;
 
 	uint64_t mCycleCount = 0;
 
+	// Ports that can be connected to other devices
+	int RESET, NMI, IRQ;
+	uint8_t mRESET = 0x1;
+	uint8_t mNMI = 0x1;
+	uint8_t mIRQ = 0x1;
+	
+
 public:
 
-	P6502(double clockSpeed, Devices &devices, DebugInfo debugInfo);
+	vector<Device*> mDevices;
+
+	P6502(string name, double clockSpeed, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	~P6502();
 
 	// Reset device
 	bool reset(); 
 
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
+
+	// Provide dummy implementations of the below methods as the 6502 is neither a memory nor a peripheral
+	bool read(uint16_t adr, uint8_t& data) { return false; }
+	bool write(uint16_t adr, uint8_t data) { return false; }
+	bool selected(uint16_t adr) { return false;  }
+	bool validAdr(uint16_t adr) { return false; }
+
+	bool readDevice(uint16_t adr, uint8_t& data);
+	bool writeDevice(uint16_t adr, uint8_t data);
 
 
 };

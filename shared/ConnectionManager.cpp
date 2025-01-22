@@ -132,20 +132,6 @@ bool ConnectionManager::connect(string srcName, string dstName)
 	connection.srcBits = src_port.bits;
 	connection.dstPort = dst_port;
 
-	// Lookup routing (if existing). If not existing, create a new one
-/*
-	if (mRouting.find(src_port.port->globalIndex) == mRouting.end()) {
-		Routing routing;
-		routing.srcPort = src_port.port;
-		mRouting[src_port.port->globalIndex] = routing;
-	}
-	//mRouting[src_port.port->globalIndex].connections.push_back(connection);
-*/
-	// Add dst port to src device port's list of connected inputs
-	// mask and shifts to be set so that
-	// dst = dst & ~mask | (src & mask) when shifts = 0
-	// dst = dst & ~mask | ((src >> shifts) & mask) when shifts > 0
-	// dst = dst & ~mask | ((src << -shifts) & mask) when shifts < 0
 	InputReference input_ref;
 	input_ref.port = dst_port.port;
 	input_ref.mask = dst_port.bits.mask;

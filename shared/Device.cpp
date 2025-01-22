@@ -4,12 +4,15 @@
 #include "PIA8255.h"
 #include "VDU6847.h"
 #include "VIA6522.h"
+#include "KeyboardDevice.h"
 #include <iostream>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <allegro5/allegro.h>
 #include <string>
+#include "P6502.h"
+#include <vector>
 
 using namespace std;
 
@@ -17,8 +20,8 @@ using namespace std;
 // Device class
 //
 
-Device::Device(string n, DeviceEnum typ,uint16_t adr, uint16_t sz, DebugInfo debugInfo, ConnectionManager *connectionManager) :
-	devType(typ), mDevAdr(adr), mDevSz(sz), mConnectionManager(connectionManager), mDebugInfo(debugInfo), name(n)
+Device::Device(string n, DeviceId typ, DeviceCategory cat, uint16_t adr, uint16_t sz, DebugInfo debugInfo, ConnectionManager *connectionManager) :
+	devType(typ), mDevAdr(adr), mDevSz(sz), mConnectionManager(connectionManager), mDebugInfo(debugInfo), name(n), category(cat)
 {
 }
 
@@ -57,6 +60,9 @@ bool Device::addPort(string name, PortDirection dir, uint8_t mask, int &index, u
 	mPorts.push_back(device_port);
 	
 	mConnectionManager->addDevicePort(this, device_port);
+
+	if (mDebugInfo.dbgLevel && DBG_VERBOSE)
+	cout << "ADDED " << this->name << " " << _PORT_DIR(dir) << " PORT '" << name << "' #" << dec << index << " (#" << device_port->globalIndex << ")\n";
 	
 
 	return true;
@@ -117,9 +123,9 @@ bool Device::getPortIndex(string name, DevicePort * &port) {
 
 
 Devices::Devices(
-	string memMapFile, int n60HzCycles, ALLEGRO_BITMAP* disp, Keyboard* keyboard, DebugInfo debugInfo,
-	Program program, Program data, ConnectionManager &connection_manager) :
-	mDebugInfo(debugInfo)
+	string memMapFile, int n60HzCycles, double clockSpeed, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
+	Program program, Program data, ConnectionManager& connection_manager, Device * &vdu,
+	vector<Device*>& nonVduDevices) :mDebugInfo(debugInfo)
 {
 
 	connection_manager.setDevices(this);
@@ -135,7 +141,9 @@ Devices::Devices(
 
 	string line;
 	int line_no = 1;
-	VDU6847* vdu = NULL;
+	vdu = NULL;
+	P6502 * microprocessor = NULL;
+	
 	while (getline(fin, line)) {
 
 		try {
@@ -146,7 +154,7 @@ Devices::Devices(
 			sin >> dev_typ_s;
 
 			DeviceAllocation a;
-			if (dev_typ_s != "CONNECT") {
+			if (dev_typ_s != "CONNECT" && dev_typ_s != "KB" && dev_typ_s != "6502") {
 				sin >> dev_name;
 				sin >> dev_adr_s;
 				dev_adr = stoi(dev_adr_s, 0, 16);
@@ -156,13 +164,28 @@ Devices::Devices(
 				a.size = dev_sz;
 			}
 
-			if (dev_typ_s == "RAM") {
-				a.deviceType = DeviceEnum::RAM_DEV;
+			if (dev_typ_s == "KB") {
+				sin >> dev_name;
+				a.deviceType = DeviceId::ATOM_KB_DEV;
+				KeyboardDevice * kb = new KeyboardDevice(dev_name, mDebugInfo, &connection_manager);
+				mDevices.push_back(kb);
+			}
+
+			else if (dev_typ_s == "6502") {
+				sin >> dev_name;
+				a.deviceType = DeviceId::P6502_DEV;
+				microprocessor = new P6502(dev_name, clockSpeed, mDebugInfo, &connection_manager);
+				mDevices.push_back(microprocessor);
+			}
+
+			else if (dev_typ_s == "RAM") {
+				a.deviceType = DeviceId::RAM_DEV;
 				RAM* ram = new RAM(dev_name, a.startAdr, a.size, mDebugInfo);
 				mDevices.push_back(ram);
 			}
+
 			else if (dev_typ_s == "VDU6847") {
-				a.deviceType = DeviceEnum::VDU6847_DEV;
+				a.deviceType = DeviceId::VDU6847_DEV;
 				string video_mem_adr_s;
 				sin >> video_mem_adr_s;
 				a.videoMemAdr = stoi(video_mem_adr_s, 0, 16);
@@ -170,7 +193,7 @@ Devices::Devices(
 				mDevices.push_back(vdu);
 			}
 			else if (dev_typ_s == "ROM") {
-				a.deviceType = DeviceEnum::ROM_DEV;
+				a.deviceType = DeviceId::ROM_DEV;
 				string ROM_file_name;
 				sin >> ROM_file_name;
 				a.ROMFileName = ROM_file_name;
@@ -182,12 +205,12 @@ Devices::Devices(
 				mDevices.push_back(rom);
 			}
 			else if (dev_typ_s == "PIA8255") {
-				a.deviceType = DeviceEnum::PIA8255_DEV;
-				PIA8255* pia = new PIA8255(dev_name, a.startAdr, n60HzCycles, (AtomKeyboard*)keyboard, mDebugInfo, &connection_manager);
+				a.deviceType = DeviceId::PIA8255_DEV;
+				PIA8255* pia = new PIA8255(dev_name, a.startAdr, n60HzCycles, mDebugInfo, &connection_manager);
 				mDevices.push_back(pia);
 			}
 			else if (dev_typ_s == "VIA6522") {
-				a.deviceType = DeviceEnum::VIA6522_DEV;
+				a.deviceType = DeviceId::VIA6522_DEV;
 				VIA6522* via = new VIA6522(dev_name, a.startAdr, mDebugInfo, &connection_manager);
 				mDevices.push_back(via);
 			}
@@ -205,7 +228,7 @@ Devices::Devices(
 				
 			}
 			else {
-				a.deviceType = DeviceEnum::UNDEFINED_DEV;
+				a.deviceType = DeviceId::UNDEFINED_DEV;
 				cout << "Unsupported device type " << a.deviceType << "!\n";
 				throw runtime_error("Attempt to add unsupported device (should never happen)");
 			}
@@ -218,8 +241,18 @@ Devices::Devices(
 		line_no++;
 	}
 
-	
-	if (vdu != NULL) {
+	if (vdu == NULL) {
+		cout << "No video data unit device specifed!\n";
+		throw runtime_error("No video data unit device specifed");
+	}
+
+	if (microprocessor == NULL) {
+		cout << "No microprocessor device specifed!\n";
+		throw runtime_error("No microprocessor device specifed");
+	}
+
+	// Update the video data unit with graphics memory data
+	{
 			
 			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 				cout << "PIA8255 got pointer to VDU6847\n";
@@ -227,7 +260,7 @@ Devices::Devices(
 			// Get RAM address that matches VDU6847 video memory address
 			// Get RAM device that matches the program load address
 			RAM* ram = NULL;
-			uint16_t video_mem_start_adr = vdu -> getVideoMemAdr();
+			uint16_t video_mem_start_adr = ((VDU6847 *) vdu) -> getVideoMemAdr();
 			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 				cout << "Video Memory starts at address 0x" << hex << video_mem_start_adr << "\n";
 			for (int i = 0; i < mDevices.size(); i++) {
@@ -244,11 +277,18 @@ Devices::Devices(
 			}
 			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 				cout << "Found RAM that matches video memory range\n";
-			vdu-> setVideoRam(ram);
+			((VDU6847*)vdu)-> setVideoRam(ram);
 			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 				cout << "Video RAM set for VDU6847\n";
 
 	}
+
+	// Update the microprocessor with memory-mapped devices that it shall be able to access
+	if (!getMemoryMappedDevices(microprocessor->mDevices)) {
+		cout << "Failed to get memory-mapped devices!\n";
+		throw runtime_error("Failed to get memory-mapped devices");
+	}
+
 
 	if (!loadData(program))
 		throw runtime_error("");
@@ -318,38 +358,40 @@ bool Devices::loadData(Program data)
 	return true;
 }
 
-//
-//
-bool Devices::read(uint16_t adr, uint8_t & data)
+bool Devices::getPeripherals(vector<Device*>& devices)
 {
-
 	for (int i = 0; i < mDevices.size(); i++) {
-		Device* dev = mDevices[i];
-		if (dev->selected(adr)) {
-			bool success = dev->read(adr, data);
-			if (mDebugInfo.dbgLevel & DBG_DEVICE)
-				cout << "READ 0x" << hex << adr << " => " << (int)data << "\n";
-			return success;
+		if (mDevices[i]->category == PERIPERHAL) {
+			devices.push_back(mDevices[i]);
+			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
+				cout << "Adding peripheral '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
-
-	data = 0xff;
 	return true;
 }
 
-//
-//
-//
-bool Devices::write(uint16_t adr, uint8_t data)
+bool Devices::getMemoryMappedDevices(vector<Device*> &devices)
 {
-
 	for (int i = 0; i < mDevices.size(); i++) {
-		Device* dev = mDevices[i];
-		if (dev->selected(adr)) {
-			if (mDebugInfo.dbgLevel & DBG_DEVICE)
-				cout << "WRITE 0x" << hex << (int)data << " to 0x" << adr << "\n";
-			return dev->write(adr, data);
+		if (mDevices[i]->category == PERIPERHAL || mDevices[i]->category == MEMORY_DEVICE) {
+			devices.push_back(mDevices[i]);
+			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
+				cout << "Adding memory-mapped device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
-	return false;
+	return true;
 }
+
+bool Devices::getNonVduTimeAwareDevices(vector<Device *> &devices)
+{
+	for (int i = 0; i < mDevices.size(); i++) {
+		if (mDevices[i]->category != MEMORY_DEVICE && mDevices[i]->devType != VDU6847_DEV) {
+			devices.push_back(mDevices[i]);
+			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
+				cout << "Adding non-VDU time-aware device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
+		}
+	}
+	return true;
+}
+
+

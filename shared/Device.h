@@ -6,7 +6,7 @@
 #include <string>
 #include <map>
 #include "DebugInfo.h"
-#include "Keyboard.h"
+#include <allegro5/allegro_primitives.h>
 
 
 using namespace std;
@@ -16,14 +16,21 @@ class ConnectionManager;
 class Device;
 class Devices;
 
-enum DeviceEnum {
-	ROM_DEV, RAM_DEV, PIA8255_DEV, VDU6847_DEV, VIA6522_DEV, UNDEFINED_DEV
+enum DeviceId {
+	ROM_DEV, RAM_DEV, PIA8255_DEV, VDU6847_DEV, VIA6522_DEV, ATOM_KB_DEV, P6502_DEV, UNDEFINED_DEV
 };
-#define _DEVICE_TYPE(x) (\
-	x==ROM_DEV?"ROM":(x==RAM_DEV?"RAM":(x==PIA8255_DEV?"PIA 8255":(x==VDU6847_DEV?"VDU 6847":(x==VIA6522_DEV?"VIA 6522":"???")))))
+#define _DEVICE_ID(x) (\
+	x==ROM_DEV?"ROM":(x==RAM_DEV?"RAM":(x==PIA8255_DEV?"PIA 8255":(x==VDU6847_DEV?"VDU 6847":(x==VIA6522_DEV?"VIA 6522":\
+(x==ATOM_KB_DEV?"ATOM KB":(x==P6502_DEV?"6502":"???")))))))
+
+enum DeviceCategory {
+	MICROROCESSOR_DEVICE, PERIPERHAL, MEMORY_DEVICE, OTHER_DEVICE
+};
+#define _DEVICE_CATEGORY(x) (\
+	x==MICROROCESSOR_DEVICE?"Microprocessor":(x== PERIPERHAL?"Peripheral":(x==MEMORY_DEVICE?"Memory":"Other Device")))
 
 typedef struct DeviceAllocation_struct {
-	DeviceEnum deviceType;
+	DeviceId deviceType;
 	uint16_t startAdr;
 	uint16_t size;
 	string ROMFileName;
@@ -104,9 +111,11 @@ public:
 
 	string name;
 
-	DeviceEnum devType;
+	DeviceId devType;
 
-	Device(string name, DeviceEnum typ, uint16_t adr, uint16_t sz, DebugInfo debugInfo, ConnectionManager *connectionManager);
+	DeviceCategory category;
+
+	Device(string name, DeviceId typ, DeviceCategory cat, uint16_t adr, uint16_t sz, DebugInfo debugInfo, ConnectionManager *connectionManager);
 	~Device();
 
 	virtual bool read(uint16_t adr, uint8_t& data) = 0;
@@ -120,9 +129,6 @@ public:
 
 	//  Advance until clock cycle stopcycle has been reached
 	virtual bool advance(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }
-
-	// Update of an input by another device via the connection manager
-	//bool updateInput(PortSelection &port, uint8_t val);
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 	bool updateOutput(int index, uint8_t val);
@@ -145,11 +151,16 @@ private:
 public:
 
 	Devices(
-		string memMapFile, int n60HzCycles, ALLEGRO_BITMAP* disp, Keyboard *keyboard, DebugInfo debugInfo,
-		Program program, Program data, ConnectionManager &connectionManager
+		string memMapFile, int n60HzCycles, double clockSpeed, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
+		Program program, Program data, ConnectionManager &connectionManager, Device * &vdu,
+		vector<Device *> &nonVduDevices
 	);
 
 	~Devices();
+
+	bool getPeripherals(vector<Device*> &devices);
+	bool getNonVduTimeAwareDevices(vector<Device*> &devices);
+	bool getMemoryMappedDevices(vector<Device*> &devices);
 
 	bool loadData(Program data);
 
@@ -164,20 +175,7 @@ public:
 		return false;
 	}
 
-	bool getDevice(int n, Device* &device) {
-		device = NULL;
-		if (n >= 0 && n < mDevices.size()) {
-			device = mDevices[n];
-			return true;
-		}	
-		return false;
-	}
-
 	int size() { return (int) mDevices.size(); }
-
-
-	bool read(uint16_t adr, uint8_t& data);
-	bool write(uint16_t adr, uint8_t data);
 
 };
 

@@ -159,7 +159,7 @@ public:
 	ALLEGRO_COLOR green, black;
 
 	VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
-	VDU6847::~VDU6847();
+	~VDU6847();
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);
