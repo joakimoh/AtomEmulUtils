@@ -62,7 +62,8 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 	if (!mRESET) {
 		reset();
-		mCycleCount = endCycle;
+		mCycleCount += (int)round(63.5 / proc_clk_rate_Mhz);
+		endCycle = mCycleCount;
 		return true;
 	}
 
@@ -267,7 +268,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	// Next scan line if a complete line has been scanned
 	mScanLine = (mScanLine + 1) % 262;
 
-	if (mScanLine == 261) {
+	if (mScanLine == 0) {
 		// The Field Sync (FS) signal goes High at the end of the vertical synchronisation pulse
 		updateOutput(VDU_PORT_FS, 1); // For Acorn Atom this will set PIA port C:b7 to '0'
 	}
@@ -362,7 +363,7 @@ bool VDU6847::setVideoRam(RAM* ram)
 //
 
 VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager):
-	Device(name, VDU6847_DEV, PERIPERHAL, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
+	Device(name, VDU6847_DEV, PERIPHERAL, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
 {
 	// Specify ports that can be connectde to other devices
 	addPort("RESET", IN_PORT, 0x01, RESET, &mRESET);

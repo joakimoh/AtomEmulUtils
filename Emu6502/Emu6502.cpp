@@ -87,31 +87,31 @@ int main(int argc, const char* argv[])
     bool quit = false;
     while (!quit)
     {   
-        if (vdu->mRESET) {
 
-            // Advance time one 60 Hz NTSC field scan line at a time until a complete field (262 lines) has been scanned
-            for (int scan_line = 0; scan_line < 262; scan_line++) {
 
-                // Scan one field scan_line and save time passed in target cycle count to be used as reference
-                // target time for the 6502 and the other devices (PIA, VIA, RAM & ROM). This
-                // is required to keep execution synchronised with the field updating.
-                uint64_t target_cycle_count;
-                vdu->advanceLine(target_cycle_count);
+        // Advance time one 60 Hz NTSC field scan line at a time until a complete field (262 lines) has been scanned
+        for (int scan_line = 0; scan_line < 262; scan_line++) {
 
-                // Advance each device in steps (cycle_step) until it has reached a time corresponding to one scan scan_line
-                while (cycle_count < target_cycle_count) {
 
-                    cycle_count += cycle_step;
+            // Scan one field scan_line and save time passed in target cycle count to be used as reference
+            // target time for the 6502 and the other devices (PIA, VIA, RAM & ROM). This
+            // is required to keep execution synchronised with the field updating.
+            uint64_t target_cycle_count;
+            vdu->advanceLine(target_cycle_count);
 
-                    // advance time for each device until cycle_count has been reached  (or slightly passed)
-                    for (int d = 0; d < non_vdu_devices.size(); d++)
-                        non_vdu_devices[d]->advance(cycle_count);
+            // Advance each device in steps (cycle_step) until it has reached a time corresponding to one scan scan_line
+            while (cycle_count < target_cycle_count) {
 
-                }
+                cycle_count += cycle_step;
 
+                // advance time for each device until cycle_count has been reached  (or slightly passed)
+                for (int d = 0; d < non_vdu_devices.size(); d++)
+                    non_vdu_devices[d]->advance(cycle_count);
 
             }
+
         }
+
 
         // wait for event
         al_wait_for_event(queue, &event);

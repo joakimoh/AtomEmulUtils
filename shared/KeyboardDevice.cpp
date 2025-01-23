@@ -65,16 +65,17 @@ bool KeyboardDevice::advance(uint64_t stopCycle)
 	uint8_t column_L = 0xff;
 	uint8_t column_H = 0x03;
 
-	if (mSelectedRow > 9)
-		return true;
+	if (mSelectedRow <= 9) {
 
-	// Get non-modifier keys
-	for (uint8_t c = 0; c < 6; c++) {
-		AtomKey* key = mKeyboardMatrix[mSelectedRow][c];
-		if (key != NULL && al_key_down(&mKeyboardState, key->keyCode))
-			column_L &= ~(0x1 << c);
+		// Get non-modifier keys
+		for (uint8_t c = 0; c < 6; c++) {
+			AtomKey* key = mKeyboardMatrix[mSelectedRow][c];
+			if (key != NULL && al_key_down(&mKeyboardState, key->keyCode))
+				column_L &= ~(0x1 << c);
+		}
+
 	}
-
+	
 	// Get CTRL key
 	if (al_key_down(&mKeyboardState, mCtrlKeyCode))
 		column_L &= ~0x40;
@@ -98,6 +99,7 @@ bool KeyboardDevice::advance(uint64_t stopCycle)
 
 	if (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0) && ( column_L != 0xff || column_H != 0x3))
 		cout << "column L = 0x" << hex << (int)column_L << ", column H = 0x" << (int)column_H << "\n";
+
 	
 	return true;
 }

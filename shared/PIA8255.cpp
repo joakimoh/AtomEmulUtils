@@ -106,7 +106,7 @@ bool PIA8255::advance(uint64_t stopCycle)
 
 
 PIA8255::PIA8255(string name, uint16_t adr, int n60HzCycles, DebugInfo debugInfo, ConnectionManager* connectionManager) :
-	Device(name, PIA8255_DEV, PERIPERHAL, adr, 4, debugInfo, connectionManager), mN60HzCycles(n60HzCycles)
+	Device(name, PIA8255_DEV, PERIPHERAL, adr, 4, debugInfo, connectionManager), mN60HzCycles(n60HzCycles)
 {
 	// Specify ports that can be connected to other devices
 	addPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
@@ -133,19 +133,16 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 		return false;
 
 	if (adr == PIA8255_PORT_A) {
-
 		data = mPortA;
 	}
 
 	else if (adr == PIA8255_PORT_B)
 		// For the Acorn Atom the bits are used according to below:
-		//	0-5		Keyboard column (low when a key pressed)
-		//	6		CTRL key(low when pressed)
+		//	0-5		Keyboard column (low when a key is pressed)
+		//	6		CTRL key (low when pressed)
 		//	7		SHIFT key (low when pressed)
-	{
-		
+	{		
 		data = mPortB;
-
 	}
 
 	else if (adr == PIA8255_PORT_C)
@@ -162,6 +159,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 		if (mDebugInfo.dbgLevel & DBG_DEVICE)
 			cout << "PIA EXECUTED READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
 	}
+
 	else { // adr == PIA8255_CONTROL
 		data = mCR;
 	}

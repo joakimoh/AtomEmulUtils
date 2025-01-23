@@ -24,10 +24,10 @@ enum DeviceId {
 (x==ATOM_KB_DEV?"ATOM KB":(x==P6502_DEV?"6502":"???")))))))
 
 enum DeviceCategory {
-	MICROROCESSOR_DEVICE, PERIPERHAL, MEMORY_DEVICE, OTHER_DEVICE
+	MICROROCESSOR_DEVICE, PERIPHERAL, MEMORY_DEVICE, OTHER_DEVICE
 };
 #define _DEVICE_CATEGORY(x) (\
-	x==MICROROCESSOR_DEVICE?"Microprocessor":(x== PERIPERHAL?"Peripheral":(x==MEMORY_DEVICE?"Memory":"Other Device")))
+	x==MICROROCESSOR_DEVICE?"Microprocessor":(x== PERIPHERAL?"Peripheral":(x==MEMORY_DEVICE?"Memory":"Other Device")))
 
 typedef struct DeviceAllocation_struct {
 	DeviceId deviceType;
@@ -125,7 +125,7 @@ public:
 	bool validAdr(uint16_t adr);
 
 	// Reset device
-	virtual bool reset() { mCycleCount = 0; return true; }
+	virtual bool reset() { return true; }
 
 	//  Advance until clock cycle stopcycle has been reached
 	virtual bool advance(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }

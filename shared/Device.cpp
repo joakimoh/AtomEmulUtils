@@ -367,7 +367,7 @@ bool Devices::loadData(Program data)
 bool Devices::getPeripherals(vector<Device*>& devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
-		if (mDevices[i]->category == PERIPERHAL) {
+		if (mDevices[i]->category == PERIPHERAL) {
 			devices.push_back(mDevices[i]);
 			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
 				cout << "Adding peripheral '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
@@ -379,7 +379,7 @@ bool Devices::getPeripherals(vector<Device*>& devices)
 bool Devices::getMemoryMappedDevices(vector<Device*> &devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
-		if (mDevices[i]->category == PERIPERHAL || mDevices[i]->category == MEMORY_DEVICE) {
+		if (mDevices[i]->category == PERIPHERAL || mDevices[i]->category == MEMORY_DEVICE) {
 			devices.push_back(mDevices[i]);
 			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
 				cout << "Adding memory-mapped device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
