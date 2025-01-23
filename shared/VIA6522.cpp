@@ -6,11 +6,26 @@ using namespace std;
 bool VIA6522::reset()
 {
 	Device::reset();
+
+	if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
+		cout << "VIA 6522 RESET\n";
+		pRESET = mRESET;
+	}
+
 	return true;
 }
 
 bool VIA6522::advance(uint64_t stopCycle)
 {
+	if (!mRESET) {
+		
+		reset();
+		mCycleCount = stopCycle;
+		return true;
+	}
+
+	mCycleCount = stopCycle;
+
 	return true;
 }
 
@@ -23,6 +38,10 @@ VIA6522::VIA6522(string name, uint16_t adr, DebugInfo debugInfo, ConnectionManag
 
 	// Initialise the VIA registers with zeros
 	mMem.assign(mDevSz, 0);
+
+	// Specify ports that can be connected to other devices
+	addPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
+	addPort("IRQ", OUT_PORT, 0x01, IRQ, &mIRQ);
 
 	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 		cout << "VIA 6522 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<

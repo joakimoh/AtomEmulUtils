@@ -12,6 +12,12 @@ class VIA6522 : public Device {
 
 private:
 
+	// Ports that can be connected to other devices
+	int IRQ, RESET;
+	uint8_t mIRQ = 0x1;
+	uint8_t mRESET = 0x1;
+	uint8_t pRESET = 0x0;
+
 public:
 
 	VIA6522(string name, uint16_t adr, DebugInfo debugInfo, ConnectionManager* connectionManager);

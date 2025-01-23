@@ -11,6 +11,14 @@ using namespace std;
 bool VDU6847::reset()
 {
 	Device::reset();
+	mScanLine = 0;
+	mFieldCount = 0;
+
+	if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
+		cout << "VDU 6847 RESET\n";
+		pRESET = mRESET;
+	}
+
 	return true;
 }
 
@@ -51,6 +59,12 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 	int pixel_line = mScanLine - (mTopVBlankingH + mTopBorderH);
 	int visible_line = mScanLine - mTopVBlankingH;
+
+	if (!mRESET) {
+		reset();
+		mCycleCount = endCycle;
+		return true;
+	}
 
 	
 	if (pixel_line == mActiveAreaH) {
@@ -351,6 +365,7 @@ VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* dis
 	Device(name, VDU6847_DEV, PERIPERHAL, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
 {
 	// Specify ports that can be connectde to other devices
+	addPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
 	addPort("A/S",		IN_PORT,	0x01, VDU_PORT_AS,		&mAS);
 	addPort("A/G",		IN_PORT,	0x01, VDU_PORT_AG,		&mAG);
 	addPort("GM",		IN_PORT,	0x07, VDU_PORT_GM,		&mGM);

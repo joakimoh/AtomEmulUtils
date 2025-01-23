@@ -80,6 +80,10 @@ private:
 	uint8_t mRESET = 0x1;
 	uint8_t mNMI = 0x1;
 	uint8_t mIRQ = 0x1;
+
+	uint8_t pRESET = 0x0;
+	uint8_t pNMI = 0x1;
+	uint8_t pIRQ = 0x1;
 	
 
 public:
@@ -91,6 +95,9 @@ public:
 
 	// Reset device
 	bool reset(); 
+	bool serveNMI();
+	bool serveIRQ();
+
 
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);

@@ -17,11 +17,22 @@ bool PIA8255::reset()
 	mPortC = 0x0;
 	mCR = 0x0;
 
+	if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
+		cout << "PIA 8255 RESET\n";
+		pRESET = mRESET;
+	}
+
 	return true;
 }
 
 bool PIA8255::advance(uint64_t stopCycle)
 {
+	if (!mRESET) {
+		reset();
+		mCycleCount = stopCycle;
+		return true;
+	}
+
 	mCycleCount = stopCycle;
 
 	return true;
@@ -98,6 +109,7 @@ PIA8255::PIA8255(string name, uint16_t adr, int n60HzCycles, DebugInfo debugInfo
 	Device(name, PIA8255_DEV, PERIPERHAL, adr, 4, debugInfo, connectionManager), mN60HzCycles(n60HzCycles)
 {
 	// Specify ports that can be connected to other devices
+	addPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
 	addPort("PortA", IO_PORT, 0xff, PIA_PORT_A, &mPortA);
 	addPort("PortB", IO_PORT, 0xff, PIA_PORT_B, &mPortB);
 	addPort("PortC", IO_PORT, 0xff, PIA_PORT_C, &mPortC);
@@ -148,7 +160,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 		data = mPortC;
 
 		if (mDebugInfo.dbgLevel & DBG_DEVICE)
-			cout << "READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
+			cout << "PIA EXECUTED READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
 	}
 	else { // adr == PIA8255_CONTROL
 		data = mCR;
@@ -230,7 +242,7 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 	}
 
 	if (mDebugInfo.dbgLevel & DBG_DEVICE)
-		cout << "WROTE 0x" << setw(2) << setfill('0') << hex << (int)data << " to 0x" << setw(4) << adr << "\n";
+		cout << "PIA EXECUTED WRITE OF 0x" << setw(2) << setfill('0') << hex << (int)data << " to 0x" << setw(4) << adr << "\n";
 
 	return true;
 }

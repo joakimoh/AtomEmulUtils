@@ -15,9 +15,9 @@ P6502::P6502(string name, double clockSpeed, DebugInfo debugInfo, ConnectionMana
 	cPeriod = (int) round(1000 / clockSpeed);
 
 	// Specify ports that can be connected to other devices
-	addPort("RESET", IN_PORT, 0xff, RESET, &mRESET);
-	addPort("IRQ", IN_PORT, 0xff, RESET, &mIRQ);
-	addPort("NMI", IN_PORT, 0xff, RESET, &mNMI);
+	addPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
+	addPort("IRQ", IN_PORT, 0x01, RESET, &mIRQ);
+	addPort("NMI", IN_PORT, 0x01, RESET, &mNMI);
 }
 
 P6502::~P6502()
@@ -26,13 +26,56 @@ P6502::~P6502()
 		delete mDevices[i];
 }
 
+bool P6502::serveNMI()
+{
+	
+	// Save PC & Status to stack
+	uint16_t PC_push_val = mProgramCounter + 2;
+	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
+	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
+	uint8_t SR_push_val = mStatusRegister | B_set_mask;
+	writeDevice(0x100 + (uint16_t)mStackPointer--, SR_push_val);
+
+	// Fetch break vector
+	uint8_t adr_L, adr_H;
+	if (!readDevice(0xfffe, adr_L) || !readDevice(0xffff, adr_H))
+		return false;
+	mProgramCounter = adr_H * 256 + adr_L;
+	mStatusRegister |= I_set_mask;
+	return true;
+	return true;
+}
+
+bool P6502::serveIRQ()
+{
+	if (mStatusRegister & I_set_mask)
+		return false;
+
+	// Save PC & Status to stack
+	uint16_t PC_push_val = mProgramCounter + 2;
+	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
+	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
+	uint8_t SR_push_val = mStatusRegister | B_set_mask;
+	writeDevice(0x100 + (uint16_t)mStackPointer--, SR_push_val);
+
+	// Fetch break vector
+	uint8_t adr_L, adr_H;
+	if (!readDevice(0xfffa, adr_L) || !readDevice(0xfffb, adr_H))
+		return false;
+	mProgramCounter = adr_H * 256 + adr_L;
+	return true;
+}
+
 //
 // Emulate RESET sequence which should take 7 clock cycles
 //
 bool P6502::reset()
 {
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-		cout << "RESET\n";
+
+	if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
+		cout << "6502 RESET\n";
+		pRESET = mRESET;
+	}
 
 	mCycleCount = 0;
 
@@ -54,6 +97,27 @@ bool P6502::reset()
 bool P6502::advance(uint64_t stopCycle)
 {
 	bool success = true;
+
+	// Serve RESET, NMI & IRQ in priority order
+	if (!mRESET) {
+		reset();
+		// No meaning to continue execution before RESET line becomes HIGH again
+		mCycleCount = stopCycle;
+		return true;
+	}
+	else if (!mNMI) {
+		if (mDebugInfo.dbgLevel && DBG_DEVICE && mNMI != pNMI)
+			cout << "NMI active\n";
+		pNMI = mNMI;
+		serveNMI();
+	}
+	else if (!mIRQ) {
+		if (mDebugInfo.dbgLevel && DBG_DEVICE && mNMI != pNMI)
+			cout << "IRQ active\n";
+		pIRQ = mIRQ;
+		serveIRQ();
+	}
+	
 
 	while (mCycleCount < stopCycle) {	
 
@@ -119,7 +183,7 @@ bool P6502::advance(uint64_t stopCycle)
 				std::cout << "Failed to execute instruction!\n";
 		}
 
-		if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0)  || (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached)) {
+		if (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0)  || (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached)) {
 			string instr_s = mCodec.decode(opcode_PC, opcode, operand);
 			stringstream sout;
 			sout << setfill(' ') << setw(30) << left << instr_s << right <<

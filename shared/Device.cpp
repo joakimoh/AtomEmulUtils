@@ -88,7 +88,7 @@ bool Device::updateOutput(int index, uint8_t val)
 		else
 			*(input.port->val) = ((pval & ~input.mask) | ((val << (-input.shifts)) & input.mask)) & input.port->mask;
 
-		if (mDebugInfo.dbgLevel & DBG_DEVICE) {
+		if (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0) && *(input.port->val) != pval) {
 			string shift_s, c_dir;
 			if (input.shifts >= 0) 
 				shift_s = "((src >> shifts) & mask)";
@@ -125,7 +125,7 @@ bool Device::getPortIndex(string name, DevicePort * &port) {
 Devices::Devices(
 	string memMapFile, int n60HzCycles, double clockSpeed, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
 	Program program, Program data, ConnectionManager& connection_manager, Device * &vdu,
-	vector<Device*>& nonVduDevices) :mDebugInfo(debugInfo)
+	vector<Device*> &nonVduDevices) :mDebugInfo(debugInfo)
 {
 
 	connection_manager.setDevices(this);
@@ -287,6 +287,12 @@ Devices::Devices(
 	if (!getMemoryMappedDevices(microprocessor->mDevices)) {
 		cout << "Failed to get memory-mapped devices!\n";
 		throw runtime_error("Failed to get memory-mapped devices");
+	}
+
+	// Update the microprocessor with memory-mapped devices that it shall be able to access
+	if (!getNonVduTimeAwareDevices(nonVduDevices)) {
+		cout << "Failed to get non-VDU time aware devices!\n";
+		throw runtime_error("Failed to get non-VDU time aware devices");
 	}
 
 

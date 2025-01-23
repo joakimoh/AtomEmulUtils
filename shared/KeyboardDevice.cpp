@@ -65,6 +65,9 @@ bool KeyboardDevice::advance(uint64_t stopCycle)
 	uint8_t column_L = 0xff;
 	uint8_t column_H = 0x03;
 
+	if (mSelectedRow > 9)
+		return true;
+
 	// Get non-modifier keys
 	for (uint8_t c = 0; c < 6; c++) {
 		AtomKey* key = mKeyboardMatrix[mSelectedRow][c];
@@ -93,7 +96,7 @@ bool KeyboardDevice::advance(uint64_t stopCycle)
 		return false;
 	}
 
-	if (column_L != 0xff || column_H != 0x3)
+	if (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0) && ( column_L != 0xff || column_H != 0x3))
 		cout << "column L = 0x" << hex << (int)column_L << ", column H = 0x" << (int)column_H << "\n";
 	
 	return true;

@@ -31,8 +31,8 @@ int main(int argc, const char* argv[])
 
     ALLEGRO_TIMER* emu_speed_timer = al_create_timer(1.0 / 60); // 60 Hz frequency as default emulation speed
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
-    ALLEGRO_DISPLAY* disp = al_create_display(648, 486); 
-    
+    ALLEGRO_DISPLAY* disp = al_create_display(648, 486);
+
 
     ALLEGRO_FONT* font = al_create_builtin_font();
 
@@ -49,7 +49,7 @@ int main(int argc, const char* argv[])
     if (arg_parser.failed())
         return -1;
 
-    int n_cycles_per_60_hz = (int)round(arg_parser.cMHz * 1000000/ 60);
+    int n_cycles_per_60_hz = (int)round(arg_parser.cMHz * 1000000 / 60);
     ALLEGRO_BITMAP* display = al_get_target_bitmap();
 
     ConnectionManager connection_manager(arg_parser.debugInfo);
@@ -61,7 +61,12 @@ int main(int argc, const char* argv[])
         arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, vdu_device, non_vdu_devices
 
     );
-    VDU6847 * vdu = (VDU6847*)vdu_device;
+    VDU6847* vdu = (VDU6847*)vdu_device;
+
+    if (vdu == NULL) {
+        cout << "No video data unit defined!\n";
+        return -1;
+    }
    
 
     al_start_timer(emu_speed_timer);
@@ -71,39 +76,41 @@ int main(int argc, const char* argv[])
     uint64_t cycle_count = 0;
 
     // RESET all devices
-    for (int d = 0; d < devices.size(); d++)
+    for (int d = 0; d < non_vdu_devices.size(); d++)
         non_vdu_devices[d]->reset();
     vdu->reset();
     if (arg_parser.debugInfo.dbgLevel & DBG_VERBOSE)
-    cout << "All devices now reset...\n";
+        cout << "All devices now reset...\n";
 
     al_clear_to_color(al_map_rgb(0, 0, 0));
 
     bool quit = false;
     while (!quit)
     {   
+        if (vdu->mRESET) {
 
-        // Advance time one 60 Hz NTSC field scan line at a time until a complete field (262 lines) has been scanned
-        for (int scan_line = 0; scan_line < 262; scan_line++) {
+            // Advance time one 60 Hz NTSC field scan line at a time until a complete field (262 lines) has been scanned
+            for (int scan_line = 0; scan_line < 262; scan_line++) {
 
-            // Scan one field scan_line and save time passed in target cycle count to be used as reference
-            // target time for the 6502 and the other devices (PIA, VIA, RAM & ROM). This
-            // is required to keep execution synchronised with the field updating.
-            uint64_t target_cycle_count;
-            vdu->advanceLine(target_cycle_count);
+                // Scan one field scan_line and save time passed in target cycle count to be used as reference
+                // target time for the 6502 and the other devices (PIA, VIA, RAM & ROM). This
+                // is required to keep execution synchronised with the field updating.
+                uint64_t target_cycle_count;
+                vdu->advanceLine(target_cycle_count);
 
-            // Advance each device in steps (cycle_step) until it has reached a time corresponding to one scan scan_line
-            while (cycle_count < target_cycle_count) {
+                // Advance each device in steps (cycle_step) until it has reached a time corresponding to one scan scan_line
+                while (cycle_count < target_cycle_count) {
 
-                cycle_count += cycle_step;
+                    cycle_count += cycle_step;
 
-                // advance time for each device until cycle_count has been reached  (or slightly passed)
-                for (int d = 0; d < non_vdu_devices.size(); d++)
-                    non_vdu_devices[d]->advance(cycle_count);
+                    // advance time for each device until cycle_count has been reached  (or slightly passed)
+                    for (int d = 0; d < non_vdu_devices.size(); d++)
+                        non_vdu_devices[d]->advance(cycle_count);
+
+                }
+
 
             }
-
-            
         }
 
         // wait for event

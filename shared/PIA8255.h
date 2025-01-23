@@ -19,9 +19,13 @@ private:
 
 	// PIA registers
 	uint8_t mPortA, mPortB, mPortC, mCR;
+	uint8_t pPortA = 0x0, pPortB = 0x0, pPortC = 0x0;
 	
 	// Ports that can be connected to other devices
-	int PIA_PORT_A, PIA_PORT_B, PIA_PORT_C;
+	int RESET, PIA_PORT_A, PIA_PORT_B, PIA_PORT_C;
+
+	uint8_t mRESET = 0x1;
+	uint8_t pRESET = 0x0;
 
 
 
