@@ -2,11 +2,11 @@
 #define VDU6847_H
 
 #include <cstdint>
-#include "Device.h"
+#include "MemoryMappedDevice.h"
 #include "RAM.h"
 
 
-class VDU6847 : public Device {
+class VDU6847 : public MemoryMappedDevice {
 
 public:
 

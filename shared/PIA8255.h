@@ -5,12 +5,12 @@
 #include <vector>
 #include <string>
 #include <allegro5/allegro.h>
-#include "Device.h"
+#include "MemoryMappedDevice.h"
 
 
 using namespace std;
 
-class PIA8255 : public Device {
+class PIA8255 : public MemoryMappedDevice {
 
 private:
 

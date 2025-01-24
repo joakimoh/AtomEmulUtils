@@ -106,13 +106,13 @@ bool PIA8255::advance(uint64_t stopCycle)
 
 
 PIA8255::PIA8255(string name, uint16_t adr, int n60HzCycles, DebugInfo debugInfo, ConnectionManager* connectionManager) :
-	Device(name, PIA8255_DEV, PERIPHERAL, adr, 4, debugInfo, connectionManager), mN60HzCycles(n60HzCycles)
+	MemoryMappedDevice(name, PIA8255_DEV, PERIPHERAL, adr, 4, debugInfo, connectionManager), mN60HzCycles(n60HzCycles)
 {
 	// Specify ports that can be connected to other devices
-	addPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
-	addPort("PortA", IO_PORT, 0xff, PIA_PORT_A, &mPortA);
-	addPort("PortB", IO_PORT, 0xff, PIA_PORT_B, &mPortB);
-	addPort("PortC", IO_PORT, 0xff, PIA_PORT_C, &mPortC);
+	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
+	registerPort("PortA", IO_PORT, 0xff, PIA_PORT_A, &mPortA);
+	registerPort("PortB", IO_PORT, 0xff, PIA_PORT_B, &mPortB);
+	registerPort("PortC", IO_PORT, 0xff, PIA_PORT_C, &mPortC);
 
 	// Set the size of the PIA register vector
 	mMem.resize((size_t)mDevSz);
@@ -178,12 +178,12 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		//	4-7		Graphics mode
 	{
 
-		updateOutput(PIA_PORT_A, data);
+		updatePort(PIA_PORT_A, data);
 	}
 
 	else if (adr == PIA8255_PORT_B) {
 
-		updateOutput(PIA_PORT_B, data);
+		updatePort(PIA_PORT_B, data);
 	}
 
 	else if (adr == PIA8255_PORT_C)
@@ -204,7 +204,7 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 			data |= data& 0x0f;
 		}
 
-		updateOutput(PIA_PORT_C, data);
+		updatePort(PIA_PORT_C, data);
 	}
 
 	else if (adr == PIA8255_CONTROL) {
@@ -233,7 +233,7 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 			uint8_t port_C_data;
 			port_C_data &= ~(1 << bit);
 			port_C_data |= (val << bit);
-			updateOutput(PIA_PORT_C, port_C_data);
+			updatePort(PIA_PORT_C, port_C_data);
 			if (mDebugInfo.dbgLevel & DBG_DEVICE)
 				cout << "Set PIA PortSelection C b" << bit << " to '" << val << "'\n";
 		}

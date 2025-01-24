@@ -2,14 +2,14 @@
 #define ROM_H
 
 #include <cstdint>
-#include "Device.h"
+#include "MemoryMappedDevice.h"
 #include <string>
 #include <vector>
 
 
 using namespace std;
 
-class ROM : public Device {
+class ROM : public MemoryMappedDevice {
 
 private:
 

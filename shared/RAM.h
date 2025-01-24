@@ -2,13 +2,13 @@
 #define RAM_H
 
 #include <cstdint>
-#include "Device.h"
+#include "MemoryMappedDevice.h"
 #include <vector>
 
 
 using namespace std;
 
-class RAM : public Device {
+class RAM : public MemoryMappedDevice {
 
 private:
 

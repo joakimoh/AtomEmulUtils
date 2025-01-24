@@ -3,12 +3,12 @@
 
 #include <cstdint>
 #include <string>
-#include "Device.h"
+#include "MemoryMappedDevice.h"
 
 using namespace std;
 
 
-class VIA6522 : public Device {
+class VIA6522 : public MemoryMappedDevice {
 
 private:
 

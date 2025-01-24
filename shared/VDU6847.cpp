@@ -71,7 +71,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	if (pixel_line == mActiveAreaH) {
 
 		// The Field Sync (FS) signal goes High to Low at the end of the active display area
-		updateOutput(VDU_PORT_FS, 0);  // for Acorn atom this will set PIA port C:b7 to '0'
+		updatePort(VDU_PORT_FS, 0);  // for Acorn atom this will set PIA port C:b7 to '0'
 
 		unlockDisplay();
 
@@ -270,7 +270,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 	if (mScanLine == 0) {
 		// The Field Sync (FS) signal goes High at the end of the vertical synchronisation pulse
-		updateOutput(VDU_PORT_FS, 1); // For Acorn Atom this will set PIA port C:b7 to '0'
+		updatePort(VDU_PORT_FS, 1); // For Acorn Atom this will set PIA port C:b7 to '0'
 	}
 
 	endCycle = mCycleCount;
@@ -363,18 +363,18 @@ bool VDU6847::setVideoRam(RAM* ram)
 //
 
 VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager):
-	Device(name, VDU6847_DEV, PERIPHERAL, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
+	MemoryMappedDevice(name, VDU6847_DEV, PERIPHERAL, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
 {
 	// Specify ports that can be connectde to other devices
-	addPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
-	addPort("A/S",		IN_PORT,	0x01, VDU_PORT_AS,		&mAS);
-	addPort("A/G",		IN_PORT,	0x01, VDU_PORT_AG,		&mAG);
-	addPort("GM",		IN_PORT,	0x07, VDU_PORT_GM,		&mGM);
-	addPort("CSS",		IN_PORT,	0x01, VDU_PORT_CSS,		&mCSS);
-	addPort("INT/EXT",	IN_PORT,	0x01, VDU_PORT_INT_EXT,	&mIntExt);
-	addPort("INV",		IN_PORT,	0x01, VDU_PORT_INV,		&mInv);
-	addPort("FS",		OUT_PORT,	0x01, VDU_PORT_FS,		&mFS);
-	addPort("Din",		OUT_PORT,	0xff, VDU_PORT_DIN,		&mDin);
+	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
+	registerPort("A/S",		IN_PORT,	0x01, VDU_PORT_AS,		&mAS);
+	registerPort("A/G",		IN_PORT,	0x01, VDU_PORT_AG,		&mAG);
+	registerPort("GM",		IN_PORT,	0x07, VDU_PORT_GM,		&mGM);
+	registerPort("CSS",		IN_PORT,	0x01, VDU_PORT_CSS,		&mCSS);
+	registerPort("INT/EXT",	IN_PORT,	0x01, VDU_PORT_INT_EXT,	&mIntExt);
+	registerPort("INV",		IN_PORT,	0x01, VDU_PORT_INV,		&mInv);
+	registerPort("FS",		OUT_PORT,	0x01, VDU_PORT_FS,		&mFS);
+	registerPort("Din",		OUT_PORT,	0xff, VDU_PORT_DIN,		&mDin);
 
 
 	// Set the size of the VDU register vector
@@ -427,5 +427,5 @@ bool VDU6847::write(uint16_t adr, uint8_t data)
 
 inline bool VDU6847::readGraphicsMem(uint16_t adr, uint8_t& data)
 {
-	return mVideoMem->read(adr, data) && updateOutput(VDU_PORT_DIN, data);
+	return mVideoMem->read(adr, data) && updatePort(VDU_PORT_DIN, data);
 }

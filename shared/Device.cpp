@@ -13,6 +13,7 @@
 #include <string>
 #include "P6502.h"
 #include <vector>
+#include "CUTSInterface.h"
 
 using namespace std;
 
@@ -20,8 +21,8 @@ using namespace std;
 // Device class
 //
 
-Device::Device(string n, DeviceId typ, DeviceCategory cat, uint16_t adr, uint16_t sz, DebugInfo debugInfo, ConnectionManager *connectionManager) :
-	devType(typ), mDevAdr(adr), mDevSz(sz), mConnectionManager(connectionManager), mDebugInfo(debugInfo), name(n), category(cat)
+Device::Device(string n, DeviceId typ, DeviceCategory cat, DebugInfo debugInfo, ConnectionManager *connectionManager) :
+	devType(typ), mConnectionManager(connectionManager), mDebugInfo(debugInfo), name(n), category(cat)
 {
 }
 
@@ -31,19 +32,9 @@ Device::~Device()
 		delete mPorts[i];
 }
 
-bool Device::selected(uint16_t adr)
-{
-	return (adr >= mDevAdr && adr < mDevAdr + mDevSz);
-}
-
-bool Device::validAdr(uint16_t adr)
-{
-	return selected(adr);
-}
-
 // Used by a device to make a port available for routing
 
-bool Device::addPort(string name, PortDirection dir, uint8_t mask, int &index, uint8_t *val)
+bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &index, uint8_t *val)
 {
 	index = mPortIndex++;
 	DevicePort *device_port = new DevicePort();
@@ -75,7 +66,7 @@ bool Device::addPort(string name, PortDirection dir, uint8_t mask, int &index, u
 // dst = dst & ~mask | ((src >> shifts) & mask) when shifts > 0
 // dst = dst & ~mask | ((src << -shifts) & mask) when shifts < 0
 //
-bool Device::updateOutput(int index, uint8_t val)
+bool Device::updatePort(int index, uint8_t val)
 {
 	if (index < 0 && index >= mPorts.size())
 		return false;
@@ -154,7 +145,7 @@ Devices::Devices(
 			sin >> dev_typ_s;
 
 			DeviceAllocation a;
-			if (dev_typ_s != "CONNECT" && dev_typ_s != "KB" && dev_typ_s != "6502") {
+			if (dev_typ_s != "CONNECT" && dev_typ_s != "KB" && dev_typ_s != "6502" && dev_typ_s != "CUTS") {
 				sin >> dev_name;
 				sin >> dev_adr_s;
 				dev_adr = stoi(dev_adr_s, 0, 16);
@@ -169,6 +160,13 @@ Devices::Devices(
 				a.deviceType = DeviceId::ATOM_KB_DEV;
 				KeyboardDevice * kb = new KeyboardDevice(dev_name, mDebugInfo, &connection_manager);
 				mDevices.push_back(kb);
+			}
+
+			else if (dev_typ_s == "CUTS") {
+				sin >> dev_name;
+				a.deviceType = DeviceId::CUTS_DEV;
+				CUTSInterface * cuts = new CUTSInterface(dev_name, 1.0, mDebugInfo, &connection_manager);
+				mDevices.push_back(cuts);
 			}
 
 			else if (dev_typ_s == "6502") {
@@ -265,9 +263,12 @@ Devices::Devices(
 				cout << "Video Memory starts at address 0x" << hex << video_mem_start_adr << "\n";
 			for (int i = 0; i < mDevices.size(); i++) {
 				Device* dev = mDevices[i];
-				if (dev->selected(video_mem_start_adr) && dev->devType == RAM_DEV) {
-					ram = (RAM*)dev;
-					break;
+				if (dev->category == PERIPHERAL || dev->category == MEMORY_DEVICE) {
+					MemoryMappedDevice * mem_dev = (MemoryMappedDevice *) dev;
+					if (mem_dev->selected(video_mem_start_adr) && mem_dev->devType == RAM_DEV) {
+						ram = (RAM*)mem_dev;
+						break;
+					}
 				}
 			}
 			
@@ -333,7 +334,7 @@ bool Devices::loadData(Program data)
 		RAM* ram = NULL;
 		for (int i = 0; i < mDevices.size(); i++) {
 			Device* dev = mDevices[i];
-			if (dev->selected(data.loadAdr) && dev->devType == RAM_DEV) {
+			if (dev->devType == RAM_DEV && ((MemoryMappedDevice *) dev)->selected(data.loadAdr)) {
 				ram = (RAM*)dev;
 				break;
 			}
@@ -376,11 +377,11 @@ bool Devices::getPeripherals(vector<Device*>& devices)
 	return true;
 }
 
-bool Devices::getMemoryMappedDevices(vector<Device*> &devices)
+bool Devices::getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->category == PERIPHERAL || mDevices[i]->category == MEMORY_DEVICE) {
-			devices.push_back(mDevices[i]);
+			devices.push_back((MemoryMappedDevice *) mDevices[i]);
 			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
 				cout << "Adding memory-mapped device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}

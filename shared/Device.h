@@ -15,13 +15,14 @@ using namespace std;
 class ConnectionManager; 
 class Device;
 class Devices;
+class MemoryMappedDevice;
 
 enum DeviceId {
-	ROM_DEV, RAM_DEV, PIA8255_DEV, VDU6847_DEV, VIA6522_DEV, ATOM_KB_DEV, P6502_DEV, UNDEFINED_DEV
+	CUTS_DEV, ROM_DEV, RAM_DEV, PIA8255_DEV, VDU6847_DEV, VIA6522_DEV, ATOM_KB_DEV, P6502_DEV, UNDEFINED_DEV
 };
 #define _DEVICE_ID(x) (\
 	x==ROM_DEV?"ROM":(x==RAM_DEV?"RAM":(x==PIA8255_DEV?"PIA 8255":(x==VDU6847_DEV?"VDU 6847":(x==VIA6522_DEV?"VIA 6522":\
-(x==ATOM_KB_DEV?"ATOM KB":(x==P6502_DEV?"6502":"???")))))))
+(x==ATOM_KB_DEV?"ATOM KB":(x==P6502_DEV?"6502":(x==CUTS_DEV?"CUTS":"???"))))))))
 
 enum DeviceCategory {
 	MICROROCESSOR_DEVICE, PERIPHERAL, MEMORY_DEVICE, OTHER_DEVICE
@@ -92,9 +93,7 @@ class Device {
 
 protected:
 
-	uint16_t mDevAdr;
-	uint16_t mDevSz;
-	vector<uint8_t> mMem;
+
 
 	DebugInfo mDebugInfo;
 
@@ -115,14 +114,8 @@ public:
 
 	DeviceCategory category;
 
-	Device(string name, DeviceId typ, DeviceCategory cat, uint16_t adr, uint16_t sz, DebugInfo debugInfo, ConnectionManager *connectionManager);
+	Device(string name, DeviceId typ, DeviceCategory cat, DebugInfo debugInfo, ConnectionManager *connectionManager);
 	~Device();
-
-	virtual bool read(uint16_t adr, uint8_t& data) = 0;
-	virtual bool write(uint16_t adr, uint8_t data) = 0;
-
-	bool selected(uint16_t adr);
-	bool validAdr(uint16_t adr);
 
 	// Reset device
 	virtual bool reset() { return true; }
@@ -131,13 +124,13 @@ public:
 	virtual bool advance(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
-	bool updateOutput(int index, uint8_t val);
+	bool updatePort(int index, uint8_t val);
 
 	// Get local port index for a named I/O (used by connection manager at initialisation)
 	bool getPortIndex(string name, DevicePort * &port);
 
 	// Used by a device to make a port available for routing
-	bool addPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* val);
+	bool registerPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* val);
 
 };
 
@@ -160,7 +153,7 @@ public:
 
 	bool getPeripherals(vector<Device*> &devices);
 	bool getNonVduTimeAwareDevices(vector<Device*> &devices);
-	bool getMemoryMappedDevices(vector<Device*> &devices);
+	bool getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices);
 
 	bool loadData(Program data);
 

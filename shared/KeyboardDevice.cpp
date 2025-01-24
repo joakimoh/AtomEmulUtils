@@ -7,12 +7,12 @@ using namespace std;
 
 
 KeyboardDevice::KeyboardDevice(string name, DebugInfo debugInfo, ConnectionManager* connectionManager) :
-	Device(name, ATOM_KB_DEV, OTHER_DEVICE, 0x0, 0, debugInfo, connectionManager)
+	Device(name, ATOM_KB_DEV, OTHER_DEVICE, debugInfo, connectionManager)
 {
 	// Specify ports that can be connected to other devices	
-	addPort("ROW", IN_PORT, 0x0f, KB_ROW, &mSelectedRow);
-	addPort("COL_L", OUT_PORT, 0xff, KB_COL_L, &mColumnL);
-	addPort("COL_H", OUT_PORT, 0x03, KB_COL_H, &mColumnH);
+	registerPort("ROW", IN_PORT, 0x0f, KB_ROW, &mSelectedRow);
+	registerPort("COL_L", OUT_PORT, 0xff, KB_COL_L, &mColumnL);
+	registerPort("COL_H", OUT_PORT, 0x03, KB_COL_H, &mColumnH);
 
 	// Create 10 rows by 6 columns vector with key data
 	// Also get keycodes for SHIFT, CTRL & REPEAT keys
@@ -93,7 +93,7 @@ bool KeyboardDevice::advance(uint64_t stopCycle)
 		column_H &= ~0x2;
 
 	// Update outputs "COL" and "RPT"
-	if (!updateOutput(KB_COL_L, column_L) || !updateOutput(KB_COL_H, column_H)) {
+	if (!updatePort(KB_COL_L, column_L) || !updatePort(KB_COL_H, column_H)) {
 		return false;
 	}
 

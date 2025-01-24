@@ -1,5 +1,6 @@
 
 #include "P6502.h"
+#include "MemoryMappedDevice.h"
 #include <chrono>
 #include <thread>
 #include <iostream>
@@ -10,14 +11,14 @@
 
 
 P6502::P6502(string name, double clockSpeed, DebugInfo debugInfo, ConnectionManager *connectionManager):
-	Device(name, P6502_DEV, MICROROCESSOR_DEVICE, 0x0, 0, debugInfo, connectionManager)
+	Device(name, P6502_DEV, MICROROCESSOR_DEVICE, debugInfo, connectionManager)
 {
 	cPeriod = (int) round(1000 / clockSpeed);
 
 	// Specify ports that can be connected to other devices
-	addPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
-	addPort("IRQ", IN_PORT, 0x01, RESET, &mIRQ);
-	addPort("NMI", IN_PORT, 0x01, RESET, &mNMI);
+	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
+	registerPort("IRQ", IN_PORT, 0x01, RESET, &mIRQ);
+	registerPort("NMI", IN_PORT, 0x01, RESET, &mNMI);
 }
 
 P6502::~P6502()
@@ -1449,7 +1450,7 @@ bool P6502::readDevice(uint16_t adr, uint8_t& data)
 {
 
 	for (int i = 0; i < mDevices.size(); i++) {
-		Device* dev = mDevices[i];
+		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
 			bool success = dev->read(adr, data);
 			if (mDebugInfo.dbgLevel & DBG_DEVICE)
@@ -1469,7 +1470,7 @@ bool P6502::writeDevice(uint16_t adr, uint8_t data)
 {
 
 	for (int i = 0; i < mDevices.size(); i++) {
-		Device* dev = mDevices[i];
+		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
 			if (mDebugInfo.dbgLevel & DBG_DEVICE)
 				cout << "WRITE 0x" << hex << (int)data << " to 0x" << adr << "\n";

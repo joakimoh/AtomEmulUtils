@@ -40,15 +40,15 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 
 VIA6522::VIA6522(string name, uint16_t adr, DebugInfo debugInfo, ConnectionManager* connectionManager):
-	Device(name, VIA6522_DEV, PERIPHERAL, adr, 0x10, debugInfo, connectionManager)
+	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL, adr, 0x10, debugInfo, connectionManager)
 {
 
 	// Specify ports that can be connected to other devices
-	addPort("RESET",	IN_PORT,	0x01, RESET,	&mRESET);
-	addPort("IRQ",		OUT_PORT,	0x01, IRQ,		&mIRQ);
-	addPort("PA",		IO_PORT,	0xff, PA,		&mPA);	addPort("PB",		IO_PORT,	0xff, PB,		&mPB);
-	addPort("CA",		IO_PORT,	0x03, CA,		&mCA);
-	addPort("CB",		IO_PORT,	0x03, CB,		&mCB);
+	registerPort("RESET",	IN_PORT,	0x01, RESET,	&mRESET);
+	registerPort("IRQ",		OUT_PORT,	0x01, IRQ,		&mIRQ);
+	registerPort("PA",		IO_PORT,	0xff, PA,		&mPA);	registerPort("PB",		IO_PORT,	0xff, PB,		&mPB);
+	registerPort("CA",		IO_PORT,	0x03, CA,		&mCA);
+	registerPort("CB",		IO_PORT,	0x03, CB,		&mCB);
 
 	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 		cout << "VIA 6522 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
@@ -185,7 +185,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 			if (DDRB & mask) // PBi is output => use ORB value
 				data = ~(data & ~mask) | (ORB & mask);
 		}
-		if (!updateOutput(PB, data)) // update PB
+		if (!updatePort(PB, data)) // update PB
 			return false;
 		break;
 	}
@@ -198,7 +198,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 			if (DDRA & mask) // PBi is output => use ORB value
 				data = ~(data & ~mask) | (ORA & mask);
 		}
-		if (!updateOutput(PA, data)) // update PA
+		if (!updatePort(PA, data)) // update PA
 			return false;
 		break;
 	}

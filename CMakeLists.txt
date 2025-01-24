@@ -26,6 +26,9 @@ if(NOT allegro5_POPULATED)
 endif()
 #set(WANT_STATIC_RUNTIME "Whether or not to link the C and C++ runtimes statically (currently only implemented on Windows)" OFF)
 
+# Locate zlib
+find_package(ZLIB REQUIRED)
+
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
@@ -45,6 +48,7 @@ include_directories(
 	${ZLIB_INCLUDE_DIRS}
 	${allegro5_SOURCE_DIR}/include
 	${allegro5_BINARY_DIR}/include
+	${ZLIB_INCLUDE_DIRS}
 )
 
 # Dis application
@@ -62,7 +66,7 @@ add_executable (
 
 target_include_directories(Emu6502 PUBLIC ${allegro5_SOURCE_DIR}/include)
 target_include_directories(Emu6502 PUBLIC ${allegro5_BINARY_DIR}/include)
-target_link_libraries(Emu6502 PUBLIC shared allegro allegro_main allegro_font allegro_primitives allegro_image)
+target_link_libraries(Emu6502 PUBLIC shared allegro allegro_main allegro_font allegro_primitives allegro_image PRIVATE ZLIB::ZLIB)
 
 # These include files are typically copied into the correct places via allegro's install
 # target, but we do it manually.

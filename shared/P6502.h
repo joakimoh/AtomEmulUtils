@@ -88,7 +88,7 @@ private:
 
 public:
 
-	vector<Device*> mDevices;
+	vector<MemoryMappedDevice*> mDevices;
 
 	P6502(string name, double clockSpeed, DebugInfo debugInfo, ConnectionManager* connectionManager);
 	~P6502();
@@ -101,12 +101,6 @@ public:
 
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
-
-	// Provide dummy implementations of the below methods as the 6502 is neither a memory nor a peripheral
-	bool read(uint16_t adr, uint8_t& data) { return false; }
-	bool write(uint16_t adr, uint8_t data) { return false; }
-	bool selected(uint16_t adr) { return false;  }
-	bool validAdr(uint16_t adr) { return false; }
 
 	bool readDevice(uint16_t adr, uint8_t& data);
 	bool writeDevice(uint16_t adr, uint8_t data);
