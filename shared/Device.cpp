@@ -52,7 +52,7 @@ bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &ind
 	
 	mConnectionManager->addDevicePort(this, device_port);
 
-	if (mDebugInfo.dbgLevel && DBG_VERBOSE)
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 	cout << "ADDED " << this->name << " " << _PORT_DIR(dir) << " PORT '" << name << "' #" << dec << index << " (#" << device_port->globalIndex << ")\n";
 	
 
@@ -144,72 +144,64 @@ Devices::Devices(
 
 			sin >> dev_typ_s;
 
-			DeviceAllocation a;
-			if (dev_typ_s != "CONNECT" && dev_typ_s != "KB" && dev_typ_s != "6502" && dev_typ_s != "CUTS") {
+			if (dev_typ_s != "CONNECT" && dev_typ_s != "ATOMKB" && dev_typ_s != "UC6502" && dev_typ_s != "ATOMCAS" && dev_typ_s != "//") {
 				sin >> dev_name;
 				sin >> dev_adr_s;
 				dev_adr = stoi(dev_adr_s, 0, 16);
 				sin >> dev_sz_s;
 				dev_sz = stoi(dev_sz_s, 0, 16);
-				a.startAdr = dev_adr;
-				a.size = dev_sz;
 			}
 
-			if (dev_typ_s == "KB") {
+			if (dev_typ_s == "//") {
+				// Commment
+			}
+			
+			else if (dev_typ_s == "ATOMKB") {
 				sin >> dev_name;
-				a.deviceType = DeviceId::ATOM_KB_DEV;
 				KeyboardDevice * kb = new KeyboardDevice(dev_name, mDebugInfo, &connection_manager);
 				mDevices.push_back(kb);
 			}
 
-			else if (dev_typ_s == "CUTS") {
+			else if (dev_typ_s == "ATOMCAS") {
 				sin >> dev_name;
-				a.deviceType = DeviceId::CUTS_DEV;
 				CUTSInterface * cuts = new CUTSInterface(dev_name, 1.0, mDebugInfo, &connection_manager);
 				mDevices.push_back(cuts);
 			}
 
-			else if (dev_typ_s == "6502") {
+			else if (dev_typ_s == "UC6502") {
 				sin >> dev_name;
-				a.deviceType = DeviceId::P6502_DEV;
 				microprocessor = new P6502(dev_name, clockSpeed, mDebugInfo, &connection_manager);
 				mDevices.push_back(microprocessor);
 			}
 
 			else if (dev_typ_s == "RAM") {
-				a.deviceType = DeviceId::RAM_DEV;
-				RAM* ram = new RAM(dev_name, a.startAdr, a.size, mDebugInfo);
+				RAM* ram = new RAM(dev_name, dev_adr, dev_sz, mDebugInfo);
 				mDevices.push_back(ram);
 			}
 
 			else if (dev_typ_s == "VDU6847") {
-				a.deviceType = DeviceId::VDU6847_DEV;
 				string video_mem_adr_s;
 				sin >> video_mem_adr_s;
-				a.videoMemAdr = stoi(video_mem_adr_s, 0, 16);
-				vdu = new VDU6847(dev_name, a.startAdr, n60HzCycles, disp, a.videoMemAdr, mDebugInfo, &connection_manager);
+				uint16_t video_mem_adr = stoi(video_mem_adr_s, 0, 16);
+				vdu = new VDU6847(dev_name, dev_adr, n60HzCycles, disp, video_mem_adr, mDebugInfo, &connection_manager);
 				mDevices.push_back(vdu);
 			}
 			else if (dev_typ_s == "ROM") {
-				a.deviceType = DeviceId::ROM_DEV;
 				string ROM_file_name;
 				sin >> ROM_file_name;
-				a.ROMFileName = ROM_file_name;
 				filesystem::path map_file_path = memMapFile;
 				filesystem::path map_dir_path = map_file_path.parent_path();
-				filesystem::path ROM_file_path = a.ROMFileName;
+				filesystem::path ROM_file_path = ROM_file_name;
 				filesystem::path file_path = map_dir_path / ROM_file_path;
-				ROM* rom = new ROM(dev_name, a.startAdr, a.size, file_path.string(), mDebugInfo);
+				ROM* rom = new ROM(dev_name, dev_adr, dev_sz, file_path.string(), mDebugInfo);
 				mDevices.push_back(rom);
 			}
 			else if (dev_typ_s == "PIA8255") {
-				a.deviceType = DeviceId::PIA8255_DEV;
-				PIA8255* pia = new PIA8255(dev_name, a.startAdr, n60HzCycles, mDebugInfo, &connection_manager);
+				PIA8255* pia = new PIA8255(dev_name, dev_adr, n60HzCycles, mDebugInfo, &connection_manager);
 				mDevices.push_back(pia);
 			}
 			else if (dev_typ_s == "VIA6522") {
-				a.deviceType = DeviceId::VIA6522_DEV;
-				VIA6522* via = new VIA6522(dev_name, a.startAdr, mDebugInfo, &connection_manager);
+				VIA6522* via = new VIA6522(dev_name, dev_adr, mDebugInfo, &connection_manager);
 				mDevices.push_back(via);
 			}
 			else if (dev_typ_s == "CONNECT") {
@@ -226,13 +218,12 @@ Devices::Devices(
 				
 			}
 			else {
-				a.deviceType = DeviceId::UNDEFINED_DEV;
-				cout << "Unsupported device type " << a.deviceType << "!\n";
-				throw runtime_error("Attempt to add unsupported device (should never happen)");
+				cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
+				throw runtime_error("Syntax error");
 			}
 		}
 		catch (...) {
-			cout << "Syntax error at line " << dec << line_no << "\n";
+			cout << "Syntax error at line " << dec << line_no << ":\n\t" << line <<  "\n";
 			throw runtime_error("Syntax error");
 		}
 

@@ -11,8 +11,9 @@
 using namespace std;
 
 
-CSWCodec::CSWCodec(int sampleFreq, DebugInfo debugInfo): mDebugInfo(debugInfo)
+CSWCodec::CSWCodec(int sampleFreq, DebugInfo debugInfo): mDebugInfo(debugInfo),mSampleRate(sampleFreq)
 {
+
 }
 
 bool CSWCodec::writeSamples(string filePath)
@@ -57,23 +58,23 @@ bool CSWCodec::writeSamples(string filePath)
     return true;
 }
 
-bool CSWCodec::decode(string& fileName, vector<uint8_t>& pulses, uint8_t &firstHalfCycleLevel, int &sampleRate)
+bool CSWCodec::decode(string& fileName, vector<uint8_t> &pulses, uint8_t &firstHalfCycleLevel, int &sampleRate)
 {
+    
     ifstream fin(fileName, ios::in | ios::binary | ios::ate);
 
     if (!fin) {
         cout << "Failed to open file '" << fileName << "'\n";
         return false;
     }
-
-
+    
     // Get file size
     fin.seekg(0, ios::end);
     streamsize file_size = fin.tellg();
-
+    
     if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-        cout << "CSW file is of size " << file_size << " bytes\n";
-
+        cout << "CSW file is of size " << dec << file_size << " bytes\n";
+   
     // Repositon to start of file
     fin.seekg(0);
 
@@ -251,7 +252,7 @@ bool CSWCodec::writePulse(unsigned len)
     return true;
 }
 
-bool CSWCodec::readPulse(vector<uint8_t> pulses, int &index, unsigned &len)
+bool CSWCodec::readPulse(vector<uint8_t> &pulses, int &index, unsigned &len)
 {
     if (index < pulses.size() && pulses[index] != 0) {
         len = pulses[index];

@@ -10,7 +10,13 @@ CUTSInterface::CUTSInterface(string name, double systemClock, DebugInfo debugInf
 
 	mToneHalfcycle = (int)round(systemClock * 1e6 / 2400 / 2);
 
-	CSWCodec * mCodec = new CSWCodec(44100, mDebugInfo);
+	mCodec = new CSWCodec(44100, mDebugInfo);
+
+}
+
+CUTSInterface::~CUTSInterface()
+{
+	delete mCodec;
 }
 
 bool CUTSInterface::advance(uint64_t stopCycle)
@@ -40,7 +46,7 @@ bool CUTSInterface::advance(uint64_t stopCycle)
 			mHalfCycleDuration++;
 		}
 
-		else if (mLoadFromTape) {
+		else if (mLoadFromTape && mPlay) {
 
 			if (mCycleCount - mCasInPulseStartCount == mCasInPulseLen) {
 				mCasInPulseLevel = 1 - mCasInPulseLevel;
@@ -67,9 +73,13 @@ bool CUTSInterface::startLoadFile(string tapeFile)
 {
 	mLoadFromTape = true;
 	mCasInPulseIndex = 0;
+	mPlay = false;
+	cout << "Open CSW File '" << tapeFile << "'\n";
+	
 	if (!mCodec->decode(tapeFile, mCasInPulses, mCasInPulseLevel, mSampleRate)) {
 		return false;
 	}
+	cout << "CSW File with  " << mCasInPulses.size() << " pulse bytes...\n";
 	updatePort(CAS_IN, mCasInPulseLevel);
 
 	return true;
@@ -84,7 +94,40 @@ bool CUTSInterface::startSaveFile(string tapeFile)
 	return true;
 }
 
-bool CUTSInterface::stopSaveFile()
+void CUTSInterface::play()
 {
-	return mCodec->closeTapeFileW();
+	mPlay = false;
+}
+
+void CUTSInterface::rewind()
+{
+	if (mLoadFromTape) {
+		mCasInPulseIndex = 0;
+		mPlay = false;
+	}
+}
+
+void CUTSInterface::pause()
+{
+	mPlay = false;
+	mRecord = false;
+}
+
+void CUTSInterface::stop()
+{
+	if (mLoadFromTape) {
+		mLoadFromTape = false;
+		mPlay = false;
+		mCasInPulses.clear();
+	}
+	else if (mSaveToTape) {
+		mSaveToTape = false;
+		mRecord = false;
+		mCodec->closeTapeFileW();
+	}
+}
+
+void CUTSInterface::record()
+{
+	mRecord = true;
 }

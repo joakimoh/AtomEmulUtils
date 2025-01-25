@@ -36,16 +36,27 @@ private:
 	int mCasInPulseStartCount = 0;
 	uint8_t mCasInPulseLevel = 0;
 	int mCasInPulseLen = 0;
+	bool mPlay = false;
+	bool mRecord = false;
 
 
 public:
 	CUTSInterface(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	~CUTSInterface();
 
 	bool advance(uint64_t stopCycle);
 
 	bool startLoadFile(string tapeFile);
 	bool startSaveFile(string tapeFile);
-	bool stopSaveFile();
+
+	void play();
+	void rewind();
+	void pause();
+	void stop();
+	void record();
+
+	bool playing() { return mLoadFromTape;  }
+	bool recording() { return mSaveToTape;  }
 };
 
 

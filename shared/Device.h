@@ -30,14 +30,6 @@ enum DeviceCategory {
 #define _DEVICE_CATEGORY(x) (\
 	x==MICROROCESSOR_DEVICE?"Microprocessor":(x== PERIPHERAL?"Peripheral":(x==MEMORY_DEVICE?"Memory":"Other Device")))
 
-typedef struct DeviceAllocation_struct {
-	DeviceId deviceType;
-	uint16_t startAdr;
-	uint16_t size;
-	string ROMFileName;
-	uint16_t videoMemAdr; // only for VDU6847
-} DeviceAllocation;
-
 typedef struct Program_struct {
 	string fileName = "";
 	int loadAdr = -1;

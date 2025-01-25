@@ -84,9 +84,16 @@ class CSWCodec
 private:
 
 	int mSampleRate;
+
 	DebugInfo mDebugInfo;
 
 	string mTapeFilePath;
+
+	// Current pulse level (writing)
+	uint8_t mPulseLevel;
+
+	// Pulses read or to write
+	vector<uint8_t> mPulses;
 
 public:
 
@@ -102,7 +109,7 @@ public:
 	bool writeSamples(string filePath);
 
 	bool writePulse(unsigned len);
-	bool readPulse(vector<uint8_t> pulses, int& index, unsigned& len);
+	bool readPulse(vector<uint8_t> &pulses, int& index, unsigned& len);
 
 	// Open CSW file for writing
 	bool openTapeFileW(string& filePath);
@@ -111,13 +118,7 @@ public:
 	bool closeTapeFileW();
 
 
-private:
 
-	// Current pulse level (writing)
-	uint8_t mPulseLevel;
-
-	// Pulses read or to write
-	vector<uint8_t> mPulses;
 
 };
 
