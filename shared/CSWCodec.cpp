@@ -18,8 +18,14 @@ CSWCodec::CSWCodec(int sampleFreq, DebugInfo debugInfo): mDebugInfo(debugInfo),m
 
 bool CSWCodec::writeSamples(string filePath)
 {
-    if (mPulses.size() == 0)
+    if (mPulses.size() == 0) {
+        if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+            cout << "Np pulses to write...\n";
         return false;
+    }
+
+    if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+        cout << "Writing " << mPulses.size() << " samples to file '" << filePath << "...\n";
 
     // Write samples to CSW file
     CSW2Hdr hdr;
@@ -287,8 +293,11 @@ bool CSWCodec::openTapeFileW(string& filePath)
 
 bool CSWCodec::closeTapeFileW()
 {
-    if (mPulses.size() == 0)
+    if (mPulses.size() == 0) {
+        if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+            cout << "No pulses to write when closing file!\n";
         return false;
+    }
 
     // Write samples to CSW file
     if (!writeSamples(mTapeFilePath)) {

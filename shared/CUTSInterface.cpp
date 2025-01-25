@@ -1,7 +1,7 @@
 #include "CUTSInterface.h"
 
 CUTSInterface::CUTSInterface(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager) :
-	Device(name, CUTS_DEV, OTHER_DEVICE, debugInfo, connectionManager), mSystemClock(systemClock)
+	Device(name, CUTS_DEV, OTHER_DEVICE, debugInfo, connectionManager), mSystemClock(systemClock * 1e6)
 {
 	registerPort("TONE", OUT_PORT, 0x01, TONE, &mTONE);
 	registerPort("CAS_IN", OUT_PORT, 0x01, CAS_IN, &mCAS_IN);
@@ -35,8 +35,10 @@ bool CUTSInterface::advance(uint64_t stopCycle)
 			if (cas_out != mCAS_OUT) {
 
 				// One 1/2 cycle has passed => update tape file
-				if (!mCodec->writePulse((int)round(mHalfCycleDuration / (mSystemClock * 1e6 * 2) * mSampleRate))) {
-					return false;
+				if (mRecord) {
+					if (!mCodec->writePulse((int)round((double) mHalfCycleDuration / mSystemClock * mSampleRate))) {
+						return false;
+					}
 				}
 
 				mHalfCycleDuration = 0;
@@ -48,7 +50,8 @@ bool CUTSInterface::advance(uint64_t stopCycle)
 
 		else if (mLoadFromTape && mPlay) {
 
-			if (mCycleCount - mCasInPulseStartCount == mCasInPulseLen) {
+			if (mStartPlaying || mCycleCount - mCasInPulseStartCount == mCasInPulseLen) {
+				mStartPlaying = false;
 				mCasInPulseLevel = 1 - mCasInPulseLevel;
 				updatePort(CAS_IN, mCasInPulseLevel);
 				unsigned int pulse_len;
@@ -56,8 +59,9 @@ bool CUTSInterface::advance(uint64_t stopCycle)
 					mLoadFromTape = false;
 					updatePort(CAS_IN, 0);
 				}
-				mCasInPulseLen = (int) round(pulse_len / mSampleRate * mSystemClock * 1e6 * 2);
+				mCasInPulseLen = (int) round(mSystemClock  * pulse_len / mSampleRate );
 				mCasInPulseStartCount = mCycleCount;
+				//cout << "PULSE LENGTH: " << mCasInPulseLen << " (" << pulse_len << ", " << mCasInPulseLen / mSystemClock << ")\n";
 			}
 		}
 
@@ -96,7 +100,8 @@ bool CUTSInterface::startSaveFile(string tapeFile)
 
 void CUTSInterface::play()
 {
-	mPlay = false;
+	mPlay = true;
+	mStartPlaying = true;
 }
 
 void CUTSInterface::rewind()
@@ -116,11 +121,13 @@ void CUTSInterface::pause()
 void CUTSInterface::stop()
 {
 	if (mLoadFromTape) {
+		cout << "STOP - clear file...\n";
 		mLoadFromTape = false;
 		mPlay = false;
 		mCasInPulses.clear();
 	}
 	else if (mSaveToTape) {
+		cout << "STOP - saving to file...\n";
 		mSaveToTape = false;
 		mRecord = false;
 		mCodec->closeTapeFileW();

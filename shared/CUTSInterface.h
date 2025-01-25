@@ -38,6 +38,7 @@ private:
 	int mCasInPulseLen = 0;
 	bool mPlay = false;
 	bool mRecord = false;
+	bool mStartPlaying = false;
 
 
 public:
