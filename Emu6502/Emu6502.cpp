@@ -12,10 +12,12 @@
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_image.h>
+#include "allegro5/allegro_native_dialog.h"
 #include "ArgParser.h"
 #include "../shared/P6502.h"
 #include "../shared/Codec6502.h"
 #include "../shared/VDU6847.h"
+#include "../shared/GUI.h"
 
 #include <chrono>
 
@@ -28,21 +30,25 @@ int main(int argc, const char* argv[])
     al_install_keyboard();
     al_init_primitives_addon();
     al_init_image_addon();
+    al_init_native_dialog_addon();
 
     ALLEGRO_TIMER* emu_speed_timer = al_create_timer(1.0 / 60); // 60 Hz frequency as default emulation speed
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
-    ALLEGRO_DISPLAY* disp = al_create_display(648, 486);
-
-
+    
+    ALLEGRO_EVENT event;
     ALLEGRO_FONT* font = al_create_builtin_font();
+
+    // Create display
+    ALLEGRO_DISPLAY* disp = al_create_display(648, 486);
+    al_set_window_title(disp, "6502 System Emulator");
 
     //al_register_event_source(queue, al_get_keyboard_event_source());
     al_register_event_source(queue, al_get_display_event_source(disp));
     al_register_event_source(queue, al_get_timer_event_source(emu_speed_timer));
+    al_register_event_source(queue, al_get_default_menu_event_source());
 
-    ALLEGRO_EVENT event;
-
-    al_set_window_title(disp, "6502 System Emulator");
+    // Create menu
+    GUI gui(disp);
 
     ArgParser arg_parser = ArgParser(argc, argv);
 
@@ -126,6 +132,9 @@ int main(int argc, const char* argv[])
             quit = true;
             al_flush_event_queue(queue);
         }
+        else if (event.type == ALLEGRO_EVENT_MENU_CLICK) {
+            gui.itemSelected(event.user.data1);
+        }
 
     }
 
@@ -134,6 +143,8 @@ int main(int argc, const char* argv[])
     al_destroy_display(disp);
     al_destroy_timer(emu_speed_timer);
     al_destroy_event_queue(queue);
+
+    
  
     return 0;
 

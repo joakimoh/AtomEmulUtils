@@ -1,9 +1,9 @@
 add_library(
 	shared
 	"Codec6502.cpp" "P6502.cpp" "VIA6522.cpp" "VDU6847.cpp" "PIA8255.cpp" "ROM.cpp" "RAM.cpp" "Device.cpp"
-	"KeyboardDevice.cpp" "ConnectionManager.cpp" "Tokeniser.cpp" "MemoryMappedDevice.cpp" "CUTSInterface.cpp" "CSWCodec.cpp" "zpipe.cpp"
+	"KeyboardDevice.cpp" "ConnectionManager.cpp" "Tokeniser.cpp" "MemoryMappedDevice.cpp" "CUTSInterface.cpp" "CSWCodec.cpp" "zpipe.cpp" "GUI.cpp"
 	"Codec6502.h" "P6502.h" "VIA6522.h" "KeyboardDevice.h" "MemoryMappedDevice.h" "CUTSInterface.h" "CSWCodec.h"
-	 "VDU6847.h"  "PIA8255.h"  "ROM.h"  "RAM.h" "Device.h" "Tokeniser.h" "DebugInfo.h"
+	 "VDU6847.h"  "PIA8255.h"  "ROM.h"  "RAM.h" "Device.h" "Tokeniser.h" "DebugInfo.h" "GUI.h"
 )
 
 # Locate zlib

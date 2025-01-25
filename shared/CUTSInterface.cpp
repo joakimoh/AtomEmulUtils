@@ -6,7 +6,7 @@ CUTSInterface::CUTSInterface(string name, double systemClock, DebugInfo debugInf
 	registerPort("TONE", OUT_PORT, 0x01, TONE, &mTONE);
 	registerPort("CAS_IN", OUT_PORT, 0x01, CAS_IN, &mCAS_IN);
 	registerPort("ENA_TONE", IN_PORT, 0x01, ENA_TONE, &mENA_TONE);
-	registerPort("CAS_OUT", IN_PORT, 0x01, TAPE_OUT, &mTAPE_OUT);
+	registerPort("TAPE_OUT", IN_PORT, 0x01, TAPE_OUT, &mTAPE_OUT);
 
 	mToneHalfcycle = (int)round(systemClock * 1e6 / 2400 / 2);
 
