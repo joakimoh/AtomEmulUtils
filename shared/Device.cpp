@@ -14,6 +14,7 @@
 #include "P6502.h"
 #include <vector>
 #include "CUTSInterface.h"
+#include "TapeRecorder.h"
 
 using namespace std;
 
@@ -144,7 +145,7 @@ Devices::Devices(
 
 			sin >> dev_typ_s;
 
-			if (dev_typ_s != "CONNECT" && dev_typ_s != "ATOMKB" && dev_typ_s != "UC6502" && dev_typ_s != "ATOMCAS" && dev_typ_s != "//") {
+			if (dev_typ_s != "CONNECT" && dev_typ_s != "ATOMKB" && dev_typ_s != "UC6502" && dev_typ_s != "ATOMCAS" && dev_typ_s != "//" && dev_typ_s != "TAPREC") {
 				sin >> dev_name;
 				sin >> dev_adr_s;
 				dev_adr = stoi(dev_adr_s, 0, 16);
@@ -162,9 +163,15 @@ Devices::Devices(
 				mDevices.push_back(kb);
 			}
 
+			else if (dev_typ_s == "TAPREC") {
+				sin >> dev_name;
+				TapeRecorder* tr = new TapeRecorder(dev_name, clockSpeed, mDebugInfo, &connection_manager);
+				mDevices.push_back(tr);
+			}
+
 			else if (dev_typ_s == "ATOMCAS") {
 				sin >> dev_name;
-				CUTSInterface * cuts = new CUTSInterface(dev_name, 1.0, mDebugInfo, &connection_manager);
+				CUTSInterface * cuts = new CUTSInterface(dev_name, clockSpeed, mDebugInfo, &connection_manager);
 				mDevices.push_back(cuts);
 			}
 

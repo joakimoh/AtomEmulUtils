@@ -1,36 +1,29 @@
-#ifndef CUTS_INTERFACE
-#define CUTS_INTERFACE
+#ifndef TAPE_RECORDER_H
+#define TAPE_RECORDER_H
 
 #include "Device.h"
 #include <fstream>
 #include <iostream>
 #include "CSWCodec.h"
 
-class CUTSInterface : public Device {
+class TapeRecorder : public Device {
 
 private:
-	uint8_t mTONE = 0x0;
-	uint8_t mENA_TONE = 0x0;
-	uint8_t mTAPE_OUT = 0x0;
+
 	uint8_t mCAS_IN = 0x0;
-	int TONE, CAS_IN, ENA_TONE, TAPE_OUT;
-	//int CAS_OUT;
-
-	uint8_t pTONE = 0x0;
-	uint8_t pTAPE_OUT = 0x0;
-
-	int mToneHalfcycle;
-
 	uint8_t mCAS_OUT = 0x0;
-	int mHalfCycleDuration = 0x0;
+	int CAS_IN, CAS_OUT;
+	uint8_t pCAS_OUT = 0x0;
 
 	vector<uint8_t> mCasInPulses;
+
+	int mHalfCycleDuration = 0x0;
 
 	double mSystemClock;
 
 	int mSampleRate = 44100;
 
-	CSWCodec * mCodec = NULL;
+	CSWCodec* mCodec = NULL;
 
 	bool mSaveToTape = false;
 	bool mLoadFromTape = false;
@@ -44,8 +37,8 @@ private:
 
 
 public:
-	CUTSInterface(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager);
-	~CUTSInterface();
+	TapeRecorder(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	~TapeRecorder();
 
 	bool advance(uint64_t stopCycle);
 
@@ -58,12 +51,7 @@ public:
 	void stop();
 	void record();
 
-	bool playing() { return mLoadFromTape;  }
-	bool recording() { return mSaveToTape;  }
 };
-
-
-
 
 
 #endif

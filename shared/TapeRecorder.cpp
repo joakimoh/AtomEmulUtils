@@ -1,39 +1,30 @@
-#include "CUTSInterface.h"
+#include "TapeRecorder.h"
 
-CUTSInterface::CUTSInterface(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager) :
-	Device(name, CUTS_DEV, OTHER_DEVICE, debugInfo, connectionManager), mSystemClock(systemClock * 1e6)
+TapeRecorder::TapeRecorder(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+	Device(name, TAPE_RECORDER_DEV, OTHER_DEVICE, debugInfo, connectionManager), mSystemClock(systemClock * 1e6)
 {
-	registerPort("TONE", OUT_PORT, 0x01, TONE, &mTONE);
 	registerPort("CAS_IN", OUT_PORT, 0x01, CAS_IN, &mCAS_IN);
-	registerPort("ENA_TONE", IN_PORT, 0x01, ENA_TONE, &mENA_TONE);
-	registerPort("TAPE_OUT", IN_PORT, 0x01, TAPE_OUT, &mTAPE_OUT);
-	//registerPort("CAS_OUT", OUT_PORT, 0x01, CAS_OUT, &mCAS_OUT);
-
-	mToneHalfcycle = (int)round(systemClock * 1e6 / 2400 / 2);
+	registerPort("CAS_OUT", IN_PORT, 0x01, CAS_IN, &mCAS_OUT);
 
 	mCodec = new CSWCodec(44100, mDebugInfo);
 
 }
 
-CUTSInterface::~CUTSInterface()
+TapeRecorder::~TapeRecorder()
 {
 	delete mCodec;
 }
 
-bool CUTSInterface::advance(uint64_t stopCycle)
+bool TapeRecorder::advance(uint64_t stopCycle)
 {
+	if (!mLoadFromTape && !mSaveToTape) {
+		mCycleCount = stopCycle;
+		return true;
+	}
+
 	while (mCycleCount < stopCycle) {
 
-		// Toggle 2.4 kHz tone when one 1/2 cycle of 2.4 Khz has elapsed
-		if (mCycleCount % mToneHalfcycle == 0)
-			updatePort(TONE, 1 - mTONE);
-
-		// Generate CAS OUT
-		uint8_t cas_out = (1 - (((1 - mENA_TONE) | mTONE) & mTAPE_OUT));
-
-		if (cas_out != mCAS_OUT) {
-
-			//cout << "PULSE!\n";
+		if (mCAS_OUT != pCAS_OUT) {
 
 			if (mSaveToTape) {
 
@@ -43,10 +34,10 @@ bool CUTSInterface::advance(uint64_t stopCycle)
 					if (!mCodec->writePulse(pulse_len)) {
 						return false;
 					}
-				}	
+				}
 			}
 			mHalfCycleDuration = 0;
-			
+
 		}
 
 		else if (mLoadFromTape && mPlay) {
@@ -60,33 +51,30 @@ bool CUTSInterface::advance(uint64_t stopCycle)
 					mLoadFromTape = false;
 					updatePort(CAS_IN, 0);
 				}
-				mCasInPulseLen = (int) round(mSystemClock  * pulse_len / mSampleRate );
+				mCasInPulseLen = (int)round(mSystemClock * pulse_len / mSampleRate);
 				mCasInPulseStartCount = mCycleCount;
 			}
 		}
 
-		mCAS_OUT = cas_out;
+		pCAS_OUT = mCAS_OUT;
 
 		mHalfCycleDuration++;
 
 		mCycleCount++;
 
-		
-	}
 
-	pTONE = mTONE;
-	pTAPE_OUT = mTAPE_OUT;
+	}
 
 	return true;
 }
 
-bool CUTSInterface::startLoadFile(string tapeFile)
+bool TapeRecorder::startLoadFile(string tapeFile)
 {
 	mLoadFromTape = true;
 	mCasInPulseIndex = 0;
 	mPlay = false;
 	cout << "Open CSW File '" << tapeFile << "'\n";
-	
+
 	if (!mCodec->decode(tapeFile, mCasInPulses, mCasInPulseLevel, mSampleRate)) {
 		return false;
 	}
@@ -96,7 +84,7 @@ bool CUTSInterface::startLoadFile(string tapeFile)
 	return true;
 }
 
-bool CUTSInterface::startSaveFile(string tapeFile)
+bool TapeRecorder::startSaveFile(string tapeFile)
 {
 	mSaveToTape = true;
 	mHalfCycleDuration = 0;
@@ -105,13 +93,13 @@ bool CUTSInterface::startSaveFile(string tapeFile)
 	return true;
 }
 
-void CUTSInterface::play()
+void TapeRecorder::play()
 {
 	mPlay = true;
 	mStartPlaying = true;
 }
 
-void CUTSInterface::rewind()
+void TapeRecorder::rewind()
 {
 	if (mLoadFromTape) {
 		mCasInPulseIndex = 0;
@@ -119,13 +107,13 @@ void CUTSInterface::rewind()
 	}
 }
 
-void CUTSInterface::pause()
+void TapeRecorder::pause()
 {
 	mPlay = false;
 	mRecord = false;
 }
 
-void CUTSInterface::stop()
+void TapeRecorder::stop()
 {
 	if (mLoadFromTape) {
 		cout << "STOP - clear file...\n";
@@ -141,7 +129,7 @@ void CUTSInterface::stop()
 	}
 }
 
-void CUTSInterface::record()
+void TapeRecorder::record()
 {
 	mRecord = true;
 }

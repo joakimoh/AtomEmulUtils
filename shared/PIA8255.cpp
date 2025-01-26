@@ -15,7 +15,7 @@ bool PIA8255::reset()
 	mPortA = 0x0;
 	mPortB = 0x0;
 	mPortC = 0x0;
-	mCR = 0x0;
+	mCR = 0x9b;
 
 	if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
 		cout << "PIA 8255 RESET\n";
@@ -104,7 +104,89 @@ bool PIA8255::advance(uint64_t stopCycle)
 #define PIA8255_CONTROL (mDevAdr + 3)
 
 
-
+//
+// The PIA 8255 has three modes of operation that can independently be defined for
+// Group A (Port A + Port C upper)  and group B  (Port B and Port C lower)
+//
+//											Both groups		Group A				Group B
+// Control Register Setting					b7				b6b5				b2
+// Mode 0: Basic I/O						1				00					0
+// Mode 1: Strobed I/O						1				01					1
+// Mode 2: Strobed Bi-directional I/O		1				1x					not supported
+//
+// In Mode 0 to 2, the port direction is given by
+//
+//					CR:b4		CR:b1		CR:b0		CR:b3
+//					0	1		0	1		0	1		0	1
+// Port A			out	in
+// Port B						out	in
+// Port C lower								out	in
+// Port C upper											out	in
+//
+// ----------------------------------------------------------
+// Mode 1 Strobed I/O
+// ----------------------------------------------------------
+// 
+// Port C is used for handshaking.
+// 
+// INPUT CONTROL
+// 
+// For input control of Port A (Control Register b7b6b5b4 = 1010;b3=PortC b6b7 direction, the Port C upper pins are
+// used as shown below:
+// PC7,PC6	I/O
+// PC5		Output	IBF_A	Input Buffer Full	- Set by a low STB; cleared when port A is read
+// PC4		Input	STB_A	Strobe Input		- A low will latch Port A data
+// PC3		Output	INTR_A	Interrupt Request	- set when STB=1, IBF=1 and INTE=1; reset when port A is read
+// 
+// For input control of Port B (Control Register b7 = 1 & b2b1=11, the Port C lower pins are
+// used as shown below:
+// PC1		Output	IBF_B	Input Buffer Full	- Set by a low STB; cleared when port B is read
+// PC2		Input	STB_B	Strobe Input		- A low will latch Port B data
+// PC0		Output	INTR_B	Interrupt Request	- set when STB=1, IBF=1 and INTE=1; reset when port B is read
+// 
+// OUTPUT CONTROL
+// 
+// For output control of Port A (Control Register b7b6b5 = 1011;b3=PortC b5b4 direction, the Port C upper pins are
+// used as shown below:
+// PC4,PC5	I/O
+// PC7		Output	OBF_A	Output Buffer Full	- A strobe when CPU writes data to Port A; ends with low ACK
+// PC6		Input	ACK_A	Acknowledge Input	- Low when a peripheral has accepted data
+// PC3		Output	INTR_A	Interrupt Request	- set when OBF=1, ACK=1 and INTE=1; set by ACK going high
+// 
+// For output control of Port B (Control Register b7 = 1 & b2b1=10, the Port C lower pins are
+// used as shown below:
+// PC1		Output	OBF_B	Output Buffer Full	- A strobe when CPU writes data to Port B; ends with low ACK
+// PC2		Input	ACK_B	Acknowledge Input	- Low when a peripheral has accepted data
+// PC0		Output	INTR_B	Interrupt Request	- set when OBF=1, ACK=1 and INTE=1; set by ACK going high
+// // 
+// 
+// -----------------------------------------
+// Mode 2 Strobed bidirectional I/O
+// -----------------------------------------
+// 
+// Port C is used for handshaking.
+// Only used for Port A.
+// 
+// PC7		Output	OBF_A	Output Buffer Full	- A strobe when CPU writes data to Port A; ends with low ACK
+// PC6		Input	ACK_A	Acknowledge Input	- Low when a peripheral has accepted data
+// PC5		Output	IBF_A	Input Buffer Full	- Set by a low STB; cleared when port A is read
+// PC4		Input	STB_A	Strobe Input		- A low will latch Port A data
+// PC3		Output	INTR_A	Interrupt Request	- set when STB=1, IBF=1 and INTE=1; reset when port A is read
+// PC2:0	I/O decided by CR b0
+//
+// 
+// ----------------
+// BSR Mode
+// ----------------
+// There is also a Single Bit Set/Reset Mode which is active if Control Register b7=1
+// In this mode, b3:b1 selects the Port C pin to change value of and b0 is the value to set/reseet (1=Set, 0=RSeset).
+// 
+// 
+// 
+// The outputs are latched but the inputs are only latched in the Strobed I/O mode.
+// At reset all ports will be set to input mode (Control Register becomes 10011011 = 0x9b)
+// All output registers will be reset when the mode is changed.
+//
 PIA8255::PIA8255(string name, uint16_t adr, int n60HzCycles, DebugInfo debugInfo, ConnectionManager* connectionManager) :
 	MemoryMappedDevice(name, PIA8255_DEV, PERIPHERAL, adr, 4, debugInfo, connectionManager), mN60HzCycles(n60HzCycles)
 {
@@ -146,12 +228,19 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 	}
 
 	else if (adr == PIA8255_PORT_C)
-		// For the Acorn Atom the bits are used according to below:
-		//	0-3		Writable bits - see write method below
-		//	4		2.4 kHz input
-		//	5		Cassette input
-		//	6		REPT key (low when pressed)
-		//	7		60 Hz sync signal (low during VDU flyback) - from 6847's Field Sync (FS)
+		// For the Acorn Atom the bits are used according to below.
+		// 
+		// The lower bits are outputs (but can be read) 
+		//	0		Output		Tape output
+		//	1		Output		Enable 2.4 kHz to cassette output
+		//	2		Output		Loudspeaker
+		//	3		Output		Colour palette selection for (semi)graphics
+		// 
+		// The upper bits are inputs
+		//  4		Input		2.4 kHz input
+		//	5		Input		Cassette input
+		//  6		Input		REPT key (low when pressed)
+		//  7		Input		60 Hz sync signal
 	{
 
 		data = mPortC;
@@ -161,7 +250,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 	}
 
 	else { // adr == PIA8255_CONTROL
-		data = mCR;
+		data = mCR; // the Control Register cannot be read
 	}
 
 	return true;
@@ -172,47 +261,84 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 	if (!validAdr(adr))
 		return false;
 
+	uint8_t group_A_mode = (mCR >> 5) & 0x3;
+	uint8_t group_B_mode = (mCR >> 2) & 0x1;
+	uint8_t BSR_mode = 1 - ((mCR >> 7) & 0x1);
+	bool port_A_input = (mCR >> 4) & 0x1;
+	bool port_B_input = (mCR >> 1) & 0x1;
+	bool port_C_lower_input = mCR & 0x1;
+	bool port_C_upper_input = (mCR >> 3) & 0x1;
+
 	if (adr == PIA8255_PORT_A)
 		// For the Acorn Atom the bits are used according to below:
 		//	0-3		Keyboard row
 		//	4-7		Graphics mode
 	{
-
-		updatePort(PIA_PORT_A, data);
+		if (!BSR_mode && !port_A_input) // Mode 1; Port A bits are writable
+			updatePort(PIA_PORT_A, data);
 	}
 
-	else if (adr == PIA8255_PORT_B) {
-
-		updatePort(PIA_PORT_B, data);
+	else if (adr == PIA8255_PORT_B)
+	{
+		if (!BSR_mode && !port_B_input) // Mode 1; Port B bits are writable
+			updatePort(PIA_PORT_B, data);
 	}
 
 	else if (adr == PIA8255_PORT_C)
-		// For the Acorn Atom the bits are used according to below:
-		//	0		Tape output
-		//	1		Enable 2.4 kHz to cassette output
-		//	2		Loudspeaker
-		//	3		Colour palette selection for (semi)graphics
-		//	4-7		Not writable (used as inputs instead - see read  method above)
+		// For the Acorn Atom the bits are used according to below.
+		// 
+		// Only the lower bits are writable: 
+		//	0		Output		Tape output
+		//	1		Output		Enable 2.4 kHz to cassette output
+		//	2		Output		Loudspeaker
+		//	3		Output		Colour palette selection for (semi)graphics
+		// 
+		// The upper bits are inputs and cannot be written to
+		//  4		Input		2.4 kHz input
+		//	5		Input		Cassette input
+		//  6		Input		REPT key (low when pressed)
+		//  7		Input		60 Hz sync signal
 	{
-
-		if ((mCR & 0x80) && (mCR & 0x08)) { // PortSelection C upper bits are writable
-			data &= 0x0f;
-			data |= (data << 4) & 0xf0;
+		uint8_t new_portC = mPortC;
+		if (!BSR_mode) {
+			if (!port_C_lower_input) {
+				new_portC &= 0xf0;
+				new_portC |= data & 0x0f;
+			}
+			if (!port_C_upper_input) {
+				new_portC &= 0x0f;
+				new_portC |= (data << 4) & 0xf0;
+			}
+			if (new_portC != mPortC) {
+				cout << "PortC = 0x" << hex << (int)mPortC << " => 0x" << (int)new_portC << "\n";
+				updatePort(PIA_PORT_C, new_portC);
+			}
 		}
-		if ((mCR & 0x80) && (mCR & 0x02)) { // PortSelection C lower bits are writable
-			data &= 0xf0;
-			data |= data& 0x0f;
-		}
-
-		updatePort(PIA_PORT_C, data);
+		
 	}
 
 	else if (adr == PIA8255_CONTROL) {
 
+		uint8_t new_group_A_mode = (data >> 5) & 0x3;
+		uint8_t new_group_B_mode = (data >> 2) & 0x1;
+		uint8_t new_BSR_mode = 1 - ((data >> 7) & 0x1);
+
+		if (new_group_A_mode != group_A_mode) // reset Port A outputs after a mode change
+			updatePort(PIA_PORT_A, 0x0);
+
+		if (new_group_B_mode != group_B_mode) // reset Port B outputs after a mode change
+			updatePort(PIA_PORT_B, 0x0);
+
 		mCR = data;
 
-		if (mCR & 0x80)
-		// I/O Mode
+		if (!new_BSR_mode && (new_group_A_mode > 0 || new_group_B_mode > 0)) {
+			cout << "*** PIA 8255 ERROR *** Requested group A mode " << (int)new_group_A_mode << " & group B mode " << (int)new_group_B_mode <<
+				" when no other modes than 0 - Basic I / O are currently supported!\n";
+			return false;
+		}
+
+		if (!new_BSR_mode)
+		// Basic I/O (Mode 0), Strobed I/O (Mode 1) or Bi-directional bus (Mode 2)
 		{
 			if (mDebugInfo.dbgLevel & DBG_DEVICE) {
 				cout << "I/O Mode: ";
@@ -226,9 +352,9 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 			}
 		} 
 		else
-		// Bit Set Mode in which PortC is directly controlled by the writing to the Control Register
+		// Bit Set Mode in which any single PortC output can be directly controlled by the writing to the Control Register
 		{
-			uint8_t bit = (mCR << 1) & 0x7;
+			uint8_t bit = (mCR >> 1) & 0x7;
 			uint8_t val = mCR & 0x1;
 			uint8_t port_C_data;
 			port_C_data &= ~(1 << bit);
