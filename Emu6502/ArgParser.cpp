@@ -114,17 +114,18 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			if (strcmp(argv[a ], "e") == 0)
 				debugInfo.dbgLevel |= DBG_ERROR;
 			else if (strcmp(argv[a], "w") == 0)
-				debugInfo.dbgLevel |= DBG_WARNING;
+				debugInfo.dbgLevel |= DBG_WARNING | DBG_ERROR;
 			else if (strcmp(argv[a], "d") == 0)
-				debugInfo.dbgLevel |= DBG_DEVICE;
+				debugInfo.dbgLevel |= DBG_DEVICE | DBG_WARNING | DBG_ERROR;
 			else if (strcmp(argv[a], "u") == 0)
-				debugInfo.dbgLevel |= DBG_6502;
+				debugInfo.dbgLevel |= DBG_6502 | DBG_WARNING | DBG_ERROR;
 			else if (strcmp(argv[a], "a") == 0)
 				debugInfo.dbgLevel |= DBG_ALL;
 			else {
 				printUsage(argv[0]);
 				return;
 			}
+			a++;
 		}
 		else {
 			cout << "Unknown option " << argv[a] << "\n";

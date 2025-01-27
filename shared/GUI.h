@@ -7,7 +7,7 @@
 #include <allegro5/allegro_image.h>
 #include "allegro5/allegro_native_dialog.h"
 #include "Device.h"
-#include "CUTSInterface.h"
+#include "TapeRecorder.h"
 
 using namespace std;
 
@@ -40,7 +40,7 @@ private:
     ALLEGRO_MENU* mMenu = NULL;
     ALLEGRO_DISPLAY* mDisplay = NULL;
     Devices* mDevices = NULL;
-    CUTSInterface * mCUTS = NULL;
+    TapeRecorder* mTapeRec = NULL;
 
 public:
 

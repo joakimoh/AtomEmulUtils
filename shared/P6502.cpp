@@ -107,13 +107,13 @@ bool P6502::advance(uint64_t stopCycle)
 		return true;
 	}
 	else if (!mNMI) {
-		if (mDebugInfo.dbgLevel && DBG_DEVICE && mNMI != pNMI)
+		if ((mDebugInfo.dbgLevel & DBG_6502) && mNMI != pNMI)
 			cout << "NMI active\n";
 		pNMI = mNMI;
 		serveNMI();
 	}
 	else if (!mIRQ) {
-		if (mDebugInfo.dbgLevel && DBG_DEVICE && mNMI != pNMI)
+		if ((mDebugInfo.dbgLevel & DBG_6502) && mNMI != pNMI)
 			cout << "IRQ active\n";
 		pIRQ = mIRQ;
 		serveIRQ();

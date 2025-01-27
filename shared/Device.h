@@ -7,6 +7,7 @@
 #include <map>
 #include "DebugInfo.h"
 #include <allegro5/allegro_primitives.h>
+#include <iostream>
 
 
 using namespace std;
@@ -151,6 +152,7 @@ public:
 
 
 	bool getDevice(string name, Device * &device) {
+		device = NULL;
 		for (int i = 0; i < mDevices.size(); i++) {
 			if (mDevices[i]->name == name) {
 				device = mDevices[i];
@@ -158,6 +160,27 @@ public:
 			}
 		}
 		return false;
+	}
+
+	//
+	// Find a device of a certain type.
+	// If more thn one device of this type is found,
+	// the first one is returned but an error is also indicated.
+	//
+	bool getDevice(DeviceId id, Device*& device) {
+		bool found = false;
+		device = NULL;
+		for (int i = 0; i < mDevices.size(); i++) {
+			if (mDevices[i]->devType == id) {
+				if (!found) {
+					device = mDevices[i];
+					found = true;
+				}
+				else
+					return false;
+			}
+		}
+		return found;
 	}
 
 	int size() { return (int) mDevices.size(); }

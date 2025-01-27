@@ -40,7 +40,7 @@ bool TapeRecorder::advance(uint64_t stopCycle)
 
 		}
 
-		else if (mLoadFromTape && mPlay) {
+		if (mLoadFromTape && mPlay) {
 
 			if (mStartPlaying || mCycleCount - mCasInPulseStartCount == mCasInPulseLen) {
 				mStartPlaying = false;

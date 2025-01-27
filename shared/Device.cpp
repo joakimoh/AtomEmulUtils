@@ -13,7 +13,7 @@
 #include <string>
 #include "P6502.h"
 #include <vector>
-#include "CUTSInterface.h"
+#include "AtomCUTSInterface.h"
 #include "TapeRecorder.h"
 
 using namespace std;
@@ -145,7 +145,10 @@ Devices::Devices(
 
 			sin >> dev_typ_s;
 
-			if (dev_typ_s != "CONNECT" && dev_typ_s != "ATOMKB" && dev_typ_s != "UC6502" && dev_typ_s != "ATOMCAS" && dev_typ_s != "//" && dev_typ_s != "TAPREC") {
+			if (
+				dev_typ_s != "CONNECT" && dev_typ_s != "ATOMKB" && dev_typ_s != "UC6502" && dev_typ_s != "ATOMCAS" && dev_typ_s != "//"
+				&& dev_typ_s != "TAPREC" && dev_typ_s != ""
+				) {
 				sin >> dev_name;
 				sin >> dev_adr_s;
 				dev_adr = stoi(dev_adr_s, 0, 16);
@@ -153,7 +156,7 @@ Devices::Devices(
 				dev_sz = stoi(dev_sz_s, 0, 16);
 			}
 
-			if (dev_typ_s == "//") {
+			if (dev_typ_s == "//" || dev_typ_s == "") {
 				// Commment
 			}
 			
@@ -171,7 +174,7 @@ Devices::Devices(
 
 			else if (dev_typ_s == "ATOMCAS") {
 				sin >> dev_name;
-				CUTSInterface * cuts = new CUTSInterface(dev_name, clockSpeed, mDebugInfo, &connection_manager);
+				AtomCUTSInterface * cuts = new AtomCUTSInterface(dev_name, mDebugInfo, &connection_manager);
 				mDevices.push_back(cuts);
 			}
 

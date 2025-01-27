@@ -2,11 +2,11 @@
 #define DEBUG_INFO_H
 
 typedef int DebugLevel;
-#define	DBG_NONE			0x0
-#define	DBG_VERBOSE			0x2
-#define	DBG_ERROR			0x1
-#define	DBG_WARNING			0x4
-#define	DBG_6502			0x8
+#define	DBG_NONE			0x00
+#define	DBG_ERROR			0x01
+#define	DBG_VERBOSE			0x02
+#define	DBG_WARNING			0x04
+#define	DBG_6502			0x08
 #define	DBG_DEVICE			0x10
 #define	DBG_ALL				0xff
 

@@ -1,6 +1,5 @@
 #include "GUI.h"
 #include <iostream>
-#include "CUTSInterface.h"
 
 using namespace std;
 
@@ -8,11 +7,11 @@ using namespace std;
 GUI::GUI(ALLEGRO_DISPLAY* disp, ALLEGRO_MENU* menu, Devices * devices): mMenu(menu), mDisplay(disp), mDevices(devices)
 {
     Device* dev;
-    if (!mDevices->getDevice("CUTS", dev)) {
-        cout << "Failed to get access to cassette interface\n";
-        throw runtime_error("Failed to get access to cassette interface");
+    if (!mDevices->getDevice(DeviceId::TAPE_RECORDER_DEV, dev)) {
+        cout << "Failed to get access to Tape Recorder\n";
+        throw runtime_error("Failed to get access to Tape Recorder");
     }
-    mCUTS = (CUTSInterface*)dev;
+    mTapeRec = (TapeRecorder *)dev;
 }
 
 GUI::~GUI()
@@ -29,34 +28,34 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
 
     case PLAY_ID:
     {    
-        if (mCUTS->playing()) {
+        if (mTapeRec->playing()) {
             cout << "PLAY\n";
             al_set_menu_item_flags(mMenu, PLAY_ID, ALLEGRO_MENU_ITEM_CHECKED);
             al_set_menu_item_flags(mMenu, PAUSE_ID, 0);
             al_set_menu_item_flags(mMenu, REWIND_ID, 0);
             al_set_menu_item_flags(mMenu, STOP_ID, 0);
-            mCUTS->play();
+            mTapeRec->play();
         }
         break;
     }
 
     case RECORD_ID:
     {  
-        if (mCUTS->recording()) {
+        if (mTapeRec->recording()) {
             cout << "RECORD\n";
             al_set_menu_item_flags(mMenu, RECORD_ID, ALLEGRO_MENU_ITEM_CHECKED);
             al_set_menu_item_flags(mMenu, PAUSE_ID, 0);
             al_set_menu_item_flags(mMenu, STOP_ID, 0);
-            mCUTS->record();
+            mTapeRec->record();
         }
         break;
     }
 
     case PAUSE_ID:
     {
-        if (mCUTS->playing() || mCUTS->recording()) {
+        if (mTapeRec->playing() || mTapeRec->recording()) {
             cout << "PAUSE\n";
-            if (mCUTS->playing())
+            if (mTapeRec->playing())
                 al_set_menu_item_flags(mMenu, PLAY_ID, 0);
             else
                 al_set_menu_item_flags(mMenu, RECORD_ID, 0);
@@ -64,26 +63,26 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
             al_set_menu_item_flags(mMenu, PAUSE_ID, ALLEGRO_MENU_ITEM_CHECKED);
             al_set_menu_item_flags(mMenu, REWIND_ID, 0);
             al_set_menu_item_flags(mMenu, STOP_ID, 0);
-            mCUTS->pause();
+            mTapeRec->pause();
         }
         break;
     }
     case REWIND_ID:
     {
-        if (mCUTS->playing()) {
+        if (mTapeRec->playing()) {
             cout << "REWIND\n";
             al_set_menu_item_flags(mMenu, PLAY_ID, 0);
             al_set_menu_item_flags(mMenu, PAUSE_ID, 0);
             al_set_menu_item_flags(mMenu, REWIND_ID, ALLEGRO_MENU_ITEM_CHECKED);
             al_set_menu_item_flags(mMenu, STOP_ID, 0);
-            mCUTS->rewind();
+            mTapeRec->rewind();
         }
         break;
     }
 
     case STOP_ID:
     {
-        if (mCUTS->playing() || mCUTS->recording()) {
+        if (mTapeRec->playing() || mTapeRec->recording()) {
             cout << "STOP\n";
             al_set_menu_item_flags(mMenu, PLAY_ID, ALLEGRO_MENU_ITEM_DISABLED);
             al_set_menu_item_flags(mMenu, REWIND_ID, ALLEGRO_MENU_ITEM_DISABLED);
@@ -92,14 +91,14 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
             al_set_menu_item_flags(mMenu, STOP_ID, ALLEGRO_MENU_ITEM_DISABLED);
             al_set_menu_item_flags(mMenu, LOAD_TAPE_ID, 0);
             al_set_menu_item_flags(mMenu, SAVE_TAPE_ID, 0);
-            mCUTS->stop();
+            mTapeRec->stop();
         }
         break;
     }
 
     case LOAD_TAPE_ID:
     {
-        if (!mCUTS->playing() && !mCUTS->recording()) {
+        if (!mTapeRec->playing() && !mTapeRec->recording()) {
             cout << "Load from Tape\n";
             ALLEGRO_FILECHOOSER* filechooser;
             filechooser = al_create_native_file_dialog("", "Select an existing CSW tape file", "*.csw;", ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
@@ -110,7 +109,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
             cout << "#" << dec << n << " files selected!\n";
             string file = al_get_native_file_dialog_path(filechooser, 0);
             cout << "File '" << file << " selected!\n";
-            if (!mCUTS->startLoadFile(file)) {
+            if (!mTapeRec->startLoadFile(file)) {
                 return false;
             }
             al_destroy_native_file_dialog(filechooser);
@@ -129,7 +128,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
 
     case SAVE_TAPE_ID:
     { 
-        if (!mCUTS->playing() && !mCUTS->recording()) {
+        if (!mTapeRec->playing() && !mTapeRec->recording()) {
             cout << "Save to Tape\n";
             ALLEGRO_FILECHOOSER* filechooser;
             filechooser = al_create_native_file_dialog("", "Name the CSW tape file to be created", "*.csw;", ALLEGRO_FILECHOOSER_SAVE);
@@ -140,7 +139,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
             string file = al_get_native_file_dialog_path(filechooser, 0);
 
             cout << "File '" << file << " selected!\n";
-            if (!mCUTS->startSaveFile(file)) {
+            if (!mTapeRec->startSaveFile(file)) {
                 return false;
             }
             al_destroy_native_file_dialog(filechooser);
