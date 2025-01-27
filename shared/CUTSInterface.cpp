@@ -3,10 +3,10 @@
 CUTSInterface::CUTSInterface(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager) :
 	Device(name, CUTS_DEV, OTHER_DEVICE, debugInfo, connectionManager), mSystemClock(systemClock * 1e6)
 {
-	registerPort("TONE", OUT_PORT, 0x01, TONE, &mTONE);
-	registerPort("CAS_IN", OUT_PORT, 0x01, CAS_IN, &mCAS_IN);
-	registerPort("ENA_TONE", IN_PORT, 0x01, ENA_TONE, &mENA_TONE);
-	registerPort("TAPE_OUT", IN_PORT, 0x01, TAPE_OUT, &mTAPE_OUT);
+	registerPort("TONE",		OUT_PORT,	0x01, TONE,		&mTONE);
+	registerPort("CAS_IN",		OUT_PORT,	0x01, CAS_IN,	&mCAS_IN);
+	registerPort("ENA_TONE",	IN_PORT,	0x01, ENA_TONE, &mENA_TONE);
+	registerPort("TAPE_OUT",	IN_PORT,	0x01, TAPE_OUT, &mTAPE_OUT);
 	//registerPort("CAS_OUT", OUT_PORT, 0x01, CAS_OUT, &mCAS_OUT);
 
 	mToneHalfcycle = (int)round(systemClock * 1e6 / 2400 / 2);
@@ -49,7 +49,7 @@ bool CUTSInterface::advance(uint64_t stopCycle)
 			
 		}
 
-		else if (mLoadFromTape && mPlay) {
+		if (mLoadFromTape && mPlay) {
 
 			if (mStartPlaying || mCycleCount - mCasInPulseStartCount == mCasInPulseLen) {
 				mStartPlaying = false;

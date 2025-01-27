@@ -245,6 +245,8 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 
 		data = mPortC;
 
+		pPortC = mPortC;
+
 		if (mDebugInfo.dbgLevel & DBG_DEVICE)
 			cout << "PIA EXECUTED READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
 	}
@@ -310,7 +312,6 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 				new_portC |= (data << 4) & 0xf0;
 			}
 			if (new_portC != mPortC) {
-				cout << "PortC = 0x" << hex << (int)mPortC << " => 0x" << (int)new_portC << "\n";
 				updatePort(PIA_PORT_C, new_portC);
 			}
 		}
