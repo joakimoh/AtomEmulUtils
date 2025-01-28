@@ -196,12 +196,6 @@ PIA8255::PIA8255(string name, uint16_t adr, int n60HzCycles, DebugInfo debugInfo
 	registerPort("PortB", IO_PORT, 0xff, PIA_PORT_B, &mPortB);
 	registerPort("PortC", IO_PORT, 0xff, PIA_PORT_C, &mPortC);
 
-	// Set the size of the PIA register vector
-	mMem.resize((size_t)mDevSz);
-
-	// Initialise the PIA registers with zeros
-	mMem.assign(mDevSz, 0);
-
 	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 		cout << "PIA 8255 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
 		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
@@ -245,8 +239,6 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 
 		data = mPortC;
 
-		pPortC = mPortC;
-
 		if (mDebugInfo.dbgLevel & DBG_DEVICE)
 			cout << "PIA EXECUTED READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
 	}
@@ -265,7 +257,6 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 
 	uint8_t group_A_mode = (mCR >> 5) & 0x3;
 	uint8_t group_B_mode = (mCR >> 2) & 0x1;
-	uint8_t BSR_mode = 1 - ((mCR >> 7) & 0x1);
 	bool port_A_input = (mCR >> 4) & 0x1;
 	bool port_B_input = (mCR >> 1) & 0x1;
 	bool port_C_lower_input = mCR & 0x1;
@@ -276,13 +267,13 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		//	0-3		Keyboard row
 		//	4-7		Graphics mode
 	{
-		if (!BSR_mode && !port_A_input) // Mode 1; Port A bits are writable
+		if (!port_A_input) // Mode 1; Port A bits are writable
 			updatePort(PIA_PORT_A, data);
 	}
 
 	else if (adr == PIA8255_PORT_B)
 	{
-		if (!BSR_mode && !port_B_input) // Mode 1; Port B bits are writable
+		if (!port_B_input) // Mode 1; Port B bits are writable
 			updatePort(PIA_PORT_B, data);
 	}
 
@@ -302,43 +293,45 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		//  7		Input		60 Hz sync signal
 	{
 		uint8_t new_portC = mPortC;
-		if (!BSR_mode) {
-			if (!port_C_lower_input) {
-				new_portC &= 0xf0;
-				new_portC |= data & 0x0f;
-			}
-			if (!port_C_upper_input) {
-				new_portC &= 0x0f;
-				new_portC |= (data << 4) & 0xf0;
-			}
-			updatePort(PIA_PORT_C, new_portC);
+
+		if (!port_C_lower_input) {
+			new_portC &= 0xf0;
+			new_portC |= data & 0x0f;
 		}
+		if (!port_C_upper_input) {
+			new_portC &= 0x0f;
+			new_portC |= (data << 4) & 0xf0;
+		}
+		updatePort(PIA_PORT_C, new_portC);
+
 		
 	}
 
 	else if (adr == PIA8255_CONTROL) {
 
-		uint8_t new_group_A_mode = (data >> 5) & 0x3;
-		uint8_t new_group_B_mode = (data >> 2) & 0x1;
-		uint8_t new_BSR_mode = 1 - ((data >> 7) & 0x1);
+		uint8_t BSR_mode = 1 - ((data >> 7) & 0x1);
 
-		if (new_group_A_mode != group_A_mode) // reset Port A outputs after a mode change
-			updatePort(PIA_PORT_A, 0x0);
-
-		if (new_group_B_mode != group_B_mode) // reset Port B outputs after a mode change
-			updatePort(PIA_PORT_B, 0x0);
-
-		mCR = data;
-
-		if (!new_BSR_mode && (new_group_A_mode > 0 || new_group_B_mode > 0)) {
-			cout << "*** PIA 8255 ERROR *** Requested group A mode " << (int)new_group_A_mode << " & group B mode " << (int)new_group_B_mode <<
-				" when no other modes than 0 - Basic I / O are currently supported!\n";
-			return false;
-		}
-
-		if (!new_BSR_mode)
+		if (!BSR_mode)
 		// Basic I/O (Mode 0), Strobed I/O (Mode 1) or Bi-directional bus (Mode 2)
 		{
+			mCR = data;
+
+			uint8_t new_group_A_mode = (data >> 5) & 0x3;
+			uint8_t new_group_B_mode = (data >> 2) & 0x1;
+			
+
+			if (new_group_A_mode != group_A_mode) // reset Port A outputs after a mode change
+				updatePort(PIA_PORT_A, 0x0);
+
+			if (new_group_B_mode != group_B_mode) // reset Port B outputs after a mode change
+				updatePort(PIA_PORT_B, 0x0);
+
+			if (new_group_A_mode > 0 || new_group_B_mode > 0) {
+				cout << "*** PIA 8255 ERROR *** Requested group A mode " << (int)new_group_A_mode << " & group B mode " << (int)new_group_B_mode <<
+					" when no other modes than 0 - Basic I / O are currently supported!\n";
+				return false;
+			}
+
 			if (mDebugInfo.dbgLevel & DBG_DEVICE) {
 				cout << "I/O Mode: ";
 				cout << " PortSelection A " << (mCR & 0x40 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2"));
@@ -352,15 +345,18 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		} 
 		else
 		// Bit Set Mode in which any single PortC output can be directly controlled by the writing to the Control Register
+		// The value of the Control Register will not be updated in this case, i.e. previous Control Register settings
+		// will b reserved.
+		// The Acorn Atom uses it to output sound on PC2 e.g.
 		{
-			uint8_t bit = (mCR >> 1) & 0x7;
-			uint8_t val = mCR & 0x1;
+			uint8_t bit = (data >> 1) & 0x7;
+			uint8_t val = data & 0x1;
 			uint8_t port_C_data;
 			port_C_data &= ~(1 << bit);
 			port_C_data |= (val << bit);
 			updatePort(PIA_PORT_C, port_C_data);
 			if (mDebugInfo.dbgLevel & DBG_DEVICE)
-				cout << "Set PIA PortSelection C b" << bit << " to '" << val << "'\n";
+				cout << "Set PIA PortSelection C b" << (int) bit << " to 0x" << hex << (int) val << "\n";
 		}
 	}
 
