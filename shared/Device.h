@@ -26,10 +26,10 @@ enum DeviceId {
 (x==ATOM_KB_DEV?"ATOM KB":(x==P6502_DEV?"6502":(x==CUTS_DEV?"CUTS":(x==TAPE_RECORDER_DEV?"Tape Recorder":"???")))))))))
 
 enum DeviceCategory {
-	MICROROCESSOR_DEVICE, PERIPHERAL, MEMORY_DEVICE, OTHER_DEVICE
+	MICROROCESSOR_DEVICE, VDU_DEVICE, PERIPHERAL, MEMORY_DEVICE, OTHER_DEVICE
 };
 #define _DEVICE_CATEGORY(x) (\
-	x==MICROROCESSOR_DEVICE?"Microprocessor":(x== PERIPHERAL?"Peripheral":(x==MEMORY_DEVICE?"Memory":"Other Device")))
+	x==MICROROCESSOR_DEVICE?"Microprocessor":(x== PERIPHERAL?"Peripheral":(x==MEMORY_DEVICE?"Memory":(x==VDU_DEVICE?"Video Data Unit":"Other Device"))))
 
 typedef struct Program_struct {
 	string fileName = "";

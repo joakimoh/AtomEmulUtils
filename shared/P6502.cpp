@@ -184,7 +184,7 @@ bool P6502::advance(uint64_t stopCycle)
 				std::cout << "Failed to execute instruction!\n";
 		}
 
-		if (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0)  || (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached)) {
+		if ((mDebugInfo.dbgLevel & DBG_6502)  || (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached)) {
 			string instr_s = mCodec.decode(opcode_PC, opcode, operand);
 			stringstream sout;
 			sout << setfill(' ') << setw(30) << left << instr_s << right <<
@@ -1453,7 +1453,7 @@ bool P6502::readDevice(uint16_t adr, uint8_t& data)
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
 			bool success = dev->read(adr, data);
-			if (mDebugInfo.dbgLevel & DBG_DEVICE)
+			if (mDebugInfo.dbgLevel & DBG_6502)
 				cout << "READ 0x" << hex << adr << " => " << (int)data << "\n";
 			return success;
 		}
@@ -1472,7 +1472,7 @@ bool P6502::writeDevice(uint16_t adr, uint8_t data)
 	for (int i = 0; i < mDevices.size(); i++) {
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
-			if (mDebugInfo.dbgLevel & DBG_DEVICE)
+			if (mDebugInfo.dbgLevel & DBG_6502)
 				cout << "WRITE 0x" << hex << (int)data << " to 0x" << adr << "\n";
 			return dev->write(adr, data);
 		}

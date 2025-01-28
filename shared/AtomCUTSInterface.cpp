@@ -16,7 +16,7 @@
 // CAS_OUT		Cassette output to the Tape Recorder
 //
 
-AtomCUTSInterface::AtomCUTSInterface(string name, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+AtomCUTSInterface::AtomCUTSInterface(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager) :
 	Device(name, CUTS_DEV, OTHER_DEVICE, debugInfo, connectionManager)
 {
 	registerPort("TAPE_OUT",	IN_PORT,	0x01, TAPE_OUT, &mTAPE_OUT);	// From PIA PC0
@@ -25,6 +25,8 @@ AtomCUTSInterface::AtomCUTSInterface(string name, DebugInfo debugInfo, Connectio
 	registerPort("TONE",		OUT_PORT,	0x01, TONE,		&mTONE);		// To PIA PC4
 	registerPort("TAPE_IN",		OUT_PORT,	0x01, TAPE_IN, &mTAPE_IN);		// To PIA PC5
 	registerPort("CAS_OUT",		OUT_PORT,	0x01, CAS_OUT,	&mCAS_OUT);		// To Tape Recorder
+
+	mToneHalfcycle = (int)round(systemClock * 1e6 / 2400 / 2);
 
 }
 
@@ -39,13 +41,10 @@ bool AtomCUTSInterface::advance(uint64_t stopCycle)
 
 		// Generate CAS OUT based on ENA_TONE, TONE and TAPE OUT
 		uint8_t cas_out = (1 - (((1 - mENA_TONE) | mTONE) & mTAPE_OUT));
-		if (cas_out != mCAS_OUT)
-			updatePort(CAS_OUT, cas_out);
+		updatePort(CAS_OUT, cas_out);
 
 		// Generate TAPE_IN based on CAS_IN
-		if (mCAS_IN != pCAS_IN)
-			updatePort(TAPE_IN, mCAS_IN);
-		pCAS_IN = mCAS_IN;
+		updatePort(TAPE_IN, mCAS_IN);
 
 		mCycleCount++;
 

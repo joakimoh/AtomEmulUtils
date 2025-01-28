@@ -51,8 +51,8 @@ public:
 	void stop();
 	void record();
 
-	bool playing() { return mPlay; }
-	bool recording() { return mRecord;  }
+	bool playing() { return mLoadFromTape; }
+	bool recording() { return mSaveToTape;  }
 
 };
 

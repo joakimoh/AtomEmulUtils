@@ -71,7 +71,12 @@ bool Device::updatePort(int index, uint8_t val)
 {
 	if (index < 0 && index >= mPorts.size())
 		return false;
+
+	if (*(mPorts[index]->val) == val)
+		return true;
+
 	*(mPorts[index]->val) = val;
+
 	for (int i = 0; i < mPorts[index]->inputs.size(); i++) {
 		InputReference input = mPorts[index]->inputs[i];
 		uint8_t pval = *(input.port->val);
@@ -174,7 +179,7 @@ Devices::Devices(
 
 			else if (dev_typ_s == "ATOMCAS") {
 				sin >> dev_name;
-				AtomCUTSInterface * cuts = new AtomCUTSInterface(dev_name, mDebugInfo, &connection_manager);
+				AtomCUTSInterface * cuts = new AtomCUTSInterface(dev_name, clockSpeed,  mDebugInfo, &connection_manager);
 				mDevices.push_back(cuts);
 			}
 
@@ -369,7 +374,7 @@ bool Devices::loadData(Program data)
 bool Devices::getPeripherals(vector<Device*>& devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
-		if (mDevices[i]->category == PERIPHERAL) {
+		if (mDevices[i]->category == PERIPHERAL || mDevices[i]->category == VDU_DEVICE) {
 			devices.push_back(mDevices[i]);
 			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
 				cout << "Adding peripheral '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
@@ -393,7 +398,7 @@ bool Devices::getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices)
 bool Devices::getNonVduTimeAwareDevices(vector<Device *> &devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
-		if (mDevices[i]->category != MEMORY_DEVICE && mDevices[i]->devType != VDU6847_DEV) {
+		if (mDevices[i]->category != MEMORY_DEVICE && mDevices[i]->category != VDU_DEVICE) {
 			devices.push_back(mDevices[i]);
 			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
 				cout << "Adding non-VDU time-aware device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";

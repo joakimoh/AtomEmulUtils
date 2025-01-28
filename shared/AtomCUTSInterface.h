@@ -18,13 +18,11 @@ private:
 	uint8_t mCAS_OUT = 0x0;
 	int TONE, CAS_IN, ENA_TONE, TAPE_OUT, TAPE_IN, CAS_OUT;
 
-	uint8_t mToneHalfcycle = 0;
-
-	uint8_t pCAS_IN = 0x0;
+	int mToneHalfcycle = 0;
 
 public:
 
-	AtomCUTSInterface(string name, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	AtomCUTSInterface(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager);
 
 	bool advance(uint64_t stopCycle);
 

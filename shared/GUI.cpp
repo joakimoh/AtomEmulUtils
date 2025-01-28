@@ -45,6 +45,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
             cout << "RECORD\n";
             al_set_menu_item_flags(mMenu, RECORD_ID, ALLEGRO_MENU_ITEM_CHECKED);
             al_set_menu_item_flags(mMenu, PAUSE_ID, 0);
+            al_set_menu_item_flags(mMenu, REWIND_ID, ALLEGRO_MENU_ITEM_DISABLED);
             al_set_menu_item_flags(mMenu, STOP_ID, 0);
             mTapeRec->record();
         }
@@ -55,14 +56,20 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
     {
         if (mTapeRec->playing() || mTapeRec->recording()) {
             cout << "PAUSE\n";
-            if (mTapeRec->playing())
+            if (mTapeRec->playing()) {
                 al_set_menu_item_flags(mMenu, PLAY_ID, 0);
-            else
+                al_set_menu_item_flags(mMenu, PAUSE_ID, ALLEGRO_MENU_ITEM_CHECKED);
+                al_set_menu_item_flags(mMenu, REWIND_ID, 0);
+                al_set_menu_item_flags(mMenu, STOP_ID, 0);
+            }
+            else {
                 al_set_menu_item_flags(mMenu, RECORD_ID, 0);
+                al_set_menu_item_flags(mMenu, PAUSE_ID, ALLEGRO_MENU_ITEM_CHECKED);
+                al_set_menu_item_flags(mMenu, REWIND_ID, ALLEGRO_MENU_ITEM_DISABLED);
+                al_set_menu_item_flags(mMenu, STOP_ID, 0);
+            }
 
-            al_set_menu_item_flags(mMenu, PAUSE_ID, ALLEGRO_MENU_ITEM_CHECKED);
-            al_set_menu_item_flags(mMenu, REWIND_ID, 0);
-            al_set_menu_item_flags(mMenu, STOP_ID, 0);
+            
             mTapeRec->pause();
         }
         break;

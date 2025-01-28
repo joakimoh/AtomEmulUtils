@@ -12,10 +12,10 @@ using namespace std;
 bool PIA8255::reset()
 {
 	Device::reset();
-	mPortA = 0x0;
-	mPortB = 0x0;
-	mPortC = 0x0;
-	mCR = 0x9b;
+	mPortA = 0xff;
+	mPortB = 0xff;
+	mPortC = 0xff;
+	mCR = 0x1b; // All ports are set to the input mode
 
 	if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
 		cout << "PIA 8255 RESET\n";
@@ -311,9 +311,7 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 				new_portC &= 0x0f;
 				new_portC |= (data << 4) & 0xf0;
 			}
-			if (new_portC != mPortC) {
-				updatePort(PIA_PORT_C, new_portC);
-			}
+			updatePort(PIA_PORT_C, new_portC);
 		}
 		
 	}

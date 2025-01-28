@@ -363,7 +363,7 @@ bool VDU6847::setVideoRam(RAM* ram)
 //
 
 VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager):
-	MemoryMappedDevice(name, VDU6847_DEV, PERIPHERAL, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
+	MemoryMappedDevice(name, VDU6847_DEV, VDU_DEVICE, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
 {
 	// Specify ports that can be connectde to other devices
 	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);

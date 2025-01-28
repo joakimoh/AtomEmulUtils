@@ -145,8 +145,9 @@ int main(int argc, const char* argv[])
                 cycle_count += cycle_step;
 
                 // advance time for each device until cycle_count has been reached  (or slightly passed)
-                for (int d = 0; d < non_vdu_devices.size(); d++)
+                for (int d = 0; d < non_vdu_devices.size(); d++) {
                     non_vdu_devices[d]->advance(cycle_count);
+                }
 
             }
 

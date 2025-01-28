@@ -4,7 +4,7 @@ TapeRecorder::TapeRecorder(string name, double systemClock, DebugInfo debugInfo,
 	Device(name, TAPE_RECORDER_DEV, OTHER_DEVICE, debugInfo, connectionManager), mSystemClock(systemClock * 1e6)
 {
 	registerPort("CAS_IN", OUT_PORT, 0x01, CAS_IN, &mCAS_IN);
-	registerPort("CAS_OUT", IN_PORT, 0x01, CAS_IN, &mCAS_OUT);
+	registerPort("CAS_OUT", IN_PORT, 0x01, CAS_OUT, &mCAS_OUT);
 
 	mCodec = new CSWCodec(44100, mDebugInfo);
 
@@ -73,7 +73,6 @@ bool TapeRecorder::startLoadFile(string tapeFile)
 	mLoadFromTape = true;
 	mCasInPulseIndex = 0;
 	mPlay = false;
-	cout << "Open CSW File '" << tapeFile << "'\n";
 
 	if (!mCodec->decode(tapeFile, mCasInPulses, mCasInPulseLevel, mSampleRate)) {
 		return false;
@@ -97,6 +96,7 @@ void TapeRecorder::play()
 {
 	mPlay = true;
 	mStartPlaying = true;
+	cout << "PLAY\n";
 }
 
 void TapeRecorder::rewind()
@@ -116,17 +116,16 @@ void TapeRecorder::pause()
 void TapeRecorder::stop()
 {
 	if (mLoadFromTape) {
-		cout << "STOP - clear file...\n";
 		mLoadFromTape = false;
 		mPlay = false;
 		mCasInPulses.clear();
 	}
 	else if (mSaveToTape) {
-		cout << "STOP - saving to file...\n";
 		mSaveToTape = false;
 		mRecord = false;
 		mCodec->closeTapeFileW();
 	}
+	
 }
 
 void TapeRecorder::record()
