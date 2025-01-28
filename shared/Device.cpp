@@ -4,7 +4,7 @@
 #include "PIA8255.h"
 #include "VDU6847.h"
 #include "VIA6522.h"
-#include "KeyboardDevice.h"
+#include "AtomKeyboardDevice.h"
 #include <iostream>
 #include <filesystem>
 #include <fstream>
@@ -15,6 +15,7 @@
 #include <vector>
 #include "AtomCUTSInterface.h"
 #include "TapeRecorder.h"
+#include "AtomSpeaker.h"
 
 using namespace std;
 
@@ -152,7 +153,7 @@ Devices::Devices(
 
 			if (
 				dev_typ_s != "CONNECT" && dev_typ_s != "ATOMKB" && dev_typ_s != "UC6502" && dev_typ_s != "ATOMCAS" && dev_typ_s != "//"
-				&& dev_typ_s != "TAPREC" && dev_typ_s != ""
+				&& dev_typ_s != "TAPREC" && dev_typ_s != "" && dev_typ_s != "ATOMSP"
 				) {
 				sin >> dev_name;
 				sin >> dev_adr_s;
@@ -167,8 +168,14 @@ Devices::Devices(
 			
 			else if (dev_typ_s == "ATOMKB") {
 				sin >> dev_name;
-				KeyboardDevice * kb = new KeyboardDevice(dev_name, mDebugInfo, &connection_manager);
+				AtomKeyboardDevice * kb = new AtomKeyboardDevice(dev_name, mDebugInfo, &connection_manager);
 				mDevices.push_back(kb);
+			}
+
+			else if (dev_typ_s == "ATOMSP") {
+				sin >> dev_name;
+				AtomSpeaker* sp = new AtomSpeaker(dev_name, clockSpeed, mDebugInfo, &connection_manager);
+				mDevices.push_back(sp);
 			}
 
 			else if (dev_typ_s == "TAPREC") {

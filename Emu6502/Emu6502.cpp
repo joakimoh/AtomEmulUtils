@@ -13,6 +13,7 @@
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_image.h>
 #include "allegro5/allegro_native_dialog.h"
+#include "allegro5/allegro_audio.h"
 #include "ArgParser.h"
 #include "../shared/P6502.h"
 #include "../shared/Codec6502.h"
@@ -58,6 +59,7 @@ int main(int argc, const char* argv[])
     al_init_primitives_addon();
     al_init_image_addon();
     al_init_native_dialog_addon();
+    al_install_audio();
 
     ALLEGRO_TIMER* emu_speed_timer = al_create_timer(1.0 / 60); // 60 Hz frequency as default emulation speed
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
@@ -180,6 +182,8 @@ int main(int argc, const char* argv[])
     al_destroy_event_queue(queue);
 
     al_destroy_menu(menu);
+
+    al_uninstall_audio();
 
     
  

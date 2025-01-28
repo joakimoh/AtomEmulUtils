@@ -22,7 +22,7 @@ typedef struct AtomModifier_struct {
 	bool repeat;
 } AtomModifier;
 
-class KeyboardDevice : public Device {
+class AtomKeyboardDevice : public Device {
 
 private:
 
@@ -132,7 +132,7 @@ private:
 
 public:
 
-	KeyboardDevice(string name, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	AtomKeyboardDevice(string name, DebugInfo debugInfo, ConnectionManager* connectionManager);
 
 	// The Keyboard Device is not a memory-mapped device so we have to
 	// return false on all attempts to access it...

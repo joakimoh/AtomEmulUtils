@@ -62,7 +62,7 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 	mProgramCounter = adr;
 
 	fin.seekg(0);
-	uint8_t opcode;
+	uint8_t opcode = 0x0;
 	while (!fin.fail()) {
 		uint16_t operand = 0x0;
 		fin.read((char*)&opcode, sizeof(opcode));
@@ -81,7 +81,7 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 					case PreInd_X:	// OPC (&12,X)
 					case PostInd_Y:	// OPC (&12),Y
 					{
-						uint8_t op8;
+						uint8_t op8 = 0x0;
 						fin.read((char*)&op8, sizeof(op8));
 						operand = op8;
 						mProgramCounter++;
@@ -92,7 +92,7 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 					case Absolute_Y:	// OPC &1234,Y
 					case Indirect:		// OPC (&1234)			
 					{
-						uint8_t op16_L, op16_H;
+						uint8_t op16_L = 0x0, op16_H = 0x0;
 						fin.read((char*)&op16_L, sizeof(op16_L));
 						fin.read((char*)&op16_H, sizeof(op16_H));
 						operand = op16_H * 256 + op16_L;

@@ -1,4 +1,4 @@
-#include "KeyboardDevice.h"
+#include "AtomKeyboardDevice.h"
 #include <iostream>
 #include <cstdint>
 #include <map>
@@ -6,7 +6,7 @@
 using namespace std;
 
 
-KeyboardDevice::KeyboardDevice(string name, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+AtomKeyboardDevice::AtomKeyboardDevice(string name, DebugInfo debugInfo, ConnectionManager* connectionManager) :
 	Device(name, ATOM_KB_DEV, OTHER_DEVICE, debugInfo, connectionManager)
 {
 	// Specify ports that can be connected to other devices	
@@ -58,7 +58,7 @@ KeyboardDevice::KeyboardDevice(string name, DebugInfo debugInfo, ConnectionManag
 	al_get_keyboard_state(&mKeyboardState);
 }
 
-bool KeyboardDevice::advance(uint64_t stopCycle)
+bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 {
 	al_get_keyboard_state(&mKeyboardState);
 

@@ -222,15 +222,6 @@ bool P6502::executeInstr(
 	uint8_t val_8_u;
 	written_val = 0x0;
 
-	if (opcode_PC == 0xc504) { // Atom <ESC> key subroutine that checks for pressed <ESC> key
-		// Emulate RTS instruction
-		uint8_t PC_l, PC_h;
-		readDevice(0x100 + (uint16_t)++mStackPointer, PC_l);
-		readDevice(0x100 + (uint16_t)++mStackPointer, PC_h);
-		mProgramCounter = PC_h * 256 + PC_l + 1;
-		return true;
-	}
-
 	switch (instr.instruction) {
 
 	case Codec6502::Instruction::ADC:
