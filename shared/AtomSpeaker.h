@@ -25,8 +25,7 @@ private:
 	ALLEGRO_AUDIO_STREAM* mAudioStream = NULL;
 
 	vector<uint8_t> mSamples;
-	bool mSound = false;
-
+	int mSoundCnt = 0;
 public:
 
 	AtomSpeaker(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager);
