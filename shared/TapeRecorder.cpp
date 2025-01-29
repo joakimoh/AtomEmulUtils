@@ -1,4 +1,5 @@
 #include "TapeRecorder.h"
+#include <cmath>
 
 TapeRecorder::TapeRecorder(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager) :
 	Device(name, TAPE_RECORDER_DEV, OTHER_DEVICE, debugInfo, connectionManager), mSystemClock(systemClock * 1e6)

@@ -1,4 +1,5 @@
 #include "AtomCUTSInterface.h"
+#include <cmath>
 
 //
 // Model of the CUTS Interface implemented by the Acorn Atom

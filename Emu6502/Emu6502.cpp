@@ -21,10 +21,17 @@
 #include "../shared/GUI.h"
 
 #include <chrono>
+#include <cmath>
 
 
 using namespace std;
 
+// Workaround for allegro bug where the ALLEGRO_MENU_INFO struct defins the 2nd field as uint16_t but the
+// ALLEGRO_MENU_SEPARATOR uses a value '-1-'
+#ifdef ALLEGRO_MENU_SEPARATOR
+#undef ALLEGRO_MENU_SEPARATOR
+#define ALLEGRO_MENU_SEPARATOR {NULL, 0xffff, 0, NULL}
+#endif
 
 
 ALLEGRO_MENU_INFO main_menu[] = {

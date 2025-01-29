@@ -5,6 +5,8 @@
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_primitives.h>
 #include "Video.h"
+#include <cmath>
+
 using namespace std;
 
 

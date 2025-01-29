@@ -1,4 +1,5 @@
 #include "AtomSpeaker.h"
+#include <cmath>
 
 //
 // Model of the CUTS Interface implemented by the Acorn Atom
@@ -16,8 +17,8 @@
 // CAS_OUT		Cassette output to the Tape Recorder
 //
 
-#define SAMPLES_PER_FRAGMENT    4192
-#define N_FRAGMENTS				8
+#define SAMPLES_PER_FRAGMENT    2048
+#define N_FRAGMENTS				16
 #define SAMPLE_FREQ				32000
 
 AtomSpeaker::AtomSpeaker(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager) :
@@ -67,15 +68,14 @@ bool AtomSpeaker::advance(uint64_t stopCycle)
 {
 	while (mCycleCount < stopCycle) {
 
-		if (mCycleCount % mUpdateFreqCount == 0)
+		if (mCycleCount % mUpdateFreqCount == 0) {
 			updateAudio(mOUT);
-
-		if (mOUT != pOUT)
-			mSoundCnt++;
-		pOUT = mOUT;
+			if (mOUT != pOUT)
+				mSoundCnt++;
+			pOUT = mOUT;
+		}	
 
 		mCycleCount++;
-
 
 	}
 
@@ -88,10 +88,10 @@ bool AtomSpeaker::updateAudio(uint8_t val)
 	mSamples.push_back(val);
 
 	if (mSamples.size() >= SAMPLES_PER_FRAGMENT)
-	// Samples corresponding to a complete fragement exists => audio output possible
+	// Samples corresponding to a complete fragment exists => audio output possible
 	{
 
-		if (mSoundCnt > 16) {
+		if (mSoundCnt > 4) {
 
 			ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
 			al_register_event_source(queue, al_get_audio_stream_event_source(mAudioStream));

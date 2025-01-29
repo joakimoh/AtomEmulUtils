@@ -111,7 +111,7 @@ set(CPACK_PACKAGE_VERSION_MAJOR "${AtomTapeUtils_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${AtomTapeUtils_VERSION_MINOR}")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Utility to disassemble 6502 machine code")
 set(CPACK_PACKAGE_DESCRIPTION
-"This is a utility to disasemble 6502 machine code")
+"This is a utility to disassemble 6502 machine code")
 IF (WIN32)
   set(CPACK_GENERATOR WIX)
 ELSEIF(UNIX)

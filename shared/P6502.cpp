@@ -7,7 +7,7 @@
 #include <sstream>
 #include <filesystem>
 #include <bitset>
-#include<conio.h>
+#include <cmath>
 
 
 P6502::P6502(string name, double clockSpeed, DebugInfo debugInfo, ConnectionManager *connectionManager):

@@ -135,7 +135,7 @@ public:
 	const int mBottomBorderH = 26; 
 	const int mLeftBorderW = 57;		// Left & Right (inactive but still) visiblevertical borders
 	const int mRightBorderW = 57;		// (tAVB - tAV) / 2 = (185.5/3.58-128/3.58)/2 = (51.82 - 35.75)/2 = 8.03 us <=> 57.5 'pixels' (3.58 Mhz half cycles)
-	const int mVisibleW = mLeftBorderW + mActiveAreaW + mRightBorderW; // Visible aera 371 x 242 'pixels' (horizontal 'pixel' <=> one 3.58 Mhz half cycles)
+	const int mVisibleW = mLeftBorderW + mActiveAreaW + mRightBorderW; // Visible area 371 x 242 'pixels' (horizontal 'pixel' <=> one 3.58 Mhz half cycles)
 	const int mVisibleH = mTopBorderH + mActiveAreaH + mBottomBorderH; //
 	const int mTopVBlankingH = 13;
 	const int mBottomVBlankingH = 6;
