@@ -39,7 +39,7 @@ bool P6502::serveNMI()
 
 	// Fetch break vector
 	uint8_t adr_L, adr_H;
-	if (!readDevice(0xfffe, adr_L) || !readDevice(0xffff, adr_H))
+	if (!readProgramMem(0xfffe, adr_L) || !readProgramMem(0xffff, adr_H))
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
 	mStatusRegister |= I_set_mask;
@@ -61,7 +61,7 @@ bool P6502::serveIRQ()
 
 	// Fetch break vector
 	uint8_t adr_L, adr_H;
-	if (!readDevice(0xfffa, adr_L) || !readDevice(0xfffb, adr_H))
+	if (!readProgramMem(0xfffa, adr_L) || !readProgramMem(0xfffb, adr_H))
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
 	return true;
@@ -82,7 +82,7 @@ bool P6502::reset()
 
 	// Fetch RESET vector
 	uint8_t adr_L, adr_H;
-	if (!readDevice(0xfffc, adr_L) || !readDevice(0xfffd, adr_H))
+	if (!readProgramMem(0xfffc, adr_L) || !readProgramMem(0xfffd, adr_H))
 		return false;
 
 	mProgramCounter = adr_H * 256 + adr_L;
@@ -142,7 +142,7 @@ bool P6502::advance(uint64_t stopCycle)
 				// Output pre post tracing
 				for (int a = mDebugInfo.dumpAdr; a < mDebugInfo.dumpAdr + mDebugInfo.dumpSz; a++) {
 					uint8_t d;
-					readDevice(a, d);
+					readProgramMem(a, d);
 					std::cout << "0x" << hex << setw(4) << setfill('0') << a <<
 						" 0x" << setw(2) << (int) d << "\n";
 				}
@@ -152,7 +152,7 @@ bool P6502::advance(uint64_t stopCycle)
 		// Get opcode of next instruction
 		uint8_t opcode;
 		uint16_t opcode_PC = mProgramCounter;
-		if (!readDevice(mProgramCounter++, opcode)) {
+		if (!readProgramMem(mProgramCounter++, opcode)) {
 			success = false;
 			if (mDebugInfo.dbgLevel & DBG_ERROR)
 				std::cout << "Failed to read instruction!\n";
@@ -409,7 +409,7 @@ bool P6502::executeInstr(
 
 		// Fetch break vector
 		uint8_t adr_L, adr_H;
-		if (!readDevice(0xfffe, adr_L) || !readDevice(0xffff, adr_H))
+		if (!readProgramMem(0xfffe, adr_L) || !readProgramMem(0xffff, adr_H))
 			return false;
 		mProgramCounter = adr_H * 256 + adr_L;
 
@@ -733,7 +733,7 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// +	+	-	-	-	-
 	{
-		readDevice(0x100 + (uint16_t)++mStackPointer, mAcc);
+		readProgramMem(0x100 + (uint16_t)++mStackPointer, mAcc);
 		setNZflags(mAcc);
 		break;
 	}
@@ -744,7 +744,7 @@ bool P6502::executeInstr(
 		// +	+	+	+	+	+
 	{
 		uint8_t stack_val;
-		readDevice(0x100 + (uint16_t)++mStackPointer, stack_val);
+		readProgramMem(0x100 + (uint16_t)++mStackPointer, stack_val);
 		stack_val &= ~(B_set_mask | b5_set_mask);
 		mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
 		mStatusRegister |= stack_val;
@@ -807,15 +807,15 @@ bool P6502::executeInstr(
 	{
 		// Pull Status Register
 		uint8_t stack_val;
-		readDevice(0x100 + (uint16_t)++mStackPointer, stack_val);
+		readProgramMem(0x100 + (uint16_t)++mStackPointer, stack_val);
 		stack_val &= ~(B_set_mask | b5_set_mask);
 		mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
 		mStatusRegister |= stack_val;
 
 		// Pull PC
 		uint8_t PC_l, PC_h;
-		readDevice(0x100 + (uint16_t)++mStackPointer, PC_l);
-		readDevice(0x100 + (uint16_t)++mStackPointer, PC_h);
+		readProgramMem(0x100 + (uint16_t)++mStackPointer, PC_l);
+		readProgramMem(0x100 + (uint16_t)++mStackPointer, PC_h);
 		mProgramCounter = PC_h * 256 + PC_l;
 
 		break;
@@ -830,8 +830,8 @@ bool P6502::executeInstr(
 
 	{
 		uint8_t PC_l, PC_h;
-		readDevice(0x100 + (uint16_t)++mStackPointer, PC_l);
-		readDevice(0x100 + (uint16_t)++mStackPointer, PC_h);
+		readProgramMem(0x100 + (uint16_t)++mStackPointer, PC_l);
+		readProgramMem(0x100 + (uint16_t)++mStackPointer, PC_h);
 		mProgramCounter = PC_h * 256 + PC_l + 1;
 		break;
 	}
@@ -1058,7 +1058,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 		// Read relative branch address
 	{
 		uint8_t rel_a;
-		if (!readDevice(mProgramCounter++, rel_a))
+		if (!readProgramMem(mProgramCounter++, rel_a))
 			return false;
 
 		// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -1080,7 +1080,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 		// Read value $12
 	{
 		uint8_t op8;
-		if (!readDevice(mProgramCounter++, op8))
+		if (!readProgramMem(mProgramCounter++, op8))
 			return false;
 
 		// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -1100,7 +1100,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// Read address operand
 		uint8_t zp_a;
-		if (!readDevice(mProgramCounter++, zp_a))
+		if (!readProgramMem(mProgramCounter++, zp_a))
 			return false;
 
 		// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -1125,7 +1125,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// Read address operand
 		uint8_t zp_a;
-		if (!readDevice(mProgramCounter++, zp_a))
+		if (!readProgramMem(mProgramCounter++, zp_a))
 			return false;
 
 		// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -1150,7 +1150,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// Read address operand
 		uint8_t zp_a;
-		if (!readDevice(mProgramCounter++, zp_a))
+		if (!readProgramMem(mProgramCounter++, zp_a))
 			return false;
 
 		// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -1176,7 +1176,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// Read address operand
 		uint8_t a_L, a_H;
-		if (!readDevice(mProgramCounter++, a_L) || !readDevice(mProgramCounter++, a_H))
+		if (!readProgramMem(mProgramCounter++, a_L) || !readProgramMem(mProgramCounter++, a_H))
 			return false;
 
 		// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -1202,7 +1202,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// Read address operand
 		uint8_t a_L, a_H;
-		if (!readDevice(mProgramCounter++, a_L) || !readDevice(mProgramCounter++, a_H))
+		if (!readProgramMem(mProgramCounter++, a_L) || !readProgramMem(mProgramCounter++, a_H))
 			return false;
 
 		// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -1231,9 +1231,9 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// Read address operand
 		uint8_t a_L, a_H;
-		if (!readDevice(mProgramCounter++, a_L))
+		if (!readProgramMem(mProgramCounter++, a_L))
 			return false;
-		if (!readDevice(mProgramCounter++, a_H))
+		if (!readProgramMem(mProgramCounter++, a_H))
 			return false;
 
 		// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -1262,9 +1262,9 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// Read address operand
 		uint8_t a_L, a_H;
-		if (!readDevice(mProgramCounter++, a_L))
+		if (!readProgramMem(mProgramCounter++, a_L))
 			return false;
-		if (!readDevice(mProgramCounter++, a_H))
+		if (!readProgramMem(mProgramCounter++, a_H))
 			return false;
 
 		// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -1294,7 +1294,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// Read zero page address operand
 		uint8_t zp_a;
-		if (!readDevice(mProgramCounter++, zp_a))
+		if (!readProgramMem(mProgramCounter++, zp_a))
 			return false;
 
 		// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -1326,7 +1326,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// Read zero page address operand (e.g. $12)
 		uint8_t zp_a;
-		if (!readDevice(mProgramCounter++, zp_a))
+		if (!readProgramMem(mProgramCounter++, zp_a))
 			return false;
 
 		// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -1434,18 +1434,37 @@ void P6502::setNZCVflags(uint8_t N, uint8_t Z, uint8_t C, uint8_t V)
 		mStatusRegister |= V_set_mask;
 }
 
-
 //
 //
 bool P6502::readDevice(uint16_t adr, uint8_t& data)
 {
-
 	for (int i = 0; i < mDevices.size(); i++) {
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
 			bool success = dev->read(adr, data);
 			if (mDebugInfo.dbgLevel & DBG_6502)
 				cout << "READ 0x" << hex << adr << " => " << (int)data << "\n";
+			return success;
+		}
+	}
+
+	data = 0xff;
+	return true;
+}
+
+bool P6502::readProgramMem(uint16_t adr, uint8_t& data)
+{
+	if (mLastPgmDevice != NULL && mLastPgmDevice->read(adr, data))
+		return true;
+
+	mLastPgmDevice = NULL;
+	for (int i = 0; i < mMemories.size(); i++) {
+		MemoryMappedDevice* dev = mMemories[i];
+		if (dev->selected(adr)) {
+			bool success = dev->read(adr, data);
+			if (mDebugInfo.dbgLevel & DBG_6502)
+				cout << "READ 0x" << hex << adr << " => " << (int)data << "\n";
+			mLastPgmDevice = dev;
 			return success;
 		}
 	}

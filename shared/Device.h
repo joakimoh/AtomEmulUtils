@@ -147,6 +147,7 @@ public:
 	bool getPeripherals(vector<Device*> &devices);
 	bool getNonVduTimeAwareDevices(vector<Device*> &devices);
 	bool getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices);
+	bool getMemoryDevices(vector<MemoryMappedDevice*>& devices);
 
 	bool loadData(Program data);
 

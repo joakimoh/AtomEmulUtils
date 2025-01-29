@@ -84,11 +84,18 @@ private:
 	uint8_t pRESET = 0x0;
 	uint8_t pNMI = 0x1;
 	uint8_t pIRQ = 0x1;
+
+	MemoryMappedDevice* mLastPgmDevice = NULL;
 	
+	bool readDevice(uint16_t adr, uint8_t& data);
+	bool writeDevice(uint16_t adr, uint8_t data);
+
+	bool readProgramMem(uint16_t adr, uint8_t& data);
 
 public:
 
 	vector<MemoryMappedDevice*> mDevices;
+	vector< MemoryMappedDevice*> mMemories;
 
 	P6502(string name, double clockSpeed, DebugInfo debugInfo, ConnectionManager* connectionManager);
 	~P6502();
@@ -101,10 +108,6 @@ public:
 
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
-
-	bool readDevice(uint16_t adr, uint8_t& data);
-	bool writeDevice(uint16_t adr, uint8_t data);
-
 
 };
 

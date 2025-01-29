@@ -298,7 +298,7 @@ Devices::Devices(
 	}
 
 	// Update the microprocessor with memory-mapped devices that it shall be able to access
-	if (!getMemoryMappedDevices(microprocessor->mDevices)) {
+	if (!getMemoryMappedDevices(microprocessor->mDevices) || !getMemoryDevices(microprocessor->mMemories)) {
 		cout << "Failed to get memory-mapped devices!\n";
 		throw runtime_error("Failed to get memory-mapped devices");
 	}
@@ -409,6 +409,18 @@ bool Devices::getNonVduTimeAwareDevices(vector<Device *> &devices)
 			devices.push_back(mDevices[i]);
 			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
 				cout << "Adding non-VDU time-aware device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
+		}
+	}
+	return true;
+}
+
+bool Devices::getMemoryDevices(vector<MemoryMappedDevice*> &devices)
+{
+	for (int i = 0; i < mDevices.size(); i++) {
+		if (mDevices[i]->category == MEMORY_DEVICE) {
+			devices.push_back((MemoryMappedDevice * ) mDevices[i]);
+			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
+				cout << "Adding memory device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
 	return true;
