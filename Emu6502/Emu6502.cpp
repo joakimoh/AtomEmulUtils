@@ -96,10 +96,11 @@ int main(int argc, const char* argv[])
     ConnectionManager connection_manager(arg_parser.debugInfo);
 
     Device* vdu_device = NULL;
-    vector<Device*> non_vdu_devices;
+    Device* sound_device = NULL;
+    vector<Device*> other_devices;
     Devices devices(
         arg_parser.mapFileName, n_cycles_per_60_hz, 1.0, disp_bm,
-        arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, vdu_device, non_vdu_devices
+        arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, vdu_device, sound_device, other_devices
 
     );
     VDU6847* vdu = (VDU6847*)vdu_device;
@@ -125,8 +126,9 @@ int main(int argc, const char* argv[])
     uint64_t cycle_count = 0;
 
     // RESET all devices
-    for (int d = 0; d < non_vdu_devices.size(); d++)
-        non_vdu_devices[d]->reset();
+    for (int d = 0; d < other_devices.size(); d++)
+        other_devices[d]->reset();
+    sound_device->reset();
     vdu->reset();
     if (arg_parser.debugInfo.dbgLevel & DBG_VERBOSE)
         cout << "All devices now reset...\n";
@@ -146,18 +148,25 @@ int main(int argc, const char* argv[])
             // target time for the 6502 and the other devices (PIA, VIA, RAM & ROM). This
             // is required to keep execution synchronised with the field updating.
             uint64_t target_cycle_count;
+            uint64_t old_cycle_count;
             vdu->advanceLine(target_cycle_count);
+            uint64_t sound_cycle_step = (target_cycle_count - old_cycle_count)  / 2;
 
-            // Advance each device in steps (cycle_step) until it has reached a time corresponding to one scan scan_line
-            while (cycle_count < target_cycle_count) {
+            for (int half_cycle = 0; half_cycle < 2; half_cycle++) {
 
-                cycle_count += cycle_step;
+                sound_device->advance(cycle_count + sound_cycle_step);
 
-                // advance time for each device until cycle_count has been reached  (or slightly passed)
-                for (int d = 0; d < non_vdu_devices.size(); d++) {
-                    non_vdu_devices[d]->advance(cycle_count);
+                // Advance each device in steps (cycle_step) until it has reached a time corresponding to one scan scan_line
+                while (cycle_count < target_cycle_count) {
+
+                    cycle_count += cycle_step;
+
+                    // advance time for each device until cycle_count has been reached  (or slightly passed)
+                    for (int d = 0; d < other_devices.size(); d++) {
+                       other_devices[d]->advance(cycle_count);
+                    }
+
                 }
-
             }
 
         }

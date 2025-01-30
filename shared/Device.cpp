@@ -123,9 +123,10 @@ bool Device::getPortIndex(string name, DevicePort * &port) {
 Devices::Devices(
 	string memMapFile, int n60HzCycles, double clockSpeed, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
 	Program program, Program data, ConnectionManager& connection_manager, Device * &vdu,
-	vector<Device*> &nonVduDevices) :mDebugInfo(debugInfo)
+	Device * &soundDevice, vector<Device*>& otherDevices) :mDebugInfo(debugInfo)
 {
-
+	soundDevice = NULL;
+	vdu = NULL;
 	connection_manager.setDevices(this);
 
 	ifstream fin(memMapFile, ios::in | ios::ate);
@@ -139,7 +140,6 @@ Devices::Devices(
 
 	string line;
 	int line_no = 1;
-	vdu = NULL;
 	P6502 * microprocessor = NULL;
 	
 	while (getline(fin, line)) {
@@ -176,6 +176,7 @@ Devices::Devices(
 				sin >> dev_name;
 				AtomSpeaker* sp = new AtomSpeaker(dev_name, clockSpeed, mDebugInfo, &connection_manager);
 				mDevices.push_back(sp);
+				soundDevice = (Device*)sp;
 			}
 
 			else if (dev_typ_s == "TAPREC") {
@@ -304,9 +305,9 @@ Devices::Devices(
 	}
 
 	// Update the microprocessor with memory-mapped devices that it shall be able to access
-	if (!getNonVduTimeAwareDevices(nonVduDevices)) {
-		cout << "Failed to get non-VDU time aware devices!\n";
-		throw runtime_error("Failed to get non-VDU time aware devices");
+	if (!getNonVduNonSoundTimeAwareDevices(otherDevices)) {
+		cout << "Failed to get non-VDU & non-sound time aware devices!\n";
+		throw runtime_error("Failed to get non-VDU & non-sound time aware devices");
 	}
 
 
@@ -402,10 +403,10 @@ bool Devices::getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices)
 	return true;
 }
 
-bool Devices::getNonVduTimeAwareDevices(vector<Device *> &devices)
+bool Devices::getNonVduNonSoundTimeAwareDevices(vector<Device *> &devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
-		if (mDevices[i]->category != MEMORY_DEVICE && mDevices[i]->category != VDU_DEVICE) {
+		if (mDevices[i]->category != MEMORY_DEVICE && mDevices[i]->category != VDU_DEVICE && mDevices[i] -> category != SOUND_DEVICE) {
 			devices.push_back(mDevices[i]);
 			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
 				cout << "Adding non-VDU time-aware device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";

@@ -19,17 +19,17 @@ class Devices;
 class MemoryMappedDevice;
 
 enum DeviceId {
-	TAPE_RECORDER_DEV, ATOM_SPEAKER_DEV, CUTS_DEV, ROM_DEV, RAM_DEV, PIA8255_DEV, VDU6847_DEV, VIA6522_DEV, ATOM_KB_DEV, P6502_DEV, UNDEFINED_DEV
+	TAPE_RECORDER_DEV, ATOM_SPEAKER_DEV, ATOM_CUTS_DEV, ROM_DEV, RAM_DEV, PIA8255_DEV, VDU6847_DEV, VIA6522_DEV, ATOM_KB_DEV, P6502_DEV, UNDEFINED_DEV
 };
 #define _DEVICE_ID(x) (\
 	x==ROM_DEV?"ROM":(x==RAM_DEV?"RAM":(x==PIA8255_DEV?"PIA 8255":(x==VDU6847_DEV?"VDU 6847":(x==VIA6522_DEV?"VIA 6522":\
-(x==ATOM_KB_DEV?"ATOM KB":(x==P6502_DEV?"6502":(x==CUTS_DEV?"CUTS":(x==TAPE_RECORDER_DEV?"Tape Recorder":(x==ATOM_SPEAKER_DEV?"Atom Speaker":"???"))))))))))
+(x==ATOM_KB_DEV?"ATOM KB":(x==P6502_DEV?"6502":(x==ATOM_CUTS_DEV?"CUTS":(x==TAPE_RECORDER_DEV?"Tape Recorder":(x==ATOM_SPEAKER_DEV?"Atom Speaker":"???"))))))))))
 
 enum DeviceCategory {
-	MICROROCESSOR_DEVICE, VDU_DEVICE, PERIPHERAL, MEMORY_DEVICE, OTHER_DEVICE
+	SOUND_DEVICE, MICROROCESSOR_DEVICE, VDU_DEVICE, PERIPHERAL, MEMORY_DEVICE, OTHER_DEVICE
 };
 #define _DEVICE_CATEGORY(x) (\
-	x==MICROROCESSOR_DEVICE?"Microprocessor":(x== PERIPHERAL?"Peripheral":(x==MEMORY_DEVICE?"Memory":(x==VDU_DEVICE?"Video Data Unit":"Other Device"))))
+	x==MICROROCESSOR_DEVICE?"Microprocessor":(x== PERIPHERAL?"Peripheral":(x==MEMORY_DEVICE?"Memory":(x==VDU_DEVICE?"Video Data Unit":(x==SOUND_DEVICE?"Sound Device":"Other Device")))))
 
 typedef struct Program_struct {
 	string fileName = "";
@@ -138,14 +138,14 @@ public:
 
 	Devices(
 		string memMapFile, int n60HzCycles, double clockSpeed, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
-		Program program, Program data, ConnectionManager &connectionManager, Device * &vdu,
-		vector<Device *> &nonVduDevices
+		Program program, Program data, ConnectionManager &connectionManager, Device * &vdu, Device * &soundDevice,
+		vector<Device *> &otherDevices
 	);
 
 	~Devices();
 
 	bool getPeripherals(vector<Device*> &devices);
-	bool getNonVduTimeAwareDevices(vector<Device*> &devices);
+	bool getNonVduNonSoundTimeAwareDevices(vector<Device*> &devices);
 	bool getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices);
 	bool getMemoryDevices(vector<MemoryMappedDevice*>& devices);
 

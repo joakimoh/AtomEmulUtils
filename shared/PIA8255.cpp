@@ -302,6 +302,7 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 			new_portC &= 0x0f;
 			new_portC |= (data << 4) & 0xf0;
 		}
+
 		updatePort(PIA_PORT_C, new_portC);
 
 		
@@ -351,12 +352,12 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		{
 			uint8_t bit = (data >> 1) & 0x7;
 			uint8_t val = data & 0x1;
-			uint8_t port_C_data;
+			uint8_t port_C_data = mPortC;
 			port_C_data &= ~(1 << bit);
 			port_C_data |= (val << bit);
 			updatePort(PIA_PORT_C, port_C_data);
 			if (mDebugInfo.dbgLevel & DBG_DEVICE)
-				cout << "Set PIA PortSelection C b" << (int) bit << " to 0x" << hex << (int) val << "\n";
+				cout << "Set PIA PortSelection C b" << (int) bit << " to 0x" << hex << (int) val << " => PortC = 0x" << hex << (int) mPortC << dec << "\n";
 		}
 	}
 

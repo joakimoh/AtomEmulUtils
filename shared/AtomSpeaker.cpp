@@ -17,12 +17,12 @@
 // CAS_OUT		Cassette output to the Tape Recorder
 //
 
-#define SAMPLES_PER_FRAGMENT    2048
-#define N_FRAGMENTS				16
-#define SAMPLE_FREQ				32000
+#define SAMPLES_PER_FRAGMENT    312*4
+#define N_FRAGMENTS				8
+#define SAMPLE_FREQ				31200
 
 AtomSpeaker::AtomSpeaker(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager) :
-	Device(name, CUTS_DEV, OTHER_DEVICE, debugInfo, connectionManager), mSystemClock(systemClock)
+	Device(name, ATOM_SPEAKER_DEV, SOUND_DEVICE, debugInfo, connectionManager), mSystemClock(systemClock)
 {
 	registerPort("OUT", IN_PORT, 0x01, OUT, &mOUT);	// From PIA PC2
 
@@ -66,18 +66,12 @@ AtomSpeaker::~AtomSpeaker()
 
 bool AtomSpeaker::advance(uint64_t stopCycle)
 {
-	while (mCycleCount < stopCycle) {
 
-		if (mCycleCount % mUpdateFreqCount == 0) {
-			updateAudio(mOUT);
-			if (mOUT != pOUT)
-				mSoundCnt++;
-			pOUT = mOUT;
-		}	
-
-		mCycleCount++;
-
-	}
+	updateAudio(mOUT << 7);
+	if (mOUT != pOUT)
+		mSoundCnt++;
+	pOUT = mOUT;
+	mCycleCount = stopCycle;
 
 
 	return true;
@@ -86,12 +80,13 @@ bool AtomSpeaker::advance(uint64_t stopCycle)
 bool AtomSpeaker::updateAudio(uint8_t val)
 {
 	mSamples.push_back(val);
+	//mSamples.push_back(val);
 
 	if (mSamples.size() >= SAMPLES_PER_FRAGMENT)
 	// Samples corresponding to a complete fragment exists => audio output possible
 	{
 
-		if (mSoundCnt > 4) {
+		if (mSoundCnt > 0) {
 
 			ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
 			al_register_event_source(queue, al_get_audio_stream_event_source(mAudioStream));
@@ -108,18 +103,22 @@ bool AtomSpeaker::updateAudio(uint8_t val)
 					return true;
 				}
 
+				memcpy(buf, &mSamples[0], SAMPLES_PER_FRAGMENT);
+				/*
 				for (int i = 0; i < SAMPLES_PER_FRAGMENT; i++) {
 					buf[i] = (mSamples[i] != 0 ? 0xff : 0x00);
 				}
+				*/
 
 				if (!al_set_audio_stream_fragment(mAudioStream, buf)) {
 					return false;
 				}
 
-
+				al_destroy_event_queue(queue);
 				
 			}
-			al_destroy_event_queue(queue);
+
+			
 			
 		}
 		mSamples.clear();
