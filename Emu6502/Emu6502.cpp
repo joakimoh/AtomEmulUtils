@@ -17,7 +17,7 @@
 #include "ArgParser.h"
 #include "../shared/P6502.h"
 #include "../shared/Codec6502.h"
-#include "../shared/VDU6847.h"
+#include "../shared/VideoDisplayUnit.h"
 #include "../shared/GUI.h"
 
 #include <chrono>
@@ -89,26 +89,33 @@ int main(int argc, const char* argv[])
 
     if (arg_parser.failed())
         return -1; 
-
-    int n_cycles_per_60_hz = (int)round(arg_parser.cMHz * 1000000 / 60);
     
 
     ConnectionManager connection_manager(arg_parser.debugInfo);
 
-    Device* vdu_device = NULL;
+    VideoDisplayUnit* vdu = NULL;
     Device* sound_device = NULL;
     vector<Device*> other_devices;
+    P6502 * microprocessor = NULL;
     Devices devices(
-        arg_parser.mapFileName, n_cycles_per_60_hz, 1.0, disp_bm,
-        arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, vdu_device, sound_device, other_devices
+        arg_parser.mapFileName,
+        1.0,                        // CPU Clock frequency in MHz
+        32000,                      // audio sample rate corresponding to a rate of at least twice per scan line
+        disp_bm,
+        arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu, sound_device, other_devices
 
     );
-    VDU6847* vdu = (VDU6847*)vdu_device;
+
+    if (microprocessor == NULL) {
+        cout << "No microprocessor defined!\n";
+        return -1;
+    }
 
     if (vdu == NULL) {
         cout << "No video data unit defined!\n";
         return -1;
     }
+    int n_scan_lines = vdu->getScanLinesPerFrame();
 
     // Create menu
     ALLEGRO_MENU * menu = al_build_menu(main_menu);
@@ -130,6 +137,7 @@ int main(int argc, const char* argv[])
         other_devices[d]->reset();
     sound_device->reset();
     vdu->reset();
+    microprocessor->reset();
     if (arg_parser.debugInfo.dbgLevel & DBG_VERBOSE)
         cout << "All devices now reset...\n";
 
@@ -140,20 +148,21 @@ int main(int argc, const char* argv[])
     {   
 
 
-        // Advance time one 60 Hz NTSC field scan line at a time until a complete field (262 lines) has been scanned
-        for (int scan_line = 0; scan_line < 262; scan_line++) {
+        // Advance time one field scan line at a time until a complete field has been scanned
+        for (int scan_line = 0; scan_line < n_scan_lines; scan_line++) {
 
 
             // Scan one field scan_line and save time passed in target cycle count to be used as reference
-            // target time for the 6502 and the other devices (PIA, VIA, RAM & ROM). This
+            // target time for the 6502 and the other devices (PIA, VIA, Sound, Tape Recorder, RAM & ROM). This
             // is required to keep execution synchronised with the field updating.
             uint64_t target_cycle_count;
-            uint64_t old_cycle_count;
+            uint64_t old_cycle_count = cycle_count;
             vdu->advanceLine(target_cycle_count);
             uint64_t sound_cycle_step = (target_cycle_count - old_cycle_count)  / 2;
 
             for (int half_cycle = 0; half_cycle < 2; half_cycle++) {
 
+                // update sound device twice per scan line <=> 31.5 kHz for NTSC
                 sound_device->advance(cycle_count + sound_cycle_step);
 
                 // Advance each device in steps (cycle_step) until it has reached a time corresponding to one scan scan_line
@@ -161,7 +170,10 @@ int main(int argc, const char* argv[])
 
                     cycle_count += cycle_step;
 
-                    // advance time for each device until cycle_count has been reached  (or slightly passed)
+                    // advance time for the microprocessor
+                    microprocessor->advance(cycle_count);
+
+                    // advance time for the other devices until cycle_count has been reached  (or slightly passed)
                     for (int d = 0; d < other_devices.size(); d++) {
                        other_devices[d]->advance(cycle_count);
                     }

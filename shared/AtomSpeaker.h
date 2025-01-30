@@ -1,13 +1,13 @@
 #ifndef ATOM_SPEAKER_INTERFACE
 #define ATOM_SPEAKER_INTERFACE
 
-#include "Device.h"
+#include "SoundDevice.h"
 #include <fstream>
 #include <iostream>
 #include "CSWCodec.h"
 #include "allegro5/allegro_audio.h"
 
-class AtomSpeaker : public Device {
+class AtomSpeaker : public SoundDevice {
 
 private:
 
@@ -28,7 +28,7 @@ private:
 	int mSoundCnt = 0;
 public:
 
-	AtomSpeaker(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	AtomSpeaker(string name, double systemClock, int sampleFreq, DebugInfo debugInfo, ConnectionManager* connectionManager);
 	~AtomSpeaker();
 
 	bool advance(uint64_t stopCycle);

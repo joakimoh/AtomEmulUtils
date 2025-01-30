@@ -91,9 +91,12 @@ private:
 	bool writeDevice(uint16_t adr, uint8_t data);
 
 	bool readProgramMem(uint16_t adr, uint8_t& data);
+	bool readZP(uint8_t adr, uint8_t& data);
+	
 
 public:
 
+	MemoryMappedDevice* mZPMemDev = NULL;
 	vector<MemoryMappedDevice*> mDevices;
 	vector< MemoryMappedDevice*> mMemories;
 

@@ -283,7 +283,7 @@ public:
 
 private:
 
-	map<uint8_t, InstructionInfo> mOpcodeDict;
+	vector<InstructionInfo> mOpcodeDict;
 
 	string byte2str(uint16_t byte);
 	string word2strB(uint16_t word);

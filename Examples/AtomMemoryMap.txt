@@ -1,7 +1,7 @@
 //
 //	Device instances
 //
-//	Devices are either a microcontroller, a memory-mapped peripheral
+//	Devices are either a microprocessor, a memory-mapped peripheral
 //	or a non-memory mapped peripheral.
 //
 //	Only a memory-mapped device has address and size properties.
@@ -13,7 +13,7 @@
 //		ROM:		ROM of any size (within the 64k address space)
 //		VDU6847:	A 6847 Video Data Unit (memory-mapped)
 //		PIA8255		An 8255 PIA (memory-mapped)
-//		UC6052		A 6502 microcontroller (obviously NOT memory-mapped)
+//		UC6052		A 6502 microprocessor (obviously NOT memory-mapped)
 //		ATOMKB		An Acorn Atom Keyboard (NOT memory-mapped)
 //		ATOMCAS		An Acorn Atom Cassette Interface (NOT memory-mapped)
 //		TAPREC		A Tape Recorder emulation (CSW files read/written)
@@ -59,7 +59,7 @@ CONNECT ATOMKB:COL_H;0	PIA:PortC;6	// REPEAT key
 CONNECT PIA:PortA;3;0	ATOMKB:ROW
 
 // ATOMKB BREAK key <=> device RESET Connections
-CONNECT ATOMKB:COL_H;1	UC:RESET	// BREAK key => RESET of microcontroller
+CONNECT ATOMKB:COL_H;1	UC:RESET	// BREAK key => RESET of microprocessor
 CONNECT ATOMKB:COL_H;1	PIA:RESET	// BREAK key => RESET of PIA 8255
 CONNECT ATOMKB:COL_H;1	VIA:RESET	// BREAK key => RESET of VIA 6522
 CONNECT ATOMKB:COL_H;1	VDU:RESET	// BREAK key => RESET of VDU 6847

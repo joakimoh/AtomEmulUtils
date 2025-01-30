@@ -2,11 +2,11 @@
 #define VDU6847_H
 
 #include <cstdint>
-#include "MemoryMappedDevice.h"
+#include "VideoDisplayUnit.h"
 #include "RAM.h"
 
 
-class VDU6847 : public MemoryMappedDevice {
+class VDU6847 : public VideoDisplayUnit {
 
 public:
 
@@ -115,13 +115,11 @@ public:
 	uint8_t mFS = 1;		// output - The Field Sync (FS) signal goes Low at the end of the active display area and High at the end of the vertical synchronisation pulse
 	uint8_t mDin = 0x0;		// output - Data read from the graphics memory are provided as 'output' to be able to connect it directly to the inputs A/G, GM & CSS as required
 
-	RAM* mVideoMem = NULL;
-	uint16_t mVideoMemAdr = 0x0;
+
 
 	int mN60HzCycles;
 
 	ALLEGRO_BITMAP* mDisplayBitmap = NULL;
-	ALLEGRO_BITMAP* mDisplay = NULL;
 	ALLEGRO_LOCKED_REGION *mLockedDisplayBitMap;
 	ALLEGRO_STATE mAllegroState;
 
@@ -162,13 +160,16 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	VDU6847(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
 	~VDU6847();
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);
 
-	bool setVideoRam(RAM* ram);
+	inline double getScanLineDuration() { return (1/60) / 262;  }
+	inline int getScanLinesPerFrame() { return 262; }
+	inline int getFrameRate() { return 60; }
+
 
 	// Reset device
 	bool reset();
@@ -178,9 +179,7 @@ public:
 
 	bool advanceLine(uint64_t& endCycle);
 
-	uint16_t getVideoMemAdr() {
-		return mVideoMemAdr;
-	}
+	
 
 	void lockDisplay();
 	void unlockDisplay();

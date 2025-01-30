@@ -28,7 +28,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "-dbg 'w' | 'e' | 'u' | 'd' | 'a': Debugging of different detail.\n";
 	cout << "\t'w' errors only\n";
 	cout << "\t'w' warning and errors\n";
-	cout << "\t'u' microcontroller execution (and warnings & errors)\n";
+	cout << "\t'u' microprocessor execution (and warnings & errors)\n";
 	cout << "\t'd' device execution  (and warnings & errors)\n";
 	cout << "\t'a' all the above\n\n";
 }

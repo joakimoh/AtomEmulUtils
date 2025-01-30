@@ -297,11 +297,6 @@ void VDU6847::unlockDisplay()
 
 
 
-bool VDU6847::setVideoRam(RAM* ram)
-{
-	mVideoMem = ram;
-	return true;
-}
 
 //
 // 
@@ -364,8 +359,8 @@ bool VDU6847::setVideoRam(RAM* ram)
 // 1	1	1	1	7		256 x 192	2			6kB					resolution graphics six (RG6)		Yes - Graphics mode 4
 //
 
-VDU6847::VDU6847(string name, uint16_t adr, int n60HzCycles, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager):
-	MemoryMappedDevice(name, VDU6847_DEV, VDU_DEVICE, adr, 0x100, debugInfo, connectionManager), mVideoMemAdr(videoMemAdr), mN60HzCycles(n60HzCycles), mDisplay(disp)
+VDU6847::VDU6847(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager):
+	VideoDisplayUnit(name, VDU6847_DEV, adr, 0x100, disp, videoMemAdr, debugInfo, connectionManager), mN60HzCycles((int) round(clockSpeed * 1e6 / 60))
 {
 	// Specify ports that can be connectde to other devices
 	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);

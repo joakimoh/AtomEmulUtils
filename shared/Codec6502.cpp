@@ -12,6 +12,10 @@ using namespace std;
 
 Codec6502::Codec6502() {
 
+	mOpcodeDict.resize(256);
+
+	for (int i = 0; i < 256; mOpcodeDict[i++] = invalidInstr);
+
 	// Initialise opcode dictionary
 	for (int i = 0; i < instructions.size(); i++) {
 		InstructionInfo instr = instructions[(uint8_t) i];
@@ -40,11 +44,8 @@ string Codec6502::word2strB(uint16_t word)
 
 bool Codec6502::decodeInstruction(uint8_t opcode, InstructionInfo &instr)
 {
-	instr = invalidInstr;
-	if (mOpcodeDict.find(opcode) != mOpcodeDict.end()) {
-		instr = mOpcodeDict[opcode];
-		return true;
-	}
+
+	instr = mOpcodeDict[opcode];
 
 	return false;
 }
@@ -67,9 +68,8 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 		uint16_t operand = 0x0;
 		fin.read((char*)&opcode, sizeof(opcode));
 		uint16_t PC_for_opcode = mProgramCounter;
-		if (mOpcodeDict.find(opcode) != mOpcodeDict.end()) {
-			InstructionInfo instr = mOpcodeDict[opcode];		
-			switch (instr.mode) {
+		InstructionInfo instr = mOpcodeDict[opcode];		
+		switch (instr.mode) {
 					case Accumulator:	// OPC A
 					case Implied:		// 
 						break;
@@ -102,7 +102,6 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 					default:
 						break;
 			}
-		}
 		fout << decode(PC_for_opcode, opcode, operand) << "\n";
 		mProgramCounter++;
 	}
@@ -119,9 +118,9 @@ string Codec6502::decode(uint16_t PC, uint8_t opcode, uint16_t operand)
 	sout << word2str(PC) << " ";
 	sout << byte2str(opcode) << " ";
 
-	if (mOpcodeDict.find(opcode) != mOpcodeDict.end()) {
-		InstructionInfo instr = mOpcodeDict[opcode];
-		switch (instr.mode) {
+
+	InstructionInfo instr = mOpcodeDict[opcode];
+	switch (instr.mode) {
 		case Accumulator:		// OPC A
 			sout << "      ";
 			sout << instr2str[instr.instruction] << " A";
@@ -202,10 +201,6 @@ string Codec6502::decode(uint16_t PC, uint8_t opcode, uint16_t operand)
 			sout << "???";
 			break;
 		}
-	}
-	else {
-		sout << "      ???";
-	}
 
 	return sout.str();
 }

@@ -19,6 +19,8 @@ P6502::P6502(string name, double clockSpeed, DebugInfo debugInfo, ConnectionMana
 	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
 	registerPort("IRQ", IN_PORT, 0x01, RESET, &mIRQ);
 	registerPort("NMI", IN_PORT, 0x01, RESET, &mNMI);
+
+
 }
 
 P6502::~P6502()
@@ -1111,7 +1113,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !readDevice(zp_a, read_val_8_u))
+		if (instr.readsMem && !readZP(zp_a, read_val_8_u))
 			return false;
 
 		break;
@@ -1136,7 +1138,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !readDevice(calc_op_adr, read_val_8_u))
+		if (instr.readsMem && !readZP(calc_op_adr, read_val_8_u))
 			return false;
 
 		break;
@@ -1161,7 +1163,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 
 		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !readDevice(calc_op_adr, read_val_8_u))
+		if (instr.readsMem && !readZP(calc_op_adr, read_val_8_u))
 			return false;
 
 
@@ -1304,7 +1306,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 		uint8_t mem_a = zp_a + mRegisterX;
 		uint8_t mem_a_1 = mem_a + 1; // allow value to wrap around as for an actual NMOS 6502
 		uint8_t a_L, a_H;
-		if (!readDevice(mem_a, a_L) || !readDevice(mem_a_1, a_H))
+		if (!readZP(mem_a, a_L) || !readZP(mem_a_1, a_H))
 			return false;
 
 		// Calculate address and save it for use when executing the specific instruction later on
@@ -1335,7 +1337,7 @@ bool P6502::getOperand(Codec6502::InstructionInfo instr, uint16_t& operand_16_u,
 		// Read Indirect address -  e.g. ($12)
 		uint8_t a_L, a_H;
 		uint8_t zp_a_1 = zp_a + 1; // allow value to wrap around as for an actual NMOS 6502
-		if (!readDevice((uint16_t)zp_a, a_L) || !readDevice((uint16_t) zp_a_1, a_H))
+		if (!readZP((uint16_t)zp_a, a_L) || !readZP((uint16_t) zp_a_1, a_H))
 			return false;
 		uint16_t mem_a = (a_H << 8) | a_L;
 
@@ -1450,6 +1452,17 @@ bool P6502::readDevice(uint16_t adr, uint8_t& data)
 
 	data = 0xff;
 	return true;
+}
+
+bool P6502::readZP(uint8_t adr, uint8_t &data)
+{
+	data = 0xff;
+	if (mZPMemDev != NULL && mZPMemDev->read(adr, data)) {
+		if (mDebugInfo.dbgLevel & DBG_6502)
+			cout << "READ 0x" << hex << adr << " => " << (int)data << "\n";
+		return true;
+	}
+	return false;
 }
 
 bool P6502::readProgramMem(uint16_t adr, uint8_t& data)

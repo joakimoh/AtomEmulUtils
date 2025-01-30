@@ -121,10 +121,11 @@ bool Device::getPortIndex(string name, DevicePort * &port) {
 
 
 Devices::Devices(
-	string memMapFile, int n60HzCycles, double clockSpeed, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
-	Program program, Program data, ConnectionManager& connection_manager, Device * &vdu,
+	string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
+	Program program, Program data, ConnectionManager& connection_manager, P6502* &microprocessor, VideoDisplayUnit * &vdu,
 	Device * &soundDevice, vector<Device*>& otherDevices) :mDebugInfo(debugInfo)
 {
+
 	soundDevice = NULL;
 	vdu = NULL;
 	connection_manager.setDevices(this);
@@ -140,7 +141,6 @@ Devices::Devices(
 
 	string line;
 	int line_no = 1;
-	P6502 * microprocessor = NULL;
 	
 	while (getline(fin, line)) {
 
@@ -174,7 +174,7 @@ Devices::Devices(
 
 			else if (dev_typ_s == "ATOMSP") {
 				sin >> dev_name;
-				AtomSpeaker* sp = new AtomSpeaker(dev_name, clockSpeed, mDebugInfo, &connection_manager);
+				AtomSpeaker* sp = new AtomSpeaker(dev_name, clockSpeed, audioSampleFreq, mDebugInfo, &connection_manager);
 				mDevices.push_back(sp);
 				soundDevice = (Device*)sp;
 			}
@@ -206,7 +206,7 @@ Devices::Devices(
 				string video_mem_adr_s;
 				sin >> video_mem_adr_s;
 				uint16_t video_mem_adr = stoi(video_mem_adr_s, 0, 16);
-				vdu = new VDU6847(dev_name, dev_adr, n60HzCycles, disp, video_mem_adr, mDebugInfo, &connection_manager);
+				vdu = new VDU6847(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
 				mDevices.push_back(vdu);
 			}
 			else if (dev_typ_s == "ROM") {
@@ -220,7 +220,7 @@ Devices::Devices(
 				mDevices.push_back(rom);
 			}
 			else if (dev_typ_s == "PIA8255") {
-				PIA8255* pia = new PIA8255(dev_name, dev_adr, n60HzCycles, mDebugInfo, &connection_manager);
+				PIA8255* pia = new PIA8255(dev_name, dev_adr, mDebugInfo, &connection_manager);
 				mDevices.push_back(pia);
 			}
 			else if (dev_typ_s == "VIA6522") {
@@ -304,10 +304,15 @@ Devices::Devices(
 		throw runtime_error("Failed to get memory-mapped devices");
 	}
 
-	// Update the microprocessor with memory-mapped devices that it shall be able to access
-	if (!getNonVduNonSoundTimeAwareDevices(otherDevices)) {
+	// Get all device but sound, dvu & uC
+	if (!getOtherDevices(otherDevices)) {
 		cout << "Failed to get non-VDU & non-sound time aware devices!\n";
 		throw runtime_error("Failed to get non-VDU & non-sound time aware devices");
+	}
+
+	if (!getZPMemDevice(microprocessor->mZPMemDev)) {
+		cout << "Failed to zero-page memory device!\n";
+		throw runtime_error("Failed to zero-page memory device");
 	}
 
 
@@ -403,10 +408,10 @@ bool Devices::getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices)
 	return true;
 }
 
-bool Devices::getNonVduNonSoundTimeAwareDevices(vector<Device *> &devices)
+bool Devices::getOtherDevices(vector<Device *> &devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
-		if (mDevices[i]->category != MEMORY_DEVICE && mDevices[i]->category != VDU_DEVICE && mDevices[i] -> category != SOUND_DEVICE) {
+		if (mDevices[i]->category != MICROROCESSOR_DEVICE && mDevices[i]->category != MEMORY_DEVICE && mDevices[i]->category != VDU_DEVICE && mDevices[i] -> category != SOUND_DEVICE) {
 			devices.push_back(mDevices[i]);
 			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
 				cout << "Adding non-VDU time-aware device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
@@ -425,6 +430,19 @@ bool Devices::getMemoryDevices(vector<MemoryMappedDevice*> &devices)
 		}
 	}
 	return true;
+}
+bool Devices::getZPMemDevice(MemoryMappedDevice * &zpMem)
+{
+	for (int i = 0; i < mDevices.size(); i++) {
+		Device* dev = mDevices[i];
+		if (dev->category == MEMORY_DEVICE) {
+			MemoryMappedDevice* mdev = (MemoryMappedDevice*)dev;
+		if (mdev->validAdr(0x0) && mdev->validAdr(0xff))
+			zpMem = mdev;
+		return true;
+		}
+	}
+	return false;
 }
 
 

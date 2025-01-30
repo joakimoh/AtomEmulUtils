@@ -17,6 +17,8 @@ class ConnectionManager;
 class Device;
 class Devices;
 class MemoryMappedDevice;
+class VideoDisplayUnit;
+class P6502;
 
 enum DeviceId {
 	TAPE_RECORDER_DEV, ATOM_SPEAKER_DEV, ATOM_CUTS_DEV, ROM_DEV, RAM_DEV, PIA8255_DEV, VDU6847_DEV, VIA6522_DEV, ATOM_KB_DEV, P6502_DEV, UNDEFINED_DEV
@@ -38,7 +40,6 @@ typedef struct Program_struct {
 
 
 class DevicePort;
-//typedef struct DevicePort_struct DevicePort;
 
 // dst = dst & ~mask | ((src >> shifts) & mask)
 typedef struct InputReference_struct {
@@ -137,17 +138,18 @@ private:
 public:
 
 	Devices(
-		string memMapFile, int n60HzCycles, double clockSpeed, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
-		Program program, Program data, ConnectionManager &connectionManager, Device * &vdu, Device * &soundDevice,
+		string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
+		Program program, Program data, ConnectionManager &connectionManager, P6502* &microprocessor, VideoDisplayUnit* &vdu, Device * &soundDevice,
 		vector<Device *> &otherDevices
 	);
 
 	~Devices();
 
 	bool getPeripherals(vector<Device*> &devices);
-	bool getNonVduNonSoundTimeAwareDevices(vector<Device*> &devices);
+	bool getOtherDevices(vector<Device*> &devices);
 	bool getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices);
 	bool getMemoryDevices(vector<MemoryMappedDevice*>& devices);
+	bool getZPMemDevice(MemoryMappedDevice*& zpMem);
 
 	bool loadData(Program data);
 

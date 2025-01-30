@@ -1,0 +1,37 @@
+#ifndef VIDEO_DISPLAY_UNIT_H
+#define VIDEO_DISPLAY_UNIT_H
+
+
+#include "MemoryMappedDevice.h"
+#include "RAM.h"
+#include <cstdint>
+#include <allegro5/allegro.h>
+#include <allegro5/allegro_primitives.h>
+#include "Device.h"
+
+using namespace std;
+
+class VideoDisplayUnit : public MemoryMappedDevice {
+
+protected:
+
+	RAM* mVideoMem = NULL;
+	uint16_t mVideoMemAdr = 0x0;
+
+	ALLEGRO_BITMAP* mDisplay = NULL;
+
+public:
+
+	VideoDisplayUnit(string name, DeviceId devId, uint16_t adr, uint16_t sz, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
+
+	bool setVideoRam(RAM* ram);
+	uint16_t getVideoMemAdr();
+
+	virtual double getScanLineDuration() = 0;
+	virtual int getScanLinesPerFrame() = 0;
+	virtual int getFrameRate() = 0;
+
+	virtual bool advanceLine(uint64_t& endCycle) = 0;
+};
+
+#endif

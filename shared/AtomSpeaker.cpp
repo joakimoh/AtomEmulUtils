@@ -19,15 +19,14 @@
 
 #define SAMPLES_PER_FRAGMENT    312*4
 #define N_FRAGMENTS				8
-#define SAMPLE_FREQ				31200
 
-AtomSpeaker::AtomSpeaker(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager) :
-	Device(name, ATOM_SPEAKER_DEV, SOUND_DEVICE, debugInfo, connectionManager), mSystemClock(systemClock)
+AtomSpeaker::AtomSpeaker(string name, double systemClock, int sampleFreq, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+	SoundDevice(name, ATOM_SPEAKER_DEV, debugInfo, connectionManager), mSystemClock(systemClock)
 {
 	registerPort("OUT", IN_PORT, 0x01, OUT, &mOUT);	// From PIA PC2
 
 
-	mUpdateFreqCount = (int)round(systemClock *1e6 / SAMPLE_FREQ); // limit updates to 32 kHz
+	mUpdateFreqCount = (int)round(systemClock *1e6 / sampleFreq); // limit updates to 32 kHz
 
 
 	al_reserve_samples(0);
@@ -36,7 +35,7 @@ AtomSpeaker::AtomSpeaker(string name, double systemClock, DebugInfo debugInfo, C
 	mAudioStream = al_create_audio_stream(
 		N_FRAGMENTS,					// #fragments
 		SAMPLES_PER_FRAGMENT,			// size of a fragment
-		SAMPLE_FREQ,					// sample frequency
+		sampleFreq,						// sample frequency
 		ALLEGRO_AUDIO_DEPTH_UINT8,
 		ALLEGRO_CHANNEL_CONF_1
 	);
