@@ -17,3 +17,41 @@ bool MemoryMappedDevice::validAdr(uint16_t adr)
 {
 	return selected(adr);
 }
+
+bool MemoryMappedDevice::read(uint16_t adr, uint8_t& data) {
+	if (!selected(adr))
+		return false;
+	for (int i = 0; i < mScheduleOnRead.size(); i++) {
+		if (mScheduleOnRead[i].triggeringAdr == adr) {
+			if (mDebugInfo.dbgLevel & DBG_DEVICE)
+				cout << "READ 0x" << hex << adr << dec << " => triggers " << mScheduleOnRead[i].device->name << " at " << dec << mCycleCount << "\n";
+			mScheduleOnRead[i].device->advance(mCycleCount); // align the triggered device's time with this device
+		}
+	}
+	return true;
+}
+
+bool MemoryMappedDevice::write(uint16_t adr, uint8_t data) {
+	if (!selected(adr))
+		return false;
+	for (int i = 0; i < mScheduleOnWrite.size(); i++) {
+		if (mScheduleOnWrite[i].triggeringAdr == adr) {
+			mScheduleOnWrite[i].device->advance(mCycleCount); // align the triggered device's time with this device
+			if (mDebugInfo.dbgLevel & DBG_DEVICE)
+				cout << "WRITE 0x" << hex << data << " TO 0x" << adr << " => triggers " << mScheduleOnRead[i].device->name << " at " << dec << mCycleCount << "\n";
+		}
+	}
+	return true;
+}
+
+
+bool MemoryMappedDevice::registerAccess(Device* dev, uint16_t adr, bool writeAccess) {
+	DeviceAccessScheduling dev_sch = { dev, adr };
+	if (writeAccess)
+		mScheduleOnWrite.push_back(dev_sch);
+	else
+		mScheduleOnRead.push_back(dev_sch);
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+		cout << "TRIGGER " << dev->name << " ON " << this->name << " 0x" << hex << adr << (writeAccess ? " WRITE" : " READ") << " ACCESSES\n";
+	return true;
+}

@@ -123,11 +123,13 @@ bool Device::getPortIndex(string name, DevicePort * &port) {
 Devices::Devices(
 	string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
 	Program program, Program data, ConnectionManager& connection_manager, P6502* &microprocessor, VideoDisplayUnit * &vdu,
-	Device * &soundDevice, vector<Device*>& otherDevices) :mDebugInfo(debugInfo)
+	Device * &soundDevice, Device * &keyboard, vector<Device*>& otherDevices) :mDebugInfo(debugInfo)
 {
 
 	soundDevice = NULL;
 	vdu = NULL;
+	keyboard = NULL;
+
 	connection_manager.setDevices(this);
 
 	ifstream fin(memMapFile, ios::in | ios::ate);
@@ -153,7 +155,7 @@ Devices::Devices(
 
 			if (
 				dev_typ_s != "CONNECT" && dev_typ_s != "ATOMKB" && dev_typ_s != "UC6502" && dev_typ_s != "ATOMCAS" && dev_typ_s != "//"
-				&& dev_typ_s != "TAPREC" && dev_typ_s != "" && dev_typ_s != "ATOMSP"
+				&& dev_typ_s != "TAPREC" && dev_typ_s != "" && dev_typ_s != "ATOMSP" && dev_typ_s != "TRIGGER"
 				) {
 				sin >> dev_name;
 				sin >> dev_adr_s;
@@ -170,6 +172,7 @@ Devices::Devices(
 				sin >> dev_name;
 				AtomKeyboardDevice * kb = new AtomKeyboardDevice(dev_name, mDebugInfo, &connection_manager);
 				mDevices.push_back(kb);
+				keyboard = kb;
 			}
 
 			else if (dev_typ_s == "ATOMSP") {
@@ -239,6 +242,34 @@ Devices::Devices(
 				sin >> dst_port;
 				connection_manager.connect(src_port, dst_port);
 				
+			}
+			else if (dev_typ_s == "TRIGGER") {
+				string triggered_device_name, access, accessed_device_name, accessed_adr_s;
+				bool write = false;
+				sin >> triggered_device_name;
+				Device* triggered_device = NULL;
+				if (!getDevice(triggered_device_name, triggered_device)) {
+					cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
+					throw runtime_error("Syntax error");
+				}
+				sin >> accessed_device_name;
+				Device* accessed_device = NULL;
+				if (!getDevice(accessed_device_name, accessed_device)) {
+					cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
+					throw runtime_error("Syntax error");
+				}
+				sin >> access;
+				if (access == "READ")
+					write = false;
+				else if (access == "WRITE")
+					write = true;
+				else {
+					cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
+					throw runtime_error("Syntax error");
+				}
+				sin >> accessed_adr_s;
+				uint16_t accessed_adr = stoi(accessed_adr_s, 0, 16);
+				((MemoryMappedDevice*)accessed_device)->registerAccess(triggered_device, accessed_adr, write);
 			}
 			else {
 				cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
@@ -411,10 +442,16 @@ bool Devices::getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices)
 bool Devices::getOtherDevices(vector<Device *> &devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
-		if (mDevices[i]->category != MICROROCESSOR_DEVICE && mDevices[i]->category != MEMORY_DEVICE && mDevices[i]->category != VDU_DEVICE && mDevices[i] -> category != SOUND_DEVICE) {
+		if (
+			mDevices[i]->category != MICROROCESSOR_DEVICE &&
+			mDevices[i]->category != MEMORY_DEVICE &&
+			mDevices[i]->category != VDU_DEVICE &&
+			mDevices[i]->category != SOUND_DEVICE &&
+			mDevices[i]->category != KEYBOARD_DEVICE
+			) {
 			devices.push_back(mDevices[i]);
 			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
-				cout << "Adding non-VDU time-aware device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
+				cout << "Adding other device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
 	return true;
@@ -437,8 +474,11 @@ bool Devices::getZPMemDevice(MemoryMappedDevice * &zpMem)
 		Device* dev = mDevices[i];
 		if (dev->category == MEMORY_DEVICE) {
 			MemoryMappedDevice* mdev = (MemoryMappedDevice*)dev;
-		if (mdev->validAdr(0x0) && mdev->validAdr(0xff))
-			zpMem = mdev;
+			if (mdev->validAdr(0x0) && mdev->validAdr(0xff)) {
+				if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+					cout << "Adding zero page memory device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
+				zpMem = mdev;
+			}
 		return true;
 		}
 	}

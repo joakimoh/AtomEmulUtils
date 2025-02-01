@@ -80,6 +80,8 @@ bool P6502::reset()
 		pRESET = mRESET;
 	}
 
+	mLastPgmDevice = NULL;
+
 	mCycleCount = 0;
 
 	// Fetch RESET vector
@@ -119,8 +121,7 @@ bool P6502::advance(uint64_t stopCycle)
 			cout << "IRQ active\n";
 		pIRQ = mIRQ;
 		serveIRQ();
-	}
-	
+	}	
 
 	while (mCycleCount < stopCycle) {	
 

@@ -208,6 +208,10 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 	if (!validAdr(adr))
 		return false;
 
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!MemoryMappedDevice::read(adr, data))
+		return false;
+
 	if (adr == PIA8255_PORT_A) {
 		data = mPortA;
 	}
@@ -253,6 +257,10 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 bool PIA8255::write(uint16_t adr, uint8_t data)
 {
 	if (!validAdr(adr))
+		return false;
+
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!MemoryMappedDevice::write(adr, data))
 		return false;
 
 	uint8_t group_A_mode = (mCR >> 5) & 0x3;

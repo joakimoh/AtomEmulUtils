@@ -28,10 +28,10 @@ enum DeviceId {
 (x==ATOM_KB_DEV?"ATOM KB":(x==P6502_DEV?"6502":(x==ATOM_CUTS_DEV?"CUTS":(x==TAPE_RECORDER_DEV?"Tape Recorder":(x==ATOM_SPEAKER_DEV?"Atom Speaker":"???"))))))))))
 
 enum DeviceCategory {
-	SOUND_DEVICE, MICROROCESSOR_DEVICE, VDU_DEVICE, PERIPHERAL, MEMORY_DEVICE, OTHER_DEVICE
+	SOUND_DEVICE, MICROROCESSOR_DEVICE, VDU_DEVICE, KEYBOARD_DEVICE, PERIPHERAL, MEMORY_DEVICE, OTHER_DEVICE
 };
 #define _DEVICE_CATEGORY(x) (\
-	x==MICROROCESSOR_DEVICE?"Microprocessor":(x== PERIPHERAL?"Peripheral":(x==MEMORY_DEVICE?"Memory":(x==VDU_DEVICE?"Video Data Unit":(x==SOUND_DEVICE?"Sound Device":"Other Device")))))
+	x==MICROROCESSOR_DEVICE?"Microprocessor":(x== PERIPHERAL?"Peripheral":(x==MEMORY_DEVICE?"Memory":(x==VDU_DEVICE?"Video Data Unit":(x==SOUND_DEVICE?"Sound Device":(x==KEYBOARD_DEVICE?"Keyboard":"Other Device"))))))
 
 typedef struct Program_struct {
 	string fileName = "";
@@ -126,6 +126,8 @@ public:
 	// Used by a device to make a port available for routing
 	bool registerPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* val);
 
+	uint64_t getCycleCount() { return mCycleCount; }
+
 };
 
 class Devices {
@@ -140,7 +142,7 @@ public:
 	Devices(
 		string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
 		Program program, Program data, ConnectionManager &connectionManager, P6502* &microprocessor, VideoDisplayUnit* &vdu, Device * &soundDevice,
-		vector<Device *> &otherDevices
+		Device * &keyboard, vector<Device *> &otherDevices
 	);
 
 	~Devices();

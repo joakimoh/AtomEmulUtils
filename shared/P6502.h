@@ -73,8 +73,6 @@ private:
 	std::vector<string> mBufferedTraceLines;
 	bool mEndOfTracingReached = false;;
 
-	uint64_t mCycleCount = 0;
-
 	// Ports that can be connected to other devices
 	int RESET, NMI, IRQ;
 	uint8_t mRESET = 0x1;

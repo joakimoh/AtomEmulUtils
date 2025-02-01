@@ -130,16 +130,12 @@ private:
 	int mRepeatKeyCode = -1;
 	int mBreakKeyCode = -1;
 
+	double mKBCnt = 0;
+	int mCnt = 0;
+
 public:
 
 	AtomKeyboardDevice(string name, DebugInfo debugInfo, ConnectionManager* connectionManager);
-
-	// The Keyboard Device is not a memory-mapped device so we have to
-	// return false on all attempts to access it...
-	bool read(uint16_t adr, uint8_t& data) { data = 0xff; return false; }
-	bool write(uint16_t adr, uint8_t data) { return false;  }
-	bool selected(uint16_t adr) { return false; }
-	bool validAdr(uint16_t adr) { return false; }
 
 	// Reset device
 	bool reset() { mCycleCount = 0; return true; }

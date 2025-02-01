@@ -130,9 +130,10 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 				else if (mGM == 6)
 					pixel_height = 1;
 				int big_pixel_line = pixel_line / pixel_height;
+				int base_mem_adr = mVideoMemAdr + big_pixel_line * bytes_per_line;
 				// byte c1 c0 c1 c0 c1 c0 c1 c0 c1 c0 => pixels e3 e2 e1 e0
 				for (int pixel_byte = 0; pixel_byte < bytes_per_line; pixel_byte++) {
-					int mem_adr = mVideoMemAdr + big_pixel_line * bytes_per_line + pixel_byte;
+					int mem_adr = base_mem_adr + pixel_byte;
 					if (!readGraphicsMem(mem_adr, mem_data))
 						return false;
 					for (int p = 0; p < 4; p++) {
@@ -161,8 +162,9 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 				else if (mGM == 3)
 					pixel_height = 2;
 				int big_pixel_line = pixel_line / pixel_height;
+				int base_mem_adr = mVideoMemAdr + big_pixel_line * bytes_per_line;
 				for (int pixel_byte = 0; pixel_byte < bytes_per_line; pixel_byte++) {					
-					int mem_adr = mVideoMemAdr + big_pixel_line * bytes_per_line + pixel_byte;
+					int mem_adr = base_mem_adr + pixel_byte;
 					if (!readGraphicsMem(mem_adr, mem_data))
 						return false;
 					for (int p = 0; p < 8; p++) {
@@ -185,6 +187,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 		else 
 				// Alphanumeric or semigraphic mode
 			{
+				int pixel_row = (pixel_line % 12) / 4;
 				for (int char_col = 0; char_col < 32; char_col++) {
 					int mem_row = pixel_line / 12;
 					int mem_adr = mVideoMemAdr + mem_row * 32 + char_col;
@@ -196,10 +199,8 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 						// Pixel value '0' => Black
 						// CSS '0' => 00 = Green, 01 = yellow, 10 = Blue, 11 = Red
 						// CSS '1' => 00 = -, 01 = Green, 01 = Cyan, 10 = Magenta, 11 = Orange
-						uint8_t colour = (mem_data >> 6) & 0x3;
-						int pixel_row = (pixel_line % 12) / 4;
+						uint8_t colour = (mem_data >> 6) & 0x3;					
 						uint8_t pixel_data = ((mem_data & 0x3f) >> 2 * (2 - pixel_row)) & 0x3;
-
 						for (int pixel = 0; pixel < 2; pixel++) {
 							if (pixel_data & (1 << (1 - pixel))) {
 								*bitmap_data_p = *(bitmap_data_p + 1) = *(bitmap_data_p + 2) = *(bitmap_data_p + 3) = mColours[mCSS][colour];
@@ -258,10 +259,12 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	else if (mScanLine >= mTopVBlankingH && mScanLine < mScanLines - mBottomVBlankingH)
 		// Draw top or bottom border
 	{	
+		
 		unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_line);
 		for (int p = 0; p < mVisibleW; p++) {
 			*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
 		}
+		
 	}
 
 	// Advance time taken to process one scan line

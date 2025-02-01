@@ -2,12 +2,13 @@
 #include <iostream>
 #include <cstdint>
 #include <map>
+#include <chrono>
 
 using namespace std;
 
 
 AtomKeyboardDevice::AtomKeyboardDevice(string name, DebugInfo debugInfo, ConnectionManager* connectionManager) :
-	Device(name, ATOM_KB_DEV, OTHER_DEVICE, debugInfo, connectionManager)
+	Device(name, ATOM_KB_DEV, KEYBOARD_DEVICE, debugInfo, connectionManager)
 {
 	// Specify ports that can be connected to other devices	
 	registerPort("ROW", IN_PORT, 0x0f, KB_ROW, &mSelectedRow);
@@ -60,6 +61,12 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, DebugInfo debugInfo, Connect
 
 bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 {
+	mCnt += stopCycle - mCycleCount;
+
+	mCycleCount = stopCycle;
+
+	auto kb_start = chrono::high_resolution_clock::now();
+
 	al_get_keyboard_state(&mKeyboardState);
 
 	uint8_t column_L = 0xff;
@@ -68,14 +75,15 @@ bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 	if (mSelectedRow <= 9) {
 
 		// Get non-modifier keys
+		vector<AtomKey*> key_vec = mKeyboardMatrix[mSelectedRow];
 		for (uint8_t c = 0; c < 6; c++) {
-			AtomKey* key = mKeyboardMatrix[mSelectedRow][c];
+			AtomKey* key = key_vec[c];
 			if (key != NULL && al_key_down(&mKeyboardState, key->keyCode))
 				column_L &= ~(0x1 << c);
 		}
 
 	}
-	
+
 	// Get CTRL key
 	if (al_key_down(&mKeyboardState, mCtrlKeyCode))
 		column_L &= ~0x40;
@@ -97,9 +105,19 @@ bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 		return false;
 	}
 
-	if (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0) && ( column_L != 0xff || column_H != 0x3))
+	if (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0) && (column_L != 0xff || column_H != 0x3))
 		cout << "column L = 0x" << hex << (int)column_L << ", column H = 0x" << (int)column_H << "\n";
 
+
+	auto kb_stop = chrono::high_resolution_clock::now();
+	auto vdu_dur = chrono::duration_cast<chrono::microseconds>(kb_stop - kb_start);
+	mKBCnt += vdu_dur.count();
+
+	if (false && mCnt >= 1000000) {
+		cout << "Keyboard ms per sec: " << mKBCnt / 1000 << "\n";
+		mKBCnt = 0;
+		mCnt = 0;
+	}
 	
 	return true;
 }
