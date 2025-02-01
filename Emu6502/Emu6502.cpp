@@ -79,7 +79,6 @@ int main(int argc, const char* argv[])
     al_set_window_title(disp, "6502 System Emulator");
     ALLEGRO_BITMAP* disp_bm = al_get_target_bitmap();
 
-    //al_register_event_source(queue, al_get_keyboard_event_source());
     al_register_event_source(queue, al_get_display_event_source(disp));
     al_register_event_source(queue, al_get_timer_event_source(emu_speed_timer));
     al_register_event_source(queue, al_get_default_menu_event_source());
@@ -112,7 +111,7 @@ int main(int argc, const char* argv[])
     }
 
     if (vdu == NULL) {
-        cout << "No video data unit defined!\n";
+        cout << "No video display unit defined!\n";
         return -1;
     }
     int n_scan_lines = vdu->getScanLinesPerFrame();
@@ -147,6 +146,7 @@ int main(int argc, const char* argv[])
     while (!quit)
     {   
 
+        //auto start = chrono::high_resolution_clock::now();
 
         // Advance time one field scan line at a time until a complete field has been scanned
         for (int scan_line = 0; scan_line < n_scan_lines; scan_line++) {
@@ -182,6 +182,10 @@ int main(int argc, const char* argv[])
             }
 
         }
+
+        //auto stop = chrono::high_resolution_clock::now();
+        //auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+        //cout << duration.count() << endl;
 
 
         // wait for event
