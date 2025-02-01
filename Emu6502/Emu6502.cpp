@@ -6,8 +6,6 @@
 #include <vector>
 #include <filesystem>
 #include <cstdint>
-#include <thread>
-#define ALLEGRO_STATICLINK
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_primitives.h>
@@ -25,14 +23,6 @@
 
 
 using namespace std;
-
-// Workaround for allegro bug where the ALLEGRO_MENU_INFO struct defins the 2nd field as uint16_t but the
-// ALLEGRO_MENU_SEPARATOR uses a value '-1-'
-#ifdef ALLEGRO_MENU_SEPARATOR
-#undef ALLEGRO_MENU_SEPARATOR
-#define ALLEGRO_MENU_SEPARATOR {NULL, 0xffff, 0, NULL}
-#endif
-
 
 ALLEGRO_MENU_INFO main_menu[] = {
 
@@ -59,22 +49,43 @@ ALLEGRO_MENU_INFO main_menu[] = {
       ALLEGRO_END_OF_MENU
 };
 
+
 int main(int argc, const char* argv[])
 {
-    al_init();
-    al_install_keyboard();
-    al_init_primitives_addon();
-    al_init_image_addon();
-    al_init_native_dialog_addon();
-    al_install_audio();
+    if (!al_init())
+		cout << "Failed to initialise allegro5\n";
+
+    if (!al_init_native_dialog_addon())
+		cout << "Failed to initialise allegro5 native dialog addon\n";
+
+    if (!al_init_image_addon())
+		cout << "Failed to initialise allegro5 image addon\n";
+
+    if (!al_install_keyboard())
+		cout << "Failed to initialise allegro5 keyboard\n";
+
+	if (!al_install_mouse())
+		cout << "Failed to initialise allegro5 mouse\n";
+
+    if (!al_init_primitives_addon())
+		cout << "Failed to initialise allegro5 primitives addon\n";
+
+    if (!al_install_audio())
+		cout << "Failed to initialise allegro5 audio addon\n";
 
     ALLEGRO_TIMER* emu_speed_timer = al_create_timer(1.0 / 60); // 60 Hz frequency as default emulation speed
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
     
     ALLEGRO_EVENT event;
     ALLEGRO_FONT* font = al_create_builtin_font();
+	ALLEGRO_MENU *pmenu = NULL;
 
-    // Create disp_bm
+#ifdef ALLEGRO_GTK_TOPLEVEL
+   al_set_new_display_flags(ALLEGRO_RESIZABLE | ALLEGRO_GTK_TOPLEVEL);
+#else
+   al_set_new_display_flags(ALLEGRO_RESIZABLE);
+#endif
+
     ALLEGRO_DISPLAY* disp = al_create_display(648, 486);
     al_set_window_title(disp, "6502 System Emulator");
     ALLEGRO_BITMAP* disp_bm = al_get_target_bitmap();
@@ -82,6 +93,7 @@ int main(int argc, const char* argv[])
     al_register_event_source(queue, al_get_display_event_source(disp));
     al_register_event_source(queue, al_get_timer_event_source(emu_speed_timer));
     al_register_event_source(queue, al_get_default_menu_event_source());
+	al_register_event_source(queue, al_get_mouse_event_source());
 
 
     ArgParser arg_parser = ArgParser(argc, argv);
@@ -118,9 +130,18 @@ int main(int argc, const char* argv[])
 
     // Create menu
     ALLEGRO_MENU * menu = al_build_menu(main_menu);
-    if (menu == NULL || !al_set_display_menu(disp, menu)) {
-        cout << "Failed to create menu!\n";
-        return -1;
+    if (menu == NULL ) {
+        cout << "Failed to build menu!\n";
+        //return -1;
+    }
+    if (!al_set_display_menu(disp, menu)) {
+        cout << "Failed to set menu display!\n";
+      pmenu = al_clone_menu_for_popup(menu);
+      al_destroy_menu(menu);
+      menu = pmenu;
+		if (!pmenu)
+        	cout << "Failed to clone to popup menu!\n";
+        //return -1;
     }
     GUI gui(disp, menu, &devices);
    
@@ -204,6 +225,15 @@ int main(int argc, const char* argv[])
         else if (event.type == ALLEGRO_EVENT_MENU_CLICK) {
             gui.itemSelected(&event);
         }
+		else if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN && event.mouse.display == disp && event.mouse.button == ALLEGRO_MOUSE_BUTTON_LEFT) {
+			cout << "MOUSE CLICK EVENT!\n";
+            if (pmenu) {
+               if (al_popup_menu(menu, disp))
+				cout << "POPUP!!!\n";
+				else
+				cout << "NO POPUP!!!\n";
+			}
+		}
 
     }
 

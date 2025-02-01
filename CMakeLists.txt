@@ -6,6 +6,19 @@ include(FetchContent)
 
 #option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
+# Turn of warnings to get allegro to compile without errors
+if(CMAKE_COMPILER_IS_GNUCC)
+    set(WFLAGS "-Wno-narrowing")
+endif()
+if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+    set(WFLAGS "-Wno-narrowing")
+endif()
+if(COMPILER_MSVC)
+	set(WFLAGS "${WFLAGS} -Wno-c++11-narrowing")
+endif(COMPILER_MSVC)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${WFLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WFLAGS}")
+
 FetchContent_Declare(
   allegro5
   GIT_REPOSITORY https://github.com/liballeg/allegro5.git
