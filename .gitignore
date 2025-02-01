@@ -379,4 +379,3 @@ CMakeFiles
 *.a
 Makefile
 distribution/
-_deps/allegro5-src/

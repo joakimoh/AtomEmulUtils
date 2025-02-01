@@ -225,13 +225,10 @@ int main(int argc, const char* argv[])
         else if (event.type == ALLEGRO_EVENT_MENU_CLICK) {
             gui.itemSelected(&event);
         }
-		else if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN && event.mouse.display == disp && event.mouse.button == ALLEGRO_MOUSE_BUTTON_LEFT) {
-			cout << "MOUSE CLICK EVENT!\n";
+		else if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN && event.mouse.display == disp && event.mouse.button == ALLEGRO_MOUSE_BUTTON_RIGHT) {
             if (pmenu) {
-               if (al_popup_menu(menu, disp))
-				cout << "POPUP!!!\n";
-				else
-				cout << "NO POPUP!!!\n";
+                if (!al_popup_menu(menu, disp))
+                    cout << "Failed to launch popup menu!\n";
 			}
 		}
 
