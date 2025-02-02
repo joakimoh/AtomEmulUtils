@@ -54,6 +54,7 @@ double uc_cnt = 0;
 double sound_device_cnt = 0;
 double keyboard_cnt = 0;
 double other_dev_cnt[10] = { 0 };
+double wait_cnt = 0;
 int frame_cnt = 0;
 
 
@@ -93,7 +94,7 @@ int main(int argc, const char* argv[])
    al_set_new_display_flags(ALLEGRO_RESIZABLE);
 #endif
 
-    ALLEGRO_DISPLAY* disp = al_create_display(648, 486);
+    ALLEGRO_DISPLAY* disp = al_create_display(648, 486); // Just an initial size - will be resized to fit the video ddisplay unit's preference laater on!
     al_set_window_title(disp, "6502 System Emulator");
     ALLEGRO_BITMAP* disp_bm = al_get_target_bitmap();
 
@@ -118,7 +119,7 @@ int main(int argc, const char* argv[])
     Device* keyboard = NULL;
     Devices devices(
         arg_parser.mapFileName,
-        arg_parser.cMHz,                        // CPU Clock frequency in MHz
+        arg_parser.cMHz,            // CPU Clock frequency in MHz
         32000,                      // audio sample rate corresponding to a rate of at least twice per scan line
         disp_bm,
         arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu, sound_device, keyboard, other_devices
@@ -135,6 +136,13 @@ int main(int argc, const char* argv[])
         return -1;
     }
     int n_scan_lines = vdu->getScanLinesPerFrame();
+    int w, h;
+    if (!vdu->getVisibleArea(w, h) || !al_resize_display(disp, w, h)) {
+        cout << "Failed to resize display!\n";
+        return -1;
+    }
+    
+
 
     if (keyboard == NULL) {
         cout << "No keyboard defined!\n";
@@ -252,7 +260,7 @@ int main(int argc, const char* argv[])
         }
 
         frame_cnt = (frame_cnt + 1) % 60;
-        if (false && frame_cnt == 0) {
+        if (frame_cnt == 0) {
             cout << "VDU ms per sec: " << vdu_cnt / 1000 << "\n";
             cout << "Sound ms per sec: " << sound_device_cnt / 1000<< "\n";
             cout << "microcontroller ms per sec: " << uc_cnt / 1000 << "\n";
@@ -260,15 +268,23 @@ int main(int argc, const char* argv[])
                 cout << other_devices[d]->name << " ms per per sec: " << other_dev_cnt[d] / 1000<< "\n";
                 other_dev_cnt[d] = 0;
             }
+            cout << "WAIT ms per sec: " << wait_cnt / 1000 << "\n";
             vdu_cnt = 0;
             sound_device_cnt = 0;
             uc_cnt = 0;
+            wait_cnt = 0;
+           
             cout << "\n\n";
         }
 
+        auto wait_start = chrono::high_resolution_clock::now();
 
         // wait for event
         al_wait_for_event(queue, &event);
+
+        auto wait_stop = chrono::high_resolution_clock::now();
+        auto wait_dur = chrono::duration_cast<chrono::microseconds>(wait_stop - wait_start);
+        wait_cnt += wait_dur.count();
 
         // act on event
         if (event.type == ALLEGRO_EVENT_TIMER) {

@@ -24,6 +24,8 @@ public:
 
 	VideoDisplayUnit(string name, DeviceId devId, uint16_t adr, uint16_t sz, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
 
+	virtual bool getVisibleArea(int& w, int& h) = 0;
+
 	bool setVideoRam(RAM* ram);
 	uint16_t getVideoMemAdr();
 

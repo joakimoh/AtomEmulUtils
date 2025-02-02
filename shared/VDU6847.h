@@ -126,18 +126,42 @@ public:
 	int mScanLine = 0; // 0 to 262 [field scan lines]
 	int mFieldCount = 0;
 
+	// Base parameters
+	const int mScanLines = 262;									// No of scan lines per field frame
+	const int mFrameFreq = 60;									// Frame frequency - 60 Hz for NTSC
+	const double mClockFreq = 3.58;								// Base frequency (in MHz) fed to the M6847
+	const double mTAVB = 185.5 / mClockFreq;					// Duration of visible horizontal area (including borders) [us]
+	const double mTAV = 128 / mClockFreq;						// Duration of active horizontal area (excluding borders) [us]
+	const int mTVBlkH = 13;										// Vertical blanking [in scan lines]
+	const int mBVBlkH = 6;										//
+
+	// Calculated parameters (based on the base parameters)
+	const double mlineDur = (1e6 / mFrameFreq) / mScanLines;		// Line duration - approximately 63.6 us for NTSC
+	const double mHalfCycleD = 1 / (mClockFreq * 2);			// Duration (in us) of one 1/2 cycle of the base frequency <=> one horizontal 'pixel'
+	const double mBrdH = mTAVB - mTAV;							// Duration of horizontal borders [us]
+	const double mHBlkDur = mlineDur - mTAVB;					// Horizontal blanking duration [us]
+
 	// Display regions
-	const int mActiveAreaW = 256;		// Active visible area 256 x 192
-	const int mActiveAreaH = 192;
-	const int mTopBorderH = 25;			// Top & Bottom (inactive but still) visible borders
-	const int mBottomBorderH = 26; 
-	const int mLeftBorderW = 57;		// Left & Right (inactive but still) visiblevertical borders
-	const int mRightBorderW = 57;		// (tAVB - tAV) / 2 = (185.5/3.58-128/3.58)/2 = (51.82 - 35.75)/2 = 8.03 us <=> 57.5 'pixels' (3.58 Mhz half cycles)
-	const int mVisibleW = mLeftBorderW + mActiveAreaW + mRightBorderW; // Visible area 371 x 242 'pixels' (horizontal 'pixel' <=> one 3.58 Mhz half cycles)
-	const int mVisibleH = mTopBorderH + mActiveAreaH + mBottomBorderH; //
-	const int mTopVBlankingH = 13;
-	const int mBottomVBlankingH = 6;
-	const int mScanLines = 262; // mTVBlanking + mVisibleH + mBVBlanking
+	const int mActAreaW = 256;									// Active visible area 256 x 192
+	const int mActAreaH = 192;
+	const int mTBrdH = 25;										// Top & Bottom (inactive but still) visible borders
+	const int mBBrdH = 26; 
+	const double mLBrdW = mBrdH / (2 * mHalfCycleD);			// Left & Right (inactive but still) visible horizontal borders
+	const double mRBrdW = mBrdH / (2 * mHalfCycleD);			// #pixels = duration / 1/2 cycle duration
+
+	const int mVisW = (int)round(mLBrdW + mActAreaW + mRBrdW);	// Visible area
+	const int mVisH = (int)round(mTBrdH + mActAreaH + mBBrdH);	//
+	
+	const double mLineW = mlineDur / (mHalfCycleD);				// Total line width in 'pixels'
+	const double mLBlkW = (mLineW - mVisW) / 2;					// Left invisible part of a line in 'pixels'
+	const double mRBlkW = (mLineW - mVisW) / 2;					// Right invisible part of a line in 'pixels'
+										
+	const int mTotalH = mTVBlkH + mVisH + mBVBlkH;				// Total dislay height (in scan lines) including invisble vertical  blanking
+																// - should equal mScanLines
+	const int mTotalW = (int)round(mLBlkW + mVisW + mRBlkW);	// Total display width including invisble horizontal blanking
+	const double scale_factor = 720 / (double) mVisW;			// Scale to 720 lines height
+	const int mScaledW = (int) round (scale_factor * mVisW);	//
+	const int mScaledH = (int) round(scale_factor * mVisH);		//
 
 	uint32_t mColours[2][4] = {
 						{
@@ -157,6 +181,8 @@ public:
 	bool readGraphicsMem(uint16_t adr, uint8_t& data);
 
 public:
+
+	bool getVisibleArea(int& w, int& h) { w = mScaledW; h = mScaledH; return true; }
 
 	ALLEGRO_COLOR green, black;
 

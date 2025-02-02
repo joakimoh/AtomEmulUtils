@@ -4,7 +4,6 @@
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_primitives.h>
-#include "Video.h"
 #include <cmath>
 
 using namespace std;
@@ -55,12 +54,11 @@ bool VDU6847::advance(uint64_t stopCycle)
 
 bool VDU6847::advanceLine(uint64_t& endCycle)
 {
-	VideoTiming timing;
 	float proc_clk_rate_Mhz = mN60HzCycles * 60 / 1e6;
 
 
-	int pixel_line = mScanLine - (mTopVBlankingH + mTopBorderH);
-	int visible_line = mScanLine - mTopVBlankingH;
+	int pixel_line = mScanLine - (mTVBlkH + mTBrdH);
+	int visible_line = mScanLine - mTVBlkH;
 
 	if (!mRESET) {
 		reset();
@@ -70,15 +68,15 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	}
 
 	
-	if (pixel_line == mActiveAreaH) {
+	if (pixel_line == mActAreaH) {
 
 		// The Field Sync (FS) signal goes High to Low at the end of the active display area
 		updatePort(VDU_PORT_FS, 0);  // for Acorn atom this will set PIA port C:b7 to '0'
 
 		unlockDisplay();
 
-		// Draw the 256 x 192 display bitmap while scaling it to 648 x 486
-		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mVisibleW, mVisibleH, 0, 0, 648, 486, 0);
+		// Scaled the display bitmap including borders to match the size of the display 
+		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mVisW, mVisH, 0, 0, mScaledW, mScaledH, 0);
 
 		// Make the updates visible on the display
 		al_flip_display();
@@ -92,7 +90,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 	}
 
-	if (pixel_line >= 0 && pixel_line < mActiveAreaH)
+	if (pixel_line >= 0 && pixel_line < mActAreaH)
 		// Draw a visible active line
 	{		
 
@@ -101,7 +99,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 		unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_line);
 			
 		// Draw left border
-		for (int p = 0; p < mLeftBorderW; p++) {
+		for (int p = 0; p < mLBrdW; p++) {
 			*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
 		}
 
@@ -249,19 +247,19 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 		
 
 		// Draw right border
-		for (int p = 0; p < mRightBorderW; p++) {
+		for (int p = 0; p < mRBrdW; p++) {
 			*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
 		}
 
 	}
 	
 
-	else if (mScanLine >= mTopVBlankingH && mScanLine < mScanLines - mBottomVBlankingH)
+	else if (mScanLine >= mTVBlkH && mScanLine < mScanLines - mBVBlkH)
 		// Draw top or bottom border
 	{	
 		
 		unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_line);
-		for (int p = 0; p < mVisibleW; p++) {
+		for (int p = 0; p < mVisW; p++) {
 			*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
 		}
 		
@@ -275,7 +273,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 	if (mScanLine == 0) {
 		// The Field Sync (FS) signal goes High at the end of the vertical synchronisation pulse
-		updatePort(VDU_PORT_FS, 1); // For Acorn Atom this will set PIA port C:b7 to '0'
+		updatePort(VDU_PORT_FS, 1); // For Acorn Atom this will set PIA port C:b7 to '1'
 	}
 
 	endCycle = mCycleCount;
@@ -388,12 +386,28 @@ VDU6847::VDU6847(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* d
 		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
 
 	// Create 256 x 192 display bitmap and clear it
-	mDisplayBitmap = al_create_bitmap(mVisibleW, mVisibleH);
+	mDisplayBitmap = al_create_bitmap(mVisW, mVisH);
 
 	green = al_map_rgb(0, 0xff, 0);
 	black = al_map_rgb(0, 0, 0);
 
 	lockDisplay();
+
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE) {
+		cout << dec << "\n\nM6847 Parameters:\n\n";
+		cout << "Frame rate: " << mFrameFreq << " [Hz]\n";
+		cout << "Scane lines per field frame: " << mScanLines << " lines\n";
+		cout << "Line duration: " << mlineDur << " [us] (" << mLineW << " pixels)\n";
+		cout << "Duration of horizontal borders: " << mBrdH << " [us] (" << mLBrdW + mRBrdW << " pixels)\n";
+		cout << "Vertical borders: " << mTBrdH + mBBrdH << " lines\n";
+		cout << "Vertical blanking: " << mTVBlkH + mBVBlkH << " lines\n";
+		cout << "Horizontal blanking: " << mHBlkDur << " [us] (" << mLBlkW + mRBlkW << " pixels)\n";
+		cout << "Visible Active Display Area: " << mActAreaW << " x " << mActAreaH << " pixels\n";
+		cout << "Total Visible Display Area: " << mVisW << " x " << mVisH << " pixels\n";
+		cout << "Total Display Area (including invisible parts): " << mTotalW << " x " << mTotalH << " pixels\n";
+		cout << "Scaled Visible Display Area: " << mScaledW << " x " << mScaledH << "\n";
+		cout << "\n\n";
+	}
 
 
 }
