@@ -159,7 +159,7 @@ public:
 	const int mTotalH = mTVBlkH + mVisH + mBVBlkH;				// Total dislay height (in scan lines) including invisble vertical  blanking
 																// - should equal mScanLines
 	const int mTotalW = (int)round(mLBlkW + mVisW + mRBlkW);	// Total display width including invisble horizontal blanking
-	const double scale_factor = 720 / (double) mVisW;			// Scale to 720 lines height
+	const double scale_factor = 720 / (double)mVisW;			// Scale to 720 lines height
 	const int mScaledW = (int) round (scale_factor * mVisW);	//
 	const int mScaledH = (int) round(scale_factor * mVisH);		//
 

@@ -200,8 +200,12 @@ Devices::Devices(
 				mDevices.push_back(microprocessor);
 			}
 
-			else if (dev_typ_s == "RAM") {
-				RAM* ram = new RAM(dev_name, dev_adr, dev_sz, mDebugInfo);
+			else if (dev_typ_s == "SRAM") {
+				RAM* ram = new RAM(dev_name, false, dev_adr, dev_sz, mDebugInfo);
+				mDevices.push_back(ram);
+			}
+			else if (dev_typ_s == "DRAM") {
+				RAM* ram = new RAM(dev_name, true, dev_adr, dev_sz, mDebugInfo);
 				mDevices.push_back(ram);
 			}
 

@@ -103,6 +103,11 @@ int main(int argc, const char* argv[])
     al_register_event_source(queue, al_get_default_menu_event_source());
 	al_register_event_source(queue, al_get_mouse_event_source());
 
+    ALLEGRO_TRANSFORM transform;
+    al_identity_transform(&transform);
+    al_scale_transform(&transform, 1, 1);
+    al_use_transform(&transform);
+
 
     ArgParser arg_parser = ArgParser(argc, argv);
 
@@ -260,7 +265,7 @@ int main(int argc, const char* argv[])
         }
 
         frame_cnt = (frame_cnt + 1) % 60;
-        if (frame_cnt == 0) {
+        if (arg_parser.debugInfo.dbgLevel == DBG_DEVICE && frame_cnt == 0) {
             cout << "VDU ms per sec: " << vdu_cnt / 1000 << "\n";
             cout << "Sound ms per sec: " << sound_device_cnt / 1000<< "\n";
             cout << "microcontroller ms per sec: " << uc_cnt / 1000 << "\n";

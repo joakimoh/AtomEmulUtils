@@ -3,14 +3,22 @@
 #include <iostream>
 #include <filesystem>
 
-RAM::RAM(string name, uint16_t adr, uint16_t sz, DebugInfo debugInfo) : MemoryMappedDevice(name, RAM_DEV, MEMORY_DEVICE, adr, sz, debugInfo, NULL)
+RAM::RAM(string name, bool DRAM, uint16_t adr, uint16_t sz, DebugInfo debugInfo) : MemoryMappedDevice(name, RAM_DEV, MEMORY_DEVICE, adr, sz, debugInfo, NULL)
 {
 
 	// Resize the RAM vector
 	mMem.resize((size_t) mDevSz);
 
-	// Initialise RAM with zeros
-	mMem.assign(mDevSz, 0);
+	// Initialise RAM
+	if (DRAM) {
+		// Initialise RAM with zeros (for DRAM)
+		mMem.assign(mDevSz, 0);
+	}
+	else {
+		// Initialise RAM with random values (for static RAM)
+		for (int i = 0; i < mDevSz; i++)
+			mMem[i] = rand() % 256;
+	}
 
 	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 		cout << "RAM at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
