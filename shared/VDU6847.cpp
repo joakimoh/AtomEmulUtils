@@ -419,8 +419,8 @@ VDU6847::~VDU6847()
 
 bool VDU6847::read(uint16_t adr, uint8_t& data)
 {
-
-	if (!validAdr(adr))
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!MemoryMappedDevice::read(adr, data))
 		return false;
 
 	data = mMem[adr - mDevAdr];
@@ -430,8 +430,8 @@ bool VDU6847::read(uint16_t adr, uint8_t& data)
 }
 bool VDU6847::write(uint16_t adr, uint8_t data)
 {
-
-	if (!validAdr(adr))
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!MemoryMappedDevice::write(adr, data))
 		return false;
 
 	mMem[adr - mDevAdr] = data;

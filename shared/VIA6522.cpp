@@ -57,6 +57,9 @@ VIA6522::VIA6522(string name, uint16_t adr, DebugInfo debugInfo, ConnectionManag
 
 bool VIA6522::read(uint16_t adr, uint8_t &data)
 {
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!MemoryMappedDevice::read(adr, data))
+		return false;
 
 	switch ((adr - mDevAdr) & 0xf) {
 
@@ -172,6 +175,11 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 }
 bool VIA6522::write(uint16_t adr, uint8_t data)
 {
+
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!MemoryMappedDevice::write(adr, data))
+		return false;
+
 
 	switch ((adr - mDevAdr) & 0xf) {
 

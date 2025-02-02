@@ -62,11 +62,9 @@ ROM::ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo
 
 bool ROM::read(uint16_t adr, uint8_t& data)
 {
-	if (!validAdr(adr)) {
-		if (mDebugInfo.dbgLevel & DBG_WARNING)
-			cout << "Invalid read address 0x" << hex << adr << " for ROM at 0x" << mDevAdr << " to " << mDevAdr + mDevSz - 1 << "\n";
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!MemoryMappedDevice::read(adr, data))
 		return false;
-	}
 
 	data = mMem[adr - mDevAdr];
 
@@ -75,7 +73,8 @@ bool ROM::read(uint16_t adr, uint8_t& data)
 }
 bool ROM::write(uint16_t adr, uint8_t data)
 {
-	if (!validAdr(adr))
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!MemoryMappedDevice::write(adr, data))
 		return false;
 
 	mMem[adr - mDevAdr] = data;

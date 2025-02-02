@@ -96,14 +96,15 @@ bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 	if (al_key_down(&mKeyboardState, mRepeatKeyCode))
 		column_H &= ~0x1;
 
-	// Get REPEAT key
+
+	// Get BREAK key
 	if (al_key_down(&mKeyboardState, mBreakKeyCode))
 		column_H &= ~0x2;
 
 	// Update outputs "COL" and "RPT"
-	if (!updatePort(KB_COL_L, column_L) || !updatePort(KB_COL_H, column_H)) {
+	if (!updatePort(KB_COL_L, column_L) || !updatePort(KB_COL_H, column_H))
 		return false;
-	}
+
 
 	if (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0) && (column_L != 0xff || column_H != 0x3))
 		cout << "column L = 0x" << hex << (int)column_L << ", column H = 0x" << (int)column_H << "\n";
