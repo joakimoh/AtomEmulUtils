@@ -1,7 +1,7 @@
 //
 //	Device instances
 //
-//	Devices are either a microprocessor, a memory-mapped peripheral
+//	Devices are either a microcontroller, a memory-mapped peripheral
 //	or a non-memory mapped peripheral.
 //
 //	Only a memory-mapped device has address and size properties.
@@ -9,21 +9,22 @@
 //	Only a ROM has a file reference (the ROM data).
 //
 //	Supported devices are:
-//		RAM:		RAM of any size (within the 64k address space)
+//		SRAM:		Static RAM of any size (within the 64k address space)
+//		DRAM:		DRAM of any size (within the 64k address space)
 //		ROM:		ROM of any size (within the 64k address space)
 //		VDU6847:	A 6847 Video Data Unit (memory-mapped)
 //		PIA8255		An 8255 PIA (memory-mapped)
-//		UC6052		A 6502 microprocessor (obviously NOT memory-mapped)
+//		UC6052		A 6502 microcontroller (obviously NOT memory-mapped)
 //		ATOMKB		An Acorn Atom Keyboard (NOT memory-mapped)
 //		ATOMCAS		An Acorn Atom Cassette Interface (NOT memory-mapped)
 //		TAPREC		A Tape Recorder emulation (CSW files read/written)
 //
 //	Device	Unique name	Addr	Size
 //
-	RAM	BLOCK_ZERO	0000	0400				// Block Zero RAM
+	SRAM	BLOCK_ZERO	0000	0400				// Block Zero RAM
 	VDU6847	VDU		0800	0100 8000			// VDU CRT Controller 6847
-	RAM	PROGRAM		2800	5800				// Program RAM - 22K
-	RAM	GRAPHICS	8000	1800				// Graphics RAM - 6K
+	SRAM	PROGRAM		2800	5800				// Program RAM - 22K
+	SRAM	GRAPHICS	8000	1800				// Graphics RAM - 6K
 	ROM	WILLOW		A000	1000 Willow.rom			// Willow Utility ROM
 	PIA8255	PIA		b000	0004 				// PIA 8255
 	VIA6522	VIA		b800	0010 				// VIA 6522
@@ -59,7 +60,7 @@ CONNECT ATOMKB:COL_H;0	PIA:PortC;6	// REPEAT key
 CONNECT PIA:PortA;3;0	ATOMKB:ROW
 
 // ATOMKB BREAK key <=> device RESET Connections
-CONNECT ATOMKB:COL_H;1	UC:RESET	// BREAK key => RESET of microprocessor
+CONNECT ATOMKB:COL_H;1	UC:RESET	// BREAK key => RESET of microcontroller
 CONNECT ATOMKB:COL_H;1	PIA:RESET	// BREAK key => RESET of PIA 8255
 CONNECT ATOMKB:COL_H;1	VIA:RESET	// BREAK key => RESET of VIA 6522
 CONNECT ATOMKB:COL_H;1	VDU:RESET	// BREAK key => RESET of VDU 6847
@@ -76,6 +77,16 @@ CONNECT CUTS:TAPE_IN	PIA:PortC;5	// cassette input
 // CUTS <=> Tape Recorder Connections
 CONNECT TAPREC:CAS_IN	CUTS:CAS_IN	// connect CUTS and tape recorder - CAS IN
 CONNECT CUTS:CAS_OUT	TAPREC:CAS_OUT	// connect CUTS and tape recorder - CAS OUT
-
 // PIA <=> Speaker Connections
 CONNECT	PIA:PortC;2	SPEAKER:OUT
+
+// Device scheduling based on read or write access to another memory-mapped peripheral
+// rather then periodically. Only peripherals with registers (and not memory devices)
+// can trigger another device as only a single address can be specified (corresponding to
+// the access of that peripheral's register). The device being triggered should be
+// a non-memory mapped device (like a keyboard, tape recorder, speaker etc.).
+// Default (when no triggering is specified) is to schedule each device periodically.
+//
+// A device scheduled like this will not also be scheduled periodically.
+TRIGGER	ATOMKB	PIA	READ	b001	// Acorn Atom polls keyboard by reading from PIA Port B
+TRIGGER ATOMKB	KERNEL	READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release) 
