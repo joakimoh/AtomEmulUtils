@@ -419,6 +419,7 @@ VDU6847::~VDU6847()
 
 bool VDU6847::read(uint16_t adr, uint8_t& data)
 {
+
 	// Call parent class to trigger scheduling of other devices when applicable
 	if (!MemoryMappedDevice::read(adr, data))
 		return false;

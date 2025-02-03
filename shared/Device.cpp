@@ -123,12 +123,11 @@ bool Device::getPortIndex(string name, DevicePort * &port) {
 Devices::Devices(
 	string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
 	Program program, Program data, ConnectionManager& connection_manager, P6502* &microprocessor, VideoDisplayUnit * &vdu,
-	Device * &soundDevice, Device * &keyboard, vector<Device*>& otherDevices) :mDebugInfo(debugInfo)
+	vector<Device*>& frameScheduledDevices, vector<Device*>& halflineScheduledDevices, vector<Device*>& instrScheduledDevices) :mDebugInfo(debugInfo)
 {
 
-	soundDevice = NULL;
 	vdu = NULL;
-	keyboard = NULL;
+	SoundDevice * sound_device = NULL;
 
 	connection_manager.setDevices(this);
 
@@ -155,7 +154,7 @@ Devices::Devices(
 
 			if (
 				dev_typ_s != "CONNECT" && dev_typ_s != "ATOMKB" && dev_typ_s != "UC6502" && dev_typ_s != "ATOMCAS" && dev_typ_s != "//"
-				&& dev_typ_s != "TAPREC" && dev_typ_s != "" && dev_typ_s != "ATOMSP" && dev_typ_s != "TRIGGER"
+				&& dev_typ_s != "TAPREC" && dev_typ_s != "" && dev_typ_s != "ATOMSP" && dev_typ_s != "TRIGGER" && dev_typ_s != "SCHED"
 				) {
 				sin >> dev_name;
 				sin >> dev_adr_s;
@@ -172,14 +171,13 @@ Devices::Devices(
 				sin >> dev_name;
 				AtomKeyboardDevice * kb = new AtomKeyboardDevice(dev_name, mDebugInfo, &connection_manager);
 				mDevices.push_back(kb);
-				keyboard = kb;
 			}
 
 			else if (dev_typ_s == "ATOMSP") {
 				sin >> dev_name;
 				AtomSpeaker* sp = new AtomSpeaker(dev_name, clockSpeed, audioSampleFreq, mDebugInfo, &connection_manager);
 				mDevices.push_back(sp);
-				soundDevice = (Device*)sp;
+				sound_device = sp;
 			}
 
 			else if (dev_typ_s == "TAPREC") {
@@ -275,6 +273,31 @@ Devices::Devices(
 				uint16_t accessed_adr = stoi(accessed_adr_s, 0, 16);
 				((MemoryMappedDevice*)accessed_device)->registerAccess(triggered_device, accessed_adr, write);
 			}
+			else if (dev_typ_s == "SCHED") {
+				string dev_s, sch_s;
+				sin >> dev_s;
+				Device* sch_dev = NULL;
+				if (!getDevice(dev_s, sch_dev)) {
+					cout << "Specified device '" << dev_s << "' cannot be found at line " << dec << line_no << ":\n\t" << line << "\n";
+					throw runtime_error("Syntax error");
+				}
+				sin >> sch_s;
+				if (sch_s == "FRAME") {
+					sch_dev->scheduling = FRAME;
+				}
+				else if (sch_s == "HLINE") {
+					sch_dev->scheduling = HLINE;
+				}
+				else if (sch_s == "INSTR") {
+					sch_dev->scheduling = INSTR;
+				}
+				else if (sch_s == "NONE")
+					sch_dev->scheduling = NONE;
+				else {
+					cout << "Invalid scheduling '" << sch_s << "' policy at line " << dec << line_no << ":\n\t" << line << "\n";
+					throw runtime_error("Syntax error");
+				}
+			}
 			else {
 				cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
 				throw runtime_error("Syntax error");
@@ -339,17 +362,23 @@ Devices::Devices(
 		throw runtime_error("Failed to get memory-mapped devices");
 	}
 
-	// Get all device but sound, dvu & uC
-	if (!getOtherDevices(otherDevices)) {
-		cout << "Failed to get non-VDU & non-sound time aware devices!\n";
-		throw runtime_error("Failed to get non-VDU & non-sound time aware devices");
+	// Sort the devices according to theire specified scheduling
+	for (int i = 0; i < mDevices.size(); i++) {
+		Device* d = mDevices[i];
+		if (d->category == MICROROCESSOR_DEVICE || d->category == VDU_DEVICE || d->category==MEMORY_DEVICE)
+			continue;
+		else if (d->scheduling == INSTR)
+			instrScheduledDevices.push_back(d);
+		else if (d->scheduling == HLINE)
+			halflineScheduledDevices.push_back(d);
+		else if (d->scheduling == FRAME)
+			frameScheduledDevices.push_back(d);
 	}
 
 	if (!getZPMemDevice(microprocessor->mZPMemDev)) {
 		cout << "Failed to zero-page memory device!\n";
 		throw runtime_error("Failed to zero-page memory device");
 	}
-
 
 	if (!loadData(program))
 		throw runtime_error("");
@@ -359,6 +388,9 @@ Devices::Devices(
 
 	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 		connection_manager.printRouting();
+
+	if (sound_device != NULL)
+		sound_device->setFrameRate(vdu->getFrameRate());
 
 }
 

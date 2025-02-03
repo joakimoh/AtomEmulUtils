@@ -49,11 +49,14 @@ ALLEGRO_MENU_INFO main_menu[] = {
       ALLEGRO_END_OF_MENU
 };
 
+double frame_dur_cnt = 0;
 double vdu_cnt = 0;
 double uc_cnt = 0;
 double sound_device_cnt = 0;
 double keyboard_cnt = 0;
-double other_dev_cnt[10] = { 0 };
+double frame_scheduled_devices_cnt[128] = { 0 };
+double half_line_scheduled_devices_cnt[128] = { 0 };
+double instr_scheduled_devices_cnt[128] = { 0 };
 double wait_cnt = 0;
 int frame_cnt = 0;
 
@@ -81,7 +84,16 @@ int main(int argc, const char* argv[])
     if (!al_install_audio())
 		cout << "Failed to initialise allegro5 audio addon\n";
 
-    ALLEGRO_TIMER* emu_speed_timer = al_create_timer(1.0 / 60); // 60 Hz frequency as default emulation speed
+    ArgParser arg_parser = ArgParser(argc, argv);
+
+    if (arg_parser.failed())
+        return -1;
+
+    const double frame_rate = 60;
+    int cycle_step = 2;
+
+
+    ALLEGRO_TIMER* emu_speed_timer = al_create_timer(1.0 / frame_rate); // 60 Hz frequency as default emulation speed
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
     
     ALLEGRO_EVENT event;
@@ -102,32 +114,20 @@ int main(int argc, const char* argv[])
     al_register_event_source(queue, al_get_timer_event_source(emu_speed_timer));
     al_register_event_source(queue, al_get_default_menu_event_source());
 	al_register_event_source(queue, al_get_mouse_event_source());
-
-    ALLEGRO_TRANSFORM transform;
-    al_identity_transform(&transform);
-    al_scale_transform(&transform, 1, 1);
-    al_use_transform(&transform);
-
-
-    ArgParser arg_parser = ArgParser(argc, argv);
-
-    if (arg_parser.failed())
-        return -1; 
     
 
     ConnectionManager connection_manager(arg_parser.debugInfo);
 
     VideoDisplayUnit* vdu = NULL;
-    Device* sound_device = NULL;
-    vector<Device*> other_devices;
+    vector<Device*> frame_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices;
     P6502 * microprocessor = NULL;
-    Device* keyboard = NULL;
     Devices devices(
         arg_parser.mapFileName,
         arg_parser.cMHz,            // CPU Clock frequency in MHz
         32000,                      // audio sample rate corresponding to a rate of at least twice per scan line
         disp_bm,
-        arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu, sound_device, keyboard, other_devices
+        arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu,
+        frame_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices
 
     );
 
@@ -144,13 +144,6 @@ int main(int argc, const char* argv[])
     int w, h;
     if (!vdu->getVisibleArea(w, h) || !al_resize_display(disp, w, h)) {
         cout << "Failed to resize display!\n";
-        return -1;
-    }
-    
-
-
-    if (keyboard == NULL) {
-        cout << "No keyboard defined!\n";
         return -1;
     }
 
@@ -175,15 +168,17 @@ int main(int argc, const char* argv[])
     al_start_timer(emu_speed_timer);
 
     
-    int cycle_step = 2;
+    
     uint64_t cycle_count = 0;
 
     // RESET all devices
-    for (int d = 0; d < other_devices.size(); d++)
-        other_devices[d]->reset();
-    sound_device->reset();
+    for (int d = 0; d < frame_scheduled_devices.size(); d++)
+        frame_scheduled_devices[d]->reset();
+    for (int d = 0; d < half_line_scheduled_devices.size(); d++)
+        half_line_scheduled_devices[d]->reset();
+    for (int d = 0; d < instr_scheduled_devices.size(); d++)
+        instr_scheduled_devices[d]->reset();
     vdu->reset();
-    keyboard->reset();
     microprocessor->reset();   
     if (arg_parser.debugInfo.dbgLevel & DBG_VERBOSE)
         cout << "All devices now reset...\n";
@@ -191,8 +186,25 @@ int main(int argc, const char* argv[])
     al_clear_to_color(al_map_rgb(0, 0, 0));
 
     bool quit = false;
+    const int cycles_per_frame = (int)round(arg_parser.cMHz * 1e6 / frame_rate);
+    auto frame_start = chrono::high_resolution_clock::now();
     while (!quit)
     {   
+        auto frame_stop = chrono::high_resolution_clock::now();
+        auto frame_dur = chrono::duration_cast<chrono::microseconds>(frame_stop - frame_start);
+        frame_start = frame_stop;
+        frame_dur_cnt += frame_dur.count();
+        
+
+        // update devices scheduled on frame basis
+        for (int i = 0; i < frame_scheduled_devices.size(); i++) {
+            auto dev_start = chrono::high_resolution_clock::now();
+            frame_scheduled_devices[i]->advance(cycle_count + cycles_per_frame);
+            auto dev_stop = chrono::high_resolution_clock::now();
+            auto dev_dur = chrono::duration_cast<chrono::microseconds>(dev_stop - dev_start);
+            frame_scheduled_devices_cnt[i] += dev_dur.count();
+            
+        }
 
         // Advance time one field scan line at a time until a complete field has been scanned
         for (int scan_line = 0; scan_line < n_scan_lines; scan_line++) {
@@ -206,7 +218,7 @@ int main(int argc, const char* argv[])
             auto vdu_start = chrono::high_resolution_clock::now();
 
             vdu->advanceLine(target_cycle_count);
-            //cout << vdu->name << " cycle count: " << dec << vdu->getCycleCount() << " (" << cycle_count << ")\n";
+
 
             auto vdu_stop = chrono::high_resolution_clock::now();
             auto vdu_dur = chrono::duration_cast<chrono::microseconds>(vdu_stop - vdu_start);
@@ -217,18 +229,17 @@ int main(int argc, const char* argv[])
             for (int half_line = 0; half_line < 2; half_line++) {
 
                 uint64_t half_line_target = start_target_cnt + half_line_step * half_line;
+              
+                // update devices scheduled on half line basis
+                for (int i = 0; i < half_line_scheduled_devices.size(); i++) {
+                    auto dev_start = chrono::high_resolution_clock::now();
+                    half_line_scheduled_devices[i]->advance(half_line_target);
+                    auto dev_stop = chrono::high_resolution_clock::now();
+                    auto dev_dur = chrono::duration_cast<chrono::microseconds>(dev_stop - dev_start);
+                    half_line_scheduled_devices_cnt[i] += dev_dur.count();
+                }            
 
-                auto sound_device_start = chrono::high_resolution_clock::now();
-
-                // update sound device twice per scan line <=> 31.5 kHz for NTSC
-                sound_device->advance(half_line_target);
-                //cout << sound_device->name << " cycle count: " << dec << sound_device->getCycleCount() << " (" << cycle_count << ")\n";
-
-                auto sound_device_stop = chrono::high_resolution_clock::now();
-                auto sound_device_dur = chrono::duration_cast<chrono::microseconds>(sound_device_stop - sound_device_start);
-                sound_device_cnt += sound_device_dur.count();
-
-                // Advance each device in steps (cycle_step) until it has reached a time corresponding to one scan scan_line
+                // update devices scheduled on instruction basis in a tight loop
                 while (cycle_count < half_line_target) {
 
                     cycle_count += cycle_step;
@@ -243,18 +254,18 @@ int main(int argc, const char* argv[])
                     auto uc_dur = chrono::duration_cast<chrono::microseconds>(uc_stop - uc_start);
                     uc_cnt += uc_dur.count();
 
-                    // Advance time for the other devices until cycle_count has been reached  (or slightly passed)
-                    for (int d = 0; d < other_devices.size(); d++) {
+                    // // update devices scheduled on instruction basis
+                    for (int d = 0; d < instr_scheduled_devices.size(); d++) {
 
                         auto other_dev_start = chrono::high_resolution_clock::now();
 
                         // advance time for the device
-                        other_devices[d]->advance(cycle_count);
+                        instr_scheduled_devices[d]->advance(cycle_count);
                         //cout << other_devices[d]->name << " cycle count: " << dec << other_devices[d]->getCycleCount() << " (" << cycle_count << ")\n";
 
                         auto other_dev_stop = chrono::high_resolution_clock::now();
                         auto other_dev_dur = chrono::duration_cast<chrono::microseconds>(other_dev_stop - other_dev_start);
-                        other_dev_cnt[d] += other_dev_dur.count();
+                        instr_scheduled_devices_cnt[d] += other_dev_dur.count();
                       
                     }
                     
@@ -265,13 +276,22 @@ int main(int argc, const char* argv[])
         }
 
         frame_cnt = (frame_cnt + 1) % 60;
-        if (arg_parser.debugInfo.dbgLevel == DBG_DEVICE && frame_cnt == 0) {
+        if ((arg_parser.debugInfo.dbgLevel == DBG_DEVICE) && frame_cnt == 0) {
+            cout << "Frame duration: " << frame_dur_cnt / 1000 << " ms per sec\n";
+            frame_dur_cnt = 0;
             cout << "VDU ms per sec: " << vdu_cnt / 1000 << "\n";
-            cout << "Sound ms per sec: " << sound_device_cnt / 1000<< "\n";
             cout << "microcontroller ms per sec: " << uc_cnt / 1000 << "\n";
-            for (int d = 0; d < other_devices.size(); d++) {
-                cout << other_devices[d]->name << " ms per per sec: " << other_dev_cnt[d] / 1000<< "\n";
-                other_dev_cnt[d] = 0;
+            for (int d = 0; d < frame_scheduled_devices.size(); d++) {
+                cout << "FRAME: " << frame_scheduled_devices[d]->name << " ms per per sec: " << frame_scheduled_devices_cnt[d] / 1000 << "\n";
+                frame_scheduled_devices_cnt[d] = 0;
+            }
+            for (int d = 0; d < half_line_scheduled_devices.size(); d++) {
+                cout << "1/2 LINE: " << half_line_scheduled_devices[d]->name << " ms per per sec: " << half_line_scheduled_devices_cnt[d] / 1000 << "\n";
+                half_line_scheduled_devices_cnt[d] = 0;
+            }
+            for (int d = 0; d < instr_scheduled_devices.size(); d++) {
+                cout << "INSTR: " << instr_scheduled_devices[d]->name << " ms per per sec: " << instr_scheduled_devices_cnt[d] / 1000 << "\n";
+                instr_scheduled_devices_cnt[d] = 0;
             }
             cout << "WAIT ms per sec: " << wait_cnt / 1000 << "\n";
             vdu_cnt = 0;

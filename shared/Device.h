@@ -20,6 +20,8 @@ class MemoryMappedDevice;
 class VideoDisplayUnit;
 class P6502;
 
+enum Scheduling {FRAME, HLINE, INSTR, NONE};
+
 enum DeviceId {
 	TAPE_RECORDER_DEV, ATOM_SPEAKER_DEV, ATOM_CUTS_DEV, ROM_DEV, RAM_DEV, PIA8255_DEV, VDU6847_DEV, VIA6522_DEV, ATOM_KB_DEV, P6502_DEV, UNDEFINED_DEV
 };
@@ -87,8 +89,6 @@ class Device {
 
 protected:
 
-
-
 	DebugInfo mDebugInfo;
 
 	uint64_t mCycleCount = 0;
@@ -101,6 +101,7 @@ protected:
 
 public:
 
+	Scheduling scheduling = INSTR; // default scheduling if nothing specified
 
 	string name;
 
@@ -141,8 +142,8 @@ public:
 
 	Devices(
 		string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
-		Program program, Program data, ConnectionManager &connectionManager, P6502* &microprocessor, VideoDisplayUnit* &vdu, Device * &soundDevice,
-		Device * &keyboard, vector<Device *> &otherDevices
+		Program program, Program data, ConnectionManager &connectionManager, P6502* &microprocessor, VideoDisplayUnit* &vdu,
+		vector<Device *> &frameScheduledDevices, vector<Device*> &halfLineScheduledDevices, vector<Device*> &instructionScheduledDevices
 	);
 
 	~Devices();

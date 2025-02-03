@@ -18,6 +18,8 @@ private:
 	double mSystemClock;
 
 	int mUpdateFreqCount = 0;
+	int mSamplesPerFragment = 512;
+	int mNFragments = 8;
 
 
 	bool updateAudio(uint8_t val);
@@ -32,6 +34,8 @@ public:
 	~AtomSpeaker();
 
 	bool advance(uint64_t stopCycle);
+
+	void setFrameRate(int frameRate);
 
 };
 

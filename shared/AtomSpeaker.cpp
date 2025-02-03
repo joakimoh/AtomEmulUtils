@@ -17,25 +17,37 @@
 // CAS_OUT		Cassette output to the Tape Recorder
 //
 
-#define SAMPLES_PER_FRAGMENT    312*4
-#define N_FRAGMENTS				8
 
 AtomSpeaker::AtomSpeaker(string name, double systemClock, int sampleFreq, DebugInfo debugInfo, ConnectionManager* connectionManager) :
-	SoundDevice(name, ATOM_SPEAKER_DEV, debugInfo, connectionManager), mSystemClock(systemClock)
+	SoundDevice(name, ATOM_SPEAKER_DEV, sampleFreq, debugInfo, connectionManager), mSystemClock(systemClock)
 {
 	registerPort("OUT", IN_PORT, 0x01, OUT, &mOUT);	// From PIA PC2
 
-
-	mUpdateFreqCount = (int)round(systemClock *1e6 / sampleFreq); // limit updates to 32 kHz
-
+	mUpdateFreqCount = (int)round(systemClock *1e6 / sampleFreq); // limit updates to sampleFreq
 
 	al_reserve_samples(0);
 
+	
+}
+
+AtomSpeaker::~AtomSpeaker()
+{
+	al_drain_audio_stream(mAudioStream);
+	al_destroy_audio_stream(mAudioStream);
+}
+
+void AtomSpeaker::setFrameRate(int frameRate)
+{
+	SoundDevice::setFrameRate(frameRate);
+
+	int mSamplesPerFragment = (int) round(1.0 * mSampleRate / mFrameRate); // 2 frames of audio
+	int mNFragments = 8;
+
 	// Create audio stream
 	mAudioStream = al_create_audio_stream(
-		N_FRAGMENTS,					// #fragments
-		SAMPLES_PER_FRAGMENT,			// size of a fragment
-		sampleFreq,						// sample frequency
+		mNFragments,					// #fragments
+		mSamplesPerFragment,			// size of a fragment
+		mSampleRate,					// sample frequency
 		ALLEGRO_AUDIO_DEPTH_UINT8,
 		ALLEGRO_CHANNEL_CONF_1
 	);
@@ -44,9 +56,10 @@ AtomSpeaker::AtomSpeaker(string name, double systemClock, int sampleFreq, DebugI
 		cout << "Could not create audio stream\n";
 	}
 
-	void* buf;
+	// Create and output silence that lasts one frame
+	void* buf;	
 	while ((buf = al_get_audio_stream_fragment(mAudioStream))) {
-		al_fill_silence(buf, SAMPLES_PER_FRAGMENT, ALLEGRO_AUDIO_DEPTH_UINT8, ALLEGRO_CHANNEL_CONF_1);
+		al_fill_silence(buf, mSamplesPerFragment, ALLEGRO_AUDIO_DEPTH_UINT8, ALLEGRO_CHANNEL_CONF_1);
 		al_set_audio_stream_fragment(mAudioStream, buf);
 	}
 
@@ -54,12 +67,10 @@ AtomSpeaker::AtomSpeaker(string name, double systemClock, int sampleFreq, DebugI
 		throw runtime_error("Could not attach audio stream to audio mixer");
 		cout << "Could not attach audio stream to audio mixer\n";
 	}
-}
 
-AtomSpeaker::~AtomSpeaker()
-{
-	al_drain_audio_stream(mAudioStream);
-	al_destroy_audio_stream(mAudioStream);
+	// Add one frame of silence
+	for (int i = 0; i < mSamplesPerFragment; i++)
+		mSamples.push_back(0x0);
 }
 
 
@@ -79,9 +90,9 @@ bool AtomSpeaker::advance(uint64_t stopCycle)
 bool AtomSpeaker::updateAudio(uint8_t val)
 {
 	mSamples.push_back(val);
-	//mSamples.push_back(val);
 
-	if (mSamples.size() >= SAMPLES_PER_FRAGMENT)
+	if (mSamples.size() >= mSamplesPerFragment)
+
 	// Samples corresponding to a complete fragment exists => audio output possible
 	{
 
@@ -102,22 +113,13 @@ bool AtomSpeaker::updateAudio(uint8_t val)
 					return true;
 				}
 
-				memcpy(buf, &mSamples[0], SAMPLES_PER_FRAGMENT);
-				/*
-				for (int i = 0; i < SAMPLES_PER_FRAGMENT; i++) {
-					buf[i] = (mSamples[i] != 0 ? 0xff : 0x00);
-				}
-				*/
+				memcpy(buf, &mSamples[0], mSamplesPerFragment);
 
 				if (!al_set_audio_stream_fragment(mAudioStream, buf)) {
 					return false;
-				}
-
-				al_destroy_event_queue(queue);
-				
+				}							
 			}
-
-			
+			al_destroy_event_queue(queue);			
 			
 		}
 		mSamples.clear();

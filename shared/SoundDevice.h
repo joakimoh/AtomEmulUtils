@@ -12,14 +12,17 @@ using namespace std;
 
 class SoundDevice : public Device {
 
-private:
+protected:
 
+	int mFrameRate = 60;
+	int mSampleRate = 32000;
 
 
 public:
 
-	SoundDevice(string name, DeviceId devId, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	SoundDevice(string name, DeviceId devId, int SampleFreq, DebugInfo debugInfo, ConnectionManager* connectionManager);
 
+	virtual void setFrameRate(int frameRate);
 
 };
 
