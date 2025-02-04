@@ -193,7 +193,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 		unlockDisplay();
 
-		// Scale the display bitmap including borders to match the size of the display 
+		// Scale the display bitmap including borders to match the size of the display
 		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mVisW, mVisH, 0, 0, mScaledW, mScaledH, 0);
 
 		// Make the updates visible on the display
@@ -416,11 +416,6 @@ void VDU6847::unlockDisplay()
 	al_unlock_bitmap(mDisplayBitmap);
 	al_restore_state(&mAllegroState);
 }
-
-
-
-
-
 
 bool VDU6847::read(uint16_t adr, uint8_t& data)
 {

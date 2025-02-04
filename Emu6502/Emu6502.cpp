@@ -90,7 +90,7 @@ int main(int argc, const char* argv[])
         return -1;
 
     const int frame_rate = 60;
-    const int emu_speed = frame_rate * 2;
+    const int emu_speed = frame_rate * (arg_parser.emulationSpeed / 100);
     int cycle_step = 2;
 
 
@@ -269,7 +269,7 @@ int main(int argc, const char* argv[])
         }
 
         frame_cnt = (frame_cnt + 1) % frame_rate;
-        if ((arg_parser.debugInfo.dbgLevel == DBG_DEVICE) && frame_cnt == 0) {
+        if ((true || arg_parser.debugInfo.dbgLevel == DBG_DEVICE) && frame_cnt == 0) {
             cout << "Frame duration: " << frame_dur_cnt / 1000 << " ms per sec\n";
             frame_dur_cnt = 0;
             cout << "VDU ms per sec: " << vdu_cnt / 1000 << "\n";

@@ -18,6 +18,8 @@ public:
 	
 	DebugInfo debugInfo;
 
+	double emulationSpeed = 100; // %
+
 
 private:
 
