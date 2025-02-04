@@ -89,11 +89,12 @@ int main(int argc, const char* argv[])
     if (arg_parser.failed())
         return -1;
 
-    const double frame_rate = 60;
+    const int frame_rate = 60;
+    const int emu_speed = frame_rate * 2;
     int cycle_step = 2;
 
 
-    ALLEGRO_TIMER* emu_speed_timer = al_create_timer(1.0 / frame_rate); // 60 Hz frequency as default emulation speed
+    ALLEGRO_TIMER* emu_speed_timer = al_create_timer(1.0 / emu_speed); // 60 Hz frequency as default emulation speed
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
     
     ALLEGRO_EVENT event;
@@ -196,7 +197,7 @@ int main(int argc, const char* argv[])
         frame_dur_cnt += frame_dur.count();
         
 
-        // update devices scheduled on frame basis
+        // Advance time for each devices that is scheduled on frame basis
         for (int i = 0; i < frame_scheduled_devices.size(); i++) {
             auto dev_start = chrono::high_resolution_clock::now();
             frame_scheduled_devices[i]->advance(cycle_count + cycles_per_frame);
@@ -215,11 +216,9 @@ int main(int argc, const char* argv[])
             uint64_t target_cycle_count;
             uint64_t start_count = cycle_count;
 
+            // Advance time for the VDU that is scheduled on scan line basis
             auto vdu_start = chrono::high_resolution_clock::now();
-
             vdu->advanceLine(target_cycle_count);
-
-
             auto vdu_stop = chrono::high_resolution_clock::now();
             auto vdu_dur = chrono::duration_cast<chrono::microseconds>(vdu_stop - vdu_start);
             vdu_cnt += vdu_dur.count();
@@ -232,6 +231,7 @@ int main(int argc, const char* argv[])
               
                 // update devices scheduled on half line basis
                 for (int i = 0; i < half_line_scheduled_devices.size(); i++) {
+
                     auto dev_start = chrono::high_resolution_clock::now();
                     half_line_scheduled_devices[i]->advance(half_line_target);
                     auto dev_stop = chrono::high_resolution_clock::now();
@@ -244,25 +244,18 @@ int main(int argc, const char* argv[])
 
                     cycle_count += cycle_step;
                  
-                    auto uc_start = chrono::high_resolution_clock::now();
-
                     // advance time for the microprocessor
+                    auto uc_start = chrono::high_resolution_clock::now();
                     microprocessor->advance(cycle_count);
-                    //cout << "uC cycle count: " << dec << microprocessor->getCycleCount() << " (" << cycle_count << ")\n";
-
                     auto uc_stop = chrono::high_resolution_clock::now();
                     auto uc_dur = chrono::duration_cast<chrono::microseconds>(uc_stop - uc_start);
                     uc_cnt += uc_dur.count();
 
-                    // // update devices scheduled on instruction basis
+                    // Advance time for each device scheduled on instruction basis
                     for (int d = 0; d < instr_scheduled_devices.size(); d++) {
 
                         auto other_dev_start = chrono::high_resolution_clock::now();
-
-                        // advance time for the device
                         instr_scheduled_devices[d]->advance(cycle_count);
-                        //cout << other_devices[d]->name << " cycle count: " << dec << other_devices[d]->getCycleCount() << " (" << cycle_count << ")\n";
-
                         auto other_dev_stop = chrono::high_resolution_clock::now();
                         auto other_dev_dur = chrono::duration_cast<chrono::microseconds>(other_dev_stop - other_dev_start);
                         instr_scheduled_devices_cnt[d] += other_dev_dur.count();
@@ -275,7 +268,7 @@ int main(int argc, const char* argv[])
 
         }
 
-        frame_cnt = (frame_cnt + 1) % 60;
+        frame_cnt = (frame_cnt + 1) % frame_rate;
         if ((arg_parser.debugInfo.dbgLevel == DBG_DEVICE) && frame_cnt == 0) {
             cout << "Frame duration: " << frame_dur_cnt / 1000 << " ms per sec\n";
             frame_dur_cnt = 0;
@@ -333,17 +326,14 @@ int main(int argc, const char* argv[])
 
     }
 
+    delete vdu;
+
     al_stop_timer(emu_speed_timer);
     al_destroy_font(font);
-    al_destroy_display(disp);
-    al_destroy_timer(emu_speed_timer);
     al_destroy_event_queue(queue);
-
     al_destroy_menu(menu);
-
+    al_destroy_display(disp);
     al_uninstall_audio();
-
-    
  
     return 0;
 

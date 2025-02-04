@@ -8,6 +8,124 @@
 
 using namespace std;
 
+//
+// 
+// Can be in either Alphanumeric/Semigraphics (major mode 1, A/G=0) or Graphics mode (major mode 2, A/G=1)
+// 
+// 
+// Supported Alphanumeric modes (major mode 1, A/S=0) :
+// 
+// A/G (PA4)	A/S (b6)	INT/EXT (b6)	INV (b7)	Description																#Colours	Memory usage	Used by Atom
+// 0			0			0				0			Internal alphanumerics (standard 5 x 7 dot matrix characters)			2			512 bytes		Yes
+// 0			0			0				1			Internal alphanumerics inverted (standard 5 x 7 dot matrix characters)	2			512 bytes		Yes
+// 0			0			1				0			External alphanumerics (external 8 x 12 dot matrix characters)			2			512 bytes		No
+// 0			0			1				1			External alphanumerics inverted (external 8 x 12 dot matrix characters)	2			512 bytes		No
+// 
+// For the Acorn Atom, INV is connected to b7 of read graphics memory data, A/S and INT/EXT to b6. But Acorn Atom
+// doesn't have external alphanumerics so b6 needs always to be '0'. The CSS imput is onnected to the PIA output PC4 and selects the colour palette for the
+// semigraphics modes.
+// 
+// 
+// Graphics memory Byte content: c1 c0 l5 l4 l3 l2 l1 l0
+// 
+// Pixel structure (2 scan lines per pixel row and 4 'character' pixels per graphics pixel (two 3.58 Mhz half clocks)
+// l5 l4
+// l3 l2
+// l1 l0
+// 
+// // Pixel value '0' => Black
+// CSS	Pixel bit	Colour bits		Colour
+// -	0			-				Black
+// 0	1			00				Green
+// 0	1			01				Yellow
+// 0	1			10				Blue
+// 0	1			11				Red
+// 1	1			00				-
+// 1	1			01				Cyan
+// 1	1			10				Magenta
+// 1	1			11				Orange
+// 			
+// 
+// The graphics mode inputs A/G:GM01:GM1:GM2 are connected to the 8255 PIA's PA4-7 (this is the mode input below).
+// 
+// Supported Semigraphics modes (major mode 1, A/S=1):
+// 
+// A/G (PA4)	A/S (b6)		INT/EXT (b6)	Description								Resolution	#Colours	Memory usage	Used by Atom
+// 0			1				0				Supported Semigraphics mode 4 (SG4)		64 x 32		8			512 bytes		No
+// 0			1				1				Supported Semigraphics mode 4 (SG6)		64 x 48		8			512 bytes		Yes - Graphics mode 0
+// 
+// Semigraphics 4
+// 
+// Supported Graphic (Major Mode 2) modes: 
+//
+// A/G	GM2	GM1	GM3	Mode	resolution	#colours	Memory usage		Description							Used by Atom
+// 1	0	0	0	0		64 x 64		4			1kB					colour graphics (CG1)				Yes - Graphics mode 1a
+// 1	0	0	1	1		128 x 64	2			1kB					resolution graphics one (RG1)		Yes - Graphics mode 1
+// 1	0	1	0	2		128 x 64	4			2kB					colour graphics two (CG2)			Yes - Graphics mode 2a
+// 1	0	1	1	3		128 x 96	2			1.5kB				resolution graphics two (RG2)		Yes - Graphics mode 2
+// 1	1	0	0	4		128 x 96	4			3kB					colour graphics three (CG3)			Yes - Graphics mode 3a
+// 1	1	0	1	5		128 x 192	2			3kB					resolution graphics three (RG3)		Yes - Graphics mode 3
+// 1	1	1	0	6		128 x 192	4			6kB					colour graphics six (CG6)			Yes - Graphics mode 4a
+// 1	1	1	1	7		256 x 192	2			6kB					resolution graphics six (RG6)		Yes - Graphics mode 4
+//
+
+VDU6847::VDU6847(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+	VideoDisplayUnit(name, VDU6847_DEV, adr, 0x100, disp, videoMemAdr, debugInfo, connectionManager), mN60HzCycles((int)round(clockSpeed * 1e6 / 60))
+{
+	// Specify ports that can be connectde to other devices
+	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
+	registerPort("A/S", IN_PORT, 0x01, VDU_PORT_AS, &mAS);
+	registerPort("A/G", IN_PORT, 0x01, VDU_PORT_AG, &mAG);
+	registerPort("GM", IN_PORT, 0x07, VDU_PORT_GM, &mGM);
+	registerPort("CSS", IN_PORT, 0x01, VDU_PORT_CSS, &mCSS);
+	registerPort("INT/EXT", IN_PORT, 0x01, VDU_PORT_INT_EXT, &mIntExt);
+	registerPort("INV", IN_PORT, 0x01, VDU_PORT_INV, &mInv);
+	registerPort("FS", OUT_PORT, 0x01, VDU_PORT_FS, &mFS);
+	registerPort("Din", OUT_PORT, 0xff, VDU_PORT_DIN, &mDin);
+
+
+	// Set the size of the VDU register vector
+	mMem.resize((size_t)mDevSz);
+
+	// Initialise the VDU registers with zeros
+	mMem.assign(mDevSz, 0);
+
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
+		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
+
+	// Create 256 x 192 display bitmap and clear it
+	mDisplayBitmap = al_create_bitmap(mVisW, mVisH);
+
+	green = al_map_rgb(0, 0xff, 0);
+	black = al_map_rgb(0, 0, 0);
+
+	lockDisplay();
+
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE) {
+		cout << dec << "\n\nM6847 Parameters:\n\n";
+		cout << "Frame rate: " << mFrameFreq << " [Hz]\n";
+		cout << "Scane lines per field frame: " << mScanLines << " lines\n";
+		cout << "Line duration: " << mlineDur << " [us] (" << mLineW << " pixels)\n";
+		cout << "Duration of horizontal borders: " << mBrdH << " [us] (" << mLBrdW + mRBrdW << " pixels)\n";
+		cout << "Vertical borders: " << mTBrdH + mBBrdH << " lines\n";
+		cout << "Vertical blanking: " << mTVBlkH + mBVBlkH << " lines\n";
+		cout << "Horizontal blanking: " << mHBlkDur << " [us] (" << mLBlkW + mRBlkW << " pixels)\n";
+		cout << "Visible Active Display Area: " << mActAreaW << " x " << mActAreaH << " pixels\n";
+		cout << "Total Visible Display Area: " << mVisW << " x " << mVisH << " pixels\n";
+		cout << "Total Display Area (including invisible parts): " << mTotalW << " x " << mTotalH << " pixels\n";
+		cout << "Scaled Visible Display Area: " << mScaledW << " x " << mScaledH << "\n";
+		cout << "\n\n";
+	}
+
+
+}
+
+VDU6847::~VDU6847()
+{
+	unlockDisplay();
+	al_destroy_bitmap(mDisplayBitmap);
+}
 
 bool VDU6847::reset()
 {
@@ -75,7 +193,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 		unlockDisplay();
 
-		// Scaled the display bitmap including borders to match the size of the display 
+		// Scale the display bitmap including borders to match the size of the display 
 		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mVisW, mVisH, 0, 0, mScaledW, mScaledH, 0);
 
 		// Make the updates visible on the display
@@ -175,6 +293,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 						mem_data = mem_data << 1;
 					}
 				}
+				break;
 			}
 
 			
@@ -186,9 +305,11 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 				// Alphanumeric or semigraphic mode
 			{
 				int pixel_row = (pixel_line % 12) / 4;
+				int mem_row = pixel_line / 12;
+				int base_mem_adr = mVideoMemAdr + mem_row * 32;
+				int y = pixel_line % 12;
 				for (int char_col = 0; char_col < 32; char_col++) {
-					int mem_row = pixel_line / 12;
-					int mem_adr = mVideoMemAdr + mem_row * 32 + char_col;
+					int mem_adr = base_mem_adr + char_col;
 					if (!readGraphicsMem(mem_adr, mem_data))
 						return false;
 					if (mAS)
@@ -223,7 +344,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 							symbol_def = mCharRom[symbol];
 						}
 						uint8_t symbol_mask;
-						int y = pixel_line % 12;
+
 						symbol_mask = symbol_def.rows[y];
 						if (mInv) {
 							symbol_mask = ~symbol_mask; // inverted character
@@ -299,123 +420,7 @@ void VDU6847::unlockDisplay()
 
 
 
-//
-// 
-// Can be in either Alphanumeric/Semigraphics (major mode 1, A/G=0) or Graphics mode (major mode 2, A/G=1)
-// 
-// 
-// Supported Alphanumeric modes (major mode 1, A/S=0) :
-// 
-// A/G (PA4)	A/S (b6)	INT/EXT (b6)	INV (b7)	Description																#Colours	Memory usage	Used by Atom
-// 0			0			0				0			Internal alphanumerics (standard 5 x 7 dot matrix characters)			2			512 bytes		Yes
-// 0			0			0				1			Internal alphanumerics inverted (standard 5 x 7 dot matrix characters)	2			512 bytes		Yes
-// 0			0			1				0			External alphanumerics (external 8 x 12 dot matrix characters)			2			512 bytes		No
-// 0			0			1				1			External alphanumerics inverted (external 8 x 12 dot matrix characters)	2			512 bytes		No
-// 
-// For the Acorn Atom, INV is connected to b7 of read graphics memory data, A/S and INT/EXT to b6. But Acorn Atom
-// doesn't have external alphanumerics so b6 needs always to be '0'. The CSS imput is onnected to the PIA output PC4 and selects the colour palette for the
-// semigraphics modes.
-// 
-// 
-// Graphics memory Byte content: c1 c0 l5 l4 l3 l2 l1 l0
-// 
-// Pixel structure (2 scan lines per pixel row and 4 'character' pixels per graphics pixel (two 3.58 Mhz half clocks)
-// l5 l4
-// l3 l2
-// l1 l0
-// 
-// // Pixel value '0' => Black
-// CSS	Pixel bit	Colour bits		Colour
-// -	0			-				Black
-// 0	1			00				Green
-// 0	1			01				Yellow
-// 0	1			10				Blue
-// 0	1			11				Red
-// 1	1			00				-
-// 1	1			01				Cyan
-// 1	1			10				Magenta
-// 1	1			11				Orange
-// 			
-// 
-// The graphics mode inputs A/G:GM01:GM1:GM2 are connected to the 8255 PIA's PA4-7 (this is the mode input below).
-// 
-// Supported Semigraphics modes (major mode 1, A/S=1):
-// 
-// A/G (PA4)	A/S (b6)		INT/EXT (b6)	Description								Resolution	#Colours	Memory usage	Used by Atom
-// 0			1				0				Supported Semigraphics mode 4 (SG4)		64 x 32		8			512 bytes		No
-// 0			1				1				Supported Semigraphics mode 4 (SG6)		64 x 48		8			512 bytes		Yes - Graphics mode 0
-// 
-// Semigraphics 4
-// 
-// Supported Graphic (Major Mode 2) modes: 
-//
-// A/G	GM2	GM1	GM3	Mode	resolution	#colours	Memory usage		Description							Used by Atom
-// 1	0	0	0	0		64 x 64		4			1kB					colour graphics (CG1)				Yes - Graphics mode 1a
-// 1	0	0	1	1		128 x 64	2			1kB					resolution graphics one (RG1)		Yes - Graphics mode 1
-// 1	0	1	0	2		128 x 64	4			2kB					colour graphics two (CG2)			Yes - Graphics mode 2a
-// 1	0	1	1	3		128 x 96	2			1.5kB				resolution graphics two (RG2)		Yes - Graphics mode 2
-// 1	1	0	0	4		128 x 96	4			3kB					colour graphics three (CG3)			Yes - Graphics mode 3a
-// 1	1	0	1	5		128 x 192	2			3kB					resolution graphics three (RG3)		Yes - Graphics mode 3
-// 1	1	1	0	6		128 x 192	4			6kB					colour graphics six (CG6)			Yes - Graphics mode 4a
-// 1	1	1	1	7		256 x 192	2			6kB					resolution graphics six (RG6)		Yes - Graphics mode 4
-//
 
-VDU6847::VDU6847(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager):
-	VideoDisplayUnit(name, VDU6847_DEV, adr, 0x100, disp, videoMemAdr, debugInfo, connectionManager), mN60HzCycles((int) round(clockSpeed * 1e6 / 60))
-{
-	// Specify ports that can be connectde to other devices
-	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
-	registerPort("A/S",		IN_PORT,	0x01, VDU_PORT_AS,		&mAS);
-	registerPort("A/G",		IN_PORT,	0x01, VDU_PORT_AG,		&mAG);
-	registerPort("GM",		IN_PORT,	0x07, VDU_PORT_GM,		&mGM);
-	registerPort("CSS",		IN_PORT,	0x01, VDU_PORT_CSS,		&mCSS);
-	registerPort("INT/EXT",	IN_PORT,	0x01, VDU_PORT_INT_EXT,	&mIntExt);
-	registerPort("INV",		IN_PORT,	0x01, VDU_PORT_INV,		&mInv);
-	registerPort("FS",		OUT_PORT,	0x01, VDU_PORT_FS,		&mFS);
-	registerPort("Din",		OUT_PORT,	0xff, VDU_PORT_DIN,		&mDin);
-
-
-	// Set the size of the VDU register vector
-	mMem.resize((size_t) mDevSz);
-
-	// Initialise the VDU registers with zeros
-	mMem.assign(mDevSz, 0);
-
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
-		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
-
-	// Create 256 x 192 display bitmap and clear it
-	mDisplayBitmap = al_create_bitmap(mVisW, mVisH);
-
-	green = al_map_rgb(0, 0xff, 0);
-	black = al_map_rgb(0, 0, 0);
-
-	lockDisplay();
-
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE) {
-		cout << dec << "\n\nM6847 Parameters:\n\n";
-		cout << "Frame rate: " << mFrameFreq << " [Hz]\n";
-		cout << "Scane lines per field frame: " << mScanLines << " lines\n";
-		cout << "Line duration: " << mlineDur << " [us] (" << mLineW << " pixels)\n";
-		cout << "Duration of horizontal borders: " << mBrdH << " [us] (" << mLBrdW + mRBrdW << " pixels)\n";
-		cout << "Vertical borders: " << mTBrdH + mBBrdH << " lines\n";
-		cout << "Vertical blanking: " << mTVBlkH + mBVBlkH << " lines\n";
-		cout << "Horizontal blanking: " << mHBlkDur << " [us] (" << mLBlkW + mRBlkW << " pixels)\n";
-		cout << "Visible Active Display Area: " << mActAreaW << " x " << mActAreaH << " pixels\n";
-		cout << "Total Visible Display Area: " << mVisW << " x " << mVisH << " pixels\n";
-		cout << "Total Display Area (including invisible parts): " << mTotalW << " x " << mTotalH << " pixels\n";
-		cout << "Scaled Visible Display Area: " << mScaledW << " x " << mScaledH << "\n";
-		cout << "\n\n";
-	}
-
-
-}
-
-VDU6847::~VDU6847()
-{
-	al_destroy_bitmap(mDisplayBitmap);
-}
 
 bool VDU6847::read(uint16_t adr, uint8_t& data)
 {
