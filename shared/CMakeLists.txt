@@ -5,7 +5,7 @@ add_library(
 	"SoundDevice.cpp"
 	"Codec6502.h" "P6502.h" "VIA6522.h" "AtomKeyboardDevice.h" "MemoryMappedDevice.h" "AtomCUTSInterface.h" "CSWCodec.h" "SoundDevice.h" "BeebVDU.h"
 	 "VDU6847.h"  "PIA8255.h"  "ROM.h"  "RAM.h" "Device.h" "Tokeniser.h" "DebugInfo.h" "GUI.h" "TapeRecorder.h" "AtomSpeaker.h" "VideoDisplayUnit.h"
- "VideoDisplayUnit.h" "VideoDisplayUnit.cpp" "SoundDevice.h" "BeebVDU.cpp")
+ "VideoDisplayUnit.h" "VideoDisplayUnit.cpp" "SoundDevice.h" "BeebVDU.cpp" "BeebKeyboard.cpp" "BeebKeyboard.h")
 
 # Locate zlib
 find_package(ZLIB REQUIRED)

@@ -26,25 +26,28 @@ public:
 
 
 	// M6845 Registers
-	uint8_t mAddressRegister = 0x0;			// M6845 base address + 0							- Select one of the 18 registers below (5 bits)
-	uint8_t mR0_HorizontalTotal = 0x0;		// M6845 base address + 1; AddressRegister = 0
-	uint8_t mR1_HorizontalDisplayed = 0x0;	// M6845 base address + 1; AddressRegister = 1
-	uint8_t mR2_HSYncPosition = 0x0;		// M6845 base address + 1; AddressRegister = 2
-	uint8_t mR3_HSyncWidth = 0x0;			// M6845 base address + 1; AddressRegister = 3
-	uint8_t mR4_VerticalTotal = 0x0;		// M6845 base address + 1; AddressRegister = 4
-	uint8_t mR5_VerticalTotalAdjust = 0x0;	// M6845 base address + 1; AddressRegister = 5
-	uint8_t mR6_VerticalDisplayed = 0x0;	// M6845 base address + 1; AddressRegister = 6
-	uint8_t mR7_VSyncPosition = 0x0;		// M6845 base address + 1; AddressRegister = 7
-	uint8_t mR8_InterlaceMode = 0x0;		// M6845 base address + 1; AddressRegister = 8
-	uint8_t mR9_MaxScanLineAddress = 0x0;	// M6845 base address + 1; AddressRegister = 9
-	uint8_t mR10_CursorStart = 0x0;			// M6845 base address + 1; AddressRegister = 10
-	uint8_t mR11_CursorEnd = 0x0;			// M6845 base address + 1; AddressRegister = 11
-	uint8_t mR12_StartAddressH = 0x0;		// M6845 base address + 1; AddressRegister = 12
-	uint8_t mR13_StartAddressL = 0x0;		// M6845 base address + 1; AddressRegister = 13
-	uint8_t mR14_CursorH = 0x0;				// M6845 base address + 1; AddressRegister = 14
-	uint8_t mR15_CursorL = 0x0;				// M6845 base address + 1; AddressRegister = 15
-	uint8_t mR16_LightPenL = 0x0;			// M6845 base address + 1; AddressRegister = 16
-	uint8_t mR17_LightPenH = 0x0;			// M6845 base address + 1; AddressRegister = 17
+	uint8_t mReg[18];
+	uint8_t mAddressRegister = 0x0; // M6845 base address + 0	- Selects one of the 18 registers below (5 bits)
+	enum M6845RegEnum {
+		R0_HorizontalTotal = 0,		// M6845 base address + 1; AddressRegister = 0
+		R1_HorizontalDisplayed = 1,	// M6845 base address + 1; AddressRegister = 1
+		R2_HSYncPosition = 2,		// M6845 base address + 1; AddressRegister = 2
+		R3_HSyncWidth = 3,			// M6845 base address + 1; AddressRegister = 3
+		R4_VerticalTotal = 4,		// M6845 base address + 1; AddressRegister = 4
+		R5_VerticalTotalAdjust = 5,	// M6845 base address + 1; AddressRegister = 5
+		R6_VerticalDisplayed = 6,	// M6845 base address + 1; AddressRegister = 6
+		mR7_VSyncPosition = 7,		// M6845 base address + 1; AddressRegister = 7
+		R8_InterlaceMode = 8,		// M6845 base address + 1; AddressRegister = 8
+		R9_MaxScanLineAddress = 9,	// M6845 base address + 1; AddressRegister = 9
+		R10_CursorStart = 10,		// M6845 base address + 1; AddressRegister = 10
+		R11_CursorEnd = 11,			// M6845 base address + 1; AddressRegister = 11
+		R12_StartAddressH = 12,		// M6845 base address + 1; AddressRegister = 12
+		R13_StartAddressL = 13,		// M6845 base address + 1; AddressRegister = 13
+		R14_CursorH = 14,			// M6845 base address + 1; AddressRegister = 14
+		R15_CursorL = 15,			// M6845 base address + 1; AddressRegister = 15
+		R16_LightPenL = 16,			// M6845 base address + 1; AddressRegister = 16
+		R17_LightPenH = 17			// M6845 base address + 1; AddressRegister = 17
+	};
 
 	//
 	// Video ULA

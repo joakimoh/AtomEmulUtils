@@ -15,7 +15,7 @@ void ArgParser::printUsage(const char* name)
 {
 	cout << "Emulates an Acorn\n";
 	cout << "Usage:\t" << name << " -map <memory map file> [-pgm <program> <hex adr>] [-clk <clock speed>] [-speed <emulation speed>] [-v] <advanced options>\n\n";
-	cout << "<clock speed>:\Emulation speed in %. If not specified, 100% (real time) is assumed\n\n";
+	cout << "<clock speed>:\nEmulation speed in %. If not specified, 100% (real time) is assumed\n\n";
 	cout << "<clock speed>:\nClock speed in MHz. If not specified, 1 Mhz is assumed\n\n";
 	cout << "<memory map file>:\n\tFile which defines devices and their memory mapping.\n\n";
 	cout << "<program> <hex adr>:\n\tBinary file with (program) data to be loaded into RAM at address <hex adr>.\n\n";
