@@ -88,7 +88,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 			data = mPA;
 		for (int i = 0; i < 8; i++) {
 			uint8_t mask = 1 << i;
-			if (DDRA & mask) // PBi is output => use ORB value
+			if (DDRA & mask) // PAi is output => use ORA value
 				data = ~(data & ~mask) | (ORA & mask);
 		}
 		data = mIRA;

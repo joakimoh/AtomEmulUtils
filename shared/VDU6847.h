@@ -123,7 +123,7 @@ public:
 	ALLEGRO_LOCKED_REGION *mLockedDisplayBitMap;
 	ALLEGRO_STATE mAllegroState;
 
-	int mScanLine = 0; // 0 to 262 [field scan lines]
+	
 	int mFieldCount = 0;
 
 	// Base parameters

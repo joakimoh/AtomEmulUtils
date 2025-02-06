@@ -23,12 +23,12 @@ class P6502;
 enum Scheduling {FRAME, HLINE, INSTR, NONE};
 
 enum DeviceId {
-	BEEB_KEYBOARD_DEV, BEEB_VDU_DEV, TAPE_RECORDER_DEV, ATOM_SPEAKER_DEV, ATOM_CUTS_DEV, ROM_DEV, RAM_DEV, PIA8255_DEV, VDU6847_DEV, VIA6522_DEV, ATOM_KB_DEV, P6502_DEV, UNDEFINED_DEV
+	CRTC6845_DEV, TT_5050_DEV, BEEB_KEYBOARD_DEV, BEEB_VDU_DEV, TAPE_RECORDER_DEV, ATOM_SPEAKER_DEV, ATOM_CUTS_DEV, ROM_DEV, RAM_DEV, PIA8255_DEV, VDU6847_DEV, VIA6522_DEV, ATOM_KB_DEV, P6502_DEV, UNDEFINED_DEV
 };
 #define _DEVICE_ID(x) (\
 	x==ROM_DEV?"ROM":(x==RAM_DEV?"RAM":(x==PIA8255_DEV?"PIA 8255":(x==VDU6847_DEV?"VDU 6847":(x==VIA6522_DEV?"VIA 6522":\
 (x==ATOM_KB_DEV?"ATOM KB":(x==P6502_DEV?"6502":(x==ATOM_CUTS_DEV?"CUTS":(x==TAPE_RECORDER_DEV?"Tape Recorder":\
-(x==ATOM_SPEAKER_DEV?"Atom Speaker":(x==BEEB_VDU_DEV?"Beeb VDU":(x==BEEB_KEYBOARD_DEV?"Beeb Keyboard":"???"))))))))))))
+(x==ATOM_SPEAKER_DEV?"Atom Speaker":(x==BEEB_VDU_DEV?"Beeb VDU":(x==BEEB_KEYBOARD_DEV?"Beeb Keyboard":(x==CRTC6845_DEV?"CRTC 6845":(x==TT_5050_DEV?"TT SA5050":"???"))))))))))))))
 
 enum DeviceCategory {
 	SOUND_DEVICE, MICROROCESSOR_DEVICE, VDU_DEVICE, KEYBOARD_DEVICE, PERIPHERAL, MEMORY_DEVICE, OTHER_DEVICE
@@ -47,8 +47,8 @@ class DevicePort;
 // dst = dst & ~mask | ((src >> shifts) & mask)
 typedef struct InputReference_struct {
 	DevicePort *	port;
-	int				shifts = 0;		// no of steps to downshift src value to fit dst start bit
-	uint8_t			mask = 0xff;	// mask specifiyng the bits of the dst to be updated (set bit <= update)
+	int				shifts = 0;				// no of steps to downshift src value to fit dst start bit
+	uint8_t			mask = 0xff;			// mask specifiyng the bits of the dst to be updated (set bit <= update)
 } InputReference;
 
 enum PortDirection {IN_PORT, OUT_PORT, IO_PORT};
@@ -56,14 +56,15 @@ enum PortDirection {IN_PORT, OUT_PORT, IO_PORT};
 
 class DevicePort {
 public:
-	Device *				dev = NULL;			// name of the device
-	string					name = "";			// name of the I/O port
-	int						localIndex = -1;	// local device index for the I/O port
-	int						globalIndex = -1;	// unique global index for the port
-	PortDirection			dir = IO_PORT;		// I/O direction
-	uint8_t					mask = 0x1;			// mask to select only the implemented bits
-	uint8_t	*				val;				// pointer to variable holding the port's value
-	vector<InputReference>	inputs;				// connected inputs (used only if the port is an output port)
+	Device *				dev = NULL;				// name of the device
+	string					name = "";				// name of the I/O port
+	int						localIndex = -1;		// local device index for the I/O port
+	int						globalIndex = -1;		// unique global index for the port
+	PortDirection			dir = IO_PORT;			// I/O direction
+	uint8_t					mask = 0x1;				// mask to select only the implemented bits
+	uint8_t	*				val;					// pointer to variable holding the port's value
+	vector<InputReference>	inputs;					// connected inputs (used only if the port is an output port)
+	bool					triggerDevice = false;	// true if the device's trigger() method shall be called on an update of an input port
 };
 
 typedef struct BitsSelection_struct {
@@ -118,6 +119,9 @@ public:
 
 	//  Advance until clock cycle stopcycle has been reached
 	virtual bool advance(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }
+
+	// Executed on input port update (when configured)
+	virtual bool trigger(int port) { return true; }
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 	bool updatePort(int index, uint8_t val);

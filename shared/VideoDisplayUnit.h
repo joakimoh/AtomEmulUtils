@@ -20,6 +20,8 @@ protected:
 
 	ALLEGRO_BITMAP* mDisplay = NULL;
 
+	int mScanLine = 0;
+
 public:
 
 	VideoDisplayUnit(string name, DeviceId devId, uint16_t adr, uint16_t sz, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);

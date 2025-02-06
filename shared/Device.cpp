@@ -86,6 +86,9 @@ bool Device::updatePort(int index, uint8_t val)
 		else
 			*(input.port->val) = ((pval & ~input.mask) | ((val << (-input.shifts)) & input.mask)) & input.port->mask;
 
+		if (input.port->triggerDevice)
+			input.port->dev->trigger(input.port->localIndex);
+
 		if (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0) && *(input.port->val) != pval) {
 			string shift_s, c_dir;
 			if (input.shifts >= 0) 
@@ -254,24 +257,42 @@ Devices::Devices(
 					cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
 					throw runtime_error("Syntax error");
 				}
-				sin >> accessed_device_name;
-				Device* accessed_device = NULL;
-				if (!getDevice(accessed_device_name, accessed_device)) {
-					cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
-					throw runtime_error("Syntax error");
+				string trigger_type;
+				sin >> trigger_type;
+				if (trigger_type == "MEM_ACC") {
+					sin >> accessed_device_name;
+					Device* accessed_device = NULL;
+					if (!getDevice(accessed_device_name, accessed_device)) {
+						cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
+						throw runtime_error("Syntax error");
+					}
+					sin >> access;
+					if (access == "READ")
+						write = false;
+					else if (access == "WRITE")
+						write = true;
+					else {
+						cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
+						throw runtime_error("Syntax error");
+					}
+					sin >> accessed_adr_s;
+					uint16_t accessed_adr = stoi(accessed_adr_s, 0, 16);
+					((MemoryMappedDevice*)accessed_device)->registerAccess(triggered_device, accessed_adr, write);
 				}
-				sin >> access;
-				if (access == "READ")
-					write = false;
-				else if (access == "WRITE")
-					write = true;
-				else {
-					cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
-					throw runtime_error("Syntax error");
+				else if (trigger_type == "INPUT") {
+					if (!getDevice(dev_name, triggered_device)) {
+						cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
+						throw runtime_error("Syntax error");
+					}
+					DevicePort* device_port;
+					string port_name;
+					sin >> port_name;
+					if (!triggered_device->getPortIndex(port_name, device_port)) {
+						cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
+						throw runtime_error("Syntax error");
+					}
+					device_port->triggerDevice = true;
 				}
-				sin >> accessed_adr_s;
-				uint16_t accessed_adr = stoi(accessed_adr_s, 0, 16);
-				((MemoryMappedDevice*)accessed_device)->registerAccess(triggered_device, accessed_adr, write);
 			}
 			else if (dev_typ_s == "SCHED") {
 				string dev_s, sch_s;
