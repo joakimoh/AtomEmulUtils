@@ -2,18 +2,23 @@
 
 CRTC6845::CRTC6845(
 	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager
-) : VideoDisplayUnit(name, CRTC6845_DEV, OTHER_DEVICE, debugInfo, connectionManager), mCPUClock(clockSpeed)
+) : VideoDisplayUnit(name, CRTC6845_DEV, adr, 0x2, disp, videoMemAdr, debugInfo, connectionManager)
 {
 
 	registerPort("CLK",			IN_PORT,  0x1,	CLK,		&mCLK);
 	registerPort("RESET",		IN_PORT,  0x1,	RESET,		&mRESET);
-	registerPort("READ_REQ",	IN_PORT,  0x1,	READ_REQ,	&mREAD_REQ);
+	registerPort("NEXT_CHAR",	IN_PORT,  0x1,	NEXT_CHAR,	&mNEXT_CHAR);
 	registerPort("DEN",			OUT_PORT, 0x1,	DEN,		&mDEN);
 	registerPort("RA",			OUT_PORT, 0x1f, RA,			&mRA);
 	registerPort("CURS",		OUT_PORT, 0x1,	CURS,		&mCURS);
 	registerPort("HS",			OUT_PORT, 0x1,	HS,			&mHS);
 	registerPort("VS",			OUT_PORT, 0x1,	VS,			&mVS);
 	registerPort("D_OUT",		OUT_PORT, 0xff, D_OUT,		&mD_OUT);
+	registerPort("N_CHARS",		OUT_PORT, 0xff, N_CHARS,	&mN_CHARS);
+	registerPort("FR",			OUT_PORT, 0xff, FR,			&mFR);
+	registerPort("SL_L",		OUT_PORT, 0xff, SL_L,		&mSL_L);
+	registerPort("SL_H",		OUT_PORT, 0xff, SL_H,		&mSL_H);
+	registerPort("SL_DUR",		OUT_PORT, 0xff, SL_DUR,		&mSL_DUR);
 
 	reset();
 }
@@ -23,34 +28,42 @@ bool CRTC6845::reset()
 	mCycleCount = 0;
 	mCharRow = 0;
 	mScanLine = 0;
-	mCharRowPos = 0;
+	mCharCol = 0;
 
-	mNLines = mReg[R6_VerticalDisplayed] * (mReg[R9_MaxScanLineAddress] + 1);
+	mVisibleLines = mReg[R6_VerticalDisplayed] * (mReg[R9_MaxScanLineAddress] + 1);
+
+	return true;
 }
 
 // Executed on input port update (when configured)
 bool CRTC6845::trigger(int port)
 {
-	if (port == READ_REQ) {
+	if (port == NEXT_CHAR) {
 		
 		// Advance time corresponding to one character and check for HS, VS & DEN
 		advance(mCycleCount + (int)round((mCPUClock / mCLK)));
 
-		// Advance to next raster memory location
-		a = a % (mReg[R1_HorizontalDisplayed] * mNLines);
-		if (a == 0) {
-			mCharRow = 0;
-			mScanLine = 0;
-			mCharRowPos = 0;
-		}
-		
 		// If in the active display area, read the memory location and output the address on port RA and the read data on port D_OUT
 		if (mDEN) {
-			uint8_t a = mDevAdr + mRA;
 			uint8_t data;
-			return mVideoMem->read(a, data) && updatePort(RA, a) && updatePort(mD_OUT, data);
+			uint16_t video_mem_adr = mVideoMemAdr + mCharRow * mReg[R1_HorizontalDisplayed] + mCharCol + mRA;
+			if (!mVideoMem->read(video_mem_adr, data) || !updatePort(mD_OUT, data))
+				return false;
 		}
+
+		// Increase character position (includes the invisible non-displayed chars)
+		mCharCol = (mCharCol + 1) % (mReg[R0_HorizontalTotal] + 1);
+		if (mCharCol == 0) {
+			mScanLine = (mScanLine + 1) % (mReg[R4_VerticalTotal] + 1);
+			mCharRow = mScanLine % (mReg[R9_MaxScanLineAddress] + 1);
+			uint8_t raster_row = mScanLine % (mReg[R9_MaxScanLineAddress] + 1);
+			updatePort(RA, raster_row);
+		}
+	
+
 	}
+
+	return true;
 
 }
 
@@ -68,16 +81,26 @@ bool CRTC6845::advance(uint64_t stopCycle)
 			updatePort(VS, 0x10);
 
 		// Check for Horizontal Sync Output
-		if (mCharRowPos >= mReg[R2_HSYncPosition] && mCharRowPos <= mReg[R2_HSYncPosition] + mReg[R3_HSyncWidth])
+		if (mCharCol >= mReg[R2_HSYncPosition] && mCharCol <= mReg[R2_HSYncPosition] + mReg[R3_HSyncWidth])
 			updatePort(HS, 0x1);
 		else
 			updatePort(HS, 0x0);
 
 		// Check for Visible part of scan line
-		if (mCharRowPos < mReg[R1_HorizontalDisplayed])
+		if (mCharRow < mReg[R6_VerticalDisplayed] && mCharCol < mReg[R1_HorizontalDisplayed])
 			updatePort(DEN, 0x1);
 		else
 			updatePort(DEN, 0x0);
+
+		// Check for cursor being selected
+		int cursor_first_line = mReg[R10_CursorStart];
+		int curstor_last_line = mReg[R11_CursorEnd];
+		int cursor_char_pos = (mReg[R14_CursorH] << 8) + mReg[R15_CursorL];
+		if (mCharRow * mReg[R1_HorizontalDisplayed] + mCharCol == cursor_char_pos)
+			updatePort(CURS, 0x1);
+		else
+			updatePort(CURS, 0x0);
+
 
 	}
 
@@ -133,7 +156,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 
 	// Update parameters based on the register update															Beeb Mode 0  (80 x 32 chars, 640 x 256 pixels)
 	double Tc = 1 / mCLK;										// [us]		Clock period
-	double Nsl = mReg[R9_MaxScanLineAddress];					// [lines]	Character Scan Lines (up to 32)						  7 lines
+	double Nsl = mReg[R9_MaxScanLineAddress] + 1;				// [lines]	Character Scan Lines (up to 32)						  8 lines
 	double Tsl = (mReg[R0_HorizontalTotal] + 1) * Tc;			// [us]		Scan Line duration					(127+1) * 0.5 =	 64 us
 	double Tcr = Nsl * Tsl;										// [us]		Character Row Period				7 * 64 =		448 us
 	double Nhd = mReg[R1_HorizontalDisplayed] * Tc;				// [us]		Visible horizontal area				80 * 0.5 =		 40 us
@@ -144,7 +167,14 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 	double Nvd = mReg[R6_VerticalDisplayed] * Tcr;				// [ms]		Visible vertical duration			32 * 448 =	   14.3 ms
 	double Nvsp = mReg[mR7_VSyncPosition] * Tcr;				// [ms]		Vertical sync position				34 * 448 =	   15.2 ms	
 
-	mNLines = mReg[R6_VerticalDisplayed] * (mReg[R9_MaxScanLineAddress] + 1);
+	mVisibleLines = mReg[R6_VerticalDisplayed] * (mReg[R9_MaxScanLineAddress] + 1);
+	mScanLines = mReg[R4_VerticalTotal] + 1 + mReg[R5_VerticalTotalAdjust] / 32.0;
+
+	updatePort(N_CHARS, mReg[R9_MaxScanLineAddress] + 1);
+	updatePort(SL_DUR, (int) round(Tsl));
+	updatePort(FR, (int) round(1000 / Nvt));
+	updatePort(SL_L, ((int)round(mScanLines)) & 0xff);
+	updatePort(SL_H, ((int)round(mScanLines) >> 8) & 0xff);
 
 	return true;
 }
@@ -163,7 +193,7 @@ inline double CRTC6845::getScanLineDuration()
 
 inline int CRTC6845::getScanLinesPerFrame()
 {
-	return (int) round(mReg[R4_VerticalTotal] + 1 + mReg[R5_VerticalTotalAdjust]);
+	return (int) round(mScanLines);
 }
 
 inline int CRTC6845::getFrameRate()

@@ -16,17 +16,22 @@ public:
 	// 
 
 	// M6845 Ports
-	int CLK, DEN, RA, CURS, HS, VS, RESET, READ_REQ, D_OUT;
+	int CLK, DEN, RA, CURS, HS, VS, RESET, NEXT_CHAR, D_OUT, N_CHARS, SL_DUR;
+	int SL_L, SL_H, FR;
 	uint8_t mCLK;			// INPUT - Clock rate [MHz] (1 or 2 MHz for a BBC Micro Model B e.g.)
-	uint8_t mREAD_REQ;		// INPUT  - Dummy input to control the  memory reading of the M6845 (M6845 needs to be scheduled/triggered by LOW-to-HIGH of this input)
-	uint8_t pREAD_REQ = 0x0;
-	uint8_t mD_OUT;			// OUTPUT - Dummy output corresponding to the read graphics memory content (updated based on READ_REQ)
+	uint8_t mNEXT_CHAR;		// INPUT  - Advance one character
+	uint8_t mD_OUT;			// OUTPUT - Dummy output corresponding to the read graphics memory content (updated based on NEXT_CHAR)
 	uint8_t mRESET = 0x1;	// INPUT
 	uint8_t mDEN = 0x0;		// OUTPUT - Display ENable: When high, the display is in the active area
 	uint8_t mRA = 0x1f;		// OUTPUT - Raster Address for row of a character (5 bits)
 	uint8_t mCURS = 0x0;	// OUTPUT - Cursor Display Indication
 	uint8_t mHS = 0x0;		// OUTPUT -	Horizontal Sync
 	uint8_t mVS = 0x0;		// OUTPUT -	Vertical Sync
+	uint8_t mN_CHARS = 0x0;	// OUTPUT -	No of chars per scan line (including invisible chars)
+	uint8_t mSL_DUR = 64;	// OUTPUT - Scan line duration in us
+	uint8_t mSL_L = 0;		// OUTPUT - No of scan lines per frame
+	uint8_t mSL_H = 0;		// 
+	uint8_t mFR = 0;		// OUTPUT - Frame rate
 
 
 	// M6845 Registers
@@ -73,27 +78,30 @@ public:
 		R11_CursorEnd = 11,			// CursorEnd			Cursor end scan line - relative position (0-31 start & send both odd or even for mode 01 & 11)
 		R12_StartAddressH = 12,		// StartAddressH		Start refresh address after vertical blanking
 		R13_StartAddressL = 13,		// StartAddress		-""-
-		R14_CursorH = 14,			// CursorH				Cursor location (14 bits <=> 16K positions)
+		R14_CursorH = 14,			// CursorH				Cursor location (14 bits <=> 16K positions) -  display address of the char cell holding the cursor
 		R15_CursorL = 15,			// CursorL				-"--
 		R16_LightPenL = 16,			// LightPenH			Value of StartAddress when light pen is detected
 		R17_LightPenH = 17			// LightPenL			-""-
 	};
 
-	bool readGraphicsMem(uint16_t adr, uint8_t& data);
-
 	int mCharRow = 0;
-	int mCharRowPos = 0;
-	int mNLines = 0;
+	int mCharCol = 0;
+	int mVisibleLines = 0;
+	double mScanLines = 0;
 
 	double mCPUClock = 2.0;
 
 public:
 
 	bool getVisibleCharArea(int& w, int& h);
+	bool getVisibleArea(int& w, int& h) {
+		return getVisibleCharArea(w, h);
+	}
 
 	ALLEGRO_COLOR green, black;
 
 	CRTC6845(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	~CRTC6845() {}
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);
@@ -109,14 +117,14 @@ public:
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
 
+	// Advance line is not applicable
+	bool advanceLine(uint64_t& endCycle) { return true; }
+
 	// Executed on input port update (when configured)
 	bool trigger(int port);
-
-	bool read(uint16_t adr, uint8_t& data);
-
-	bool write(uint16_t adr, uint8_t data);
-
 
 };
 
 #endif
+
+

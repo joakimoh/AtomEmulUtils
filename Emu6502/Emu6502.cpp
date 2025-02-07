@@ -107,7 +107,7 @@ int main(int argc, const char* argv[])
    al_set_new_display_flags(ALLEGRO_RESIZABLE);
 #endif
 
-    ALLEGRO_DISPLAY* disp = al_create_display(648, 486); // Just an initial size - will be resized to fit the video ddisplay unit's preference laater on!
+    ALLEGRO_DISPLAY* disp = al_create_display(648, 486); // Just an initial size - will be resized to fit the video display unit's preference later on!
     al_set_window_title(disp, "6502 System Emulator");
     ALLEGRO_BITMAP* disp_bm = al_get_target_bitmap();
 
@@ -141,7 +141,7 @@ int main(int argc, const char* argv[])
         cout << "No video display unit defined!\n";
         return -1;
     }
-    int n_scan_lines = vdu->getScanLinesPerFrame();
+  
     int w, h;
     if (!vdu->getVisibleArea(w, h) || !al_resize_display(disp, w, h)) {
         cout << "Failed to resize display!\n";
@@ -195,6 +195,12 @@ int main(int argc, const char* argv[])
         auto frame_dur = chrono::duration_cast<chrono::microseconds>(frame_stop - frame_start);
         frame_start = frame_stop;
         frame_dur_cnt += frame_dur.count();
+
+        // No of scan lines is could be reconfigured by the microcontroller 
+        // Make sure it is not zero (because then nothing will be scheduled)
+        int n_scan_lines = vdu->getScanLinesPerFrame();
+        if (n_scan_lines == 0)
+            n_scan_lines = 312;
         
 
         // Advance time for each devices that is scheduled on frame basis
@@ -269,7 +275,7 @@ int main(int argc, const char* argv[])
         }
 
         frame_cnt = (frame_cnt + 1) % frame_rate;
-        if ((true || arg_parser.debugInfo.dbgLevel == DBG_DEVICE) && frame_cnt == 0) {
+        if ((arg_parser.debugInfo.dbgLevel == DBG_DEVICE) && frame_cnt == 0) {
             cout << "Frame duration: " << frame_dur_cnt / 1000 << " ms per sec\n";
             frame_dur_cnt = 0;
             cout << "VDU ms per sec: " << vdu_cnt / 1000 << "\n";

@@ -4,6 +4,10 @@
 #include "PIA8255.h"
 #include "VDU6847.h"
 #include "VIA6522.h"
+#include "CRTC6845.h"
+#include "BeebVideoULA.h"
+#include "BeebKeyboard.h"
+#include "TT5050.h"
 #include "AtomKeyboardDevice.h"
 #include <iostream>
 #include <filesystem>
@@ -157,7 +161,8 @@ Devices::Devices(
 
 			if (
 				dev_typ_s != "CONNECT" && dev_typ_s != "ATOMKB" && dev_typ_s != "UC6502" && dev_typ_s != "ATOMCAS" && dev_typ_s != "//"
-				&& dev_typ_s != "TAPREC" && dev_typ_s != "" && dev_typ_s != "ATOMSP" && dev_typ_s != "TRIGGER" && dev_typ_s != "SCHED"
+				&& dev_typ_s != "TAPREC" && dev_typ_s != "" && dev_typ_s != "ATOMSP" && dev_typ_s != "TRIGGER" && dev_typ_s != "SCHED" &&
+				dev_typ_s != "BEEBKB"
 				) {
 				sin >> dev_name;
 				sin >> dev_adr_s;
@@ -235,6 +240,25 @@ Devices::Devices(
 				VIA6522* via = new VIA6522(dev_name, dev_adr, mDebugInfo, &connection_manager);
 				mDevices.push_back(via);
 			}
+			else if (dev_typ_s == "CRTC6845") {
+				string video_mem_adr_s;
+				sin >> video_mem_adr_s;
+				uint16_t video_mem_adr = stoi(video_mem_adr_s, 0, 16);
+				CRTC6845* via = new CRTC6845(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
+				mDevices.push_back(via);
+			}
+			else if (dev_typ_s == "BeebVideoULA") {
+				string video_mem_adr_s;
+				sin >> video_mem_adr_s;
+				uint16_t video_mem_adr = stoi(video_mem_adr_s, 0, 16);
+				vdu = new BeebVideoULA(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
+				mDevices.push_back(vdu);
+			}
+			else if (dev_typ_s == "BEEBKB") {
+				sin >> dev_name;
+				BeebKeyboard* kb = new BeebKeyboard(dev_name, mDebugInfo, &connection_manager);
+				mDevices.push_back(kb);
+			}
 			else if (dev_typ_s == "CONNECT") {
 				// CONNECT	VDU:FS				PIA:PortC;7			- Connect VDU FS output to PIA PortSelection C b7			
 				// CONNECT	PIA:PortA;7			VDU:A/G				- Connect PIA PortSelection A b7:4 to VDU A/G input and GM0:2 inputs
@@ -254,7 +278,7 @@ Devices::Devices(
 				sin >> triggered_device_name;
 				Device* triggered_device = NULL;
 				if (!getDevice(triggered_device_name, triggered_device)) {
-					cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
+					cout << "Unknwon device '" << triggered_device_name << "' at line " << dec << line_no << ":\n\t" << line << "\n";
 					throw runtime_error("Syntax error");
 				}
 				string trigger_type;
@@ -280,15 +304,11 @@ Devices::Devices(
 					((MemoryMappedDevice*)accessed_device)->registerAccess(triggered_device, accessed_adr, write);
 				}
 				else if (trigger_type == "INPUT") {
-					if (!getDevice(dev_name, triggered_device)) {
-						cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
-						throw runtime_error("Syntax error");
-					}
 					DevicePort* device_port;
 					string port_name;
 					sin >> port_name;
 					if (!triggered_device->getPortIndex(port_name, device_port)) {
-						cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
+						cout << "Unknown port '" << port_name << "' at line " << dec << line_no << ":\n\t" << line << "\n";
 						throw runtime_error("Syntax error");
 					}
 					device_port->triggerDevice = true;
