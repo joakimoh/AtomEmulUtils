@@ -20,6 +20,7 @@
 #include "AtomCUTSInterface.h"
 #include "TapeRecorder.h"
 #include "AtomSpeaker.h"
+#include "MemoryMappedDevice.h"
 
 using namespace std;
 
@@ -38,8 +39,16 @@ Device::~Device()
 		delete mPorts[i];
 }
 
-// Used by a device to make a port available for routing
+// Get pointer to other device to be able to call its methods
+bool Device::connectDevice(Device* dev)
+{
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+		cout << "DEVICE '" << dev->name << "' can be invoked by device '" << this->name << "'!\n";
+	mConnectedDevices.push_back(dev);
+	return true;
+}
 
+// Used by a device to make a port available for routing
 bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &index, uint8_t *val)
 {
 	index = mPortIndex++;
@@ -125,7 +134,25 @@ bool Device::getPortIndex(string name, DevicePort * &port) {
 // Devices class
 //
 
+uint16_t Devices::getHexAdr(stringstream& sin)
+{
+	string v_s;
+	sin >> v_s;
+	return stoi(v_s, 0, 16);
 
+}
+
+string Devices::getFileName(string &path, stringstream& sin)
+{
+
+	string ROM_file_name;
+	sin >> ROM_file_name;
+	filesystem::path map_file_path = path;
+	filesystem::path map_dir_path = map_file_path.parent_path();
+	filesystem::path ROM_file_path = ROM_file_name;
+	filesystem::path file_path = map_dir_path / ROM_file_path;
+	return file_path.string();
+}
 
 Devices::Devices(
 	string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
@@ -153,137 +180,230 @@ Devices::Devices(
 	while (getline(fin, line)) {
 
 		try {
-			string dev_typ_s, dev_adr_s, dev_sz_s, dev_name;
-			stringstream sin(line);
-			int dev_adr, dev_sz;
+			string cmd;
+			stringstream sin(line);		
 
-			sin >> dev_typ_s;
+			sin >> cmd;
 
-			if (
-				dev_typ_s != "CONNECT" && dev_typ_s != "ATOMKB" && dev_typ_s != "UC6502" && dev_typ_s != "ATOMCAS" && dev_typ_s != "//"
-				&& dev_typ_s != "TAPREC" && dev_typ_s != "" && dev_typ_s != "ATOMSP" && dev_typ_s != "TRIGGER" && dev_typ_s != "SCHED" &&
-				dev_typ_s != "BEEBKB"
-				) {
-				sin >> dev_name;
-				sin >> dev_adr_s;
-				dev_adr = stoi(dev_adr_s, 0, 16);
-				sin >> dev_sz_s;
-				dev_sz = stoi(dev_sz_s, 0, 16);
-			}
-
-			if (dev_typ_s == "//" || dev_typ_s == "") {
+			if (cmd.substr(0,2) == "//" || cmd == "") {
 				// Commment
 			}
-			
-			else if (dev_typ_s == "ATOMKB") {
+
+			else if (cmd == "ADD") {
+
+				//
+				// Add a device
+				//
+
+				string dev_name, dev_type;
+				sin >> dev_type;
 				sin >> dev_name;
-				AtomKeyboardDevice * kb = new AtomKeyboardDevice(dev_name, mDebugInfo, &connection_manager);
-				mDevices.push_back(kb);
+
+				//
+				// Keyboard Devices
+				//
+
+				if (dev_type == "ATOMKB") {			
+
+					AtomKeyboardDevice* kb = new AtomKeyboardDevice(dev_name, mDebugInfo, &connection_manager);
+					mDevices.push_back(kb);
+
+				}
+
+				else if (dev_type == "BEEBKB") {
+
+					BeebKeyboard* kb = new BeebKeyboard(dev_name, mDebugInfo, &connection_manager);
+					mDevices.push_back(kb);
+
+				}
+
+				//
+				// Audio Devices
+				//
+
+				else if (dev_type == "ATOMSP") {
+
+					AtomSpeaker* sp = new AtomSpeaker(dev_name, clockSpeed, audioSampleFreq, mDebugInfo, &connection_manager);
+					mDevices.push_back(sp);
+					sound_device = sp;
+
+				}
+
+				//
+				// Tape Devices
+				//
+
+				else if (dev_type == "TAPREC") {
+
+					TapeRecorder* tr = new TapeRecorder(dev_name, clockSpeed, mDebugInfo, &connection_manager);
+					mDevices.push_back(tr);
+
+				}
+
+				else if (dev_type == "ATOMCAS") {
+
+					AtomCUTSInterface* cuts = new AtomCUTSInterface(dev_name, clockSpeed, mDebugInfo, &connection_manager);
+					mDevices.push_back(cuts);
+
+				}
+
+				//
+				// Microcontrollers
+				//
+
+				else if (dev_type == "UC6502") {
+
+					microprocessor = new P6502(dev_name, clockSpeed, mDebugInfo, &connection_manager);
+					mDevices.push_back(microprocessor);
+
+				}
+
+				//
+				// Memory Devices
+				//
+
+				else if (dev_type == "SRAM") {		
+
+					uint16_t dev_adr = getHexAdr(sin);
+					uint16_t dev_sz = getHexAdr(sin);
+					RAM* ram = new RAM(dev_name, false, dev_adr, dev_sz, mDebugInfo);
+					mDevices.push_back(ram);
+
+				}
+
+				else if (dev_type == "DRAM") {
+
+					uint16_t dev_adr = getHexAdr(sin);
+					uint16_t dev_sz = getHexAdr(sin);
+					RAM* ram = new RAM(dev_name, true, dev_adr, dev_sz, mDebugInfo);
+					mDevices.push_back(ram);
+
+				}
+
+				else if (dev_type == "ROM") {
+
+					uint16_t dev_adr = getHexAdr(sin);
+					uint16_t dev_sz = getHexAdr(sin);
+					string ROM_file_path = getFileName(memMapFile, sin);
+					ROM* rom = new ROM(dev_name, dev_adr, dev_sz, ROM_file_path, mDebugInfo);
+					mDevices.push_back(rom);
+
+				}
+
+				//
+				// Serial & Parallel I/O Devices
+				//
+
+				else if (dev_type == "PIA8255") {
+
+					uint16_t dev_adr = getHexAdr(sin);
+					uint16_t dev_sz = getHexAdr(sin);
+					PIA8255* pia = new PIA8255(dev_name, dev_adr, mDebugInfo, &connection_manager);
+					mDevices.push_back(pia);
+
+				}
+
+				else if (dev_type == "VIA6522") {
+
+					uint16_t dev_adr = getHexAdr(sin);
+					uint16_t dev_sz = getHexAdr(sin);
+					VIA6522* via = new VIA6522(dev_name, dev_adr, mDebugInfo, &connection_manager);
+					mDevices.push_back(via);
+
+				}
+
+				//
+				// Video Devices
+				//
+
+				else if (dev_type == "VDU6847") {
+
+					uint16_t dev_adr = getHexAdr(sin);
+					uint16_t dev_sz = getHexAdr(sin);
+					uint16_t video_mem_adr = getHexAdr(sin);
+					vdu = new VDU6847(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
+					mDevices.push_back(vdu);
+
+				}
+
+				else if (dev_type == "CRTC6845") {
+
+					uint16_t dev_adr = getHexAdr(sin);
+					uint16_t dev_sz = getHexAdr(sin);
+					uint16_t video_mem_adr = getHexAdr(sin);
+					CRTC6845* via = new CRTC6845(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
+					mDevices.push_back(via);
+
+				}
+
+				else if (dev_type == "TT5050") {
+
+					TT5050* tcg = new TT5050(dev_name, 0x0, clockSpeed, disp, 0x0, mDebugInfo, &connection_manager);
+					mDevices.push_back(tcg);
+
+				}
+
+				else if (dev_type == "BeebVideoULA") {
+
+					uint16_t dev_adr = getHexAdr(sin);
+					uint16_t dev_sz = getHexAdr(sin);
+					uint16_t video_mem_adr = getHexAdr(sin);
+					vdu = new BeebVideoULA(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
+					mDevices.push_back(vdu);
+
+				}
+
 			}
 
-			else if (dev_typ_s == "ATOMSP") {
-				sin >> dev_name;
-				AtomSpeaker* sp = new AtomSpeaker(dev_name, clockSpeed, audioSampleFreq, mDebugInfo, &connection_manager);
-				mDevices.push_back(sp);
-				sound_device = sp;
+			else if (cmd == "GAP") {
+				string mem_dev_name;
+				sin >> mem_dev_name;
+				Device* dev = NULL;
+				if (!getDevice(mem_dev_name, dev) || !dev->memoryMapped()) {
+					cout << "Can't find any memory-mapped device '" << mem_dev_name << "' at line " << dec << line_no << ":\n\t" << line << "\n";
+					throw runtime_error("Syntax error");
+				}
+				uint16_t gap_adr = getHexAdr(sin);
+				uint16_t gap_sz = getHexAdr(sin);
+				MemoryMappedDevice* mem_dev = (MemoryMappedDevice*)dev;
+				mem_dev->addMemoryGap(gap_adr, gap_sz);
+
 			}
 
-			else if (dev_typ_s == "TAPREC") {
-				sin >> dev_name;
-				TapeRecorder* tr = new TapeRecorder(dev_name, clockSpeed, mDebugInfo, &connection_manager);
-				mDevices.push_back(tr);
-			}
+			else if (cmd == "CONNECT") {
 
-			else if (dev_typ_s == "ATOMCAS") {
-				sin >> dev_name;
-				AtomCUTSInterface * cuts = new AtomCUTSInterface(dev_name, clockSpeed,  mDebugInfo, &connection_manager);
-				mDevices.push_back(cuts);
-			}
+				//
+				// Connect Device ports
+				// 
+				// Syntax;
+				//	CONNECT <src device>:<src port>[;<high bit>[;<low bit>]]	<dst device>:<dst port>[;<high bit>[;<low bit>]]
+				//
 
-			else if (dev_typ_s == "UC6502") {
-				sin >> dev_name;
-				microprocessor = new P6502(dev_name, clockSpeed, mDebugInfo, &connection_manager);
-				mDevices.push_back(microprocessor);
-			}
-
-			else if (dev_typ_s == "SRAM") {
-				RAM* ram = new RAM(dev_name, false, dev_adr, dev_sz, mDebugInfo);
-				mDevices.push_back(ram);
-			}
-			else if (dev_typ_s == "DRAM") {
-				RAM* ram = new RAM(dev_name, true, dev_adr, dev_sz, mDebugInfo);
-				mDevices.push_back(ram);
-			}
-
-			else if (dev_typ_s == "VDU6847") {
-				string video_mem_adr_s;
-				sin >> video_mem_adr_s;
-				uint16_t video_mem_adr = stoi(video_mem_adr_s, 0, 16);
-				vdu = new VDU6847(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
-				mDevices.push_back(vdu);
-			}
-			else if (dev_typ_s == "ROM") {
-				string ROM_file_name;
-				sin >> ROM_file_name;
-				filesystem::path map_file_path = memMapFile;
-				filesystem::path map_dir_path = map_file_path.parent_path();
-				filesystem::path ROM_file_path = ROM_file_name;
-				filesystem::path file_path = map_dir_path / ROM_file_path;
-				ROM* rom = new ROM(dev_name, dev_adr, dev_sz, file_path.string(), mDebugInfo);
-				mDevices.push_back(rom);
-			}
-			else if (dev_typ_s == "PIA8255") {
-				PIA8255* pia = new PIA8255(dev_name, dev_adr, mDebugInfo, &connection_manager);
-				mDevices.push_back(pia);
-			}
-			else if (dev_typ_s == "VIA6522") {
-				VIA6522* via = new VIA6522(dev_name, dev_adr, mDebugInfo, &connection_manager);
-				mDevices.push_back(via);
-			}
-			else if (dev_typ_s == "CRTC6845") {
-				string video_mem_adr_s;
-				sin >> video_mem_adr_s;
-				uint16_t video_mem_adr = stoi(video_mem_adr_s, 0, 16);
-				CRTC6845* via = new CRTC6845(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
-				mDevices.push_back(via);
-			}
-			else if (dev_typ_s == "BeebVideoULA") {
-				string video_mem_adr_s;
-				sin >> video_mem_adr_s;
-				uint16_t video_mem_adr = stoi(video_mem_adr_s, 0, 16);
-				vdu = new BeebVideoULA(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
-				mDevices.push_back(vdu);
-			}
-			else if (dev_typ_s == "BEEBKB") {
-				sin >> dev_name;
-				BeebKeyboard* kb = new BeebKeyboard(dev_name, mDebugInfo, &connection_manager);
-				mDevices.push_back(kb);
-			}
-			else if (dev_typ_s == "CONNECT") {
-				// CONNECT	VDU:FS				PIA:PortC;7			- Connect VDU FS output to PIA PortSelection C b7			
-				// CONNECT	PIA:PortA;7			VDU:A/G				- Connect PIA PortSelection A b7:4 to VDU A/G input and GM0:2 inputs
-				// CONNECT	PIA:PortA;6;4		VDU:GM
-				// CONNECT	VDU:DIN;7			VDU:INV			- Connect data bus b7:6 to VDU inputs INV,A/S & INT/EXT
-				// CONNECT	VDU:DIN;6			VDU:A/S
-				// CONNECT	VDU:DIN;6			VUD:INT/EXT
 				string src_port, dst_port;
 				sin >> src_port;
 				sin >> dst_port;
 				connection_manager.connect(src_port, dst_port);
-				
+
 			}
-			else if (dev_typ_s == "TRIGGER") {
+
+			else if (cmd == "TRIGGER") {
+
+				//
+				// Define triggering of device execution based on memory access (MEM), port changes (PORT) or  explicit call by another device (CALL)
+				//
+
 				string triggered_device_name, access, accessed_device_name, accessed_adr_s;
 				bool write = false;
 				sin >> triggered_device_name;
 				Device* triggered_device = NULL;
 				if (!getDevice(triggered_device_name, triggered_device)) {
-					cout << "Unknwon device '" << triggered_device_name << "' at line " << dec << line_no << ":\n\t" << line << "\n";
+					cout << "Unknown device '" << triggered_device_name << "' at line " << dec << line_no << ":\n\t" << line << "\n";
 					throw runtime_error("Syntax error");
 				}
 				string trigger_type;
 				sin >> trigger_type;
-				if (trigger_type == "MEM_ACC") {
+
+				if (trigger_type == "MEM") {
 					sin >> accessed_device_name;
 					Device* accessed_device = NULL;
 					if (!getDevice(accessed_device_name, accessed_device)) {
@@ -303,7 +423,7 @@ Devices::Devices(
 					uint16_t accessed_adr = stoi(accessed_adr_s, 0, 16);
 					((MemoryMappedDevice*)accessed_device)->registerAccess(triggered_device, accessed_adr, write);
 				}
-				else if (trigger_type == "INPUT") {
+				else if (trigger_type == "PORT") {
 					DevicePort* device_port;
 					string port_name;
 					sin >> port_name;
@@ -313,8 +433,26 @@ Devices::Devices(
 					}
 					device_port->triggerDevice = true;
 				}
+				else if (trigger_type == "CALL") {
+					string caller_name;
+					sin >> caller_name;
+					Device* caller;
+					if (!getDevice(caller_name, caller)) {
+						cout << "Unknown device '" << caller_name << "' at line " << dec << line_no << ":\n\t" << line << "\n";
+						throw runtime_error("Syntax error");
+					}
+					if (!caller->connectDevice(triggered_device)) {
+						cout << "Failed to connect device '" << triggered_device_name << " and '" << caller_name << "' at line " << dec << line_no << ":\n\t" << line << "\n";
+						throw runtime_error("Syntax error");
+					}
+				}
 			}
-			else if (dev_typ_s == "SCHED") {
+			else if (cmd == "SCHED") {
+
+				//
+				// Define timely scheduling of device execution
+				//
+
 				string dev_s, sch_s;
 				sin >> dev_s;
 				Device* sch_dev = NULL;
@@ -551,7 +689,7 @@ bool Devices::getZPMemDevice(MemoryMappedDevice * &zpMem)
 		Device* dev = mDevices[i];
 		if (dev->category == MEMORY_DEVICE) {
 			MemoryMappedDevice* mdev = (MemoryMappedDevice*)dev;
-			if (mdev->validAdr(0x0) && mdev->validAdr(0xff)) {
+			if (mdev->selected(0x0) && mdev->selected(0xff)) {
 				if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 					cout << "Adding zero page memory device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 				zpMem = mdev;

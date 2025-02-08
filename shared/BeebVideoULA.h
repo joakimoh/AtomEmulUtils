@@ -4,6 +4,8 @@
 #include <cstdint>
 #include "VideoDisplayUnit.h"
 #include "RAM.h"
+#include "TT5050.h"
+#include "CRTC6845.h"
 
 
 
@@ -16,24 +18,12 @@ public:
 	// 
 
 	// Video ULA Ports
-	int DISEN, CURSOR, CRTC_DIN, TCG_DIN, CRTC_DREQ, TCG_DREQ, RIN, GIN, BIN, N_CHARS, SL_DUR, INV, VS;
-	int FR, SL_L, SL_H;
+	int DISEN, CURSOR, INV, VS;
 	uint8_t mDISEN = 0x1;	// INPUT -	DISEN = ~(~DEN | RA3)
 	uint8_t mCURSOR = 0x1;	// INPUT -	CURSOR from M6845
-	uint8_t mCRTC_DIN = 0xff;	// INPUT -	Data in from the CRTC (M6845)
-	uint8_t mTCG_DIN = 0xff;	// INPUT -	Data in from the Teletext Character Generator (TGC - SA5050)
-	uint8_t mCRTC_DREQ = 0x0;	// OUTPUT - Request data from the CRTC
-	uint8_t mTCG_DREQ = 0x0;	// OUTPUT - Request data from the TCG
-	uint8_t mRIN = 0x1;		// INPUT -	R from SA5050
-	uint8_t mGIN = 0x1;		// INPUT -	G from SA5050
-	uint8_t mBIN = 0x1;		// INPUT -	B from SA5050
-	uint8_t mN_CHARS = 0x0;	// INPUT - no of chars/scan line as provided by the CRTC
-	uint8_t mSL_DUR = 64;	// INPUT - scan line duration in us as provied by the CRTC
 	uint8_t mINV = 0x0;		// INPUT - invert video
 	uint8_t mVS = 0x0;		// INPUT - vertical sync
-	uint8_t mFR = 0x0;		// INPUT - frame rate [Hz]
-	uint8_t mSL_L = 0x0;	// INPUT - No scan lines
-	uint8_t mSL_H = 0x0;	// INPUT - 
+
 
 	// Video ULA Registers
 	uint8_t mControlRegister = 0x00;	// Video ULA base address + 0
@@ -82,6 +72,9 @@ public:
 	void lockDisplay();
 	void unlockDisplay();
 
+	CRTC6845* mCRTC = NULL;
+	TT5050* mTGC = NULL;
+
 public:
 
 	bool getVisibleArea(int& w, int& h);
@@ -95,8 +88,9 @@ public:
 	bool write(uint16_t adr, uint8_t data);
 
 	inline double getScanLineDuration();
-	inline int getScanLinesPerFrame();
-	inline int getFrameRate();
+	inline double getScanLinesPerFrame();
+	inline double getFrameRate();
+	inline int getCharScanLines();
 
 
 	// Reset device
@@ -106,6 +100,9 @@ public:
 	bool advance(uint64_t stopCycle);
 
 	bool advanceLine(uint64_t& endCycle);
+
+	// Get pointer to other device to be able to call its methods
+	bool connectDevice(Device* dev);
 
 };
 

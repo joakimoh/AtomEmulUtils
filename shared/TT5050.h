@@ -34,7 +34,8 @@ public:
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
 
-	bool trigger(int port);
+	// Called by other device to trigger the output of new data
+	bool updateDataOutput(uint8_t& R, uint8_t &G, uint8_t &B);
 
 };
 

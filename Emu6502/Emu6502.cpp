@@ -198,13 +198,14 @@ int main(int argc, const char* argv[])
 
         // No of scan lines is could be reconfigured by the microcontroller 
         // Make sure it is not zero (because then nothing will be scheduled)
-        int n_scan_lines = vdu->getScanLinesPerFrame();
+        int n_scan_lines = vdu->getScanLinesPerFrame();     
         if (n_scan_lines == 0)
             n_scan_lines = 312;
-        
+     
 
         // Advance time for each devices that is scheduled on frame basis
         for (int i = 0; i < frame_scheduled_devices.size(); i++) {
+
             auto dev_start = chrono::high_resolution_clock::now();
             frame_scheduled_devices[i]->advance(cycle_count + cycles_per_frame);
             auto dev_stop = chrono::high_resolution_clock::now();
@@ -244,6 +245,8 @@ int main(int argc, const char* argv[])
                     auto dev_dur = chrono::duration_cast<chrono::microseconds>(dev_stop - dev_start);
                     half_line_scheduled_devices_cnt[i] += dev_dur.count();
                 }            
+
+                
 
                 // update devices scheduled on instruction basis in a tight loop
                 while (cycle_count < half_line_target) {

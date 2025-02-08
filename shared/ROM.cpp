@@ -17,16 +17,16 @@ ROM::ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo
 	}
 
 	if (sz >= 0x10000)
-		mDevSz = 0xffff;
+		mMemorySpace.sz = 0xffff;
 	else
-		mDevSz = sz;
+		mMemorySpace.sz = sz;
 
 	// Get file size (should normally equal ROM size)
 	fin.seekg(0, ios::end);
 	streamsize file_sz = fin.tellg();
 	fin.seekg(0);
 
-	uint16_t upper_sz = mDevSz;
+	uint16_t upper_sz = mMemorySpace.sz;
 	if (file_sz < (streamsize) sz) {
 		if (mDebugInfo.dbgLevel & DBG_WARNING)
 			cout << "Warning - size of ROM file " << binaryContent << " (" << file_sz <<
@@ -36,15 +36,15 @@ ROM::ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo
 		if (mDebugInfo.dbgLevel & DBG_WARNING)
 			cout << "Warning - size of ROM file " << binaryContent << " (" << file_sz <<
 			" ) is larger than the expected one(" << sz << ") => truncating...\n";
-		upper_sz = mDevSz;
+		upper_sz = mMemorySpace.sz;
 	}
 
 
 	// Resize the ROM vector
-	mMem.resize((size_t)mDevSz);
+	mMem.resize((size_t)mMemorySpace.sz);
 
 	// Initialise ROM with zeros in case the ROM file is smaller than specified ROM size
-	mMem.assign(mDevSz, 0);
+	mMem.assign(mMemorySpace.sz, 0);
 
 	// Read ROM content
 	fin.read((char*)&mMem[0], upper_sz);
@@ -53,9 +53,7 @@ ROM::ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo
 		filesystem::path path = binaryContent;
 		string file_name = path.filename().string();
 		if (mDebugInfo.dbgLevel & DBG_ALL)
-			cout << "ROM at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
-			" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes) ['" <<
-			file_name << "']\n";
+			cout << "ROM file was '" << file_name << "'\n";
 	}
 
 }
@@ -66,7 +64,7 @@ bool ROM::read(uint16_t adr, uint8_t& data)
 	if (!MemoryMappedDevice::read(adr, data))
 		return false;
 
-	data = mMem[adr - mDevAdr];
+	data = mMem[adr - mMemorySpace.adr];
 
 	return true;
 
@@ -77,7 +75,7 @@ bool ROM::write(uint16_t adr, uint8_t data)
 	if (!MemoryMappedDevice::write(adr, data))
 		return false;
 
-	mMem[adr - mDevAdr] = data;
+	mMem[adr - mMemorySpace.adr] = data;
 
 	return true;
 }

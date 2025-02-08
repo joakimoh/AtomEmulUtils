@@ -193,8 +193,9 @@ public:
 	bool write(uint16_t adr, uint8_t data);
 
 	inline double getScanLineDuration() { return (1/60) / 262;  }
-	inline int getScanLinesPerFrame() { return 262; }
-	inline int getFrameRate() { return 60; }
+	inline double getScanLinesPerFrame() { return 262; }
+	inline double getFrameRate() { return 60; }
+	inline int getCharScanLines() { return 12;}
 
 
 	// Reset device

@@ -16,22 +16,15 @@ public:
 	// 
 
 	// M6845 Ports
-	int CLK, DEN, RA, CURS, HS, VS, RESET, NEXT_CHAR, D_OUT, N_CHARS, SL_DUR;
-	int SL_L, SL_H, FR;
-	uint8_t mCLK;			// INPUT - Clock rate [MHz] (1 or 2 MHz for a BBC Micro Model B e.g.)
+	int CLK, DEN, RA, CURS, HS, VS, RESET;
+	uint8_t mCLK = 1.0;			// INPUT - Clock rate [MHz] (1 or 2 MHz for a BBC Micro Model B e.g.)
 	uint8_t mNEXT_CHAR;		// INPUT  - Advance one character
-	uint8_t mD_OUT;			// OUTPUT - Dummy output corresponding to the read graphics memory content (updated based on NEXT_CHAR)
 	uint8_t mRESET = 0x1;	// INPUT
 	uint8_t mDEN = 0x0;		// OUTPUT - Display ENable: When high, the display is in the active area
 	uint8_t mRA = 0x1f;		// OUTPUT - Raster Address for row of a character (5 bits)
 	uint8_t mCURS = 0x0;	// OUTPUT - Cursor Display Indication
 	uint8_t mHS = 0x0;		// OUTPUT -	Horizontal Sync
 	uint8_t mVS = 0x0;		// OUTPUT -	Vertical Sync
-	uint8_t mN_CHARS = 0x0;	// OUTPUT -	No of chars per scan line (including invisible chars)
-	uint8_t mSL_DUR = 64;	// OUTPUT - Scan line duration in us
-	uint8_t mSL_L = 0;		// OUTPUT - No of scan lines per frame
-	uint8_t mSL_H = 0;		// 
-	uint8_t mFR = 0;		// OUTPUT - Frame rate
 
 
 	// M6845 Registers
@@ -107,8 +100,9 @@ public:
 	bool write(uint16_t adr, uint8_t data);
 
 	inline double getScanLineDuration();
-	inline int getScanLinesPerFrame();
-	inline int getFrameRate();
+	inline double getScanLinesPerFrame();
+	inline double getFrameRate();
+	inline int getCharScanLines();
 
 
 	// Reset device
@@ -120,8 +114,8 @@ public:
 	// Advance line is not applicable
 	bool advanceLine(uint64_t& endCycle) { return true; }
 
-	// Executed on input port update (when configured)
-	bool trigger(int port);
+	// Called by other device to trigger the output of new data
+	bool updateDataOutput(uint8_t& data);
 
 };
 

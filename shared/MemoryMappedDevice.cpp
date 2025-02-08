@@ -1,21 +1,41 @@
 #include "MemoryMappedDevice.h"
+#include <iostream>
+#include <iomanip>
+#include "DebugInfo.h"
 
+using namespace std;
 
 MemoryMappedDevice::MemoryMappedDevice(
 	string name, DeviceId typ, DeviceCategory cat, uint16_t adr, uint16_t sz, DebugInfo debugInfo, ConnectionManager* connectionManager
-): Device(name, typ, cat, debugInfo, connectionManager), mDevAdr(adr), mDevSz(sz)
+): Device(name, typ, cat, debugInfo, connectionManager)
 {
+	mMemorySpace = { adr, sz };
+	mMemoryMapped = true;
 
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+		cout << _DEVICE_ID(this->devType) << " (" << this->name << ") at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
+		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
 }
 
 bool MemoryMappedDevice::selected(uint16_t adr)
 {
-	return (adr >= mDevAdr && adr < mDevAdr + mDevSz);
+	bool valid = true;
+	if (adr < mMemorySpace.adr || adr >= mMemorySpace.adr + mMemorySpace.sz)
+		return false;
+	for (int i = 0; i << mMemoryGaps.size(); i++) {
+		if (adr < mMemoryGaps[i].adr || adr >= mMemoryGaps[i].adr + mMemoryGaps[i].sz)
+		return false;
+	}
+	return true;
 }
 
-bool MemoryMappedDevice::validAdr(uint16_t adr)
+void MemoryMappedDevice::addMemoryGap(uint16_t adr, uint16_t sz)
 {
-	return selected(adr);
+	MemoryRange gap = { adr, sz };
+	mMemoryGaps.push_back(gap);
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+		cout << "Gap in memory space for device '" << this->name << "' between " << hex << setfill('0') << setw(4) << adr <<
+			" and " << adr + sz << "\n";
 }
 
 bool MemoryMappedDevice::read(uint16_t adr, uint8_t& data) {

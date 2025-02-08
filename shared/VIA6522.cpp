@@ -50,9 +50,6 @@ VIA6522::VIA6522(string name, uint16_t adr, DebugInfo debugInfo, ConnectionManag
 	registerPort("CA",		IO_PORT,	0x03, CA,		&mCA);
 	registerPort("CB",		IO_PORT,	0x03, CB,		&mCB);
 
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-		cout << "VIA 6522 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
-		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
 }
 
 bool VIA6522::read(uint16_t adr, uint8_t &data)
@@ -61,7 +58,8 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 	if (!MemoryMappedDevice::read(adr, data))
 		return false;
 
-	switch ((adr - mDevAdr) & 0xf) {
+	uint16_t a = (adr - mMemorySpace.adr) & 0xf;
+	switch (a) {
 
 	case IRB:
 		// Input Register B - if PBi is acting as input: if latching is disabled (ACR b1=0) IRB reflects PB; if not (ACR b1=1) the PB value latched by CB1
@@ -181,7 +179,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		return false;
 
 
-	switch ((adr - mDevAdr) & 0xf) {
+	switch ((adr - mMemorySpace.adr) & 0xf) {
 
 
 	case ORB:

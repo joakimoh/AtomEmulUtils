@@ -10,10 +10,16 @@ class MemoryMappedDevice : public Device {
 		uint16_t	triggeringAdr;
 	} DeviceAccessScheduling;
 
+	typedef struct MemoryRange_struct {
+		uint16_t	adr;
+		uint16_t	sz;
+	} MemoryRange;
+
 protected:
 
-	uint16_t mDevAdr;
-	uint16_t mDevSz;
+	MemoryRange mMemorySpace;
+	vector< MemoryRange> mMemoryGaps;
+
 	vector<uint8_t> mMem;
 	vector<DeviceAccessScheduling> mScheduleOnRead;
 	vector<DeviceAccessScheduling> mScheduleOnWrite;
@@ -27,9 +33,9 @@ public:
 	virtual bool write(uint16_t adr, uint8_t data);
 
 	bool selected(uint16_t adr);
-	bool validAdr(uint16_t adr);
 
 	bool registerAccess(Device* dev, uint16_t adr, bool writeAccess);
+	void addMemoryGap(uint16_t adr, uint16_t sz);
 
 };
 

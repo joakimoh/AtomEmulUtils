@@ -34,8 +34,9 @@ public:
 	uint16_t getVideoMemAdr();
 
 	virtual double getScanLineDuration() = 0;
-	virtual int getScanLinesPerFrame() = 0;
-	virtual int getFrameRate() = 0;
+	virtual double getScanLinesPerFrame() = 0;
+	virtual double getFrameRate() = 0;
+	virtual int getCharScanLines() = 0;
 
 	virtual bool advanceLine(uint64_t& endCycle) = 0;
 };

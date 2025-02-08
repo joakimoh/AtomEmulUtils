@@ -98,10 +98,10 @@ bool PIA8255::advance(uint64_t stopCycle)
 
 */
 
-#define PIA8255_PORT_A (mDevAdr + 0)
-#define PIA8255_PORT_B (mDevAdr + 1)
-#define PIA8255_PORT_C (mDevAdr + 2)
-#define PIA8255_CONTROL (mDevAdr + 3)
+#define PIA8255_PORT_A (mMemorySpace.adr + 0)
+#define PIA8255_PORT_B (mMemorySpace.adr + 1)
+#define PIA8255_PORT_C (mMemorySpace.adr + 2)
+#define PIA8255_CONTROL (mMemorySpace.adr + 3)
 
 
 //
@@ -197,15 +197,15 @@ PIA8255::PIA8255(string name, uint16_t adr, DebugInfo debugInfo, ConnectionManag
 	registerPort("PortC", IO_PORT, 0xff, PIA_PORT_C, &mPortC);
 
 	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-		cout << "PIA 8255 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
-		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
+		cout << "PIA 8255 at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
+		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
 }
 
 
 
 bool PIA8255::read(uint16_t adr, uint8_t& data)
 {
-	if (!validAdr(adr))
+	if (!selected(adr))
 		return false;
 
 	// Call parent class to trigger scheduling of other devices when applicable
@@ -256,7 +256,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 }
 bool PIA8255::write(uint16_t adr, uint8_t data)
 {
-	if (!validAdr(adr))
+	if (!selected(adr))
 		return false;
 
 	// Call parent class to trigger scheduling of other devices when applicable

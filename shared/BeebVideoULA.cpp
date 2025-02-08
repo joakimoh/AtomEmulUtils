@@ -1,4 +1,6 @@
 #include "BeebVideoULA.h"
+#include "CRTC6845.h"
+#include "TT5050.h"
 
 
 BeebVideoULA::BeebVideoULA(
@@ -7,19 +9,8 @@ BeebVideoULA::BeebVideoULA(
 {
 	registerPort("DISEN",		IN_PORT,	0x01, DISEN,		&mDISEN);
 	registerPort("CURSOR",		IN_PORT,	0x01, DISEN,		&mCURSOR);	
-	registerPort("CRTC_DIN",	IN_PORT,	0xff, CRTC_DIN,		&mCRTC_DIN);
-	registerPort("CRTC_DREQ",	OUT_PORT,	0x01, CRTC_DREQ,	&mCRTC_DREQ);
-	registerPort("TCG_DREQ",	OUT_PORT,	0x01, TCG_DREQ,		&mTCG_DREQ);
-	registerPort("RIN",			IN_PORT,	0xff, RIN,			&mRIN);
-	registerPort("GIN",			IN_PORT,	0xff, GIN,			&mGIN);
-	registerPort("BIN",			IN_PORT,	0xff, BIN,			&mBIN);
-	registerPort("N_CHARS",		IN_PORT,	0xff, N_CHARS,		&mN_CHARS);
-	registerPort("SL_DUR",		IN_PORT,	0xff, SL_DUR,		&mSL_DUR);
 	registerPort("INV",			IN_PORT,	0x01, INV,			&mINV);
 	registerPort("VS",			IN_PORT,	0x01, VS,			&mVS);
-	registerPort("FR",			IN_PORT,	0xff, FR,			&mFR);
-	registerPort("SL_L",		IN_PORT,	0xff, SL_L,			&mSL_L);
-	registerPort("SL_H",		IN_PORT,	0xff, SL_H,			&mSL_H);
 
 
 	// Create 640 x 256 display bitmap and clear it
@@ -49,8 +40,20 @@ bool BeebVideoULA::advance(uint64_t stopCycle)
 
 bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 {
-	mCycleCount += (int) round(mSL_DUR * mCPUClock);
+
+	if (mCRTC == NULL || mTGC == NULL)
+		return false;
+
+	uint64_t pCycleCount = mCycleCount;
+	mCycleCount += (int) round(getScanLineDuration() * mCPUClock);
 	endCycle = mCycleCount;
+
+	// Exit if the CRTC device is not initialised (a scan line of '1' will tell this)
+	if (getScanLineDuration() == 1)
+		return true;
+
+	cout << "intial cycle count " << dec << pCycleCount << ", scan line duration = " << getScanLineDuration() <<
+		", clk = " << mCPUClock << " = > " << (int)round(getScanLineDuration() * mCPUClock) << "\n";
 
 	if (mVS && !mNewFrame) {
 
@@ -73,11 +76,14 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	}
 
-	// Process one scan line (mN_CHARS should be 128 and the visible part 40 or 80 chars)
-	for (int char_pos = 0; char_pos < mN_CHARS; char_pos++) {
+	// Process one scan line (should be 128 chars per scan line and the visible part being 40 or 80 chars)
+	int n_chars = getCharScanLines();
+	for (int char_pos = 0; char_pos < n_chars; char_pos++) {
 
-		updatePort(CRTC_DREQ, 0x1); // Advance the CRTC one char and get visible char data when applicable (CRTC_DIN)
-		updatePort(TCG_DREQ, 0x1); // Advance the TCG one char and get GRB data when applicable (RIN, GIB, GIN)
+		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
+		uint8_t crtc_data, tcg_R, tcg_G, tcg_B;
+		mCRTC->updateDataOutput(crtc_data);
+		mTGC->updateDataOutput(tcg_R, tcg_G, tcg_B);
 
 		uint8_t cursor_seg_ena = 0x0;
 		if (mCURSOR) {
@@ -98,17 +104,17 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			uint8_t Rt, Gt, Bt;
 			uint8_t Rs, Gs, Bs;
 			uint8_t R, G, B;
-			uint8_t mem_data;
 			bool teletext = (mControlRegister & 0x2) != 0;
+			uint8_t mem_data = 0x0;
 
 			if (!teletext) {
-				mem_data = mCRTC_DIN;
+				mem_data = crtc_data;
 			}
 			else {
 				// Get TCG RGB data		
-				Rt = mRIN;
-				Gt = mGIN;
-				Bt = mBIN;
+				Rt = tcg_R;
+				Gt = tcg_G;
+				Bt = tcg_B;
 			}
 
 			for (int big_pixel = 0; big_pixel < 8 / mPixelW; big_pixel++) {
@@ -154,8 +160,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		}
 
-		updatePort(CRTC_DREQ, 0x0);
-		updatePort(TCG_DREQ, 0x0);
 	}
 
 	return true;
@@ -172,7 +176,7 @@ bool BeebVideoULA::read(uint16_t adr, uint8_t& data)
 
 bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 {
-	uint16_t a = adr - mDevAdr;
+	uint16_t a = adr - mMemorySpace.adr;
 
 	if (a == 0) {
 		mControlRegister = data;
@@ -223,15 +227,45 @@ bool BeebVideoULA::getVisibleArea(int& w, int& h)
 
 double BeebVideoULA::getScanLineDuration()
 {
-	return (double) mSL_DUR;
+	if (mCRTC != NULL)
+		return mCRTC->getScanLineDuration();
+	else
+		return 0.0;
 }
 
-int BeebVideoULA::getScanLinesPerFrame()
+double BeebVideoULA::getScanLinesPerFrame()
 {
-	return mSL_L + mSL_H * 256;
+	if (mCRTC != NULL)
+		return mCRTC->getScanLinesPerFrame();
+	else
+		return 0.0;
 }
 
-int BeebVideoULA::getFrameRate()
+double BeebVideoULA::getFrameRate()
 {
-	return mFR;
+	if (mCRTC != NULL)
+		return mCRTC->getFrameRate();
+	else
+		return 0.0;
+}
+
+int BeebVideoULA::getCharScanLines()
+{
+	if (mCRTC != NULL)
+		return mCRTC->getCharScanLines();
+	else
+		return 0;
+}
+
+// Get pointer to other device to be able to call its methods
+bool BeebVideoULA::connectDevice(Device* dev)
+{
+	Device::connectDevice(dev);
+
+	if (dev != NULL && dev->devType == CRTC6845_DEV)
+		mCRTC = (CRTC6845 *) dev;
+	if (dev != NULL && dev->devType == TT_5050_DEV)
+		mTGC = (TT5050 *) dev;
+
+	return true;
 }

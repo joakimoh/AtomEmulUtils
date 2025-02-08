@@ -7,22 +7,19 @@ RAM::RAM(string name, bool DRAM, uint16_t adr, uint16_t sz, DebugInfo debugInfo)
 {
 
 	// Resize the RAM vector
-	mMem.resize((size_t) mDevSz);
+	mMem.resize((size_t) mMemorySpace.sz);
 
 	// Initialise RAM
 	if (DRAM) {
 		// Initialise RAM with zeros (for DRAM)
-		mMem.assign(mDevSz, 0);
+		mMem.assign(mMemorySpace.sz, 0);
 	}
 	else {
 		// Initialise RAM with random values (for static RAM)
-		for (int i = 0; i < mDevSz; i++)
+		for (int i = 0; i < mMemorySpace.sz; i++)
 			mMem[i] = rand() % 256;
 	}
 
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-		cout << "RAM at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
-		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
 }
 
 
@@ -32,7 +29,7 @@ bool RAM::read(uint16_t adr, uint8_t& data)
 	if (!MemoryMappedDevice::read(adr, data))
 		return false;
 
-	data = mMem[adr - mDevAdr];
+	data = mMem[adr - mMemorySpace.adr];
 
 	return true;
 
@@ -43,14 +40,14 @@ bool RAM::write(uint16_t adr, uint8_t data)
 	if (!MemoryMappedDevice::write(adr, data))
 		return false;
 
-	mMem[adr - mDevAdr] = data;
+	mMem[adr - mMemorySpace.adr] = data;
 
 	return true;
 }
 
 bool RAM::write(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
 {
-	if (!(adr >= mDevAdr && adr + sz <= mDevAdr + mDevSz))
+	if (!(adr >= mMemorySpace.adr && adr + sz <= mMemorySpace.adr + mMemorySpace.sz))
 		return false;
 
 	for (int a = adr; a < adr + sz; a++) {
@@ -66,7 +63,7 @@ bool RAM::write(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
 
 bool RAM::read(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
 {
-	if (!(adr >= mDevAdr && adr + sz < mDevAdr + mDevSz))
+	if (!(adr >= mMemorySpace.adr && adr + sz < mMemorySpace.adr + mMemorySpace.sz))
 		return false;
 
 	if (data.size() < sz)

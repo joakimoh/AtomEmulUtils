@@ -101,6 +101,10 @@ protected:
 
 	int mPortIndex = 0;
 
+	vector<Device*> mConnectedDevices;
+
+	bool mMemoryMapped = false;
+
 public:
 
 	Scheduling scheduling = INSTR; // default scheduling if nothing specified
@@ -110,6 +114,8 @@ public:
 	DeviceId devType;
 
 	DeviceCategory category;
+
+	
 
 	Device(string name, DeviceId typ, DeviceCategory cat, DebugInfo debugInfo, ConnectionManager *connectionManager);
 	~Device();
@@ -134,6 +140,14 @@ public:
 
 	uint64_t getCycleCount() { return mCycleCount; }
 
+	// Get pointer to other device to be able to call its methods
+	virtual bool connectDevice(Device* dev);
+
+	bool memoryMapped() { return mMemoryMapped;  }
+
+
+	virtual bool updateDataOutput(uint8_t& data) { return true;  }
+
 };
 
 class Devices {
@@ -142,6 +156,9 @@ private:
 
 	vector<Device*> mDevices;
 	DebugInfo mDebugInfo;
+
+	string getFileName(string& path, stringstream& sin);
+	uint16_t getHexAdr(stringstream& sin);
 
 public:
 

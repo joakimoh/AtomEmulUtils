@@ -85,14 +85,14 @@ VDU6847::VDU6847(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* d
 
 
 	// Set the size of the VDU register vector
-	mMem.resize((size_t)mDevSz);
+	mMem.resize((size_t)mMemorySpace.sz);
 
 	// Initialise the VDU registers with zeros
-	mMem.assign(mDevSz, 0);
+	mMem.assign(mMemorySpace.sz, 0);
 
 	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mDevAdr <<
-		" to 0x" << mDevAdr + mDevSz - 1 << " (" << dec << mDevSz << " bytes)\n";
+		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
+		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
 
 	// Create 256 x 192 display bitmap and clear it
 	mDisplayBitmap = al_create_bitmap(mVisW, mVisH);
@@ -424,7 +424,7 @@ bool VDU6847::read(uint16_t adr, uint8_t& data)
 	if (!MemoryMappedDevice::read(adr, data))
 		return false;
 
-	data = mMem[adr - mDevAdr];
+	data = mMem[adr - mMemorySpace.adr];
 
 	return true;
 
@@ -435,7 +435,7 @@ bool VDU6847::write(uint16_t adr, uint8_t data)
 	if (!MemoryMappedDevice::write(adr, data))
 		return false;
 
-	mMem[adr - mDevAdr] = data;
+	mMem[adr - mMemorySpace.adr] = data;
 
 	return true;
 }
