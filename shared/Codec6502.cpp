@@ -47,7 +47,7 @@ bool Codec6502::decodeInstruction(uint8_t opcode, InstructionInfo &instr)
 
 	instr = mOpcodeDict[opcode];
 
-	return false;
+	return true;
 }
 
 bool Codec6502::decode(int adr, string srcFileName, ostream& fout)

@@ -503,13 +503,10 @@ Devices::Devices(
 	// Update the video data unit with graphics memory data
 	{
 			
-			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-				cout << "PIA8255 got pointer to VDU6847\n";
-			
-			// Get RAM address that matches VDU6847 video memory address
+			// Get RAM address that matches the VDU's video memory address
 			// Get RAM device that matches the program load address
 			RAM* ram = NULL;
-			uint16_t video_mem_start_adr = ((VDU6847 *) vdu) -> getVideoMemAdr();
+			uint16_t video_mem_start_adr = vdu -> getVideoMemAdr();
 			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 				cout << "Video Memory starts at address 0x" << hex << video_mem_start_adr << "\n";
 			for (int i = 0; i < mDevices.size(); i++) {
@@ -529,9 +526,9 @@ Devices::Devices(
 			}
 			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 				cout << "Found RAM that matches video memory range\n";
-			((VDU6847*)vdu)-> setVideoRam(ram);
+			vdu -> setVideoRam(ram);
 			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-				cout << "Video RAM set for VDU6847\n";
+				cout << "Video RAM set for '" << vdu->name << "' (" << _DEVICE_ID(vdu->devType) << ")\n";
 
 	}
 

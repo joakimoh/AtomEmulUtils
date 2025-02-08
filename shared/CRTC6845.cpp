@@ -102,6 +102,10 @@ bool CRTC6845::advance(uint64_t stopCycle)
 
 bool CRTC6845::read(uint16_t adr, uint8_t& data)
 {
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!VideoDisplayUnit::read(adr, data))
+		return false;
+
 	int16_t a = adr - mMemorySpace.adr;
 
 	if (mAddressRegister > 0 && mAddressRegister < 18 && mRegInfo[mAddressRegister].readable)
@@ -138,6 +142,12 @@ bool CRTC6845::read(uint16_t adr, uint8_t& data)
 //
 bool CRTC6845::write(uint16_t adr, uint8_t data)
 {
+	cout << "WRITE M6845\n";
+
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!VideoDisplayUnit::write(adr, data))
+		return false;
+
 	int16_t a = adr - mMemorySpace.adr;
 	if (adr == 0 && (data & 0x1f) < 18)
 		mAddressRegister = data & 0x1f;
@@ -160,7 +170,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 	mVisibleLines = mReg[R6_VerticalDisplayed] * (mReg[R9_MaxScanLineAddress] + 1);
 	mScanLines = mReg[R4_VerticalTotal] + 1 + mReg[R5_VerticalTotalAdjust] / 32.0;
 
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE) {
+	if (true || mDebugInfo.dbgLevel & DBG_VERBOSE) {
 		cout << dec;
 		cout << "CLK:\t" << mCLK << "\tMhz\n";
 		cout << "Scan Line duration:\t" << Tsl << "\tus\n";

@@ -66,16 +66,12 @@ bool ROM::read(uint16_t adr, uint8_t& data)
 
 	data = mMem[adr - mMemorySpace.adr];
 
+	//cout << "READ ROM AT 0x" << hex << adr << " => 0x" << (int) data << "\n";
+
 	return true;
 
 }
 bool ROM::write(uint16_t adr, uint8_t data)
 {
-	// Call parent class to trigger scheduling of other devices when applicable
-	if (!MemoryMappedDevice::write(adr, data))
-		return false;
-
-	mMem[adr - mMemorySpace.adr] = data;
-
-	return true;
+	return false; // ROM is read-only!
 }

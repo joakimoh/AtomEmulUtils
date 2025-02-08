@@ -53,7 +53,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		return true;
 
 	cout << "intial cycle count " << dec << pCycleCount << ", scan line duration = " << getScanLineDuration() <<
-		", clk = " << mCPUClock << " = > " << (int)round(getScanLineDuration() * mCPUClock) << "\n";
+		", clk = " << mCPUClock << " => +" << (int)round(getScanLineDuration() * mCPUClock) << "\n";
 
 	if (mVS && !mNewFrame) {
 
@@ -168,6 +168,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 bool BeebVideoULA::read(uint16_t adr, uint8_t& data)
 {
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!VideoDisplayUnit::read(adr, data))
+		return false;
+
 	// All registers are write-only => return 0xff for read operations
 	data = 0xff;
 
@@ -176,6 +180,10 @@ bool BeebVideoULA::read(uint16_t adr, uint8_t& data)
 
 bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 {
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!VideoDisplayUnit::write(adr, data))
+		return false;
+
 	uint16_t a = adr - mMemorySpace.adr;
 
 	if (a == 0) {
@@ -230,7 +238,7 @@ double BeebVideoULA::getScanLineDuration()
 	if (mCRTC != NULL)
 		return mCRTC->getScanLineDuration();
 	else
-		return 0.0;
+		return 64.0;
 }
 
 double BeebVideoULA::getScanLinesPerFrame()
@@ -238,7 +246,7 @@ double BeebVideoULA::getScanLinesPerFrame()
 	if (mCRTC != NULL)
 		return mCRTC->getScanLinesPerFrame();
 	else
-		return 0.0;
+		return 50.0;
 }
 
 double BeebVideoULA::getFrameRate()
@@ -254,7 +262,7 @@ int BeebVideoULA::getCharScanLines()
 	if (mCRTC != NULL)
 		return mCRTC->getCharScanLines();
 	else
-		return 0;
+		return 12;
 }
 
 // Get pointer to other device to be able to call its methods

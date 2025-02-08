@@ -39,6 +39,9 @@ public:
 	virtual int getCharScanLines() = 0;
 
 	virtual bool advanceLine(uint64_t& endCycle) = 0;
+
+	virtual bool read(uint16_t adr, uint8_t& data);
+	virtual bool write(uint16_t adr, uint8_t data);
 };
 
 #endif

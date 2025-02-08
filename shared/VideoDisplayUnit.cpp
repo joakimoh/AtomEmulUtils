@@ -16,3 +16,15 @@ bool VideoDisplayUnit::setVideoRam(RAM* ram)
 uint16_t VideoDisplayUnit::getVideoMemAdr() {
 	return mVideoMemAdr;
 }
+
+bool VideoDisplayUnit::read(uint16_t adr, uint8_t& data)
+{
+	// Call parent class to trigger scheduling of other devices when applicable
+	return MemoryMappedDevice::read(adr, data);
+}
+
+bool VideoDisplayUnit::write(uint16_t adr, uint8_t data)
+{
+	// Call parent class to trigger scheduling of other devices when applicable
+	return  MemoryMappedDevice::write(adr, data);
+}

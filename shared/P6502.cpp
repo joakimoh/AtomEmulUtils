@@ -89,6 +89,8 @@ bool P6502::reset()
 	if (!readProgramMem(0xfffc, adr_L) || !readProgramMem(0xfffd, adr_H))
 		return false;
 
+	//out << "RESET succesful!\n";
+
 	mProgramCounter = adr_H * 256 + adr_L;
 
 	// Increase time by 7 clock cycles for the RESET
@@ -166,7 +168,7 @@ bool P6502::advance(uint64_t stopCycle)
 		if (!mCodec.decodeInstruction(opcode, instr)) {
 			success = false;
 			if (mDebugInfo.dbgLevel & DBG_ERROR)
-				std::cout << "Invalid instruction 0x" << hex << (int) opcode << " encountered at address 0x" << hex << mProgramCounter << "!\n";
+				std::cout << "Invalid instruction 0x" << hex << (int) opcode << " encountered at address 0x" << hex << opcode_PC << "!\n";
 		}
 
 		// Get the operand
@@ -1446,7 +1448,7 @@ bool P6502::readDevice(uint16_t adr, uint8_t& data)
 		if (dev->selected(adr)) {
 			bool success = dev->read(adr, data);
 			if (mDebugInfo.dbgLevel & DBG_6502)
-				cout << "READ 0x" << hex << adr << " => " << (int)data << "\n";
+				cout << "READ DEVICE AT 0x" << hex << adr << " => " << (int)data << "\n";
 			return success;
 		}
 	}
@@ -1460,7 +1462,7 @@ bool P6502::readZP(uint8_t adr, uint8_t &data)
 	data = 0xff;
 	if (mZPMemDev != NULL && mZPMemDev->read(adr, data)) {
 		if (mDebugInfo.dbgLevel & DBG_6502)
-			cout << "READ 0x" << hex << adr << " => " << (int)data << "\n";
+			cout << "READ ZERO PAGE ADR 0x" << hex << (int) adr << " => " << (int)data << "\n";
 		return true;
 	}
 	return false;
@@ -1477,7 +1479,7 @@ bool P6502::readProgramMem(uint16_t adr, uint8_t& data)
 		if (dev->selected(adr)) {
 			bool success = dev->read(adr, data);
 			if (mDebugInfo.dbgLevel & DBG_6502)
-				cout << "READ 0x" << hex << adr << " => " << (int)data << "\n";
+				cout << "READ PROGRAM MEMORY AT 0x" << hex << adr << " => " << (int)data << " (" << (success ? "OK" : "NOK") << ")\n";
 			mLastPgmDevice = dev;
 			return success;
 		}
@@ -1497,7 +1499,7 @@ bool P6502::writeDevice(uint16_t adr, uint8_t data)
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
 			if (mDebugInfo.dbgLevel & DBG_6502)
-				cout << "WRITE 0x" << hex << (int)data << " to 0x" << adr << "\n";
+				cout << "WRITE DEVICE 0x" << hex << (int)data << " to 0x" << adr << "\n";
 			return dev->write(adr, data);
 		}
 	}

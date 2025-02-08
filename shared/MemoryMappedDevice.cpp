@@ -39,8 +39,10 @@ void MemoryMappedDevice::addMemoryGap(uint16_t adr, uint16_t sz)
 }
 
 bool MemoryMappedDevice::read(uint16_t adr, uint8_t& data) {
-	if (!selected(adr))
+	if (!selected(adr)) {
+		//cout << "READ ADDRESS 0x" << hex << adr << " DOESN'T BELONG TO DEVICE '" << this->name << "\n";
 		return false;
+	}
 	for (int i = 0; i < mScheduleOnRead.size(); i++) {
 		if (mScheduleOnRead[i].triggeringAdr == adr) {
 			if (mDebugInfo.dbgLevel & DBG_DEVICE)

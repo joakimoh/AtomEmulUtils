@@ -4,7 +4,6 @@
 #include <filesystem>
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_font.h>
-#include "VDU6847.h"
 #include "Device.h"
 
 using namespace std;
@@ -205,8 +204,6 @@ PIA8255::PIA8255(string name, uint16_t adr, DebugInfo debugInfo, ConnectionManag
 
 bool PIA8255::read(uint16_t adr, uint8_t& data)
 {
-	if (!selected(adr))
-		return false;
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	if (!MemoryMappedDevice::read(adr, data))
@@ -256,9 +253,6 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 }
 bool PIA8255::write(uint16_t adr, uint8_t data)
 {
-	if (!selected(adr))
-		return false;
-
 	// Call parent class to trigger scheduling of other devices when applicable
 	if (!MemoryMappedDevice::write(adr, data))
 		return false;
