@@ -8,7 +8,7 @@ GUI::GUI(ALLEGRO_DISPLAY* disp, ALLEGRO_MENU* menu, Devices * devices): mMenu(me
 {
     Device* dev;
     if (!mDevices->getDevice(DeviceId::TAPE_RECORDER_DEV, dev)) {
-        cout << "Failed to get access to Tape Recorder\n";
+        //cout << "Failed to get access to Tape Recorder\n";
         //throw runtime_error("Failed to get access to Tape Recorder");
     }
     mTapeRec = (TapeRecorder *)dev;

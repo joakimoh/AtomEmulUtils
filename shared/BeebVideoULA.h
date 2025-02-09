@@ -18,11 +18,11 @@ public:
 	// 
 
 	// Video ULA Ports
-	int DISEN, CURSOR, INV, VS;
-	uint8_t mDISEN = 0x1;	// INPUT -	DISEN = ~(~DEN | RA3)
+	int DEN, CURSOR, INV, RA3;
+	uint8_t mDEN = 0x1;		// INPUT -	DEN from the CRTC 6845; actual display enable DISEN is calculated as = ~(~DEN | RA3)
 	uint8_t mCURSOR = 0x1;	// INPUT -	CURSOR from M6845
 	uint8_t mINV = 0x0;		// INPUT - invert video
-	uint8_t mVS = 0x0;		// INPUT - vertical sync
+	uint8_t mRA3 = 0x0;		// INPUT 
 
 
 	// Video ULA Registers
@@ -37,10 +37,12 @@ public:
 	ALLEGRO_LOCKED_REGION* mLockedDisplayBitMap;
 	ALLEGRO_STATE mAllegroState;
 
-	int mScanLine = 0;			//  [field scan lines]
-	int mFieldCount = 0;
+	int mScanLine = 0;			// Current scan line
+	int mScanLines = 312;		// Scan lines per frame
+	int mFrame = 0;				// Frame count
 	int mNCols = 0;				// No of visible columns
 	int mCursorSegment = -1;	// The current cursor segment being drawn (0-2 when active)
+	int mVerticalSyncPos = 0;	// Vertical sync pos (in scan lines)
 
 	double mCPUClock = 2.0; // [MHz]
 	double CRTCClock = 1.0; // [MHz]
@@ -91,6 +93,7 @@ public:
 	inline double getScanLinesPerFrame();
 	inline double getFrameRate();
 	inline int getCharScanLines();
+	inline int getVerticalSyncPos();
 
 
 	// Reset device

@@ -2,11 +2,11 @@ add_library(
 	shared
 	"Codec6502.cpp" "P6502.cpp" "VIA6522.cpp" "VDU6847.cpp" "PIA8255.cpp" "ROM.cpp" "RAM.cpp" "Device.cpp" "TapeRecorder.cpp" "AtomSpeaker.cpp" "VideoDisplayUnit.cpp"
 	"AtomKeyboardDevice.cpp" "ConnectionManager.cpp" "Tokeniser.cpp" "MemoryMappedDevice.cpp" "AtomCUTSInterface.cpp" "CSWCodec.cpp" "zpipe.cpp" "GUI.cpp"
-	"SoundDevice.cpp" "CRTC6845.cpp" "TT5050.cpp"
+	"SoundDevice.cpp" "CRTC6845.cpp" "TT5050.cpp" "BeebRomSel.cpp"
 	"Codec6502.h" "P6502.h" "VIA6522.h" "AtomKeyboardDevice.h" "MemoryMappedDevice.h" "AtomCUTSInterface.h" "CSWCodec.h" "SoundDevice.h" "BeebVideoULA.h"
 	 "VDU6847.h"  "PIA8255.h"  "ROM.h"  "RAM.h" "Device.h" "Tokeniser.h" "DebugInfo.h" "GUI.h" "TapeRecorder.h" "AtomSpeaker.h" "VideoDisplayUnit.h"
  "VideoDisplayUnit.h" "VideoDisplayUnit.cpp" "SoundDevice.h" "BeebVideoULA.cpp" "BeebKeyboard.cpp" "BeebKeyboard.h" "CRTC6845.h" "TT5050.h"
-)
+ "BeebRomSel.h" "BeebPageRom.cpp")
 
 # Locate zlib
 find_package(ZLIB REQUIRED)

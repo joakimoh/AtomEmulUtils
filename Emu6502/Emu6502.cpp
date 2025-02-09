@@ -63,6 +63,7 @@ int frame_cnt = 0;
 
 int main(int argc, const char* argv[])
 {
+
     if (!al_init())
 		cout << "Failed to initialise allegro5\n";
 
@@ -201,7 +202,6 @@ int main(int argc, const char* argv[])
         int n_scan_lines = vdu->getScanLinesPerFrame();     
         if (n_scan_lines == 0)
             n_scan_lines = 312;
-     
 
         // Advance time for each devices that is scheduled on frame basis
         for (int i = 0; i < frame_scheduled_devices.size(); i++) {

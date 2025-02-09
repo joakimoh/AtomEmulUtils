@@ -196,6 +196,7 @@ public:
 	inline double getScanLinesPerFrame() { return 262; }
 	inline double getFrameRate() { return 60; }
 	inline int getCharScanLines() { return 12;}
+	inline int getVerticalSyncPos() { return mTVBlkH;  }
 
 
 	// Reset device

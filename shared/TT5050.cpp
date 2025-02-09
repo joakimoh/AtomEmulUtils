@@ -9,6 +9,11 @@ TT5050::TT5050(
 {
 	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 		cout << "Teletext Character Generator SA5050 '" << name << "' added\n";
+
+	registerPort("VS", IN_PORT, 0x1, VS, &mVS);
+	registerPort("HS", IN_PORT, 0x1, HS, &mHS);
+
+
 }
 
 // Reset device

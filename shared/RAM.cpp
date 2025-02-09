@@ -25,10 +25,11 @@ RAM::RAM(string name, bool DRAM, uint16_t adr, uint16_t sz, DebugInfo debugInfo)
 
 bool RAM::read(uint16_t adr, uint8_t& data)
 {
+
 	// Call parent class to trigger scheduling of other devices when applicable
 	if (!MemoryMappedDevice::read(adr, data))
 		return false;
-
+	
 	data = mMem[adr - mMemorySpace.adr];
 
 	return true;

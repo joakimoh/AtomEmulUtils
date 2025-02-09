@@ -21,6 +21,8 @@
 #include "TapeRecorder.h"
 #include "AtomSpeaker.h"
 #include "MemoryMappedDevice.h"
+#include "BeebRomSel.h"
+#include "BeebPagedRom.h"
 
 using namespace std;
 
@@ -156,11 +158,16 @@ string Devices::getFileName(string &path, stringstream& sin)
 
 Devices::Devices(
 	string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
-	Program program, Program data, ConnectionManager& connection_manager, P6502* &microprocessor, VideoDisplayUnit * &vdu,
+	Program program, Program data, ConnectionManager& connection_manager, P6502* &microprocessor, VideoDisplayUnit * &mainVDU,
 	vector<Device*>& frameScheduledDevices, vector<Device*>& halflineScheduledDevices, vector<Device*>& instrScheduledDevices) :mDebugInfo(debugInfo)
 {
+	vector<VideoDisplayUnit*> vdus;
 
-	vdu = NULL;
+	// BBC Micro Page ROM support
+	vector<BeebPagedROM*> paged_ROMs;
+	BeebROMSel* paged_rom_sel = NULL;
+
+	mainVDU = NULL;
 	SoundDevice * sound_device = NULL;
 
 	connection_manager.setDevices(this);
@@ -290,6 +297,27 @@ Devices::Devices(
 
 				}
 
+				else if (dev_type == "BeebPROM") {
+
+					int slot = getHexAdr(sin);
+					uint16_t dev_adr = getHexAdr(sin);
+					uint16_t dev_sz = getHexAdr(sin);
+					string ROM_file_path = getFileName(memMapFile, sin);
+					BeebPagedROM* rom = new BeebPagedROM(dev_name, slot, dev_adr, dev_sz, ROM_file_path, mDebugInfo);
+					mDevices.push_back(rom);
+					paged_ROMs.push_back(rom);
+
+				}
+
+				else if (dev_type == "BeebRomSel") {
+
+					uint16_t dev_adr = getHexAdr(sin);
+					uint16_t dev_sz = getHexAdr(sin);
+					paged_rom_sel = new BeebROMSel(dev_name, dev_adr, mDebugInfo);
+					mDevices.push_back(paged_rom_sel);
+
+				}
+
 				//
 				// Serial & Parallel I/O Devices
 				//
@@ -321,8 +349,9 @@ Devices::Devices(
 					uint16_t dev_adr = getHexAdr(sin);
 					uint16_t dev_sz = getHexAdr(sin);
 					uint16_t video_mem_adr = getHexAdr(sin);
-					vdu = new VDU6847(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
-					mDevices.push_back(vdu);
+					mainVDU = new VDU6847(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
+					mDevices.push_back(mainVDU);
+					vdus.push_back(mainVDU);
 
 				}
 
@@ -331,16 +360,15 @@ Devices::Devices(
 					uint16_t dev_adr = getHexAdr(sin);
 					uint16_t dev_sz = getHexAdr(sin);
 					uint16_t video_mem_adr = getHexAdr(sin);
-					CRTC6845* via = new CRTC6845(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
-					mDevices.push_back(via);
-
+					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
+					mDevices.push_back(crtc);
+					vdus.push_back(crtc);
 				}
 
 				else if (dev_type == "TT5050") {
 
 					TT5050* tcg = new TT5050(dev_name, 0x0, clockSpeed, disp, 0x0, mDebugInfo, &connection_manager);
 					mDevices.push_back(tcg);
-
 				}
 
 				else if (dev_type == "BeebVideoULA") {
@@ -348,9 +376,9 @@ Devices::Devices(
 					uint16_t dev_adr = getHexAdr(sin);
 					uint16_t dev_sz = getHexAdr(sin);
 					uint16_t video_mem_adr = getHexAdr(sin);
-					vdu = new BeebVideoULA(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
-					mDevices.push_back(vdu);
-
+					mainVDU = new BeebVideoULA(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
+					mDevices.push_back(mainVDU);
+					vdus.push_back(mainVDU);
 				}
 
 			}
@@ -490,7 +518,7 @@ Devices::Devices(
 		line_no++;
 	}
 
-	if (vdu == NULL) {
+	if (mainVDU == NULL) {
 		cout << "No video data unit device specifed!\n";
 		throw runtime_error("No video data unit device specifed");
 	}
@@ -500,36 +528,48 @@ Devices::Devices(
 		throw runtime_error("No microprocessor device specifed");
 	}
 
-	// Update the video data unit with graphics memory data
+	if (paged_ROMs.size() > 0) {
+		if (paged_rom_sel == NULL) {
+			cout << "No paged ROM register specifed!\n";
+			throw runtime_error("No paged ROM register specifed");
+		}
+		paged_rom_sel->addROMs(paged_ROMs);
+	}
+
+	// Update the video data unit(s) with graphics memory data
 	{
-			
+		for (int v = 0; v < vdus.size(); v++) {
+
+			VideoDisplayUnit* vdu = vdus[v];
+
 			// Get RAM address that matches the VDU's video memory address
 			// Get RAM device that matches the program load address
 			RAM* ram = NULL;
-			uint16_t video_mem_start_adr = vdu -> getVideoMemAdr();
+			uint16_t video_mem_start_adr = vdu->getVideoMemAdr();
 			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 				cout << "Video Memory starts at address 0x" << hex << video_mem_start_adr << "\n";
 			for (int i = 0; i < mDevices.size(); i++) {
 				Device* dev = mDevices[i];
 				if (dev->category == PERIPHERAL || dev->category == MEMORY_DEVICE) {
-					MemoryMappedDevice * mem_dev = (MemoryMappedDevice *) dev;
+					MemoryMappedDevice* mem_dev = (MemoryMappedDevice*)dev;
 					if (mem_dev->selected(video_mem_start_adr) && mem_dev->devType == RAM_DEV) {
 						ram = (RAM*)mem_dev;
 						break;
 					}
 				}
 			}
-			
+
 			if (ram == NULL || !ram->selected(video_mem_start_adr + 6 * 1024 - 1)) {
 				cout << "couldn't find a RAM device large enough to become video memory\n";
 				throw runtime_error("couldn't find a RAM device large enough to become video memory");
 			}
 			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 				cout << "Found RAM that matches video memory range\n";
-			vdu -> setVideoRam(ram);
+			vdu->setVideoRam(ram);
 			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 				cout << "Video RAM set for '" << vdu->name << "' (" << _DEVICE_ID(vdu->devType) << ")\n";
 
+		}
 	}
 
 	// Update the microprocessor with memory-mapped devices that it shall be able to access
@@ -566,7 +606,7 @@ Devices::Devices(
 		connection_manager.printRouting();
 
 	if (sound_device != NULL)
-		sound_device->setFrameRate(vdu->getFrameRate());
+		sound_device->setFrameRate(mainVDU->getFrameRate());
 
 }
 

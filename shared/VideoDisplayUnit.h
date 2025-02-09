@@ -37,6 +37,7 @@ public:
 	virtual double getScanLinesPerFrame() = 0;
 	virtual double getFrameRate() = 0;
 	virtual int getCharScanLines() = 0;
+	virtual int getVerticalSyncPos() = 0;
 
 	virtual bool advanceLine(uint64_t& endCycle) = 0;
 

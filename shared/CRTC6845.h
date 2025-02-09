@@ -17,7 +17,7 @@ public:
 
 	// M6845 Ports
 	int CLK, DEN, RA, CURS, HS, VS, RESET;
-	uint8_t mCLK = 1.0;			// INPUT - Clock rate [MHz] (1 or 2 MHz for a BBC Micro Model B e.g.)
+	uint8_t mCLK = 2;		// INPUT - Clock rate [MHz] (1 or 2 MHz for a BBC Micro Model B e.g.)
 	uint8_t mNEXT_CHAR;		// INPUT  - Advance one character
 	uint8_t mRESET = 0x1;	// INPUT
 	uint8_t mDEN = 0x0;		// OUTPUT - Display ENable: When high, the display is in the active area
@@ -61,10 +61,10 @@ public:
 		R1_HorizontalDisplayed = 1,	// HorizontalDisplayed	Visible chars per line
 		R2_HSYncPosition = 2,		// HSYncPosition		Horizontal sync pos
 		R3_HSyncWidth = 3,			// HSyncWidth			Width of horizontal sync pulse
-		R4_VerticalTotal = 4,		// VerticalTotal		Integer part of no of scan lines - 1
-		R5_VerticalTotalAdjust = 5,	// VerticalTotalAdjust	Fraction part of no of scan lines
+		R4_VerticalTotal = 4,		// VerticalTotal		Integer part of no of character lines - 1
+		R5_VerticalTotalAdjust = 5,	// VerticalTotalAdjust	Fraction part of no of character lines
 		R6_VerticalDisplayed = 6,	// VerticalDisplayed	No of visible char rows	
-		mR7_VSyncPosition = 7,		// VSyncPosition		Vertical sync pos in char row
+		R7_VSyncPosition = 7,		// VSyncPosition		Vertical sync pos in char row
 		R8_InterlaceMode = 8,		// InterlaceMode		Raster scan mode (*0: non-interlaces, 01: interlaced, 11: interlaced & video)
 		R9_MaxScanLineAddress = 9,	// MaxScanLineAddress	Scan lines/char row - 1	(Scan line/char row must be an even no)
 		R10_CursorStart = 10,		// CursorStart			b6: enable blink, b5: blink rate (0:1/16 FR,1:1/32 FR), b4:0: cursor start line - FR = Field Rate
@@ -91,6 +91,9 @@ public:
 		return getVisibleCharArea(w, h);
 	}
 
+	void updateSettings();
+	void printSettings();
+
 	ALLEGRO_COLOR green, black;
 
 	CRTC6845(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
@@ -103,6 +106,7 @@ public:
 	inline double getScanLinesPerFrame();
 	inline double getFrameRate();
 	inline int getCharScanLines();
+	inline int getVerticalSyncPos();
 
 
 	// Reset device

@@ -7,10 +7,10 @@ BeebVideoULA::BeebVideoULA(
 	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager
 ) : VideoDisplayUnit(name, BEEB_VDU_DEV, adr, 0x100, disp, videoMemAdr, debugInfo, connectionManager), mCPUClock(clockSpeed)
 {
-	registerPort("DISEN",		IN_PORT,	0x01, DISEN,		&mDISEN);
-	registerPort("CURSOR",		IN_PORT,	0x01, DISEN,		&mCURSOR);	
+	registerPort("DISEN",		IN_PORT,	0x01, DEN,			&mDEN);
+	registerPort("CURSOR",		IN_PORT,	0x01, CURSOR,		&mCURSOR);	
 	registerPort("INV",			IN_PORT,	0x01, INV,			&mINV);
-	registerPort("VS",			IN_PORT,	0x01, VS,			&mVS);
+	registerPort("RA3",			IN_PORT,	0x01, RA3,			&mRA3);
 
 
 	// Create 640 x 256 display bitmap and clear it
@@ -40,24 +40,29 @@ bool BeebVideoULA::advance(uint64_t stopCycle)
 
 bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 {
+	int scan_lines_per_frame = (int) round(getScanLinesPerFrame());
+	if (scan_lines_per_frame != mScanLines) {
+		mScanLines = scan_lines_per_frame;
+		mScanLine = 0;
+	};
+	int VS_pos = getVerticalSyncPos();
+	if (VS_pos != mVerticalSyncPos) {
+		mVerticalSyncPos = VS_pos;
+		mScanLine = 0;
+	}
 
 	if (mCRTC == NULL || mTGC == NULL)
 		return false;
 
 	uint64_t pCycleCount = mCycleCount;
-	mCycleCount += (int) round(getScanLineDuration() * mCPUClock);
+	mCycleCount += max(1, (int)round(getScanLineDuration() * mCPUClock));
 	endCycle = mCycleCount;
 
 	// Exit if the CRTC device is not initialised (a scan line of '1' will tell this)
 	if (getScanLineDuration() == 1)
 		return true;
 
-	cout << "intial cycle count " << dec << pCycleCount << ", scan line duration = " << getScanLineDuration() <<
-		", clk = " << mCPUClock << " => +" << (int)round(getScanLineDuration() * mCPUClock) << "\n";
-
-	if (mVS && !mNewFrame) {
-
-		mNewFrame = true;
+	if (mScanLine == mVerticalSyncPos) {
 
 		unlockDisplay();
 
@@ -70,7 +75,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// Clear the display
 		al_clear_to_color(black);
 
-		mFieldCount++;
+		mFrame++;
 
 		lockDisplay();
 
@@ -97,7 +102,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			mCursorSegment++;
 		}
 
-		if (mDISEN) {
+		uint8_t dis_ena = ~(~mDEN | mRA3);
+		if (dis_ena) {
 
 			unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScanLine);
 
@@ -129,9 +135,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					uint8_t F = (palette_data >> 3) & 0x1;
 					uint8_t flash = mControlRegister & 0x1;
 
-					Rs = ~(Ri ^ ~(F & flash) & mDISEN);
-					Gs = ~(Gi ^ ~(F & flash) & mDISEN);
-					Bs = ~(Bi ^ ~(F & flash) & mDISEN);
+					Rs = ~(Ri ^ ~(F & flash) & dis_ena);
+					Gs = ~(Gi ^ ~(F & flash) & dis_ena);
+					Bs = ~(Bi ^ ~(F & flash) & dis_ena);
 				}
 				else {
 					Rs = Rt & 0x1;
@@ -161,6 +167,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		}
 
 	}
+
+	mScanLine = (mScanLine + 1) % scan_lines_per_frame;
 
 	return true;
 }
@@ -246,7 +254,7 @@ double BeebVideoULA::getScanLinesPerFrame()
 	if (mCRTC != NULL)
 		return mCRTC->getScanLinesPerFrame();
 	else
-		return 50.0;
+		return 312.0;
 }
 
 double BeebVideoULA::getFrameRate()
@@ -263,6 +271,14 @@ int BeebVideoULA::getCharScanLines()
 		return mCRTC->getCharScanLines();
 	else
 		return 12;
+}
+
+int BeebVideoULA::getVerticalSyncPos()
+{
+	if (mCRTC != NULL)
+		return mCRTC->getVerticalSyncPos();
+	else
+		return 0;
 }
 
 // Get pointer to other device to be able to call its methods
