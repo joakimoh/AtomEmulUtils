@@ -22,6 +22,8 @@ private:
 
 	bool mStop = false;
 
+
+
 	Codec6502 mCodec;
 
 	// Registers
@@ -71,7 +73,8 @@ private:
 
 	int mTraceCount = 0;
 	std::vector<string> mBufferedTraceLines;
-	bool mEndOfTracingReached = false;;
+	bool mEndOfTracingReached = false;
+	bool mStopDebugBuffering = false;
 
 	// Ports that can be connected to other devices
 	int RESET, NMI, IRQ;

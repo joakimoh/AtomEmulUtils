@@ -31,8 +31,6 @@ bool BeebROMSel::write(uint16_t adr, uint8_t data)
 	if (!MemoryMappedDevice::write(adr, data))
 		return false;
 
-	cout << "WRITE 0x" << hex << data << " TO ROMSEL REGISTER!\n";
-
 	mReg = data;
 	uint16_t sel = 1 << mReg;
 	uint8_t sel_L = sel & 0xff;

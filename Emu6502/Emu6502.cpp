@@ -90,10 +90,9 @@ int main(int argc, const char* argv[])
     if (arg_parser.failed())
         return -1;
 
-    const int frame_rate = 60;
-    const int emu_speed = frame_rate * (arg_parser.emulationSpeed / 100);
+    int frame_rate = 60;
+    double emu_speed = frame_rate * (arg_parser.emulationSpeed / 100);
     int cycle_step = 2;
-
 
     ALLEGRO_TIMER* emu_speed_timer = al_create_timer(1.0 / emu_speed); // 60 Hz frequency as default emulation speed
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
@@ -115,7 +114,7 @@ int main(int argc, const char* argv[])
     al_register_event_source(queue, al_get_display_event_source(disp));
     al_register_event_source(queue, al_get_timer_event_source(emu_speed_timer));
     al_register_event_source(queue, al_get_default_menu_event_source());
-	al_register_event_source(queue, al_get_mouse_event_source());
+	//al_register_event_source(queue, al_get_mouse_event_source());
     
 
     ConnectionManager connection_manager(arg_parser.debugInfo);
@@ -188,20 +187,22 @@ int main(int argc, const char* argv[])
     al_clear_to_color(al_map_rgb(0, 0, 0));
 
     bool quit = false;
-    const int cycles_per_frame = (int)round(arg_parser.cMHz * 1e6 / frame_rate);
+    
     auto frame_start = chrono::high_resolution_clock::now();
     while (!quit)
     {   
+        // Get frame rate and no of scan lines from the VDU itself.
+        // required for the cases these parameters re not hard-coded but can be reconfigured by
+        // the software.
+        int cycles_per_frame = (int)round(arg_parser.cMHz * 1e6 / vdu->getFrameRate());
+        int n_scan_lines = vdu->getScanLinesPerFrame();
+        if (n_scan_lines < 200)
+            n_scan_lines = 312;
+
         auto frame_stop = chrono::high_resolution_clock::now();
         auto frame_dur = chrono::duration_cast<chrono::microseconds>(frame_stop - frame_start);
         frame_start = frame_stop;
-        frame_dur_cnt += frame_dur.count();
-
-        // No of scan lines is could be reconfigured by the microcontroller 
-        // Make sure it is not zero (because then nothing will be scheduled)
-        int n_scan_lines = vdu->getScanLinesPerFrame();     
-        if (n_scan_lines == 0)
-            n_scan_lines = 312;
+        frame_dur_cnt += frame_dur.count();   
 
         // Advance time for each devices that is scheduled on frame basis
         for (int i = 0; i < frame_scheduled_devices.size(); i++) {
@@ -317,7 +318,6 @@ int main(int argc, const char* argv[])
         if (event.type == ALLEGRO_EVENT_TIMER) {
             // The timer event comes from the emulation speed timer (defaults to 60 Hz)
             // This will synchronise the execution on 60 Hz basis (via the wait event above)
-
         } 
         else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
             quit = true;

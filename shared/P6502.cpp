@@ -128,11 +128,13 @@ bool P6502::advance(uint64_t stopCycle)
 	while (mCycleCount < stopCycle) {	
 
 		if (mDebugInfo.traceAdr > 0) {
-			if (mProgramCounter == mDebugInfo.traceAdr) {
+			if (mProgramCounter == mDebugInfo.traceAdr && !mStopDebugBuffering) {
 				mDebugInfo.dbgLevel |= DBG_6502;
 				mTraceCount = 0;
 				for (int i = 0; i < mBufferedTraceLines.size(); i++)
 					cout << mBufferedTraceLines[i];
+				mBufferedTraceLines.clear();
+				mStopDebugBuffering = true;
 			}
 			if (mTraceCount > mDebugInfo.postTraceLen) {
 				mDebugInfo.dbgLevel &= ~DBG_6502;
@@ -203,10 +205,11 @@ bool P6502::advance(uint64_t stopCycle)
 			sout << "\n";
 			if (mDebugInfo.dbgLevel & DBG_6502)
 				cout << sout.str();
-			if (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached) {
+			if (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached && !mStopDebugBuffering) {
 				mBufferedTraceLines.push_back(sout.str());
-				while (mBufferedTraceLines.size() > mDebugInfo.preTraceLen)
-					mBufferedTraceLines.erase(mBufferedTraceLines.begin());
+				if (mBufferedTraceLines.size() > mDebugInfo.preTraceLen)
+					mBufferedTraceLines.erase(mBufferedTraceLines.begin(), mBufferedTraceLines.end() - mDebugInfo.preTraceLen);
+
 			}
 		}
 
