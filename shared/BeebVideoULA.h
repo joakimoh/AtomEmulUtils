@@ -107,6 +107,11 @@ public:
 	// Get pointer to other device to be able to call its methods
 	bool connectDevice(Device* dev);
 
+
+	bool initialised() {
+		return mCRTC != NULL && mTGC != NULL && mCRTC->intialised();
+	}
+
 };
 
 #endif

@@ -62,12 +62,12 @@ bool CRTC6845::updateDataOutput(uint8_t &data)
 {
 	data = 0xff;
 
-	if (mInitialisedCount < 2)
-		return true;
-
 	// Advance time corresponding to one character and check for HS, VS & DEN
 	int step = max(1, (int)round((mCPUClock / mCLK)));
 	advance(mCycleCount + step);
+
+	if (mInitialisedCount < 2)
+		return true;
 
 	// If in the active display area, read the memory location and output the address on port RA and the read data on port D_OUT
 	if (mDEN) {

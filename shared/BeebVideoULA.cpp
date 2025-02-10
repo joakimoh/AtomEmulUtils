@@ -40,6 +40,13 @@ bool BeebVideoULA::advance(uint64_t stopCycle)
 
 bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 {
+	if (!initialised()) { 
+		mCycleCount += max(1, (int)round(getScanLineDuration() * mCPUClock));
+		endCycle = mCycleCount;
+		return true; 
+	}
+
+
 	int scan_lines_per_frame = (int) round(getScanLinesPerFrame());
 	if (scan_lines_per_frame != mScanLines) {
 		mScanLines = scan_lines_per_frame;

@@ -205,6 +205,8 @@ public:
 	// Called by other device to trigger the output of new data
 	bool updateDataOutput(uint8_t pageData, vector <uint32_t>& charPixels);
 
+	bool initialised() { return false; }
+
 };
 
 #endif

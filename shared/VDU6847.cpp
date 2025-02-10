@@ -172,6 +172,7 @@ bool VDU6847::advance(uint64_t stopCycle)
 
 bool VDU6847::advanceLine(uint64_t& endCycle)
 {
+
 	float proc_clk_rate_Mhz = mN60HzCycles * 60 / 1e6;
 
 

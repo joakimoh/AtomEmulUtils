@@ -123,6 +123,8 @@ public:
 	// Called by other device to trigger the output of new data
 	bool updateDataOutput(uint8_t& data);
 
+	bool intialised() { return mInitialisedCount > 2; }
+
 };
 
 #endif

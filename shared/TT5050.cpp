@@ -42,6 +42,11 @@ bool TT5050::advance(uint64_t stopCycle)
 //
 bool TT5050::updateDataOutput(uint8_t pageData, vector <uint32_t> &charPixels)
 {
+	if (!initialised()) {
+		mCycleCount += max(1, (int)round(mSystemClock / 1.0));
+		return true;
+	}
+
 	// Advance time 1 us
 	mCycleCount += max(1, (int) round(mSystemClock / 1.0));
 

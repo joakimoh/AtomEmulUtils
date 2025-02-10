@@ -20,12 +20,14 @@ MemoryMappedDevice::MemoryMappedDevice(
 bool MemoryMappedDevice::selected(uint16_t adr)
 {
 	bool valid = true;
+
 	if (adr < mMemorySpace.adr || adr >= mMemorySpace.adr + mMemorySpace.sz)
 		return false;
-	for (int i = 0; i << mMemoryGaps.size(); i++) {
-		if (adr < mMemoryGaps[i].adr || adr >= mMemoryGaps[i].adr + mMemoryGaps[i].sz)
-		return false;
+	for (int i = 0; i < mMemoryGaps.size(); i++) {
+		if (adr >= mMemoryGaps[i].adr && adr < mMemoryGaps[i].adr + mMemoryGaps[i].sz)
+			return false;
 	}
+
 	return true;
 }
 
@@ -34,8 +36,8 @@ void MemoryMappedDevice::addMemoryGap(uint16_t adr, uint16_t sz)
 	MemoryRange gap = { adr, sz };
 	mMemoryGaps.push_back(gap);
 	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-		cout << "Gap in memory space for device '" << this->name << "' between " << hex << setfill('0') << setw(4) << adr <<
-			" and " << adr + sz << "\n";
+		cout << "Gap in memory space for device '" << this->name << "' between " << hex << setfill('0') << setw(4) << gap.adr <<
+			" and " << gap.adr + gap.sz << "\n";
 }
 
 bool MemoryMappedDevice::read(uint16_t adr, uint8_t& data) {

@@ -207,8 +207,6 @@ public:
 
 	bool advanceLine(uint64_t& endCycle);
 
-	
-
 	void lockDisplay();
 	void unlockDisplay();
 
