@@ -11,7 +11,7 @@ using namespace std;
 
 class BeebPagedROM : public MemoryMappedDevice {
 
-private:
+public:
 
 	int SEL;
 	uint8_t mSEL = 0x0;
@@ -20,7 +20,7 @@ private:
 public:
 
 
-	BeebPagedROM(string name, int slot,	uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo);
+	BeebPagedROM(string name, int slot,	uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo, ConnectionManager * connectionManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

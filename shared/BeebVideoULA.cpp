@@ -86,9 +86,14 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	for (int char_pos = 0; char_pos < n_chars; char_pos++) {
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
-		uint8_t crtc_data, tcg_R, tcg_G, tcg_B;
+		// the TGC character is only 6 pixels wdie whereas the CRTC one is 8 pixels wide!
+		uint8_t crtc_data;
+		vector<uint32_t> tgc_data;
 		mCRTC->updateDataOutput(crtc_data);
-		mTGC->updateDataOutput(tcg_R, tcg_G, tcg_B);
+
+		// The TCG's page memory input comes from the CRTC.
+		// The TCG then generates 6 pixel colour data (tgc_data).
+		mTGC->updateDataOutput(crtc_data, tgc_data);
 
 		uint8_t cursor_seg_ena = 0x0;
 		if (mCURSOR) {
@@ -112,18 +117,16 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			uint8_t R, G, B;
 			bool teletext = (mControlRegister & 0x2) != 0;
 			uint8_t mem_data = 0x0;
+			int pixels_per_char = 8;
 
 			if (!teletext) {
 				mem_data = crtc_data;
 			}
 			else {
-				// Get TCG RGB data		
-				Rt = tcg_R;
-				Gt = tcg_G;
-				Bt = tcg_B;
+				pixels_per_char = 6;
 			}
 
-			for (int big_pixel = 0; big_pixel < 8 / mPixelW; big_pixel++) {
+			for (int big_pixel = 0; big_pixel < pixels_per_char / mPixelW; big_pixel++) {
 					
 				if (!teletext) {
 
@@ -140,9 +143,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					Bs = ~(Bi ^ ~(F & flash) & dis_ena);
 				}
 				else {
-					Rs = Rt & 0x1;
-					Gs = Gt & 0x1;
-					Bs = Bt & 0x1;
+					Rs = tgc_data[big_pixel];
+					Gs = 0x0;
+					Bs = 0x0;
 				}
 
 				R = Rs ^ cursor_seg_ena ^ mINV;

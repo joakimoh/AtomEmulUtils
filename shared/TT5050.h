@@ -6,6 +6,23 @@
 #include "RAM.h"
 
 
+//
+// Teletext Character Generator SA5050 Emulation
+// 
+// The device generates characters on 40 x 24 character grid where each character
+// occupies 6 x 10 pixels (including one pixel space to the right and below each character.
+// 
+// The display is 40 x 25 chars and the graphics 78 x 75 (39 * 2 x 25 * 3) pixels
+// The chars are 12 × 20 pixels (interpolated from a 6 × 10 matrix)
+// 
+// The characters are reaad from the page memory at a rate of 1 MHz meaning that each
+// character has a width of 1 us and eaxh pixel a width of 1/6 (6 MHz) us. The visible
+// part of a scan line will then become 40 x 1 us = 40 us. The total length of a scan line
+// is 64 us including horizontal blanking.
+//
+// The visble part of a line starts 14.5 us after the start of the scan line. The LOSE
+// input shall be high during the visible part of the scan line.
+//
 
 class TT5050 : public Device {
 
@@ -17,12 +34,13 @@ public:
 
 
 	// SA5050 Ports
-	int R, G, B, VS, HS;
-	uint8_t mR = 0x0; // RED out
-	uint8_t mG = 0x0; // GREEN out
-	uint8_t mB = 0x0; // BLUE out
-	uint8_t mVS = 0x0;
-	uint8_t mHS = 0x0;
+	int DEW, CLR, LOSE;
+
+	uint8_t mDEW = 0x0;		// INPUT - Data Entry Window (start of field frame): resets ROM address counter prior to the display period
+	uint8_t mCLR = 0x1;		// INPUT - General clear: Start of line
+	uint8_t mLOSE = 0x0;	// INPUT - Load Output Shift register: Start of visible part of line (i.e., the display line)
+	uint8_t pCLR = 0x1;
+	uint8_t pDEW = 0x0;
 
 	typedef struct TTSymbol_struct {
 		uint8_t rows[10];
@@ -128,7 +146,50 @@ public:
 		{{0x00, 0x1f,   0x1f,   0x1f,   0x1f,   0x1f,   0x1f,   0x1f,   0x00,   0x00},	 0x7f}	 // BLOCK
 	};
 
+	double mSystemClock = 2.0;
+	int mScanLine = 0;
+	int mCharRowPos = 0;
+	int mCharRasterLine = 0;
 
+	// Teletext control
+	bool mGraphics = false;
+	bool mFlash = false;
+
+	enum TT_CTRL_CODE {
+		TT_NULL = 0,
+		TT_ALPHA_RED = 0x01, TT_ALPHA_GREEN = 0x02, TT_ALPHA_YELLOW = 0x03, TT_ALPHA_BLUE = 0x04,
+		TT_ALPHA_MAGENTA = 0x05, TT_ALPHA_CYAN = 0x06, TT_ALPHA_WHITE = 0x07,
+		TT_FLASH = 0x08, TT_STEADY = 0x09,
+		TT_END_BOX = 0x0a, TT_START_BOX = 0x0b, // These codes are not used
+		TT_NORMAL_HEIGHT = 0x0c, TT_DOUBLE_HEIGHT = 0x0d,
+		TT_S0 = 0x0e, TT_S1 = 0x0f, // These codes are not used
+		TT_DLE = 0x10,
+		TT_GRAPHICS_RED = 0x11, TT_GRAPHICS_GREEN = 0x12, TT_GRAPHICS_YELLOW = 0x13, TT_GRAPHICS_BLUE = 0x14,
+		TT_GRAPHICS_MAGENTA = 0x15, TT_GRAPHICS_CYAN = 0x16, TT_GRAPHICS_WHITE = 0x17,
+		TT_CONCEAL = 0x18, TT_CONTIGUOUS_GRAPHICS = 0x19, TT_SEPARATED_GRAPHICS = 0x1a,
+		TT_ESC = 0x1b, TT_BLACK_BACKGROUND = 0x1c, TT_NEW_BACKGROUND = 0x1d,
+		TT_HOLD_GRAPHICS = 0x1e, TT_RELEASE_GRAPHICS = 0x1f
+	};
+	
+	enum TT_COLOR {TT_BLACK = 0, TT_RED = 1, TT_GREEN = 2, TT_YELLOW = 3, TT_BLUE = 4, TT_MAGENTA = 5, TT_CYAN = 6, TT_WHITE = 7};
+	uint32_t mColours[8] = {
+		0xff000000, // opaque black ARGB 8888,
+		0xffff0000, // opaque red ARGB 8888},
+		0xff00ff00, // opaque green ARGB 8888,
+		0xffffff00, // opaque yellow ARGB 8888
+		0xff0000ff, // opaque blue ARGB 8888
+		0xffff00ff, // opaque magenta ARGB 8888,
+		0xff00ffff, // opaque cyan ARGB 8888,
+		0xffffffff // opaque white ARGB 8888,		
+	};
+	uint32_t mGraphicsColour = mColours[TT_WHITE];
+	uint32_t mAlpaNumericColour = mColours[TT_WHITE];
+	uint32_t mBackgroundColour = mColours[TT_BLACK];
+	bool mDoubleHeight = false;
+	bool mSeparatedGraphics = false;	// If true, the graphic sixels will be made up of smaller blocks
+	bool mHiddenText = false;
+	bool mHeldGraphics = false;			// If true, control codes are displayed as a copy of the most recently displayed graphics symbol (and not  as spacesin the current background colour
+	uint8_t mLastGraphicsSymbolIndex = 0x0;
 public:
 
 	ALLEGRO_COLOR green, black;
@@ -142,7 +203,7 @@ public:
 	bool advance(uint64_t stopCycle);
 
 	// Called by other device to trigger the output of new data
-	bool updateDataOutput(uint8_t& R, uint8_t &G, uint8_t &B);
+	bool updateDataOutput(uint8_t pageData, vector <uint32_t>& charPixels);
 
 };
 

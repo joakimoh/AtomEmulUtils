@@ -60,12 +60,13 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 			return false;
 		Device* dev;
 		if (!mDevices->getDevice(dev_name, dev))
-				return false;
+			return false;
 
 		// Get port reference
 		string port_ref;
-		if (!dev_tok.nextToken(port_ref))
+		if (!dev_tok.nextToken(port_ref)) 
 			return false;
+
 	
 		// Get port name
 		Tokeniser port_tok(port_ref, ';');

@@ -53,6 +53,7 @@ bool Device::connectDevice(Device* dev)
 // Used by a device to make a port available for routing
 bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &index, uint8_t *val)
 {
+	
 	index = mPortIndex++;
 	DevicePort *device_port = new DevicePort();
 	device_port->dev = this;
@@ -70,7 +71,7 @@ bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &ind
 	mConnectionManager->addDevicePort(this, device_port);
 
 	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-	cout << "ADDED " << this->name << " " << _PORT_DIR(dir) << " PORT '" << name << "' #" << dec << index << " (#" << device_port->globalIndex << ")\n";
+		cout << "ADDED " << this->name << " " << _PORT_DIR(dir) << " PORT '" << name << "' #" << dec << index << " (#" << device_port->globalIndex << ")\n";
 	
 
 	return true;
@@ -303,17 +304,16 @@ Devices::Devices(
 					uint16_t dev_adr = getHexAdr(sin);
 					uint16_t dev_sz = getHexAdr(sin);
 					string ROM_file_path = getFileName(memMapFile, sin);
-					BeebPagedROM* rom = new BeebPagedROM(dev_name, slot, dev_adr, dev_sz, ROM_file_path, mDebugInfo);
-					mDevices.push_back(rom);
-					paged_ROMs.push_back(rom);
-
+					BeebPagedROM* paged_rom = new BeebPagedROM(dev_name, slot, dev_adr, dev_sz, ROM_file_path, mDebugInfo, &connection_manager);
+					mDevices.push_back(paged_rom);
+					paged_ROMs.push_back(paged_rom);
 				}
 
 				else if (dev_type == "BeebRomSel") {
 
 					uint16_t dev_adr = getHexAdr(sin);
 					uint16_t dev_sz = getHexAdr(sin);
-					paged_rom_sel = new BeebROMSel(dev_name, dev_adr, mDebugInfo);
+					paged_rom_sel = new BeebROMSel(dev_name, dev_adr, mDebugInfo, &connection_manager);
 					mDevices.push_back(paged_rom_sel);
 
 				}
@@ -528,6 +528,7 @@ Devices::Devices(
 		throw runtime_error("No microprocessor device specifed");
 	}
 
+	
 	if (paged_ROMs.size() > 0) {
 		if (paged_rom_sel == NULL) {
 			cout << "No paged ROM register specifed!\n";
@@ -589,6 +590,8 @@ Devices::Devices(
 			halflineScheduledDevices.push_back(d);
 		else if (d->scheduling == FRAME)
 			frameScheduledDevices.push_back(d);
+		if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+			cout << d->name << " scheduled on " << _SCHEDULING(d->scheduling) << " basis\n";
 	}
 
 	if (!getZPMemDevice(microprocessor->mZPMemDev)) {

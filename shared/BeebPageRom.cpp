@@ -6,13 +6,11 @@
 
 using namespace std;
 
-BeebPagedROM::BeebPagedROM(string name, int slot, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo) :
-	MemoryMappedDevice(name, BEEB_PAGED_ROM_DEV, MEMORY_DEVICE, adr, sz, debugInfo, NULL), mSlot(slot)
+BeebPagedROM::BeebPagedROM(string name, int slot, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo, ConnectionManager * connectionManager) :
+	MemoryMappedDevice(name, BEEB_PAGED_ROM_DEV, MEMORY_DEVICE, adr, sz, debugInfo, connectionManager), mSlot(slot)
 {
 
-	cout << "Paged ROM!\n";
-
-	registerPort("SEL", IN_PORT, 0xf, SEL, &mSEL);
+	registerPort("SEL", IN_PORT, 0x1, SEL, &mSEL);
 
 	ifstream fin(binaryContent, ios::in | ios::binary | ios::ate);
 

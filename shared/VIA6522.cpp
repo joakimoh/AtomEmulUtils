@@ -9,7 +9,7 @@ bool VIA6522::reset()
 	Device::reset();
 
 	if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
-		cout << "VIA 6522 RESET\n";
+		cout << "VIA 6522 '" << this->name << "' RESET\n";
 		pRESET = mRESET;
 	}
 
@@ -49,6 +49,10 @@ VIA6522::VIA6522(string name, uint16_t adr, DebugInfo debugInfo, ConnectionManag
 	registerPort("PA",		IO_PORT,	0xff, PA,		&mPA);	registerPort("PB",		IO_PORT,	0xff, PB,		&mPB);
 	registerPort("CA",		IO_PORT,	0x03, CA,		&mCA);
 	registerPort("CB",		IO_PORT,	0x03, CB,		&mCB);
+
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+		cout << "VIA 6522 '" << name << "' at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
+		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
 
 }
 

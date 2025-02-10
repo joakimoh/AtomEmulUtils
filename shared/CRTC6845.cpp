@@ -1,5 +1,10 @@
 #include "CRTC6845.h"
 
+//
+// Note:
+// The video memory address provided will not be used as the start address of the memory (and size) is programmed (R12 & R13 for the start address)
+// 
+//
 CRTC6845::CRTC6845(
 	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager
 ) : VideoDisplayUnit(name, CRTC6845_DEV, adr, 0x2, disp, videoMemAdr, debugInfo, connectionManager)
@@ -22,26 +27,29 @@ bool CRTC6845::reset()
 	mCharRow = 0;
 	mScanLine = 0;
 	mCharCol = 0;
+	mInitialisedCount = 0;
 
-	// Initialise with BBC Micro Mode 7 Settings...
-	mReg[R0_HorizontalTotal] =		127;
-	mReg[R1_HorizontalDisplayed] =	40;
-	mReg[R2_HSYncPosition] =		51;
-	mReg[R3_HSyncWidth] =			(2 << 4) | 4;
-	mReg[R4_VerticalTotal] =		30;
-	mReg[R5_VerticalTotalAdjust] =	2;
-	mReg[R6_VerticalDisplayed] =	25;
-	mReg[R7_VSyncPosition] =		27;
-	mReg[R8_InterlaceMode] =		(2 << 6) | (1 << 4) | 1;;
-	mReg[R9_MaxScanLineAddress] =	18;
-	mReg[R10_CursorStart] =			(1 << 6) | (1 << 5) | 18;
-	mReg[R11_CursorEnd] =			19;
-	mReg[R12_StartAddressH] =		0;
-	mReg[R13_StartAddressL] =		0;
-	mReg[R14_CursorH] =				0;
-	mReg[R15_CursorL] =				0;
-	mReg[R16_LightPenL] =			0;
-	mReg[R17_LightPenH] =			0;
+	for (int i = 0; i < 18; mReg[i++] = 0);
+
+	// Example: BBC Micro Mode 7 Settings... (see https://beebwiki.mdfs.net/MODE_7)
+	// mReg[R0_HorizontalTotal] =		0x3f;
+	// mReg[R1_HorizontalDisplayed] =	0x28;
+	// mReg[R2_HSYncPosition] =		0x31; // 0x33  oringinally but 0x31 to centre screen better
+	// mReg[R3_HSyncWidth] =			0x24;
+	// mReg[R4_VerticalTotal] =		0x1e;
+	// mReg[R5_VerticalTotalAdjust] =	0x02;
+	// mReg[R6_VerticalDisplayed] =	0x19;
+	// mReg[R7_VSyncPosition] =		0x1b;
+	// mReg[R8_InterlaceMode] =		0x93;
+	// mReg[R9_MaxScanLineAddress] =	0x12;
+	// mReg[R10_CursorStart] =			0x72;
+	// mReg[R11_CursorEnd] =			0x13;
+	// mReg[R12_StartAddressH] =		0;
+	// mReg[R13_StartAddressL] =		0;
+	// mReg[R14_CursorH] =				0;
+	// mReg[R15_CursorL] =				0;
+	// mReg[R16_LightPenL] =			0;
+	// mReg[R17_LightPenH] =			0;
 	
 	updateSettings();
 	printSettings();
@@ -54,6 +62,9 @@ bool CRTC6845::updateDataOutput(uint8_t &data)
 {
 	data = 0xff;
 
+	if (mInitialisedCount < 2)
+		return true;
+
 	// Advance time corresponding to one character and check for HS, VS & DEN
 	int step = max(1, (int)round((mCPUClock / mCLK)));
 	advance(mCycleCount + step);
@@ -64,8 +75,6 @@ bool CRTC6845::updateDataOutput(uint8_t &data)
 		if (!mVideoMem->read(video_mem_adr, data)) 
 			return false;	
 	}
-
-	
 
 	// Increase character position (includes the invisible non-displayed chars)
 	mCharCol = (mCharCol + 1) % (mReg[R0_HorizontalTotal] + 1);
@@ -82,6 +91,9 @@ bool CRTC6845::updateDataOutput(uint8_t &data)
 
 bool CRTC6845::advance(uint64_t stopCycle)
 {
+	if (mInitialisedCount < 2)
+		mCycleCount = stopCycle;
+
 	while (mCycleCount < stopCycle) {
 
 		// Advance time corresponding to one character
@@ -141,28 +153,29 @@ bool CRTC6845::read(uint16_t adr, uint8_t& data)
 
 //
 // Register settings for the BBC Micro Model B (from https://beebwiki.mdfs.net/CRTC):
-// 
-//							MODE
-//			Register		|	0	|	1	|	2	|	3	|	4	|	5	|	6	|	7	|
-//			----------------+-------+-------+-------+-------+-------+-------+-------+-------+
-//			R0	HTC			|	127	|	127	|	127	|	127	|	127	|	127	|	127	|	127	|
-//			R1	HDC			|	80	|	80	|	80	|	80	|	40	|	40	|	40	|	40	|
-//			R2	HSP			|	98	|	98	|	98	|	98	|	49	|	49	|	49	|	51	|
-//			R3	HSW	b3-b0	|	8	|	8	|	8	|	8	|	4	|	4	|	4	|	4	|
-//			VSW	b7-b4		|	2	|	2	|	2	|	2	|	2	|	2	|	2	|	2	|
-//			R4	VTC			|	38	|	38	|	38	|	30	|	38	|	38	|	30	|	30	|
-//			R5	VTA			|	0	|	0	|	0	|	2	|	0	|	0	|	2	|	2	|	plus	*	TV	setting
-//			R6	VDC			|	32	|	32	|	32	|	25	|	32	|	32	|	25	|	25	|
-//			R7	VSP			|	34	|	34	|	34	|	27	|	34	|	34	|	27	|	27	|
-//			R8	INT	b1-b0	|	1	|	1	|	1	|	1	|	1	|	1	|	1	|	1	|	plus	*	TV	setting
-//				UND	b3-b2	|		|		|		|		|		|		|		|		|
-//				DIS	b5-b4	|	0	|	0	|	0	|	0	|	0	|	0	|	0	|	1	|
-//				CUR	b7-b6	|	0	|	0	|	0	|	0	|	0	|	0	|	0	|	2	|
-//			R9	NSL			|	7	|	7	|	7	|	9	|	7	|	7	|	9	|	18	|
-//			R10	b4-b0		|	7	|	7	|	7	|	7	|	7	|	7	|	7	|	18	|
-//				b5			|	1	|	1	|	1	|	1	|	1	|	1	|	1	|	1	|	changed	for	editing	cursor
-//				b6			|	1	|	1	|	1	|	1	|	1	|	1	|	1	|	1	|	changed	by	VDU	23,	1
-//			R11				|	8	|	8	|	8	|	9	|	8	|	9	|	9	|	19	|
+// Register  Description                             Default value for MODE
+//                                              0     1     2     3     4     5     6     7
+// ----------------------------------------------------------------------------------------
+// R0        Horizontal total                 127   127   127   127    63    63    63    63
+// R1        Characters per line               80    80    80    80    40    40    40    40
+// R2        Horizontal sync position          98    98    98    98    49    49    49    51
+// R3        Horizontal sync width(bits 0 - 3)  8     8     8     8     4     4     4     4
+//           +Vertical sync width(bits 4 - 7)   2     2     2     2     2     2     2     2
+// R4        Vertical total                    38    38    38    30    38    38    30    30
+// R5        Vertical total adjust              0     0     0     2     0     0     2     2
+// R6        Vertical displayed characters     32    32    32    25    32    32    25    25
+// R7        Vertical sync position            34    34    34    27    34    34    27    27
+// R8        Interlace mode(bits 0, 1)          1     1     1     1     1     1     1     3
+//           +Display delay(bits 4, 5)          0     0     0     0     0     0     0     1
+//           +Cursor delay(bits 6, 7)           0     0     0     0     0     0     0     2
+// R9        Scan lines per character           7     7     7     9     7     7     9    18
+// R10       Cursor start(bits 0 - 4)           7     7     7     7     7     7     7    18
+//           Cursor type(bit 5)                 1     1     1     1     1     1     1     1
+//           Cursor blink(bit 6)                1     1     1     1     1     1     1     1
+// R11       Cursor end                         8     8     8     9     8     8     9    19
+// R12, R13   Screen start address / 8 - -------
+// R14, R15   Cursor position - -------
+// R16, R17   Light pen position - -------
 //
 bool CRTC6845::write(uint16_t adr, uint8_t data)
 {
@@ -182,6 +195,9 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 	
 	if (true || mDebugInfo.dbgLevel & DBG_VERBOSE)
 		printSettings();
+
+	if (a == R12_StartAddressH || a == R13_StartAddressL)
+		mInitialisedCount++;
 
 	return true;
 }
@@ -222,8 +238,9 @@ void CRTC6845::printSettings()
 	cout << "Scan Line duration:                " << Tsl << "\tus\n";
 	cout << "Scan Lines per Character:          " << Nsl << "\tlines\n";
 	cout << "Total no of characters per line:   " << (int) mReg[R0_HorizontalTotal] + 1 << "\tchars\n";
-	cout << "No of visible characters per line: " << (int) mReg[R1_HorizontalDisplayed] << "\tchars\n";
-	cout << "Vertical sync position:             " << VS_pos << "\t(" << round(Nvsp / 1000) << " ms)\n";
+	cout << "No of visible characters per line: " << (int)mReg[R1_HorizontalDisplayed] << "\tchars\n";
+	cout << "Vertical sync position:            " << VS_pos << " lines (" << round(Nvsp / 1000) << " ms)\n";
+	cout << "Horizontal sync position:          " << (int) mReg[R2_HSYncPosition] << " chars (" << round(Nhsp) << " us)\n";
 	
 }
 

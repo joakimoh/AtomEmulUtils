@@ -17,7 +17,7 @@ public:
 
 	// M6845 Ports
 	int CLK, DEN, RA, CURS, HS, VS, RESET;
-	uint8_t mCLK = 2;		// INPUT - Clock rate [MHz] (1 or 2 MHz for a BBC Micro Model B e.g.)
+	uint8_t mCLK = 1;		// INPUT - Clock rate [MHz] (1 or 2 MHz for a BBC Micro Model B e.g.)
 	uint8_t mNEXT_CHAR;		// INPUT  - Advance one character
 	uint8_t mRESET = 0x1;	// INPUT
 	uint8_t mDEN = 0x0;		// OUTPUT - Display ENable: When high, the display is in the active area
@@ -83,6 +83,8 @@ public:
 	double mScanLines = 0;
 
 	double mCPUClock = 2.0;
+
+	int mInitialisedCount = 0;
 
 public:
 
