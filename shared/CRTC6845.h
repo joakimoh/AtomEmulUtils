@@ -42,7 +42,7 @@ public:
 		{0x0f, true, false},	// R3 -		HSyncWidth
 		{0x7f, true, false},	// R4 -		VerticalTotal
 		{0x1f, true, false},	// R5 -		VerticalTotalAdjust
-		{0x1f, true, false},	// R6 -		VerticalDisplayed
+		{0x7f, true, false},	// R6 -		VerticalDisplayed
 		{0x7f, true, false},	// R7 -		VSyncPosition
 		{0x03, true, false},	// R8 -		InterlaceMode
 		{0x1f, true, false},	// R9 -		MaxScanLineAddress
@@ -62,7 +62,7 @@ public:
 		R2_HSYncPosition = 2,		// HSYncPosition		Horizontal sync pos
 		R3_HSyncWidth = 3,			// HSyncWidth			Width of horizontal sync pulse
 		R4_VerticalTotal = 4,		// VerticalTotal		Integer part of no of character lines - 1
-		R5_VerticalTotalAdjust = 5,	// VerticalTotalAdjust	Fraction part of no of character lines
+		R5_VerticalTotalAdjust = 5,	// VerticalTotalAdjust	Fraction part in unit scan lines
 		R6_VerticalDisplayed = 6,	// VerticalDisplayed	No of visible char rows	
 		R7_VSyncPosition = 7,		// VSyncPosition		Vertical sync pos in char row
 		R8_InterlaceMode = 8,		// InterlaceMode		Raster scan mode (*0: non-interlaces, 01: interlaced, 11: interlaced & video)
@@ -85,6 +85,7 @@ public:
 	double mCPUClock = 2.0;
 
 	int mInitialisedCount = 0;
+	int mRegWrtCnt = 0;
 
 public:
 

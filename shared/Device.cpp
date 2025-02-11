@@ -22,7 +22,6 @@
 #include "AtomSpeaker.h"
 #include "MemoryMappedDevice.h"
 #include "BeebRomSel.h"
-#include "BeebPagedRom.h"
 
 using namespace std;
 
@@ -165,7 +164,7 @@ Devices::Devices(
 	vector<VideoDisplayUnit*> vdus;
 
 	// BBC Micro Page ROM support
-	vector<BeebPagedROM*> paged_ROMs;
+	vector<ROM*> paged_ROMs;
 	BeebROMSel* paged_rom_sel = NULL;
 
 	mainVDU = NULL;
@@ -274,7 +273,7 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexAdr(sin);
 					uint16_t dev_sz = getHexAdr(sin);
-					RAM* ram = new RAM(dev_name, false, dev_adr, dev_sz, mDebugInfo);
+					RAM* ram = new RAM(dev_name, false, dev_adr, dev_sz, mDebugInfo, &connection_manager);
 					mDevices.push_back(ram);
 
 				}
@@ -283,7 +282,7 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexAdr(sin);
 					uint16_t dev_sz = getHexAdr(sin);
-					RAM* ram = new RAM(dev_name, true, dev_adr, dev_sz, mDebugInfo);
+					RAM* ram = new RAM(dev_name, true, dev_adr, dev_sz, mDebugInfo, &connection_manager);
 					mDevices.push_back(ram);
 
 				}
@@ -293,20 +292,9 @@ Devices::Devices(
 					uint16_t dev_adr = getHexAdr(sin);
 					uint16_t dev_sz = getHexAdr(sin);
 					string ROM_file_path = getFileName(memMapFile, sin);
-					ROM* rom = new ROM(dev_name, dev_adr, dev_sz, ROM_file_path, mDebugInfo);
+					ROM* rom = new ROM(dev_name, dev_adr, dev_sz, ROM_file_path, mDebugInfo, &connection_manager);
 					mDevices.push_back(rom);
 
-				}
-
-				else if (dev_type == "BeebPROM") {
-
-					int slot = getHexAdr(sin);
-					uint16_t dev_adr = getHexAdr(sin);
-					uint16_t dev_sz = getHexAdr(sin);
-					string ROM_file_path = getFileName(memMapFile, sin);
-					BeebPagedROM* paged_rom = new BeebPagedROM(dev_name, slot, dev_adr, dev_sz, ROM_file_path, mDebugInfo, &connection_manager);
-					mDevices.push_back(paged_rom);
-					paged_ROMs.push_back(paged_rom);
 				}
 
 				else if (dev_type == "BeebRomSel") {
@@ -685,7 +673,7 @@ bool Devices::getPeripherals(vector<Device*>& devices)
 bool Devices::getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
-		if (mDevices[i]->category == PERIPHERAL || mDevices[i]->category == MEMORY_DEVICE) {
+		if (mDevices[i]->memoryMapped()) {
 			devices.push_back((MemoryMappedDevice *) mDevices[i]);
 			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
 				cout << "Adding memory-mapped device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";

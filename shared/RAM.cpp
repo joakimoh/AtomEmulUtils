@@ -3,8 +3,11 @@
 #include <iostream>
 #include <filesystem>
 
-RAM::RAM(string name, bool DRAM, uint16_t adr, uint16_t sz, DebugInfo debugInfo) : MemoryMappedDevice(name, RAM_DEV, MEMORY_DEVICE, adr, sz, debugInfo, NULL)
+RAM::RAM(string name, bool DRAM, uint16_t adr, uint16_t sz, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+	MemoryMappedDevice(name, RAM_DEV, MEMORY_DEVICE, adr, sz, debugInfo, connectionManager)
 {
+
+	registerPort("CS", IN_PORT, 0x1, CS, &mCS);
 
 	// Resize the RAM vector
 	mMem.resize((size_t) mMemorySpace.sz);
@@ -27,7 +30,7 @@ bool RAM::read(uint16_t adr, uint8_t& data)
 {
 
 	// Call parent class to trigger scheduling of other devices when applicable
-	if (!MemoryMappedDevice::read(adr, data))
+	if (!MemoryMappedDevice::read(adr, data) || mCS != 0)
 		return false;
 	
 	data = mMem[adr - mMemorySpace.adr];
@@ -38,7 +41,7 @@ bool RAM::read(uint16_t adr, uint8_t& data)
 bool RAM::write(uint16_t adr, uint8_t data)
 {
 	// Call parent class to trigger scheduling of other devices when applicable
-	if (!MemoryMappedDevice::write(adr, data))
+	if (!MemoryMappedDevice::write(adr, data) || mCS != 0)
 		return false;
 
 	mMem[adr - mMemorySpace.adr] = data;

@@ -28,31 +28,31 @@ bool CRTC6845::reset()
 	mScanLine = 0;
 	mCharCol = 0;
 	mInitialisedCount = 0;
+	mRegWrtCnt = 0;
 
 	for (int i = 0; i < 18; mReg[i++] = 0);
 
-	// Example: BBC Micro Mode 7 Settings... (see https://beebwiki.mdfs.net/MODE_7)
-	// mReg[R0_HorizontalTotal] =		0x3f;
-	// mReg[R1_HorizontalDisplayed] =	0x28;
-	// mReg[R2_HSYncPosition] =		0x31; // 0x33  oringinally but 0x31 to centre screen better
-	// mReg[R3_HSyncWidth] =			0x24;
-	// mReg[R4_VerticalTotal] =		0x1e;
-	// mReg[R5_VerticalTotalAdjust] =	0x02;
-	// mReg[R6_VerticalDisplayed] =	0x19;
-	// mReg[R7_VSyncPosition] =		0x1b;
-	// mReg[R8_InterlaceMode] =		0x93;
-	// mReg[R9_MaxScanLineAddress] =	0x12;
-	// mReg[R10_CursorStart] =			0x72;
-	// mReg[R11_CursorEnd] =			0x13;
-	// mReg[R12_StartAddressH] =		0;
-	// mReg[R13_StartAddressL] =		0;
-	// mReg[R14_CursorH] =				0;
-	// mReg[R15_CursorL] =				0;
+	// Example: BBC Micro Mode 7 Settings... (see https://beebwiki.mdfs.net/MODE_7) and actual from execution
+	// mReg[R0_HorizontalTotal] =		0x3f;	0x3f
+	// mReg[R1_HorizontalDisplayed] =	0x28;	0x28
+	// mReg[R2_HSYncPosition] =			0x33;	0x31
+	// mReg[R3_HSyncWidth] =			0x24;	0x4 (0x24 written but truncated to 4 bits)
+	// mReg[R4_VerticalTotal] =			0x1e;	0x26
+	// mReg[R5_VerticalTotalAdjust] =	0x02;	0x00
+	// mReg[R6_VerticalDisplayed] =		0x19;	0x20
+	// mReg[R7_VSyncPosition] =			0x1b;	0x23
+	// mReg[R8_InterlaceMode] =			0x93;	0x01
+	// mReg[R9_MaxScanLineAddress] =	0x12;	0x07
+	// mReg[R10_CursorStart] =			0x72;	0x67
+	// mReg[R11_CursorEnd] =			0x13;	0x08
+	// mReg[R12_StartAddressH] =		0;		0x0b	0x0b00
+	// mReg[R13_StartAddressL] =		0;		0x00
+	// mReg[R14_CursorH] =				0;		0x0b
+	// mReg[R15_CursorL] =				0;		0x00
 	// mReg[R16_LightPenL] =			0;
 	// mReg[R17_LightPenH] =			0;
 	
 	updateSettings();
-	printSettings();
 
 	return true;
 }
@@ -179,21 +179,25 @@ bool CRTC6845::read(uint16_t adr, uint8_t& data)
 //
 bool CRTC6845::write(uint16_t adr, uint8_t data)
 {
-	cout << "WRITE M6845\n";
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	if (!VideoDisplayUnit::write(adr, data))
 		return false;
 
+	
+
 	int16_t a = adr - mMemorySpace.adr;
-	if (adr == 0 && (data & 0x1f) < 18)
+	if (a == 0 && (data & 0x1f) < 18)
 		mAddressRegister = data & 0x1f;
-	else if (mAddressRegister > 0 && mAddressRegister < 18 && mRegInfo[mAddressRegister].writable)
+	else if (mAddressRegister >= 0 && mAddressRegister < 18 && mRegInfo[mAddressRegister].writable) {
 		mReg[mAddressRegister] = data & mRegInfo[mAddressRegister].mask;
+		mRegWrtCnt++;
+		//cout << "R" << dec << (int)mAddressRegister << " = 0x" << hex << (int)mReg[mAddressRegister] << " for data 0x" << (int) data << "\n";
+	}
 
 	updateSettings();
 	
-	if (true || mDebugInfo.dbgLevel & DBG_VERBOSE)
+	if (mRegWrtCnt >= 18 && (mDebugInfo.dbgLevel & DBG_VERBOSE))
 		printSettings();
 
 	if (a == R12_StartAddressH || a == R13_StartAddressL)
@@ -226,11 +230,11 @@ void CRTC6845::printSettings()
 	double Nvsp = mReg[R7_VSyncPosition] * Tcr;									// [ms]		Vertical sync position				34 * 448 =	   15.2 ms
 	int VS_pos = mReg[R7_VSyncPosition] * (mReg[R9_MaxScanLineAddress] + 1);	// Vertical sync position in scan lines			8 * 34 =	    272 lines
 	mVisibleLines = mReg[R6_VerticalDisplayed] * (mReg[R9_MaxScanLineAddress] + 1);
-	mScanLines = (mReg[R4_VerticalTotal] + 1 + mReg[R5_VerticalTotalAdjust] / 32.0) * (mReg[R9_MaxScanLineAddress] + 1); // 39 * 8 =			312 lines
+	mScanLines = (mReg[R4_VerticalTotal] + 1) * (mReg[R9_MaxScanLineAddress] + 1) + mReg[R5_VerticalTotalAdjust];			// 39 * 8 + 0 =			312 lines
 
 	cout << dec;
 	for (int i = 0; i < 18; i++)
-		cout << "R" << i << ": " << (int) mReg[i] << dec << "\n";
+		cout << "R" << i << ": " << hex << (int) mReg[i] << dec << "\n";
  	cout << "CLK:                               " << (int) mCLK << "\tMhz\n";
 	cout << "Frame Rate:                        " << round(1000 / Nvt) << "\tHz\n";
 	cout << "No of scan lines per frame:        " << round(mScanLines) << "\n";
@@ -241,6 +245,8 @@ void CRTC6845::printSettings()
 	cout << "No of visible characters per line: " << (int)mReg[R1_HorizontalDisplayed] << "\tchars\n";
 	cout << "Vertical sync position:            " << VS_pos << " lines (" << round(Nvsp / 1000) << " ms)\n";
 	cout << "Horizontal sync position:          " << (int) mReg[R2_HSYncPosition] << " chars (" << round(Nhsp) << " us)\n";
+	cout << "Start address:                     0x" << hex << (mReg[R12_StartAddressH] << 8) + mReg[R13_StartAddressL] << "\n";
+	cout << "Interlace mode:                    " << (mReg[R8_InterlaceMode]&1?"Non-interlaced":mReg[R8_InterlaceMode]&2?"Interlaced & video":"Interlaced") << "\n";
 	
 }
 

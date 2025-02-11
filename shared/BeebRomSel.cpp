@@ -6,8 +6,11 @@
 BeebROMSel::BeebROMSel(string name, uint16_t adr, DebugInfo debugInfo, ConnectionManager * connectionManager) :
 	MemoryMappedDevice(name, BEEB_PAGED_ROM_SEL_DEV, MEMORY_DEVICE, adr, 1, debugInfo, connectionManager)
 {
-	registerPort("SEL_H", OUT_PORT, 0xff, SEL_H, &mSEL_H);
-	registerPort("SEL_L", OUT_PORT, 0xff, SEL_L, &mSEL_L);
+	registerPort("NW", OUT_PORT, 0x1, NW, &mNW);
+	registerPort("NE", OUT_PORT, 0x1, NE, &mNE);
+	registerPort("SW", OUT_PORT, 0x1, SW, &mSW);
+	registerPort("SE", OUT_PORT, 0x1, SE, &mSE);
+
 }
 
 
@@ -20,8 +23,6 @@ bool BeebROMSel::read(uint16_t adr, uint8_t& data)
 
 	data = mReg;
 
-	cout << "READ 0x" << hex << data << " FROM ROMSEL REGISTER!\n";
-
 	return true;
 
 }
@@ -32,20 +33,43 @@ bool BeebROMSel::write(uint16_t adr, uint8_t data)
 		return false;
 
 	mReg = data;
-	uint16_t sel = 1 << mReg;
-	uint8_t sel_L = sel & 0xff;
-	uint8_t sel_H = (sel >> 8) & 0xff;
-	updatePort(SEL_L, sel_L);
-	updatePort(SEL_H, sel_H);
+	switch (mReg & 0x3) {
+	case 0x3:
+		updatePort(NW, 0x0);
+		updatePort(NE, 0x1);
+		updatePort(SW, 0x1);
+		updatePort(SE, 0x1);
+		break;
+	case 0x2:
+		updatePort(NW, 0x1);
+		updatePort(NE, 0x0);
+		updatePort(SW, 0x1);
+		updatePort(SE, 0x1);
+		break;
+	case 0x1:
+		updatePort(NW, 0x1);
+		updatePort(NE, 0x1);
+		updatePort(SW, 0x0);
+		updatePort(SE, 0x1);
+		break;
+	case 0x0:
+		updatePort(NW, 0x1);
+		updatePort(NE, 0x1);
+		updatePort(SW, 0x1);
+		updatePort(SE, 0x0);
+		break;
+	default:
+		break;
+	}
 
 	return true;
 }
 
-bool BeebROMSel::addROMs(vector<BeebPagedROM*> &ROMs)
+bool BeebROMSel::addROMs(vector<ROM*> &ROMs)
 {
 	for (int i = 0; i < ROMs.size(); i++) {
 		if (mDebugInfo.dbgLevel & DBG_VERBOSE)
-			cout << "Adding Paged ROM '" << ROMs[i]->name << " at slot #" << ROMs[i]->getSlot() << "\n";
+			cout << "Adding Paged ROM '" << ROMs[i]->name << "\n";
 		mROMs.push_back(ROMs[i]);
 	}
 

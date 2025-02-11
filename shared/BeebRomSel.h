@@ -1,10 +1,10 @@
-#ifndef ROMSEL_H
-#define ROMSEL_H
+#ifndef BEEB_ROM_SEL_H
+#define BEEB_ROM_SEL_H
 
 #include <cstdint>
 #include "MemoryMappedDevice.h"
 #include <vector>
-#include "BeebPagedRom.h"
+#include "Rom.h"
 
 
 using namespace std;
@@ -13,13 +13,15 @@ class BeebROMSel : public MemoryMappedDevice {
 
 private:
 
-	int SEL_L, SEL_H;
-	uint8_t mSEL_L = 0x0;
-	uint8_t mSEL_H = 0x0;
+	int NW,NE,SW,SE;
+	uint8_t mNW = 0x1; // IC52 "BASIC ROM" -		typically containing the DFS (slot 12, IC20 output #0)
+	uint8_t mNE = 0x1; // IC88 "DISC & NET ROM" -	typically empty (slot 13, IC20 output #1)
+	uint8_t mSW = 0x1; // IC100 "AUX ROM" -			typically empty  (slot 14, IC20 output #2)
+	uint8_t mSE = 0x1; // IC101 "AUX ROM" -			typically containing BASIC or BASIC II (slot 15, IC20 output #3)
 
 	uint8_t mReg = 15;	// 4-bit ROM selection register; 15 <=> BBC BASIC ROM
 
-	vector<BeebPagedROM*> mROMs;
+	vector<ROM*> mROMs;
 
 public:
 
@@ -29,7 +31,7 @@ public:
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);
 
-	bool addROMs(vector<BeebPagedROM*> &ROMs);
+	bool addROMs(vector<ROM*> &ROMs);
 
 };
 

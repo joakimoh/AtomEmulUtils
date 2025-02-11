@@ -93,13 +93,30 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	for (int char_pos = 0; char_pos < n_chars; char_pos++) {
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
-		// the TGC character is only 6 pixels wdie whereas the CRTC one is 8 pixels wide!
+		// the TGC character is only 6 pixels wide whereas the CRTC one is 8 pixels wide!
+		// The M6847 R12/R13 value is set as follows:
+		// MODE 0 - 6:	screen address / 8 <=> 0,1,2: 0x3000 => 0x600, 3: 0x4000 => 0x800, 4-5: 0xb00, 6: 0x6000 => 0xc00
+		// MODE 7:		screen address - (0x7400 ^ 0x2000) => 0x2800 for actual memory address of 0x7c00
+		// The same logic applies to setting R14/R15 (cursor position)
+		//
+		// Each n x 8(10) pxiel block in modes 0-6 are organised so that each row (0,1,..7(9)) of the n pixel are stored
+		// in consecutive memory locations (row 0: a, row 1: a+1,... row 7: a+7). For two-colour modes n = 8 pixels,
+		// for 4-colour modes it is 4 pixels and for 16-colour modes it is 2 pixels. That is the reason the screen
+		// address above is divided by 8. The raster address will then select eahc of the 8(10) rows to cover the complete
+		// block of n x 8(10) pixels. The raster rows are 8 for modes 0-2,4 & 5 (graphics & char modes) and 10 for
+		// modes 3 & 6 (char only modes)
+		//
+		// For mode 7 (teletext mode) only complete characters (or graphical symbols) are read at a time and the raster
+		// address selects the row of each character (the same screen memory data is present for all raster  rows).
+		// There are for mode 7, 19 raster rows.
 		uint8_t crtc_data;
 		vector<uint32_t> tgc_data;
 		mCRTC->updateDataOutput(crtc_data);
 
-		// The TCG's page memory input comes from the CRTC.
-		// The TCG then generates 6 pixel colour data (tgc_data).
+		// The TCG's page memory input comes from the CRTC (0x7c00 to 0x7fff)
+		// The TCG then generates either 6 x 10 pixel character colour data (tgc_data)
+		// or 12 x 20 pixel character colour data (if characters are interpolated).
+		// The graphics data is always 6 x 10 pixels but encoded as a sixel of 2 x 3 blocks
 		mTGC->updateDataOutput(crtc_data, tgc_data);
 
 		uint8_t cursor_seg_ena = 0x0;

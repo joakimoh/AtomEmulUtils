@@ -11,12 +11,15 @@ using namespace std;
 
 class ROM : public MemoryMappedDevice {
 
-private:
+public:
+
+	int CS;
+	uint8_t mCS = 0x0;
 
 public:
 
 
-	ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo);
+	ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo, ConnectionManager* connectionManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);
