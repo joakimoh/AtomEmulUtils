@@ -24,14 +24,12 @@ void TT5050::createInterpolatedSymbols()
 	uint8_t raster_bits[96][10][6];
 	uint8_t i_raster_bits[96][20][12];
 
-	cout << "Create interpolated teletext symbols...\n";
-
 	// Make temp symbol table with bit resolution
 	for (int symbol = 0; symbol < mSymbols.size(); symbol++) {
 		for (int row = 0; row < 10; row++) {
 			uint8_t raster = mSymbols[symbol].rows[row];
 			for (int col = 0; col < 6; col++) {
-				if (raster & 0x80)
+				if (raster & 0x20)
 					raster_bits[symbol][row][col] = 1;
 				else
 					raster_bits[symbol][row][col] = 0;
@@ -40,47 +38,82 @@ void TT5050::createInterpolatedSymbols()
 		}
 	}
 
-	cout << "Temp table created...\n";
-
 	// Create new interpolated symbol table
 	for (int symbol = 0; symbol < mSymbols.size(); symbol++) {
 
-		uint8_t **bits = (uint8_t [6][10]) &raster_bits[symbol][0][0];
-		uint8_t **i_bits = (uint8_t* [12][20]) &i_raster_bits[symbol][0][0];
+		auto& bits = raster_bits[symbol];
+		auto& i_bits = i_raster_bits[symbol];
 
-		for (int row = 0; row < 10; row++) {		
+		// Create the "big" pixels
+		for (int row = 0; row < 10; row++) {
 
 			for (int col = 0; col < 6; col++) {
 
-				// set "big" pixel based on "small" pixel
 				uint8_t b = bits[row][col];
-				i_bits[row * 2][col *2] = i_bits[row * 2 ][col * 2 +1] = i_bits[row * 2 + 1][col * 2] = i_bits[row * 2 + 1][col * 2 + 1] = b; 
+
+				// set "big" pixel based on "small" pixel			
+				i_bits[row * 2][col * 2] = i_bits[row * 2][col * 2 + 1] = i_bits[row * 2 + 1][col * 2] = i_bits[row * 2 + 1][col * 2 + 1] = b;
+
+				
+
+
+			}
+		}
+
+		// Round the corners
+		for (int row = 0; row < 10; row++) {
+
+			for (int col = 0; col < 6; col++) {
+
+				uint8_t b = bits[row][col];
 
 				// add interpolated pixel for north-west to south-east dialogonal
 				if (row >= 1 && row <= 9 && col >= 1) {
 					uint8_t b_NW = bits[row - 1][col - 1];
-					if (b_NW && b)
-						i_bits[row * 2 -1][col * 2] = i_bits[row * 2][col * 2 - 1] = 0x1;
+					uint8_t b_N = bits[row - 1][col];
+					uint8_t b_W = bits[row][col - 1];
+					if (b_NW && b && !b_W && !b_N)
+						i_bits[row * 2 - 1][col * 2] = i_bits[row * 2][col * 2 - 1] = 0x1;
 				}
 				// add interpolated pixel for north-east to south-west dialogonal
 				if (row >= 1 && row <= 9 && col <= 5) {
 					uint8_t b_NE = bits[row - 1][col + 1];
-					if (b_NE && b)
+					uint8_t b_E = bits[row][col + 1];
+					uint8_t b_N = bits[row - 1][col];
+					if (b_NE && b && !b_E && !b_N)
 						i_bits[row * 2 - 1][col * 2 + 1] = i_bits[row * 2][col * 2 + 2] = 0x1;
 				}
-
-			} 
+			}
 		}
+
 	}
 
-	cout << "Table created...\n";
 
-	int s = 65 - 0x20;
-	for (int r = 0; r < 20; r++) {
-		for (int c = 0; c < 12; c++) {
-			cout << (i_raster_bits[s][r][c] ? "x" : " ");
+	if (mDebugInfo.dbgLevel & DBG_VERBOSE) {
+
+		cout << "Non-interpolated and interpolated symbols:\n\n";
+
+		for (int s = 0; s < 96; s++) {
+
+			cout << mSymbols[s].asc << " (0x" << (int) mSymbols[s].asc << ")\n";
+
+			for (int r = 0; r < 10; r++) {
+				for (int c = 0; c < 6; c++) {
+					cout << (raster_bits[s][r][c] ? "x" : " ");
+				}
+				cout << "\n";
+			}
+			cout << "\n";
+
+			for (int r = 0; r < 20; r++) {
+				for (int c = 0; c < 12; c++) {
+					cout << (i_raster_bits[s][r][c] ? "x" : " ");
+				}
+				cout << "\n";
+			}
+
+			cout << "\n";
 		}
-		cout << "\n";
 	}
 }
 
