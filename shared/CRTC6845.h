@@ -91,7 +91,8 @@ public:
 
 	bool getVisibleCharArea(int& w, int& h);
 	bool getVisibleArea(int& w, int& h) {
-		return getVisibleCharArea(w, h);
+		// Not supported as cannot be calculated by the M6845 iself
+		return false;
 	}
 
 	void updateSettings();
@@ -110,6 +111,7 @@ public:
 	inline double getFrameRate();
 	inline int getCharScanLines();
 	inline int getVerticalSyncPos();
+	inline int getHorizontalSyncPos();
 
 
 	// Reset device
@@ -121,8 +123,8 @@ public:
 	// Advance line is not applicable
 	bool advanceLine(uint64_t& endCycle) { return true; }
 
-	// Called by other device to trigger the output of new data
-	bool updateDataOutput(uint8_t& data);
+	// Called by other device to get next memory address to fetch char/graphics data from
+	bool getMemFetchAdr(uint16_t& adr);
 
 	bool intialised() { return mInitialisedCount > 2; }
 

@@ -27,6 +27,22 @@ public:
 
 	// Video ULA Registers
 	uint8_t mControlRegister = 0x00;	// Video ULA base address + 0
+	enum CRFieldEnum { CR_CURSOR_SEGMENT = 4, CR_CLOCK_RATE = 3, CR_N_COLS = 2, CR_TELETEXT = 1, CR_FLASH = 0 };
+	typedef struct CRField_struct {
+		uint8_t mask;
+		uint8_t lowBit;
+		CRFieldEnum field;
+	} CRField;
+	
+	CRField mCRField[5] = {
+		{0x1, 0, CR_FLASH},
+		{0x1, 1, CR_TELETEXT},
+		{0x3, 2, CR_N_COLS},
+		{0x1, 4, CR_CLOCK_RATE},
+		{0xe, 5, CR_CURSOR_SEGMENT}
+	};
+	inline uint8_t getCRField(CRFieldEnum field) {
+		return (mControlRegister >> mCRField[field].lowBit) & mCRField[field].mask; }
 	uint8_t mPaletteMem[16] = { 0 };	// 16 x 4 bit palette memory
 
 	//
@@ -43,10 +59,15 @@ public:
 	int mNCols = 0;				// No of visible columns
 	int mCursorSegment = -1;	// The current cursor segment being drawn (0-2 when active)
 	int mVerticalSyncPos = 0;	// Vertical sync pos (in scan lines)
+	int mScreenW = 640;			// Visible screen area
+	int mScreenH = 256;			//
+	int mScreenActOffsetW = 0;	// Active screen area offset
+	int mScreenActOffsetH = 0;
 
 	double mCPUClock = 2.0; // [MHz]
 	double CRTCClock = 1.0; // [MHz]
 	uint8_t mPixelW = 1;
+	int mPixelRate = 1;
 
 	bool mNewFrame = false;
 
@@ -94,6 +115,7 @@ public:
 	inline double getFrameRate();
 	inline int getCharScanLines();
 	inline int getVerticalSyncPos();
+	inline int getHorizontalSyncPos();
 
 
 	// Reset device

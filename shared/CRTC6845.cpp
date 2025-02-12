@@ -57,10 +57,9 @@ bool CRTC6845::reset()
 	return true;
 }
 
-// Called by other device to trigger the output of new data
-bool CRTC6845::updateDataOutput(uint8_t &data)
+// Called by other device to get next memory address to fetch char/graphics data from
+bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 {
-	data = 0xff;
 
 	// Advance time corresponding to one character and check for HS, VS & DEN
 	int step = max(1, (int)round((mCPUClock / mCLK)));
@@ -71,9 +70,7 @@ bool CRTC6845::updateDataOutput(uint8_t &data)
 
 	// If in the active display area, read the memory location and output the address on port RA and the read data on port D_OUT
 	if (mDEN) {
-		uint16_t video_mem_adr = mVideoMemAdr + mCharRow * mReg[R1_HorizontalDisplayed] + mCharCol + mRA;
-		if (!mVideoMem->read(video_mem_adr, data)) 
-			return false;	
+		adr = mVideoMemAdr + mCharRow * mReg[R1_HorizontalDisplayed] + mCharCol + mRA;
 	}
 
 	// Increase character position (includes the invisible non-displayed chars)
@@ -164,11 +161,11 @@ bool CRTC6845::read(uint16_t adr, uint8_t& data)
 // R4        Vertical total                    38    38    38    30    38    38    30    30
 // R5        Vertical total adjust              0     0     0     2     0     0     2     2
 // R6        Vertical displayed characters     32    32    32    25    32    32    25    25
-// R7        Vertical sync position            34    34    34    27    34    34    27    27
+// R7        Vertical sync position            34    34    34    27    34    34    27    27 => (18+1) * 27 = 513 visible scan lines for mode 7
 // R8        Interlace mode(bits 0, 1)          1     1     1     1     1     1     1     3
 //           +Display delay(bits 4, 5)          0     0     0     0     0     0     0     1
 //           +Cursor delay(bits 6, 7)           0     0     0     0     0     0     0     2
-// R9        Scan lines per character           7     7     7     9     7     7     9    18
+// R9        Scan lines per character           7     7     7     9     7     7     9    18 => (18+1) x 30 = 570 scan lines for mode 7
 // R10       Cursor start(bits 0 - 4)           7     7     7     7     7     7     7    18
 //           Cursor type(bit 5)                 1     1     1     1     1     1     1     1
 //           Cursor blink(bit 6)                1     1     1     1     1     1     1     1
@@ -286,5 +283,10 @@ inline int CRTC6845::getCharScanLines()
 
 inline int CRTC6845::getVerticalSyncPos()
 {
-	return mReg[R2_HSYncPosition] * (mReg[R9_MaxScanLineAddress] + 1);
+	return mReg[R7_VSyncPosition] * (mReg[R9_MaxScanLineAddress] + 1);
+}
+
+inline int CRTC6845::getHorizontalSyncPos()
+{
+	return mReg[R2_HSYncPosition];
 }

@@ -146,8 +146,14 @@ public:
 
 	bool memoryMapped() { return mMemoryMapped;  }
 
+	// Called by other device to get next memory address to fetch data from
+	// Mainly used my video devices like the M6845 that calculates memory addresses
+	// for fetching char/graphics data from to be used by the mian video devices
+	// like the Beeb Video ULA that consumes the data.
+	virtual bool getMemFetchAdr(uint16_t& adr) { adr = 0xffff;  return false; }
 
-	virtual bool updateDataOutput(uint8_t& data) { return true;  }
+	// Called by a other device when the device is asked to process/transform data.
+	virtual bool getDeviceData(uint8_t dIn, uint8_t& dOut) { dOut = 0xff;  return false; }
 
 };
 

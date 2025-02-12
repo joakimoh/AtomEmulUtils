@@ -26,6 +26,10 @@
 
 class TT5050 : public Device {
 
+private:
+
+	void createInterpolatedSymbols();
+
 public:
 
 	//
@@ -34,18 +38,25 @@ public:
 
 
 	// SA5050 Ports
-	int DEW, CLR, LOSE;
+	int DEW, CLR, LOSE, CRS;
 
 	uint8_t mDEW = 0x0;		// INPUT - Data Entry Window (start of field frame): resets ROM address counter prior to the display period
 	uint8_t mCLR = 0x1;		// INPUT - General clear: Start of line
 	uint8_t mLOSE = 0x0;	// INPUT - Load Output Shift register: Start of visible part of line (i.e., the display line)
 	uint8_t pCLR = 0x1;
 	uint8_t pDEW = 0x0;
+	uint8_t mCRS = 0x0;		// INPUT Character Rounding Select (normal height characters only)
 
 	typedef struct TTSymbol_struct {
 		uint8_t rows[10];
 		char asc;
 	} TTSymbol;
+
+	// Generated table of interpolated character symbols that are 10 x 20 pixels absed on the 6 x 10 symbols
+	typedef struct InterpolatedTTSymbol_struct {
+		uint16_t rows[20];
+		char asc;
+	} InterpolatedTTSymbol;
 
 	static const inline vector<TTSymbol> mSymbols = {
 		{{0x00, 0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00,	0x00},	 0x20},  // SPACE
@@ -145,6 +156,7 @@ public:
 		{{0x00, 0x00,   0x04,   0x00,   0x1f,   0x00,   0x04,   0x00,   0x00,   0x00},	 0x7e},	 // DIVIDE
 		{{0x00, 0x1f,   0x1f,   0x1f,   0x1f,   0x1f,   0x1f,   0x1f,   0x00,   0x00},	 0x7f}	 // BLOCK
 	};
+	vector< InterpolatedTTSymbol> mInterpolatedSymbols;
 
 	double mSystemClock = 2.0;
 	int mScanLine = 0;
@@ -202,8 +214,10 @@ public:
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
 
-	// Called by other device to trigger the output of new data
-	bool updateDataOutput(uint8_t pageData, vector <uint32_t>& charPixels);
+
+	// Called by the device that needs the RGB pixel data (screenData) that
+	// the TT5050 generates based on page memory data (pageData).
+	bool getScreenData(uint8_t pageData, bool &interpolatedChar, vector <uint32_t>& screenData);
 
 	bool initialised() { return false; }
 
