@@ -113,13 +113,15 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// The TCG then generates either 6 x 10 pixel character colour data (tgc_data)
 		// or 12 x 20 pixel character colour data (if characters are interpolated).
 		// The graphics data is always 6 x 10 pixels but encoded as a sixel of 2 x 3 blocks
-		vector<uint32_t> tgc_data;
+		vector<TT5050::TTColour> tgc_data;
 		
+		// Get encoded video memory address
 		uint16_t crtc_adr, screen_adr;
 		if (!mCRTC->getMemFetchAdr(crtc_adr)) {
 			return false;
 		}
 
+		// Decode video memory address
 		bool teletext = getCRField(CR_TELETEXT) == 1;
 		if (!teletext) { // Normally modes 0-6
 			screen_adr = crtc_adr * 8;
@@ -128,16 +130,19 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			screen_adr = crtc_adr + (0x7400 ^ 0x2000);
 		}
 
+		// Read video memory data
 		uint8_t screen_data;
 		if (!mVideoMem->read(screen_adr, screen_data)) {
 			return false;
 		}
 
+		// For teletext modes, decode video memory data as videotext data
 		bool interpolated_char = false;
 		if (teletext && !mTGC->getScreenData(screen_data, interpolated_char, tgc_data)) {
 			return false;
 		}
 
+		// Get cursor configuration
 		uint8_t cursor_seg_ena = 0x0;
 		if (mCURSOR) {
 			if (mCursorSegment < 0)
@@ -150,6 +155,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			mCursorSegment++;
 		}
 
+		// Is the screen (display) in the active area?
 		uint8_t dis_ena = ~(~mDEN | mRA3);
 		if (dis_ena) {
 
@@ -190,9 +196,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					Bs = ~(Bi ^ ~(F & flash) & dis_ena);
 				}
 				else {
-					Rs = tgc_data[0];
-					Gs = tgc_data[1];
-					Bs = tgc_data[2];
+					Rs = tgc_data[big_pixel].R;
+					Gs = tgc_data[big_pixel].G;
+					Bs = tgc_data[big_pixel].B;
 				}
 
 				R = Rs ^ cursor_seg_ena ^ mINV;

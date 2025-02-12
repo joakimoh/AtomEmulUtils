@@ -21,8 +21,6 @@ TT5050::TT5050(
 
 void TT5050::createInterpolatedSymbols()
 {
-	uint8_t raster_bits[96][10][6];
-	uint8_t i_raster_bits[96][20][12];
 
 	// Make temp symbol table with bit resolution
 	for (int symbol = 0; symbol < mSymbols.size(); symbol++) {
@@ -30,9 +28,9 @@ void TT5050::createInterpolatedSymbols()
 			uint8_t raster = mSymbols[symbol].rows[row];
 			for (int col = 0; col < 6; col++) {
 				if (raster & 0x20)
-					raster_bits[symbol][row][col] = 1;
+					mSymbolRasterBits[symbol][row][col] = 1;
 				else
-					raster_bits[symbol][row][col] = 0;
+					mSymbolRasterBits[symbol][row][col] = 0;
 				raster = raster << 1;
 			}
 		}
@@ -41,8 +39,8 @@ void TT5050::createInterpolatedSymbols()
 	// Create new interpolated symbol table
 	for (int symbol = 0; symbol < mSymbols.size(); symbol++) {
 
-		auto& bits = raster_bits[symbol];
-		auto& i_bits = i_raster_bits[symbol];
+		auto& bits = mSymbolRasterBits[symbol];
+		auto& i_bits = mInterpolatedSymbolRasterBits[symbol];
 
 		// Create the "big" pixels
 		for (int row = 0; row < 10; row++) {
@@ -99,7 +97,7 @@ void TT5050::createInterpolatedSymbols()
 
 			for (int r = 0; r < 10; r++) {
 				for (int c = 0; c < 6; c++) {
-					cout << (raster_bits[s][r][c] ? "x" : " ");
+					cout << (mSymbolRasterBits[s][r][c] ? "x" : " ");
 				}
 				cout << "\n";
 			}
@@ -107,7 +105,7 @@ void TT5050::createInterpolatedSymbols()
 
 			for (int r = 0; r < 20; r++) {
 				for (int c = 0; c < 12; c++) {
-					cout << (i_raster_bits[s][r][c] ? "x" : " ");
+					cout << (mInterpolatedSymbolRasterBits[s][r][c] ? "x" : " ");
 				}
 				cout << "\n";
 			}
@@ -134,13 +132,16 @@ bool TT5050::advance(uint64_t stopCycle)
 // 
 // Called by the display unit fetching the data from the page memory on 1 us character basis
 // 
-// pageData:	Data read from the page memory
-// charPixels:	12 × 20 pixels, hardware defined (interpolated from 6 × 10 matrix)
-//				and the output is based on the page data, the current scan line & scan line character pos
+// pageData:			Data read from the page memory
+// interpolatedChar:	true if pixel symbol is interpolated
+// screenData:			One scan line of one of the following:
+//						- 6 x 10 pixel symbol
+//						- 12 x 20 pixel symbol interpolated from an 6 x 10 symbolc, or
+//						- 2 x 3 graphics encoded as 6 x 10 pixels
 // 
 //				
 //
-bool TT5050::getScreenData(uint8_t pageData, bool &interpolatedChar, vector <uint32_t> &screenData)
+bool TT5050::getScreenData(uint8_t pageData, bool &interpolatedChar, vector <TTColour> &screenData)
 {
 	if (!initialised()) {
 		mCycleCount += max(1, (int)round(mSystemClock / 1.0));
@@ -214,9 +215,9 @@ bool TT5050::getScreenData(uint8_t pageData, bool &interpolatedChar, vector <uin
 	if (mLOSE) {
 		uint16_t char_raster_data;
 		uint8_t symbol_index = char_data - 0x20; // should give an index in the range [0,95]
-		uint32_t colour = mColours[TT_BLACK];
+		TT5050::TTColour colour = mColours[TT_BLACK];
 		if (!mHiddenText || char_data < 0x20) { // draw hidden text and control char as space as default
-			colour = mColours[mAlpaNumericColour];
+			colour =mAlpaNumericColour;
 			char_raster_data = mSymbols[0x20].rows[mCharRasterLine];
 		}
 		else if (mHiddenText && char_data >= 0x20) { // draw control char as last graphics symbol
@@ -225,14 +226,11 @@ bool TT5050::getScreenData(uint8_t pageData, bool &interpolatedChar, vector <uin
 		}
 		// Character or graphical symbol to be displayed
 		else if (!mGraphics) {
-			colour = mColours[mAlpaNumericColour];
-			if (interpolatedChar)
-				char_raster_data = mInterpolatedSymbols[symbol_index].rows[mCharRasterLine];
-			else
-				char_raster_data = mSymbols[symbol_index].rows[mCharRasterLine];
+			colour = mAlpaNumericColour;
 		}
 		else {
 			colour = mColours[mGraphicsColour];
+			// Create one scan line of two "big" pixels occupying 6 actual pixels
 			uint8_t b1b0;
 			if (mCharRasterLine <= 2)
 				b1b0 = symbol_index & 0x3;
@@ -240,28 +238,30 @@ bool TT5050::getScreenData(uint8_t pageData, bool &interpolatedChar, vector <uin
 				b1b0 = (symbol_index >> 2) & 0x3;
 			else
 				b1b0 = ((symbol_index >> 3) & 0x2) | ((symbol_index >> 6) & 0x1);
-			char_raster_data = ((b1b0 & 0x2) ? 0x38 : 0x00) | ((b1b0 & 0x1) ? 0x7 : 0x0);
+			TT5050::TTColour b1_colour = (b1b0 & 0x2) ? colour : mBackgroundColour;
+			TT5050::TTColour b0_colour = (b1b0 & 0x1) ? colour : mBackgroundColour;
+			for (int p = 0; p < 3; p++)
+				screenData.push_back(b1_colour);
+			for (int p = 0; p < 3; p++)
+				screenData.push_back(b0_colour);
 		}
 
 		if (interpolatedChar) {
 			// Create 12 pixels of the correct colour
 			for (int p = 0; p < 12; p++) {
-				if (char_raster_data & 0x80) {
+				if (mInterpolatedSymbolRasterBits[symbol_index][mCharRasterLine][p])
 					screenData.push_back(colour);
-				}
 				else
 					screenData.push_back(mBackgroundColour);
-				char_raster_data = char_raster_data << 1;
 			}
 		}
 		else {
 			// Create 6 pixels of the correct colour
 			for (int p = 0; p < 6; p++) {
-				if (char_raster_data & 0x80)
+				if (mSymbolRasterBits[symbol_index][mCharRasterLine][p])
 					screenData.push_back(colour);
 				else
 					screenData.push_back(mBackgroundColour);
-				char_raster_data = char_raster_data << 1;
 			}
 		}
 	}

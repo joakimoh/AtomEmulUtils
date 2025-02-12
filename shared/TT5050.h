@@ -156,7 +156,9 @@ public:
 		{{0x00, 0x00,   0x04,   0x00,   0x1f,   0x00,   0x04,   0x00,   0x00,   0x00},	 0x7e},	 // DIVIDE
 		{{0x00, 0x1f,   0x1f,   0x1f,   0x1f,   0x1f,   0x1f,   0x1f,   0x00,   0x00},	 0x7f}	 // BLOCK
 	};
-	vector< InterpolatedTTSymbol> mInterpolatedSymbols;
+
+	uint8_t mSymbolRasterBits[96][10][6];
+	uint8_t mInterpolatedSymbolRasterBits[96][20][12];
 
 	double mSystemClock = 2.0;
 	int mScanLine = 0;
@@ -184,19 +186,25 @@ public:
 	};
 	
 	enum TT_COLOR {TT_BLACK = 0, TT_RED = 1, TT_GREEN = 2, TT_YELLOW = 3, TT_BLUE = 4, TT_MAGENTA = 5, TT_CYAN = 6, TT_WHITE = 7};
-	uint32_t mColours[8] = {
-		0xff000000, // opaque black ARGB 8888,
-		0xffff0000, // opaque red ARGB 8888},
-		0xff00ff00, // opaque green ARGB 8888,
-		0xffffff00, // opaque yellow ARGB 8888
-		0xff0000ff, // opaque blue ARGB 8888
-		0xffff00ff, // opaque magenta ARGB 8888,
-		0xff00ffff, // opaque cyan ARGB 8888,
-		0xffffffff // opaque white ARGB 8888,		
+	typedef struct TTColour_struct {
+		uint8_t R;
+		uint8_t G;
+		uint8_t B;
+	} TTColour;
+
+	TTColour mColours[8] = {
+		{0, 0, 0}, //  black,
+		{1, 0, 0}, //  red 
+		{0, 1, 0}, //  green
+		{1, 1, 0}, //  yellow
+		{0, 0, 1}, //  blue
+		{1, 0, 1}, //  magenta
+		{0, 1, 1}, //  cyan
+		{1, 1, 1}  //  white		
 	};
-	uint32_t mGraphicsColour = mColours[TT_WHITE];
-	uint32_t mAlpaNumericColour = mColours[TT_WHITE];
-	uint32_t mBackgroundColour = mColours[TT_BLACK];
+	TTColour mGraphicsColour = mColours[TT_WHITE];
+	TTColour mAlpaNumericColour = mColours[TT_WHITE];
+	TTColour mBackgroundColour = mColours[TT_BLACK];
 	bool mDoubleHeight = false;
 	bool mSeparatedGraphics = false;	// If true, the graphic sixels will be made up of smaller blocks
 	bool mHiddenText = false;
@@ -217,7 +225,7 @@ public:
 
 	// Called by the device that needs the RGB pixel data (screenData) that
 	// the TT5050 generates based on page memory data (pageData).
-	bool getScreenData(uint8_t pageData, bool &interpolatedChar, vector <uint32_t>& screenData);
+	bool getScreenData(uint8_t pageData, bool &interpolatedChar, vector <TTColour> &screenData);
 
 	bool initialised() { return false; }
 
