@@ -18,11 +18,11 @@ public:
 	// 
 
 	// Video ULA Ports
-	int DEN, CURSOR, INV, RA3;
+	int DEN, CURSOR, INV, RA;
 	uint8_t mDEN = 0x1;		// INPUT -	DEN from the CRTC 6845; actual display enable DISEN is calculated as = ~(~DEN | RA3)
 	uint8_t mCURSOR = 0x1;	// INPUT -	CURSOR from M6845
 	uint8_t mINV = 0x0;		// INPUT - invert video
-	uint8_t mRA3 = 0x0;		// INPUT 
+	uint8_t mRA = 0x0;		// INPUT - raster address (4 bits); used for modes 0-6 to select bytes within an 8 row pixel block
 
 
 	// Video ULA Registers
@@ -68,6 +68,7 @@ public:
 	double CRTCClock = 1.0; // [MHz]
 	uint8_t mPixelW = 1;
 	int mPixelRate = 1;
+	int mPixelsPerByte = 8;	// The no of pixels per byte for modes 0-6 (8 for 2-colour, 4 for 4-colour and 2 for 6-colour)
 
 	bool mNewFrame = false;
 
@@ -104,7 +105,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	BeebVideoULA(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	BeebVideoULA(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
 	~BeebVideoULA();
 
 	bool read(uint16_t adr, uint8_t& data);
@@ -117,6 +118,7 @@ public:
 	inline int getVerticalSyncPos();
 	inline int getHorizontalSyncPos();
 	inline int getCharsPerLine();
+	inline int getVisibleCharsPerLine();
 
 
 	// Reset device
@@ -132,7 +134,7 @@ public:
 
 
 	bool initialised() {
-		return mCRTC != NULL && mTGC != NULL && mCRTC->intialised();
+		return mCRTC != NULL && mTGC != NULL && mCRTC->initialised();
 	}
 
 };

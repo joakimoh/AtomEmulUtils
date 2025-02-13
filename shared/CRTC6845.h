@@ -107,7 +107,8 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	CRTC6845(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	CRTC6845(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, 
+		DebugInfo debugInfo, ConnectionManager* connectionManager);
 	~CRTC6845() {}
 
 	bool read(uint16_t adr, uint8_t& data);
@@ -120,6 +121,7 @@ public:
 	inline int getVerticalSyncPos();
 	inline int getHorizontalSyncPos();
 	inline int getCharsPerLine();
+	inline int getVisibleCharsPerLine();
 
 
 	// Reset device
@@ -134,7 +136,7 @@ public:
 	// Called by other device to get next memory address to fetch char/graphics data from
 	bool getMemFetchAdr(uint16_t& adr, bool& activeArea);
 
-	bool intialised() { return mInitialised; }
+	bool initialised() { return mInitialised; }
 
 };
 

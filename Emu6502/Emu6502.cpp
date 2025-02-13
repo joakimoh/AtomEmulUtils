@@ -107,7 +107,9 @@ int main(int argc, const char* argv[])
    al_set_new_display_flags(ALLEGRO_RESIZABLE);
 #endif
 
-    ALLEGRO_DISPLAY* disp = al_create_display(648, 486); // Just an initial size - will be resized to fit the video display unit's preference later on!
+    int disp_w = 648;
+    int disp_h = 486;
+    ALLEGRO_DISPLAY* disp = al_create_display(disp_w, disp_h); // Just an initial size - will be resized to fit the video display unit's preference later on!
     al_set_window_title(disp, "6502 System Emulator");
     ALLEGRO_BITMAP* disp_bm = al_get_target_bitmap();
 
@@ -126,7 +128,7 @@ int main(int argc, const char* argv[])
         arg_parser.mapFileName,
         arg_parser.cMHz,            // CPU Clock frequency in MHz
         32000,                      // audio sample rate corresponding to a rate of at least twice per scan line
-        disp_bm,
+        disp_bm, disp_w, disp_h,
         arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu,
         frame_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices
 
@@ -141,12 +143,7 @@ int main(int argc, const char* argv[])
         cout << "No video display unit defined!\n";
         return -1;
     }
-  
-    int w, h;
-    if (!vdu->getVisibleArea(w, h) || !al_resize_display(disp, w, h)) {
-        cout << "Failed to resize display!\n";
-        return -1;
-    }
+ 
 
     // Create menu
     ALLEGRO_MENU * menu = al_build_menu(main_menu);
@@ -191,6 +188,7 @@ int main(int argc, const char* argv[])
     auto frame_start = chrono::high_resolution_clock::now();
     while (!quit)
     {   
+
         // Get frame rate and no of scan lines from the VDU itself.
         // required for the cases these parameters re not hard-coded but can be reconfigured by
         // the software.

@@ -157,7 +157,7 @@ string Devices::getFileName(string &path, stringstream& sin)
 }
 
 Devices::Devices(
-	string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, DebugInfo debugInfo,
+	string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo debugInfo,
 	Program program, Program data, ConnectionManager& connection_manager, P6502* &microprocessor, VideoDisplayUnit * &mainVDU,
 	vector<Device*>& frameScheduledDevices, vector<Device*>& halflineScheduledDevices, vector<Device*>& instrScheduledDevices) :mDebugInfo(debugInfo)
 {
@@ -337,7 +337,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexAdr(sin);
 					uint16_t dev_sz = getHexAdr(sin);
 					uint16_t video_mem_adr = getHexAdr(sin);
-					mainVDU = new VDU6847(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
+					mainVDU = new VDU6847(dev_name, dev_adr, clockSpeed, disp, dispW, dispH, video_mem_adr, mDebugInfo, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 
@@ -348,7 +348,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexAdr(sin);
 					uint16_t dev_sz = getHexAdr(sin);
 					uint16_t video_mem_adr = getHexAdr(sin);
-					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
+					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, clockSpeed, disp, dispW, dispH, video_mem_adr, mDebugInfo, &connection_manager);
 					mDevices.push_back(crtc);
 					vdus.push_back(crtc);
 				}
@@ -364,7 +364,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexAdr(sin);
 					uint16_t dev_sz = getHexAdr(sin);
 					uint16_t video_mem_adr = getHexAdr(sin);
-					mainVDU = new BeebVideoULA(dev_name, dev_adr, clockSpeed, disp, video_mem_adr, mDebugInfo, &connection_manager);
+					mainVDU = new BeebVideoULA(dev_name, dev_adr, clockSpeed, disp, dispW, dispH, video_mem_adr, mDebugInfo, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 				}

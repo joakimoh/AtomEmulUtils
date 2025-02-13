@@ -6,8 +6,8 @@
 // 
 //
 CRTC6845::CRTC6845(
-	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager
-) : VideoDisplayUnit(name, CRTC6845_DEV, adr, 0x2, disp, videoMemAdr, debugInfo, connectionManager)
+	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager
+) : VideoDisplayUnit(name, CRTC6845_DEV, adr, 0x2, disp, dispW, dispH, videoMemAdr, debugInfo, connectionManager)
 {
 
 	registerPort("CLK",			IN_PORT,  0x1,	CLK,		&mCLK);
@@ -312,4 +312,9 @@ inline int CRTC6845::getHorizontalSyncPos()
 inline int CRTC6845::getCharsPerLine()
 {
 	return mReg[R0_HorizontalTotal] + 1;
+}
+
+inline int CRTC6845::getVisibleCharsPerLine()
+{
+	return mReg[R1_HorizontalDisplayed];
 }

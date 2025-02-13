@@ -4,13 +4,13 @@
 
 
 BeebVideoULA::BeebVideoULA(
-	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager
-) : VideoDisplayUnit(name, BEEB_VDU_DEV, adr, 0x100, disp, videoMemAdr, debugInfo, connectionManager), mCPUClock(clockSpeed)
+	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager
+) : VideoDisplayUnit(name, BEEB_VDU_DEV, adr, 0x100, disp, dispW, dispH, videoMemAdr, debugInfo, connectionManager), mCPUClock(clockSpeed)
 {
 	registerPort("DISEN",		IN_PORT,	0x01, DEN,			&mDEN);
 	registerPort("CURSOR",		IN_PORT,	0x01, CURSOR,		&mCURSOR);	
 	registerPort("INV",			IN_PORT,	0x01, INV,			&mINV);
-	registerPort("RA3",			IN_PORT,	0x01, RA3,			&mRA3);
+	registerPort("RA",			IN_PORT,	0x0f, RA,			&mRA);
 
 
 	// Create 640 x 256 display bitmap and clear it
@@ -73,8 +73,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		unlockDisplay();
 
+		//cout << "scale " << mScreenW << "x" << mScreenH << " to " << mDisplayWidth << "x" << mDisplayHeight << "\n";
+
 		// Scale the display bitmap including borders to match the size of the display
-		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mScreenW, mScreenH, 0, 0, 640, 400, 0);
+		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mScreenW, mScreenH, 0, 0, mDisplayWidth, mDisplayHeight, 0);
 
 		// Make the updates visible on the display
 		al_flip_display();
@@ -89,7 +91,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	}
 
 	// Process one scan line (should be 128 chars per scan line and the visible part being 40 or 80 chars)
+	// Each char is not necessarily the same as character on the screen. "Big Char" is the char visible
+	// on the screen and "Char" is actually one byte fetched from memory that only sometimes corresponds
+	// to width of a screen char. 
 	int n_chars = getCharsPerLine();
+	unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScanLine);
+	//cout << "\n" << dec << mScanLine << ": ";
 	for (int char_pos = 0; char_pos < n_chars; char_pos++) {
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
@@ -99,23 +106,24 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// MODE 7:		screen address - (0x7400 ^ 0x2000) => 0x2800 for actual memory address of 0x7c00
 		// The same logic applies to setting R14/R15 (cursor position)
 		//
-		// Mode		CRTC address		Actual Address		Size	Resolution	Chars	Colours		Lines		Visible Total chars (char pixels)
-		// 0		 0x600 -  0xfff		0x3000 - 0x7fff		20k		640x256		80x32	2			312			256		128
-		// 1		 0x600 -  0xfff		0x3000 - 0x7fff		20k		320x256		40x32	4			312			256		128
-		// 2		 0x600 -  0xfff		0x3000 - 0x7fff		20k		160x256		20x32	16			312			256		128
-		// 3		 0x800 -  0xfff		0x4000 - 0x7fff		16k		N/A			80x25	2			312			256		64
-		// 4		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		320x256		40x32	2			312			256		64
-		// 5		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		160x256		20x32	4			312			256		64
-		// 6		 0xc00 -  0xfff		0x6000 - 0x7fff		8k		N/A			40x25	2			312			256		64
-		// 7		0x2800 - 0x2c00		0x7c00 - 0x7fff		1k		78x75		40x25	8			572			513		64 (768)
-		//															(468x500)
+		// Mode		CRTC address		Actual Address		Size	Resolution	Big Chars	Colours		Lines		Visible Chars		Pixel W	Pixel R
+		// 0		 0x600 -  0xfff		0x3000 - 0x7fff		20k		640x256		80x32		2			312			256		128			1		16 MHz
+		// 1		 0x600 -  0xfff		0x3000 - 0x7fff		20k		320x256		40x32		4			312			256		128			2		 8 MHz
+		// 2		 0x600 -  0xfff		0x3000 - 0x7fff		20k		160x256		20x32		16			312			256		128			4		 4 MHz
+		// 3		 0x800 -  0xfff		0x4000 - 0x7fff		16k		N/A			80x25		2			312			256		64			(1)		16 MHz
+		// 4		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		320x256		40x32		2			312			256		64			2		 8 MHz
+		// 5		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		160x256		20x32		4			312			256		64			4		 4 MHz
+		// 6		 0xc00 -  0xfff		0x6000 - 0x7fff		8k		N/A			40x25		2			312			256		64			(2)		 8 MHz
+		// 7		0x2800 - 0x2c00		0x7c00 - 0x7fff		1k		78x75		40x25		8			572			513		64 (768)	(2)		 8 MHz
+		//															(468x500) (240x250)
+		//																	  (480x500)
 		// 
 		// Each n x 8(10) pxiel block in modes 0-6 are organised so that each row (0,1,..7(9)) of the n pixel are stored
 		// in consecutive memory locations (row 0: a, row 1: a+1,... row 7: a+7). For two-colour modes n = 8 pixels,
 		// for 4-colour modes it is 4 pixels and for 16-colour modes it is 2 pixels. That is the reason the screen
 		// address above is divided by 8. The raster address will then select each of the 8(10) rows to cover the complete
 		// block of n x 8(10) pixels. The raster rows are 8 for modes 0-2,4 & 5 (graphics & char modes) and 10 for
-		// modes 3 & 6 (char only modes). The lowest memoery address (e.g. 0x5800 for mode 4) will correspond to the
+		// modes 3 & 6 (char only modes). The lowest memory address (e.g. 0x5800 for mode 4) will correspond to the
 		// upper left corner of the screen.
 		//
 		// For mode 7 (teletext mode) only complete characters (or graphical symbols) are read at a time and the raster
@@ -136,33 +144,35 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		}
 
 		// Is the screen (display) in the active area?
-		uint8_t dis_ena = ~(~mDEN | mRA3);
+		uint8_t dis_ena = ~(~mDEN | ((mRA >> 3) & 0x1));
 
 		if (dis_ena) {
 			// Decode video memory address
 			bool teletext = getCRField(CR_TELETEXT) == 1;
-			if (!teletext) { // Normally modes 0-6
-				screen_adr = crtc_adr * 8;
+			if (!teletext) { // Normally modes 0-6 - raster address selected bytes within an 8 row byte block
+				screen_adr = crtc_adr * 8 + (mRA & 0x7);
 			}
 			else { // Normally mode 7
 				screen_adr = crtc_adr + (0x7400 ^ 0x2000);
 			}
-			/*
-			cout << (teletext ? "Teletext mode" : "Non-teletext mode") << ", CRTC adr 0x" << hex << crtc_adr <<
-				" => Screen address 0x" << screen_adr << "; char pos = " << dec << char_pos << " & scan line = " << mScanLine <<"\n";
-			*/
-
+			
 			// Read video memory data
 			uint8_t screen_data;
 			if (!mVideoMem->read(screen_adr, screen_data)) {
+				cout << "Failed to read video memory at address 0x" << hex << screen_adr << "\n";
 				return false;
 			}
-
+			/*
+			cout << (teletext ? "Teletext mode" : "Non-teletext mode") << ", CRTC adr 0x" << hex << crtc_adr <<
+				" => Screen address 0x" << screen_adr << "; char pos = " << dec << char_pos << " & scan line = " << mScanLine << "\n";
+			*/
 			// For teletext modes, decode video memory data as videotext data
 			bool interpolated_char = false;
 			if (teletext && !mTGC->getScreenData(screen_data, interpolated_char, tgc_data)) {
 				return false;
 			}
+
+			//cout << hex << (int)screen_data << " ";
 
 			// Get cursor configuration
 			uint8_t cursor_seg_ena = 0x0;
@@ -177,27 +187,35 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				mCursorSegment++;
 			}
 
-			unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScanLine);
 			uint8_t Rt, Gt, Bt;
 			uint8_t Rs, Gs, Bs;
 			uint8_t R, G, B;
 
 			uint8_t mem_data = 0x0;
-			int pixels_per_char = 8;
+			int pixels_per_byte = mPixelsPerByte;
 
 			int pixel_width = mPixelW;
 			if (!teletext) {
 				mem_data = screen_data;
 			}
 			else {
-				pixels_per_char = 12;
+				pixels_per_byte = 12;
 				if (interpolated_char)
 					pixel_width = mPixelW;
 				else
 					pixel_width = mPixelW * 2;
 			}
 
-			for (int big_pixel = 0; big_pixel < pixels_per_char / mPixelW; big_pixel++) {
+			//
+			//	Columns	Colours	Big Pixels	Real Pixels		Big Pixel Width		Big Pixels/byte		Bytes/line	
+			//	20		16		20*8 = 160	640				4					2					80
+			//	40		2		40*8 = 320	640				2					8					40
+			//	40		4		40*8 = 320	640				2					4					80
+			//	80		2		80*8 = 640	640				1					8					80
+			// 
+			// Big pixels/byte = 8 * cols / Visible "chars" per line
+			//
+			for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
 
 					if (!teletext) {
 
@@ -238,9 +256,11 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					}
 				}
 
+			
+
 		}
 	}
-
+	//cout << "\n";
 	mScanLine = (mScanLine + 1) % scan_lines_per_frame;
 
 	return true;
@@ -275,12 +295,13 @@ bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 		else
 			CRTCClock = 1.0;
 
-		mNCols = getCRField(CR_N_COLS) * 10;
+		mNCols = (1 << getCRField(CR_N_COLS)) * 10;
 		mPixelRate = 1 << (getCRField(CR_N_COLS) + 1); // pixel rate: 2, 4, 8 or 16 MHz
 		mPixelW = 16 / mPixelRate; // pixel width in "actual pixels" for a 640 pixel wide screen
+		mPixelsPerByte = 8 * mNCols / getVisibleCharsPerLine();
 
 		// For non-teletext mode the visible screen's actual pixels are 640 x 256
-		// For the telelext mode the width is visible horizontal chars * 12 which is normally 60 * 12 = 720
+		// For the telelext mode the width is visible horizontal chars * 12.
 		// and the height is (visible vertical chars * scan lines per char) which is normally 27 * 19 = 513 (500 = 25 x 20 is used for the chars)
 		int pW = mScreenW;
 		int pH = mScreenH;
@@ -309,6 +330,18 @@ bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 	else if (a == 1) {
 		uint8_t pa = (a >> 4) & 0xf;
 		mPaletteMem[pa] = data & 0xf;
+	}
+
+	if (mCRTC != NULL && mCRTC->initialised() && (mDebugInfo.dbgLevel & DBG_VERBOSE)) {
+		cout << "\n" << dec;
+		cout << "Video ULA PixelRate:       " << mPixelRate << " MHz\n";
+		cout << "Video ULA PixelWidth:      " << (int) mPixelW << "\n";
+		cout << "Video ULA Pixels/byte:     " << (int)mPixelsPerByte << "\n";
+		cout << "Video ULA CRTC Clock:      " << CRTCClock << " MHz\n";
+		cout << "Video ULA No of cols:      " << mNCols << "\n";
+		cout << "Video ULA Teletext:        " << (getCRField(CR_TELETEXT) ? "ON" : "OFF") << "\n";
+		cout << "Video ULA Cursor Segments: " << hex << (int)getCRField(CR_CURSOR_SEGMENT) << "\n";
+		cout << "\n";
 	}
 	return true;
 }
@@ -342,7 +375,7 @@ bool BeebVideoULA::getVisibleArea(int& w, int& h)
 
 double BeebVideoULA::getScanLineDuration()
 {
-	if (mCRTC != NULL)
+	if (mCRTC != NULL && mCRTC->initialised())
 		return mCRTC->getScanLineDuration();
 	else
 		return 64.0;
@@ -350,7 +383,7 @@ double BeebVideoULA::getScanLineDuration()
 
 double BeebVideoULA::getScanLinesPerFrame()
 {
-	if (mCRTC != NULL)
+	if (mCRTC != NULL && mCRTC->initialised())
 		return mCRTC->getScanLinesPerFrame();
 	else
 		return 312.0;
@@ -358,15 +391,15 @@ double BeebVideoULA::getScanLinesPerFrame()
 
 double BeebVideoULA::getFrameRate()
 {
-	if (mCRTC != NULL)
+	if (mCRTC != NULL && mCRTC->initialised())
 		return mCRTC->getFrameRate();
 	else
-		return 0.0;
+		return 50.0;
 }
 
 int BeebVideoULA::getCharScanLines()
 {
-	if (mCRTC != NULL)
+	if (mCRTC != NULL && mCRTC->initialised())
 		return mCRTC->getCharScanLines();
 	else
 		return 12;
@@ -374,7 +407,7 @@ int BeebVideoULA::getCharScanLines()
 
 int BeebVideoULA::getVerticalSyncPos()
 {
-	if (mCRTC != NULL)
+	if (mCRTC != NULL && mCRTC->initialised())
 		return mCRTC->getVerticalSyncPos();
 	else
 		return 0;
@@ -382,7 +415,7 @@ int BeebVideoULA::getVerticalSyncPos()
 
 int BeebVideoULA::getHorizontalSyncPos()
 {
-	if (mCRTC != NULL)
+	if (mCRTC != NULL && mCRTC->initialised())
 		return mCRTC->getHorizontalSyncPos();
 	else
 		return 51;
@@ -391,8 +424,16 @@ int BeebVideoULA::getHorizontalSyncPos()
 
 int BeebVideoULA::getCharsPerLine()
 {
-	if (mCRTC != NULL)
+	if (mCRTC != NULL && mCRTC->initialised())
 		return mCRTC->getCharsPerLine();
+	else
+		return 40;
+}
+
+int BeebVideoULA::getVisibleCharsPerLine()
+{
+	if (mCRTC != NULL && mCRTC->initialised())
+		return mCRTC->getVisibleCharsPerLine();
 	else
 		return 40;
 }

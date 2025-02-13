@@ -22,9 +22,12 @@ protected:
 
 	int mScanLine = 0;
 
+	int mDisplayWidth = 0;
+	int mDisplayHeight = 0;
+
 public:
 
-	VideoDisplayUnit(string name, DeviceId devId, uint16_t adr, uint16_t sz, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	VideoDisplayUnit(string name, DeviceId devId, uint16_t adr, uint16_t sz, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
 
 	virtual ~VideoDisplayUnit() {};
 
@@ -40,6 +43,7 @@ public:
 	virtual int getVerticalSyncPos() = 0;
 	virtual int getHorizontalSyncPos() = 0;
 	virtual int getCharsPerLine() = 0;
+	virtual int getVisibleCharsPerLine() = 0;
 
 	virtual bool advanceLine(uint64_t& endCycle) = 0;
 

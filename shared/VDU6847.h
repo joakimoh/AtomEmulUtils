@@ -186,7 +186,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	VDU6847(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	VDU6847(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
 	~VDU6847();
 
 	bool read(uint16_t adr, uint8_t& data);
@@ -199,6 +199,7 @@ public:
 	inline int getVerticalSyncPos() { return mTVBlkH;  }
 	inline int getHorizontalSyncPos() { return 0; }
 	inline int getCharsPerLine() { return 32; }
+	inline int getVisibleCharsPerLine() { return 32; }
 
 
 	// Reset device
