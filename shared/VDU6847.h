@@ -198,6 +198,7 @@ public:
 	inline int getCharScanLines() { return 12;}
 	inline int getVerticalSyncPos() { return mTVBlkH;  }
 	inline int getHorizontalSyncPos() { return 0; }
+	inline int getCharsPerLine() { return 32; }
 
 
 	// Reset device

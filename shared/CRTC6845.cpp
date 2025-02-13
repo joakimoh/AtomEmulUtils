@@ -27,7 +27,7 @@ bool CRTC6845::reset()
 	mCharRow = 0;
 	mScanLine = 0;
 	mCharCol = 0;
-	mInitialisedCount = 0;
+	mInitialised = false;
 	mRegWrtCnt = 0;
 
 	for (int i = 0; i < 18; mReg[i++] = 0);
@@ -58,29 +58,39 @@ bool CRTC6845::reset()
 }
 
 // Called by other device to get next memory address to fetch char/graphics data from
-bool CRTC6845::getMemFetchAdr(uint16_t &adr)
+bool CRTC6845::getMemFetchAdr(uint16_t &adr, bool &activeArea)
 {
 
 	// Advance time corresponding to one character and check for HS, VS & DEN
 	int step = max(1, (int)round((mCPUClock / mCLK)));
 	advance(mCycleCount + step);
 
-	if (mInitialisedCount < 2)
+	if (!mInitialised)
 		return true;
 
 	// If in the active display area, read the memory location and output the address on port RA and the read data on port D_OUT
+	adr = 0x0;
+	activeArea = false;
 	if (mDEN) {
-		adr = mVideoMemAdr + mCharRow * mReg[R1_HorizontalDisplayed] + mCharCol + mRA;
+		adr = mStartAdr + (mCharRow - mStartVisibleCharRow) * mVisibleCharRows + mCharCol - mStartVisibleCharCol;
+		activeArea = true;
 	}
 
-	// Increase character position (includes the invisible non-displayed chars)
-	mCharCol = (mCharCol + 1) % (mReg[R0_HorizontalTotal] + 1);
+	// Increase char column
+	// The M6845 linear address generator repeats the same sequence of addresses for each scan line of a character row
+	mCharCol = (mCharCol + 1) % mCharCols;
 	if (mCharCol == 0) {
-		mScanLine = (mScanLine + 1) % (mReg[R4_VerticalTotal] + 1);
-		mCharRow = mScanLine % (mReg[R9_MaxScanLineAddress] + 1);
-		uint8_t raster_row = mScanLine % (mReg[R9_MaxScanLineAddress] + 1);
-		updatePort(RA, raster_row);
+		updatePort(RA, (mRA + 1) % mCharLines);
+		if (mRA == 0) {
+			mCharRow = (mCharRow + 1) % mCharRows;
+			if (mCharRow == 0) {
+				mScanLine = 0;
+				updatePort(RA, 0);
+			}
+		}
 	}
+
+	mScanLine = mCharRow * mCharLines + mRA;
 
 	return true;
 
@@ -88,7 +98,7 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 
 bool CRTC6845::advance(uint64_t stopCycle)
 {
-	if (mInitialisedCount < 2)
+	if (!mInitialised)
 		mCycleCount = stopCycle;
 
 	while (mCycleCount < stopCycle) {
@@ -158,7 +168,7 @@ bool CRTC6845::read(uint16_t adr, uint8_t& data)
 // R2        Horizontal sync position          98    98    98    98    49    49    49    51
 // R3        Horizontal sync width(bits 0 - 3)  8     8     8     8     4     4     4     4
 //           +Vertical sync width(bits 4 - 7)   2     2     2     2     2     2     2     2
-// R4        Vertical total                    38    38    38    30    38    38    30    30
+// R4        Vertical total                    38    38    38    30    38    38    30    30 => (18+1) * 30 + 2 = 572 scan lines for mode 7
 // R5        Vertical total adjust              0     0     0     2     0     0     2     2
 // R6        Vertical displayed characters     32    32    32    25    32    32    25    25
 // R7        Vertical sync position            34    34    34    27    34    34    27    27 => (18+1) * 27 = 513 visible scan lines for mode 7
@@ -194,11 +204,12 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 
 	updateSettings();
 	
-	if (mRegWrtCnt >= 18 && (mDebugInfo.dbgLevel & DBG_VERBOSE))
-		printSettings();
+	if (mRegWrtCnt >= 18) {
+		if (true || (mDebugInfo.dbgLevel & DBG_VERBOSE))
+			printSettings();
+		mInitialised = true;
+	}
 
-	if (a == R12_StartAddressH || a == R13_StartAddressL)
-		mInitialisedCount++;
 
 	return true;
 }
@@ -207,6 +218,13 @@ void CRTC6845::updateSettings()
 {
 	mVisibleLines = mReg[R6_VerticalDisplayed] * (mReg[R9_MaxScanLineAddress] + 1);
 	mScanLines = (mReg[R4_VerticalTotal] + 1 + mReg[R5_VerticalTotalAdjust] / 32.0) * (mReg[R9_MaxScanLineAddress] + 1);
+	mStartVisibleCharRow = mReg[R2_HSYncPosition] - mReg[R1_HorizontalDisplayed];
+	mStartVisibleCharRow = 0;
+	mStartAdr = (mReg[R12_StartAddressH] << 8) | mReg[R13_StartAddressL];
+	mVisibleCharRows = mReg[R1_HorizontalDisplayed];
+	mCharRows = mReg[R4_VerticalTotal] + 1;
+	mCharCols = mReg[R0_HorizontalTotal] + 1;
+	mCharLines = mReg[R9_MaxScanLineAddress] + 1;
 
 }
 
@@ -289,4 +307,9 @@ inline int CRTC6845::getVerticalSyncPos()
 inline int CRTC6845::getHorizontalSyncPos()
 {
 	return mReg[R2_HSYncPosition];
+}
+
+inline int CRTC6845::getCharsPerLine()
+{
+	return mReg[R0_HorizontalTotal] + 1;
 }

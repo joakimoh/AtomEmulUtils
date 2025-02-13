@@ -116,6 +116,7 @@ public:
 	inline int getCharScanLines();
 	inline int getVerticalSyncPos();
 	inline int getHorizontalSyncPos();
+	inline int getCharsPerLine();
 
 
 	// Reset device

@@ -40,12 +40,12 @@ bool BeebVideoULA::advance(uint64_t stopCycle)
 
 bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 {
+
 	if (!initialised()) { 
 		mCycleCount += max(1, (int)round(getScanLineDuration() * mCPUClock));
 		endCycle = mCycleCount;
 		return true; 
 	}
-
 
 	int scan_lines_per_frame = (int) round(getScanLinesPerFrame());
 	if (scan_lines_per_frame != mScanLines) {
@@ -89,7 +89,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	}
 
 	// Process one scan line (should be 128 chars per scan line and the visible part being 40 or 80 chars)
-	int n_chars = getCharScanLines();
+	int n_chars = getCharsPerLine();
 	for (int char_pos = 0; char_pos < n_chars; char_pos++) {
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
@@ -99,12 +99,24 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// MODE 7:		screen address - (0x7400 ^ 0x2000) => 0x2800 for actual memory address of 0x7c00
 		// The same logic applies to setting R14/R15 (cursor position)
 		//
+		// Mode		CRTC address		Actual Address		Size	Resolution	Chars	Colours		Lines		Visible Total chars (char pixels)
+		// 0		 0x600 -  0xfff		0x3000 - 0x7fff		20k		640x256		80x32	2			312			256		128
+		// 1		 0x600 -  0xfff		0x3000 - 0x7fff		20k		320x256		40x32	4			312			256		128
+		// 2		 0x600 -  0xfff		0x3000 - 0x7fff		20k		160x256		20x32	16			312			256		128
+		// 3		 0x800 -  0xfff		0x4000 - 0x7fff		16k		N/A			80x25	2			312			256		64
+		// 4		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		320x256		40x32	2			312			256		64
+		// 5		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		160x256		20x32	4			312			256		64
+		// 6		 0xc00 -  0xfff		0x6000 - 0x7fff		8k		N/A			40x25	2			312			256		64
+		// 7		0x2800 - 0x2c00		0x7c00 - 0x7fff		1k		78x75		40x25	8			572			513		64 (768)
+		//															(468x500)
+		// 
 		// Each n x 8(10) pxiel block in modes 0-6 are organised so that each row (0,1,..7(9)) of the n pixel are stored
 		// in consecutive memory locations (row 0: a, row 1: a+1,... row 7: a+7). For two-colour modes n = 8 pixels,
 		// for 4-colour modes it is 4 pixels and for 16-colour modes it is 2 pixels. That is the reason the screen
-		// address above is divided by 8. The raster address will then select eahc of the 8(10) rows to cover the complete
+		// address above is divided by 8. The raster address will then select each of the 8(10) rows to cover the complete
 		// block of n x 8(10) pixels. The raster rows are 8 for modes 0-2,4 & 5 (graphics & char modes) and 10 for
-		// modes 3 & 6 (char only modes)
+		// modes 3 & 6 (char only modes). The lowest memoery address (e.g. 0x5800 for mode 4) will correspond to the
+		// upper left corner of the screen.
 		//
 		// For mode 7 (teletext mode) only complete characters (or graphical symbols) are read at a time and the raster
 		// address selects the row of each character (the same screen memory data is present for all raster  rows).
@@ -117,53 +129,59 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		
 		// Get encoded video memory address
 		uint16_t crtc_adr, screen_adr;
-		if (!mCRTC->getMemFetchAdr(crtc_adr)) {
+		bool in_active_area;
+		if (!mCRTC->getMemFetchAdr(crtc_adr, in_active_area)) {
+			cout << "Failed to get address from the CRTC!\n";
 			return false;
-		}
-
-		// Decode video memory address
-		bool teletext = getCRField(CR_TELETEXT) == 1;
-		if (!teletext) { // Normally modes 0-6
-			screen_adr = crtc_adr * 8;
-		}
-		else { // Normally mode 7
-			screen_adr = crtc_adr + (0x7400 ^ 0x2000);
-		}
-
-		// Read video memory data
-		uint8_t screen_data;
-		if (!mVideoMem->read(screen_adr, screen_data)) {
-			return false;
-		}
-
-		// For teletext modes, decode video memory data as videotext data
-		bool interpolated_char = false;
-		if (teletext && !mTGC->getScreenData(screen_data, interpolated_char, tgc_data)) {
-			return false;
-		}
-
-		// Get cursor configuration
-		uint8_t cursor_seg_ena = 0x0;
-		if (mCURSOR) {
-			if (mCursorSegment < 0)
-				mCursorSegment = 0;
-			uint8_t cursor_segments = (mControlRegister >> 5) & 0x7;
-			uint8_t cursor_seg_ena = cursor_segments >> (2 - mCursorSegment);
-			bool clk_2_Mhz = ((mControlRegister >> 4) & 0x1) != 0;
-			uint8_t cs_01_width = (clk_2_Mhz ? 8 : 16);
-			uint8_t cs_2_width = (cs_01_width << 1) & 0x1;
-			mCursorSegment++;
 		}
 
 		// Is the screen (display) in the active area?
 		uint8_t dis_ena = ~(~mDEN | mRA3);
+
 		if (dis_ena) {
+			// Decode video memory address
+			bool teletext = getCRField(CR_TELETEXT) == 1;
+			if (!teletext) { // Normally modes 0-6
+				screen_adr = crtc_adr * 8;
+			}
+			else { // Normally mode 7
+				screen_adr = crtc_adr + (0x7400 ^ 0x2000);
+			}
+			/*
+			cout << (teletext ? "Teletext mode" : "Non-teletext mode") << ", CRTC adr 0x" << hex << crtc_adr <<
+				" => Screen address 0x" << screen_adr << "; char pos = " << dec << char_pos << " & scan line = " << mScanLine <<"\n";
+			*/
+
+			// Read video memory data
+			uint8_t screen_data;
+			if (!mVideoMem->read(screen_adr, screen_data)) {
+				return false;
+			}
+
+			// For teletext modes, decode video memory data as videotext data
+			bool interpolated_char = false;
+			if (teletext && !mTGC->getScreenData(screen_data, interpolated_char, tgc_data)) {
+				return false;
+			}
+
+			// Get cursor configuration
+			uint8_t cursor_seg_ena = 0x0;
+			if (mCURSOR) {
+				if (mCursorSegment < 0)
+					mCursorSegment = 0;
+				uint8_t cursor_segments = (mControlRegister >> 5) & 0x7;
+				uint8_t cursor_seg_ena = cursor_segments >> (2 - mCursorSegment);
+				bool clk_2_Mhz = ((mControlRegister >> 4) & 0x1) != 0;
+				uint8_t cs_01_width = (clk_2_Mhz ? 8 : 16);
+				uint8_t cs_2_width = (cs_01_width << 1) & 0x1;
+				mCursorSegment++;
+			}
 
 			unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScanLine);
 			uint8_t Rt, Gt, Bt;
 			uint8_t Rs, Gs, Bs;
 			uint8_t R, G, B;
-			
+
 			uint8_t mem_data = 0x0;
 			int pixels_per_char = 8;
 
@@ -175,53 +193,52 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				pixels_per_char = 12;
 				if (interpolated_char)
 					pixel_width = mPixelW;
-				else 
+				else
 					pixel_width = mPixelW * 2;
 			}
 
 			for (int big_pixel = 0; big_pixel < pixels_per_char / mPixelW; big_pixel++) {
-					
-				if (!teletext) {
 
-					uint8_t palette_mem_adr = ((mem_data >> 1) & 0x1) | ((mem_data >> 2) & 0x2) | ((mem_data >>3) & 0x1) | ((mem_data >> 4) & 0x1);
-					uint8_t palette_data = mPaletteMem[palette_mem_adr] & 0xf;
-					uint8_t Ri = palette_data & 0x1;
-					uint8_t Gi = (palette_data >> 1) & 0x1;
-					uint8_t Bi = (palette_data >> 2) & 0x1;
-					uint8_t F = (palette_data >> 3) & 0x1;
-					uint8_t flash = mControlRegister & 0x1;
+					if (!teletext) {
 
-					Rs = ~(Ri ^ ~(F & flash) & dis_ena);
-					Gs = ~(Gi ^ ~(F & flash) & dis_ena);
-					Bs = ~(Bi ^ ~(F & flash) & dis_ena);
+						uint8_t palette_mem_adr = ((mem_data >> 1) & 0x1) | ((mem_data >> 2) & 0x2) | ((mem_data >> 3) & 0x1) | ((mem_data >> 4) & 0x1);
+						uint8_t palette_data = mPaletteMem[palette_mem_adr] & 0xf;
+						uint8_t Ri = palette_data & 0x1;
+						uint8_t Gi = (palette_data >> 1) & 0x1;
+						uint8_t Bi = (palette_data >> 2) & 0x1;
+						uint8_t F = (palette_data >> 3) & 0x1;
+						uint8_t flash = mControlRegister & 0x1;
+
+						Rs = ~(Ri ^ ~(F & flash) & dis_ena);
+						Gs = ~(Gi ^ ~(F & flash) & dis_ena);
+						Bs = ~(Bi ^ ~(F & flash) & dis_ena);
+					}
+					else {
+						Rs = tgc_data[big_pixel].R;
+						Gs = tgc_data[big_pixel].G;
+						Bs = tgc_data[big_pixel].B;
+					}
+
+					R = Rs ^ cursor_seg_ena ^ mINV;
+					G = Gs ^ cursor_seg_ena ^ mINV;
+					B = Bs ^ cursor_seg_ena ^ mINV;
+
+
+					// Update display with the R, G & B data
+					uint32_t colour = 0xff000000 | (R ? 0x00ff0000 : 0) | (G ? 0x0000ff00 : 0) | (G ? 0x000000ff : 0);
+					for (int pw = 0; pw < mPixelW; pw++)
+						*bitmap_data_p++ = colour;
+
+					if (!teletext)
+						mem_data = mem_data << 1;
+					else {
+						Rt = Rt << 1;
+						Gt = Gt << 1;
+						Bt = Bt << 1;
+					}
 				}
-				else {
-					Rs = tgc_data[big_pixel].R;
-					Gs = tgc_data[big_pixel].G;
-					Bs = tgc_data[big_pixel].B;
-				}
-
-				R = Rs ^ cursor_seg_ena ^ mINV;
-				G = Gs ^ cursor_seg_ena ^ mINV;
-				B = Bs ^ cursor_seg_ena ^ mINV;
-
-
-				// Update display with the R, G & B data
-				uint32_t colour = 0xff000000 | (R?0x00ff0000:0) | (G?0x0000ff00:0) | (G?0x000000ff:0);
-				for (int pw = 0; pw < mPixelW; pw++)
-					*bitmap_data_p++ = colour;
-
-				if (!teletext)
-					mem_data = mem_data << 1;
-				else {
-					Rt = Rt << 1;
-					Gt = Gt << 1;
-					Bt = Bt << 1;
-				}
-			}
 
 		}
-
 	}
 
 	mScanLine = (mScanLine + 1) % scan_lines_per_frame;
@@ -372,15 +389,27 @@ int BeebVideoULA::getHorizontalSyncPos()
 
 }
 
+int BeebVideoULA::getCharsPerLine()
+{
+	if (mCRTC != NULL)
+		return mCRTC->getCharsPerLine();
+	else
+		return 40;
+}
+
 // Get pointer to other device to be able to call its methods
 bool BeebVideoULA::connectDevice(Device* dev)
 {
 	Device::connectDevice(dev);
 
-	if (dev != NULL && dev->devType == CRTC6845_DEV)
-		mCRTC = (CRTC6845 *) dev;
-	if (dev != NULL && dev->devType == TT_5050_DEV)
-		mTGC = (TT5050 *) dev;
+	if (dev != NULL && dev->devType == CRTC6845_DEV) {
+		mCRTC = (CRTC6845*)dev;
+		//cout << "CRTC connected!\n";
+	}
+	if (dev != NULL && dev->devType == TT_5050_DEV) {
+		mTGC = (TT5050*)dev;
+		//cout << "TGC connected!\n";
+	}
 
 	return true;
 }

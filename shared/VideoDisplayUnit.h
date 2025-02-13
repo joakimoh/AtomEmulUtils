@@ -39,6 +39,7 @@ public:
 	virtual int getCharScanLines() = 0;
 	virtual int getVerticalSyncPos() = 0;
 	virtual int getHorizontalSyncPos() = 0;
+	virtual int getCharsPerLine() = 0;
 
 	virtual bool advanceLine(uint64_t& endCycle) = 0;
 

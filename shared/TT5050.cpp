@@ -215,13 +215,13 @@ bool TT5050::getScreenData(uint8_t pageData, bool &interpolatedChar, vector <TTC
 	if (mLOSE) {
 		uint16_t char_raster_data;
 		uint8_t symbol_index = char_data - 0x20; // should give an index in the range [0,95]
-		TT5050::TTColour colour = mColours[TT_BLACK];
+		TT5050::TTColour colour = mColours[(int)TT_BLACK];
 		if (!mHiddenText || char_data < 0x20) { // draw hidden text and control char as space as default
 			colour =mAlpaNumericColour;
 			char_raster_data = mSymbols[0x20].rows[mCharRasterLine];
 		}
 		else if (mHiddenText && char_data >= 0x20) { // draw control char as last graphics symbol
-			colour = mColours[mGraphicsColour];
+			colour = mGraphicsColour;
 			char_raster_data = mSymbols[mLastGraphicsSymbolIndex].rows[mCharRasterLine];
 		}
 		// Character or graphical symbol to be displayed
@@ -229,7 +229,7 @@ bool TT5050::getScreenData(uint8_t pageData, bool &interpolatedChar, vector <TTC
 			colour = mAlpaNumericColour;
 		}
 		else {
-			colour = mColours[mGraphicsColour];
+			colour = mGraphicsColour;
 			// Create one scan line of two "big" pixels occupying 6 actual pixels
 			uint8_t b1b0;
 			if (mCharRasterLine <= 2)

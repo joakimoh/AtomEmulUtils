@@ -21,7 +21,7 @@ public:
 	uint8_t mNEXT_CHAR;		// INPUT  - Advance one character
 	uint8_t mRESET = 0x1;	// INPUT
 	uint8_t mDEN = 0x0;		// OUTPUT - Display ENable: When high, the display is in the active area
-	uint8_t mRA = 0x1f;		// OUTPUT - Raster Address for row of a character (5 bits)
+	uint8_t mRA = 0x0;		// OUTPUT - Raster Address for row of a character (5 bits)
 	uint8_t mCURS = 0x0;	// OUTPUT - Cursor Display Indication
 	uint8_t mHS = 0x0;		// OUTPUT -	Horizontal Sync
 	uint8_t mVS = 0x0;		// OUTPUT -	Vertical Sync
@@ -79,12 +79,19 @@ public:
 
 	int mCharRow = 0;
 	int mCharCol = 0;
-	int mVisibleLines = 0;
-	double mScanLines = 0;
+	int mVisibleLines = 1;
+	double mScanLines = 1;
+	int mStartVisibleCharRow = 0;
+	int mStartVisibleCharCol = 0;
+	int mStartAdr = 0x0;
+	int mVisibleCharRows = 1;
+	int mCharRows = 1;
+	int mCharCols = 1;
+	int mCharLines = 1;
 
 	double mCPUClock = 2.0;
 
-	int mInitialisedCount = 0;
+	int mInitialised = false;
 	int mRegWrtCnt = 0;
 
 public:
@@ -112,6 +119,7 @@ public:
 	inline int getCharScanLines();
 	inline int getVerticalSyncPos();
 	inline int getHorizontalSyncPos();
+	inline int getCharsPerLine();
 
 
 	// Reset device
@@ -124,9 +132,9 @@ public:
 	bool advanceLine(uint64_t& endCycle) { return true; }
 
 	// Called by other device to get next memory address to fetch char/graphics data from
-	bool getMemFetchAdr(uint16_t& adr);
+	bool getMemFetchAdr(uint16_t& adr, bool& activeArea);
 
-	bool intialised() { return mInitialisedCount > 2; }
+	bool intialised() { return mInitialised; }
 
 };
 

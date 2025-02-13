@@ -227,7 +227,7 @@ public:
 	// the TT5050 generates based on page memory data (pageData).
 	bool getScreenData(uint8_t pageData, bool &interpolatedChar, vector <TTColour> &screenData);
 
-	bool initialised() { return false; }
+	bool initialised() { return true; }
 
 };
 
