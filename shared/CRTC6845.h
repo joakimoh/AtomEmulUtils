@@ -9,6 +9,12 @@
 
 class CRTC6845 : public VideoDisplayUnit {
 
+	//
+	// This emulates the Hitachi HD6845 used in e.g. the BBC Micro.
+	// It is slightly different than the Motorola M6845 (R9 value is different)
+	// so be sure that it is the Hitachi one that you use in your system.
+	//
+
 public:
 
 	//
@@ -66,7 +72,7 @@ public:
 		R6_VerticalDisplayed = 6,	// VerticalDisplayed	No of visible char rows	
 		R7_VSyncPosition = 7,		// VSyncPosition		Vertical sync pos in char row
 		R8_InterlaceMode = 8,		// InterlaceMode		Raster scan mode (*0: non-interlaces, 01: interlaced, 11: interlaced & video)
-		R9_MaxScanLineAddress = 9,	// MaxScanLineAddress	Scan lines/char row - 1	(Scan line/char row must be an even no)
+		R9_MaxScanLineAddress = 9,	// MaxScanLineAddress	Scan lines/char row - 1	(Scan line/char row must be an even no)*
 		R10_CursorStart = 10,		// CursorStart			b6: enable blink, b5: blink rate (0:1/16 FR,1:1/32 FR), b4:0: cursor start line - FR = Field Rate
 		R11_CursorEnd = 11,			// CursorEnd			Cursor end scan line - relative position (0-31 start & send both odd or even for mode 01 & 11)
 		R12_StartAddressH = 12,		// StartAddressH		Start refresh address after vertical blanking
@@ -75,6 +81,7 @@ public:
 		R15_CursorL = 15,			// CursorL				-"--
 		R16_LightPenL = 16,			// LightPenH			Value of StartAddress when light pen is detected
 		R17_LightPenH = 17			// LightPenL			-""-
+		// In the Interlace Sync & Video Mode, the register instead holds scan lines/char row -2
 	};
 
 	int mCharRow = 0;

@@ -9,14 +9,16 @@
 //
 // Teletext Character Generator SA5050 Emulation
 // 
-// The device generates characters on 40 x 24 character grid where each character
-// occupies 6 x 10 pixels (including one pixel space to the right and below each character.
+// Full-screen is 480 × 500 pixels <=> 40 × 25 characters <=> 78 x 54 sixels (see below).
+// Each character position corresponds to a 12 × 20 pixel block.
+// 
+// The device generates characters on 40 x 25 character grid where each character occupies 12 x 20 pixels.
 // 
 // The display is 40 x 25 chars and the graphics 78 x 75 (39 * 2 x 25 * 3) pixels
 // The chars are 12 × 20 pixels (interpolated from a 6 × 10 matrix)
 // 
-// The characters are reaad from the page memory at a rate of 1 MHz meaning that each
-// character has a width of 1 us and eaxh pixel a width of 1/6 (6 MHz) us. The visible
+// The characters are read from the page memory at a rate of 1 MHz meaning that each
+// character has a width of 1 us and eaxh pixel a width of 1/12 (12 MHz) us. The visible
 // part of a scan line will then become 40 x 1 us = 40 us. The total length of a scan line
 // is 64 us including horizontal blanking.
 //

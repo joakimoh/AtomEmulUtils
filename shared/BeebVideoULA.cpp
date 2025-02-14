@@ -132,7 +132,11 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// The TCG's page memory input comes from the CRTC (0x7c00 to 0x7fff)
 		// The TCG then generates either 6 x 10 pixel character colour data (tgc_data)
 		// or 12 x 20 pixel character colour data (if characters are interpolated).
-		// The graphics data is always 6 x 10 pixels but encoded as a sixel of 2 x 3 blocks
+		// The graphics data is always 6 x 10 pixels but encoded as a 2 x 3 sixels (one sixel <=> 3 x 3.3 pixels)
+		// The visible screen in the should be 480 × 500 pixels <=> 40 × 25 characters <=> 78 x 54 sixels. However,
+		// The Beeb seems to setup the CRTC to generate only 19 * 25 = 475 (rather than the expected 20 *25 = 500) visible scan lines.
+		// The full frame rate should correspond to 1/2 the interlaced frame rate, i.e. 50 /2 = 25 Hz but here the Beeb uses 27 Hz 
+		// (close enough).
 		vector<TT5050::TTColour> tgc_data;
 		
 		// Get encoded video memory address

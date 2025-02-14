@@ -216,7 +216,10 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 
 void CRTC6845::updateSettings()
 {
-	mVisibleLines = mReg[R6_VerticalDisplayed] * (mReg[R9_MaxScanLineAddress] + 1);
+	if ((mReg[R8_InterlaceMode] & 0x3) == 0x3)
+		mVisibleLines = mReg[R6_VerticalDisplayed] * (mReg[R9_MaxScanLineAddress] + 2);
+	else
+		mVisibleLines = mReg[R6_VerticalDisplayed] * (mReg[R9_MaxScanLineAddress] + 1);
 	mScanLines = (mReg[R4_VerticalTotal] + 1 + mReg[R5_VerticalTotalAdjust] / 32.0) * (mReg[R9_MaxScanLineAddress] + 1);
 	mStartVisibleCharRow = mReg[R2_HSYncPosition] - mReg[R1_HorizontalDisplayed];
 	mStartVisibleCharRow = 0;
