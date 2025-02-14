@@ -165,7 +165,7 @@ private:
 	DebugInfo mDebugInfo;
 
 	string getFileName(string& path, stringstream& sin);
-	uint16_t getHexAdr(stringstream& sin);
+	uint16_t getHexVal(stringstream& sin);
 
 public:
 

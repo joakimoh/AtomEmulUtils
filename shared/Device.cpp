@@ -101,12 +101,9 @@ bool Device::updatePort(int index, uint8_t val)
 		else
 			*(input.port->val) = ((pval & ~input.mask) | ((val << (-input.shifts)) & input.mask)) & input.port->mask;
 
-		if (input.port->triggerDevice)
-			input.port->dev->trigger(input.port->localIndex);
-
-		if (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0) && *(input.port->val) != pval) {
+		if ((mDebugInfo.dbgLevel & DBG_DEVICE) != 0 &&  *(input.port->val) != pval) {
 			string shift_s, c_dir;
-			if (input.shifts >= 0) 
+			if (input.shifts >= 0)
 				shift_s = "((src >> shifts) & mask)";
 			else
 				shift_s = "((src << shifts) & mask)";
@@ -117,6 +114,11 @@ bool Device::updatePort(int index, uint8_t val)
 				") & 0x" << hex << (int)input.mask << ")" << setfill('0') << setw(2) <<
 				" = 0x" << hex << (int)*(input.port->val) << dec << "\n";
 		}
+		
+		if (input.port->triggerDevice)
+			input.port->dev->trigger(input.port->localIndex);
+
+		
 	}
 	return true;
 }
@@ -136,7 +138,7 @@ bool Device::getPortIndex(string name, DevicePort * &port) {
 // Devices class
 //
 
-uint16_t Devices::getHexAdr(stringstream& sin)
+uint16_t Devices::getHexVal(stringstream& sin)
 {
 	string v_s;
 	sin >> v_s;
@@ -219,7 +221,8 @@ Devices::Devices(
 
 				else if (dev_type == "BEEBKB") {
 
-					BeebKeyboard* kb = new BeebKeyboard(dev_name, mDebugInfo, &connection_manager);
+					uint8_t startup_options = getHexVal(sin) & 0xff;
+					BeebKeyboard* kb = new BeebKeyboard(dev_name, startup_options, mDebugInfo, &connection_manager);
 					mDevices.push_back(kb);
 
 				}
@@ -271,8 +274,8 @@ Devices::Devices(
 
 				else if (dev_type == "SRAM") {		
 
-					uint16_t dev_adr = getHexAdr(sin);
-					uint16_t dev_sz = getHexAdr(sin);
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
 					RAM* ram = new RAM(dev_name, false, dev_adr, dev_sz, mDebugInfo, &connection_manager);
 					mDevices.push_back(ram);
 
@@ -280,8 +283,8 @@ Devices::Devices(
 
 				else if (dev_type == "DRAM") {
 
-					uint16_t dev_adr = getHexAdr(sin);
-					uint16_t dev_sz = getHexAdr(sin);
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
 					RAM* ram = new RAM(dev_name, true, dev_adr, dev_sz, mDebugInfo, &connection_manager);
 					mDevices.push_back(ram);
 
@@ -289,8 +292,8 @@ Devices::Devices(
 
 				else if (dev_type == "ROM") {
 
-					uint16_t dev_adr = getHexAdr(sin);
-					uint16_t dev_sz = getHexAdr(sin);
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
 					string ROM_file_path = getFileName(memMapFile, sin);
 					ROM* rom = new ROM(dev_name, dev_adr, dev_sz, ROM_file_path, mDebugInfo, &connection_manager);
 					mDevices.push_back(rom);
@@ -299,8 +302,8 @@ Devices::Devices(
 
 				else if (dev_type == "BeebRomSel") {
 
-					uint16_t dev_adr = getHexAdr(sin);
-					uint16_t dev_sz = getHexAdr(sin);
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
 					paged_rom_sel = new BeebROMSel(dev_name, dev_adr, mDebugInfo, &connection_manager);
 					mDevices.push_back(paged_rom_sel);
 
@@ -312,8 +315,8 @@ Devices::Devices(
 
 				else if (dev_type == "PIA8255") {
 
-					uint16_t dev_adr = getHexAdr(sin);
-					uint16_t dev_sz = getHexAdr(sin);
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
 					PIA8255* pia = new PIA8255(dev_name, dev_adr, mDebugInfo, &connection_manager);
 					mDevices.push_back(pia);
 
@@ -321,8 +324,8 @@ Devices::Devices(
 
 				else if (dev_type == "VIA6522") {
 
-					uint16_t dev_adr = getHexAdr(sin);
-					uint16_t dev_sz = getHexAdr(sin);
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
 					VIA6522* via = new VIA6522(dev_name, dev_adr, mDebugInfo, &connection_manager);
 					mDevices.push_back(via);
 
@@ -334,9 +337,9 @@ Devices::Devices(
 
 				else if (dev_type == "VDU6847") {
 
-					uint16_t dev_adr = getHexAdr(sin);
-					uint16_t dev_sz = getHexAdr(sin);
-					uint16_t video_mem_adr = getHexAdr(sin);
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
+					uint16_t video_mem_adr = getHexVal(sin);
 					mainVDU = new VDU6847(dev_name, dev_adr, clockSpeed, disp, dispW, dispH, video_mem_adr, mDebugInfo, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
@@ -345,9 +348,9 @@ Devices::Devices(
 
 				else if (dev_type == "CRTC6845") {
 
-					uint16_t dev_adr = getHexAdr(sin);
-					uint16_t dev_sz = getHexAdr(sin);
-					uint16_t video_mem_adr = getHexAdr(sin);
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
+					uint16_t video_mem_adr = getHexVal(sin);
 					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, clockSpeed, disp, dispW, dispH, video_mem_adr, mDebugInfo, &connection_manager);
 					mDevices.push_back(crtc);
 					vdus.push_back(crtc);
@@ -361,9 +364,9 @@ Devices::Devices(
 
 				else if (dev_type == "BeebVideoULA") {
 
-					uint16_t dev_adr = getHexAdr(sin);
-					uint16_t dev_sz = getHexAdr(sin);
-					uint16_t video_mem_adr = getHexAdr(sin);
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
+					uint16_t video_mem_adr = getHexVal(sin);
 					mainVDU = new BeebVideoULA(dev_name, dev_adr, clockSpeed, disp, dispW, dispH, video_mem_adr, mDebugInfo, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
@@ -379,8 +382,8 @@ Devices::Devices(
 					cout << "Can't find any memory-mapped device '" << mem_dev_name << "' at line " << dec << line_no << ":\n\t" << line << "\n";
 					throw runtime_error("Syntax error");
 				}
-				uint16_t gap_adr = getHexAdr(sin);
-				uint16_t gap_sz = getHexAdr(sin);
+				uint16_t gap_adr = getHexVal(sin);
+				uint16_t gap_sz = getHexVal(sin);
 				MemoryMappedDevice* mem_dev = (MemoryMappedDevice*)dev;
 				mem_dev->addMemoryGap(gap_adr, gap_sz);
 
@@ -567,7 +570,7 @@ Devices::Devices(
 		throw runtime_error("Failed to get memory-mapped devices");
 	}
 
-	// Sort the devices according to theire specified scheduling
+	// Sort the devices according to their specified scheduling
 	for (int i = 0; i < mDevices.size(); i++) {
 		Device* d = mDevices[i];
 		if (d->category == MICROROCESSOR_DEVICE || d->category == VDU_DEVICE || d->category==MEMORY_DEVICE)

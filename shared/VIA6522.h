@@ -43,8 +43,7 @@ private:
 	uint8_t mPCR;			// base address + 0x0c	Peripheral Control Register =>
 	uint8_t mIFR;			// base address + 0x0d	Interrupt Flag Register =>
 	uint8_t mIER;			// base address + 0x0e	Interrupt Enable Register =>
-	uint8_t mORA2, mIRA2;	// base address + 0x0f	Output Register A*			Input Register A*
-							// * same as Register  above but without handshaking
+	uint8_t mORA2, mIRA2;	// base address + 0x0f	Output Register A*			Input Register A (when no handshaking)
 
 	enum VIARegAdr {
 		IRB = 0x0, ORB = 0x0,

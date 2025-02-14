@@ -136,7 +136,7 @@ bool P6502::advance(uint64_t stopCycle)
 				mBufferedTraceLines.clear();
 				mStopDebugBuffering = true;
 			}
-			if (mTraceCount > mDebugInfo.postTraceLen) {
+			if (mStopDebugBuffering && mTraceCount > mDebugInfo.postTraceLen) {
 				mDebugInfo.dbgLevel &= ~DBG_6502;
 				mEndOfTracingReached = true;
 			}

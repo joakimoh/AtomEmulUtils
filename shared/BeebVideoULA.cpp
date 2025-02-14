@@ -5,7 +5,7 @@
 
 BeebVideoULA::BeebVideoULA(
 	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager
-) : VideoDisplayUnit(name, BEEB_VDU_DEV, adr, 0x100, disp, dispW, dispH, videoMemAdr, debugInfo, connectionManager), mCPUClock(clockSpeed)
+) : VideoDisplayUnit(name, BEEB_VDU_DEV, adr, 0x10, disp, dispW, dispH, videoMemAdr, debugInfo, connectionManager), mCPUClock(clockSpeed)
 {
 	registerPort("DISEN",		IN_PORT,	0x01, DEN,			&mDEN);
 	registerPort("CURSOR",		IN_PORT,	0x01, CURSOR,		&mCURSOR);	

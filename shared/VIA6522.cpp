@@ -31,6 +31,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 	if ((mACR & 0x2) && (mCB & 0x1)) // PB shall be latched
 		mPB_latched = mPB;
 
+	// If no handshaking
+	mIRA2 = mPA;
 
 
 	mCycleCount = stopCycle;
@@ -84,7 +86,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 	case IRA:
 		// Input Register A- if PA is acting as input: if latching is disabled (ACR b0=0) IRB reflects PA; if not (ACR b1=1) the PB value latched by CA1
 	{
-		if (mACR & 0x1) // PB is latched
+		if (mACR & 0x1) // PA is latched
 			data = mPA_latched;
 		else
 			data = mPA;
@@ -163,6 +165,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 
 	case IRA2:
 		// Input Register A
+		mIRA2 = (mPA & mDDRA) | (mPA & ~mDDRA) ; // if no handshaking
 		data = mIRA2;
 		break;
 
@@ -293,6 +296,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Output Register A
 
 		mORA2 = data;
+		updatePort(PA, (mPA & ~mDDRA) | (data & mDDRA));
 		break;
 
 	default:
