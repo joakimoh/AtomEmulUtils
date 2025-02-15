@@ -109,7 +109,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	BeebVideoULA(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	BeebVideoULA(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo debugInfo, ConnectionManager* connectionManager);
 	~BeebVideoULA();
 
 	bool read(uint16_t adr, uint8_t& data);
@@ -123,6 +123,7 @@ public:
 	inline int getHorizontalSyncPos();
 	inline int getCharsPerLine();
 	inline int getVisibleCharsPerLine();
+	inline int getScanLine();
 
 
 	// Reset device

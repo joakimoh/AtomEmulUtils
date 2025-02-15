@@ -60,7 +60,6 @@ bool MemoryMappedDevice::write(uint16_t adr, uint8_t data) {
 
 	if (!selected(adr))
 		return false;
-
 	for (int i = 0; i < mScheduleOnWrite.size(); i++) {
 		if (mScheduleOnWrite[i].triggeringAdr == adr) {
 			if (mDebugInfo.dbgLevel & DBG_DEVICE)

@@ -137,7 +137,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	CRTC6845(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, 
+	CRTC6845(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, 
 		DebugInfo debugInfo, ConnectionManager* connectionManager);
 	~CRTC6845() {}
 
@@ -152,6 +152,7 @@ public:
 	inline int getHorizontalSyncPos();
 	inline int getCharsPerLine();
 	inline int getVisibleCharsPerLine();
+	inline int getScanLine() { return mScanLine;  }
 
 
 	// Reset device

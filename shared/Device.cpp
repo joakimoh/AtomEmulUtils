@@ -350,8 +350,7 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint16_t video_mem_adr = getHexVal(sin);
-					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, clockSpeed, disp, dispW, dispH, video_mem_adr, mDebugInfo, &connection_manager);
+					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, clockSpeed, disp, dispW, dispH, mDebugInfo, &connection_manager);
 					mDevices.push_back(crtc);
 					vdus.push_back(crtc);
 				}
@@ -366,8 +365,7 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint16_t video_mem_adr = getHexVal(sin);
-					mainVDU = new BeebVideoULA(dev_name, dev_adr, clockSpeed, disp, dispW, dispH, video_mem_adr, mDebugInfo, &connection_manager);
+					mainVDU = new BeebVideoULA(dev_name, dev_adr, clockSpeed, disp, dispW, dispH, mDebugInfo, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 				}

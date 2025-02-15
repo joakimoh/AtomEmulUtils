@@ -200,6 +200,7 @@ public:
 	inline int getHorizontalSyncPos() { return 0; }
 	inline int getCharsPerLine() { return 32; }
 	inline int getVisibleCharsPerLine() { return 32; }
+	inline int getScanLine() { return mScanLine; }
 
 
 	// Reset device

@@ -214,7 +214,8 @@ int main(int argc, const char* argv[])
         }
 
         // Advance time one field scan line at a time until a complete field has been scanned
-        for (int scan_line = 0; scan_line < n_scan_lines; scan_line++) {
+        int scan_line = vdu -> getScanLine(); // synchronise scan line no with the vdu 
+        for (; scan_line < n_scan_lines; scan_line++) {
 
             // Scan one field scan_line and save time passed in target cycle count to be used as reference
             // target time for the 6502 and the other devices (PIA, VIA, Sound, Tape Recorder, RAM & ROM). This

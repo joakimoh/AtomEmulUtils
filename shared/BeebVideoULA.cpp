@@ -4,8 +4,8 @@
 #include <iomanip>
 
 BeebVideoULA::BeebVideoULA(
-	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager
-) : VideoDisplayUnit(name, BEEB_VDU_DEV, adr, 0x10, disp, dispW, dispH, videoMemAdr, debugInfo, connectionManager), mCPUClock(clockSpeed)
+	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo debugInfo, ConnectionManager* connectionManager
+) : VideoDisplayUnit(name, BEEB_VDU_DEV, adr, 0x10, disp, dispW, dispH, 0x0 /* dummy adr */, debugInfo, connectionManager), mCPUClock(clockSpeed)
 {
 	registerPort("DISEN",		IN_PORT,	0x01, DISPTMG,			&mDISPTMG);
 	registerPort("CURSOR",		IN_PORT,	0x01, CURSOR,		&mCURSOR);	
@@ -159,7 +159,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		else
 			dis_ena = mDISPTMG;
 
-		if (dis_ena) {
+		if (dis_ena && in_active_area) {
 			
 			if (!teletext) { // Normally modes 0-6 - raster address selected bytes within an 8 row byte block
 				screen_adr = crtc_adr * 8 + (mRA & 0x7);
@@ -183,7 +183,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				return false;
 			}
 
-			cout << hex << setw(2) << setfill('0') << screen_adr << ":" << (int)screen_data << " ";
+			cout << hex << setw(2) << setfill('0') << /*screen_adr << ":" <<*/ (int)screen_data << " ";
 
 			// Get cursor configuration
 			uint8_t cursor_seg_ena = 0x0;
@@ -459,6 +459,11 @@ int BeebVideoULA::getVisibleCharsPerLine()
 		return mCRTC->getVisibleCharsPerLine();
 	else
 		return 40;
+}
+
+int BeebVideoULA::getScanLine()
+{
+	return mScanLine;
 }
 
 // Get pointer to other device to be able to call its methods

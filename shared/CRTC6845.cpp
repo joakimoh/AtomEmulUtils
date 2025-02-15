@@ -7,8 +7,8 @@
 // 
 //
 CRTC6845::CRTC6845(
-	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager
-) : VideoDisplayUnit(name, CRTC6845_DEV, adr, 0x2, disp, dispW, dispH, videoMemAdr, debugInfo, connectionManager)
+	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo debugInfo, ConnectionManager* connectionManager
+) : VideoDisplayUnit(name, CRTC6845_DEV, adr, 0x2, disp, dispW, dispH, 0x0 /* dummy adr as not used by the 6845 */, debugInfo, connectionManager)
 {
 
 	registerPort("CLK",			IN_PORT,  0x1,	CLK,		&mCLK);
@@ -69,10 +69,12 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr, uint16_t &cursor, bool &activeArea)
 	if (!mInitialised)
 		return true;
 
-	// If in the active display area, read the memory location and output the address on port RA and the read data on port D_OUT
+	// If in the active display area, update the fetch address abd cursor position
 	adr = 0x0;
 	activeArea = false;
 	if (mDISPTMG) {
+		//cout << "\nstart adr: 0x" << hex << mStartAdr << ", char row:" << dec << mCharRow << ", char col " << mCharCol << 
+			//", start visible col " << mStartVisibleCharCol  << "\n";
 		adr = mStartAdr + (mCharRow - mStartVisibleCharRow) * mVisibleCharRows + mCharCol - mStartVisibleCharCol;
 		cursor = mCursorAdr;
 		activeArea = true;
@@ -145,7 +147,7 @@ bool CRTC6845::advance(uint64_t stopCycle)
 		//              (R4)
 		//
 		if (
-			mCharCol >= mReg[R2_HSYncPosition] - mReg[R1_HorizontalDisplayed] && mCharCol < mReg[R2_HSYncPosition] &&
+			mCharCol >= mStartVisibleCharCol && mCharCol < mReg[R2_HSYncPosition] + 1 &&
 			mCharRow < mReg[R6_VerticalDisplayed]
 		)
 			updatePort(DISPTMG, 0x1);
@@ -241,6 +243,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 
 void CRTC6845::updateSettings()
 {
+
 	if ((mReg[R8_InterlaceMode] & 0x3) == 0x3)
 		mCharLines = mReg[R9_MaxScanLineAddress] + 2;
 	else
@@ -249,7 +252,7 @@ void CRTC6845::updateSettings()
 	mVisibleLines = mReg[R6_VerticalDisplayed] * mCharLines;
 
 	mScanLines = (mReg[R4_VerticalTotal] + 1 ) * mCharLines + mReg[R5_VerticalTotalAdjust];
-	mStartVisibleCharRow = mReg[R2_HSYncPosition] - mReg[R1_HorizontalDisplayed];
+	mStartVisibleCharCol = mReg[R2_HSYncPosition] + 1 - mReg[R1_HorizontalDisplayed];
 	mStartVisibleCharRow = 0;
 	mStartAdr = (mReg[R12_StartAddressH] << 8) | mReg[R13_StartAddressL];
 	mCursorAdr = (mReg[R14_CursorH] << 8) | mReg[R15_CursorL];
@@ -268,7 +271,7 @@ void CRTC6845::printSettings()
 	double Tsl = (mReg[R0_HorizontalTotal] + 1) * Tc;							// [us]		Scan Line duration					(127+1) * 0.5 =	 64 us
 	double Tcr = mCharLines * Tsl;												// [us]		Character Row Period				7 * 64 =		448 us
 	double Nhd = mReg[R1_HorizontalDisplayed] * Tc;								// [us]		Visible horizontal area				80 * 0.5 =		 40 us
-	double Nhsp = mReg[R2_HSYncPosition] * Tc;									// [us]		Horizontal sync pos					98 * 0.5 =		49 us
+	double Nhsp = (mReg[R2_HSYncPosition] + 1) * Tc;							// [us]		Horizontal sync pos					98 * 0.5 =		49 us
 	double Nhsw = (mReg[R3_SyncWidth] & 0xf) * Tc;								// [us]		Horizontal sync pulse width			8 * 0.5 =		 4 us
 	double Nvsw = ((mReg[R3_SyncWidth] >> 4) & 0xf) * Tsl;						// [us]		Vertical sync pulse width			2 * 64 =	   128 us
 	double Nvt = (mReg[R4_VerticalTotal] + 1) * Tcr / 1000;						// [ms]		Vertical total (integer part)		(38+1) * 448 = 17.5 ms (57 Hz)
@@ -289,7 +292,7 @@ void CRTC6845::printSettings()
 	cout << "Total no of characters per line:   " << (int) mReg[R0_HorizontalTotal] + 1 << "\tchars\n";
 	cout << "No of visible characters per line: " << (int)mReg[R1_HorizontalDisplayed] << "\tchars\n";
 	cout << "Vertical sync position:            " << VS_pos << " lines (" << round(Nvsp / 1000) << " ms)\n";
-	cout << "Horizontal sync position:          " << (int) mReg[R2_HSYncPosition] << " chars (" << round(Nhsp) << " us)\n";
+	cout << "Horizontal sync position:          " << (int) (mReg[R2_HSYncPosition] + 1) << " chars (" << round(Nhsp) << " us)\n";
 	cout << "Horizontal sync pulse width:       " << (int)(mReg[R3_SyncWidth] & 0xf) << " chars (" << round(Nhsw) << " us)\n";
 	cout << "Vertical sync pulse width:         " << (int)((mReg[R3_SyncWidth] >> 4) & 0xf) << " lines (" << round(Nvsw) << " us)\n";
 	cout << "Start address:                     0x" << hex << (mReg[R12_StartAddressH] << 8) + mReg[R13_StartAddressL] << "\n";

@@ -200,6 +200,7 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 		// Make the updates visible on the display
 		al_flip_display();
 
+
 		// Clear the display
 		al_clear_to_color(black);
 
