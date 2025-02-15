@@ -10,8 +10,8 @@
 class CRTC6845 : public VideoDisplayUnit {
 
 	//
-	// This emulates the Hitachi HD6845 used in e.g. the BBC Micro.
-	// It is slightly different than the Motorola M6845 (R9 value is different)
+	// This emulates the Hitachi HD6845SP used in e.g. the BBC Micro.
+	// It is slightly different than the Motorola M6845 (R9 valuehas different meaning)
 	// so be sure that it is the Hitachi one that you use in your system.
 	//
 
@@ -22,13 +22,13 @@ public:
 	// 
 
 	// M6845 Ports
-	int CLK, DEN, RA, CURS, HS, VS, RESET;
+	int CLK, DISPTMG, RA, CUDISP, HS, VS, RESET;
 	uint8_t mCLK = 1;		// INPUT - Clock rate [MHz] (1 or 2 MHz for a BBC Micro Model B e.g.)
 	uint8_t mNEXT_CHAR;		// INPUT  - Advance one character
 	uint8_t mRESET = 0x1;	// INPUT
-	uint8_t mDEN = 0x0;		// OUTPUT - Display ENable: When high, the display is in the active area
+	uint8_t mDISPTMG = 0x0;	// OUTPUT - DISPlay TiMinG: When high, the display is in the active area (delay specified by R9 skew bits)
 	uint8_t mRA = 0x0;		// OUTPUT - Raster Address for row of a character (5 bits)
-	uint8_t mCURS = 0x0;	// OUTPUT - Cursor Display Indication
+	uint8_t mCUDISP = 0x0;	// OUTPUT - CUrsor DISPlay: High when cursor shall be displayed (delay specified by R9 skew bits)
 	uint8_t mHS = 0x0;		// OUTPUT -	Horizontal Sync
 	uint8_t mVS = 0x0;		// OUTPUT -	Vertical Sync
 
@@ -42,18 +42,18 @@ public:
 	} RegInfo;
 
 	const RegInfo mRegInfo[18] = {
-		{0xff, true, false},	// R0 -		HorizontalTotal
-		{0xff, true, false},	// R1 -		HorizontalDisplayed
-		{0xff, true, false},	// R2 -		HSYncPosition
-		{0x0f, true, false},	// R3 -		HSyncWidth
+		{0xff, true, false},	// R0 -		HorizontalTotal (8 bits)
+		{0xff, true, false},	// R1 -		HorizontalDisplayed (8 bits)
+		{0xff, true, false},	// R2 -		HSYncPosition (8 bits)
+		{0xff, true, false},	// R3 -		SyncWidth (8 bits)
 		{0x7f, true, false},	// R4 -		VerticalTotal
 		{0x1f, true, false},	// R5 -		VerticalTotalAdjust
 		{0x7f, true, false},	// R6 -		VerticalDisplayed
 		{0x7f, true, false},	// R7 -		VSyncPosition
-		{0x03, true, false},	// R8 -		InterlaceMode
+		{0xf3, true, false},	// R8 -		InterlaceAndSkew
 		{0x1f, true, false},	// R9 -		MaxScanLineAddress
-		{0x7f, true, false},	// R10 -	CursorStart
-		{0x1f, true, false},	// R11 -	CursorEnd
+		{0x7f, true, false},	// R10 -	CursorStartRaster
+		{0x1f, true, false},	// R11 -	CursorEndraster
 		{0x3f, true, false},	// R12 -	StartAddressH	
 		{0xff, true, false},	// R13 -	StartAddress
 		{0x3f, true, true},		// R14 -	CursorH
@@ -65,16 +65,38 @@ public:
 	enum M6845RegEnum {
 		R0_HorizontalTotal = 0,		// HorizontalTotal		Horizontal frequency HS; Displayed + non-displayed chars per line - 1 (chars/line must be even)
 		R1_HorizontalDisplayed = 1,	// HorizontalDisplayed	Visible chars per line
-		R2_HSYncPosition = 2,		// HSYncPosition		Horizontal sync pos
-		R3_HSyncWidth = 3,			// HSyncWidth			Width of horizontal sync pulse
+		R2_HSYncPosition = 2,		// HSYncPosition		Horizontal sync pos - 1
+		R3_SyncWidth = 3,			// SyncWidth			Width of horizontal sync pulse (b3:b0 1-15) and vertical syn pulse (b7:b4 1-16; 0<=>16)
 		R4_VerticalTotal = 4,		// VerticalTotal		Integer part of no of character lines - 1
 		R5_VerticalTotalAdjust = 5,	// VerticalTotalAdjust	Fraction part in unit scan lines
 		R6_VerticalDisplayed = 6,	// VerticalDisplayed	No of visible char rows	
 		R7_VSyncPosition = 7,		// VSyncPosition		Vertical sync pos in char row
-		R8_InterlaceMode = 8,		// InterlaceMode		Raster scan mode (*0: non-interlaces, 01: interlaced, 11: interlaced & video)
+		R8_InterlaceMode = 8,		// InterlaceAndSkew		b1b0: Raster scan mode
+									//						b1b0:	VS
+									//								*0: non-interlaced
+									//								01: interlace sync
+									//								11: interlace sync  & video
+									//						b5b4:	d1d0 (DISPTMG)
+									//								00	No Skew
+									//								01	One char skew
+									//								10	Two char skew
+									//								11	No output
+									//						b7b6:	c1c0 (CUDSIP)
+									//								00	No Skew
+									//								01	One char skew
+									//								10	Two char skew
+									//								11	No output
+
 		R9_MaxScanLineAddress = 9,	// MaxScanLineAddress	Scan lines/char row - 1	(Scan line/char row must be an even no)*
-		R10_CursorStart = 10,		// CursorStart			b6: enable blink, b5: blink rate (0:1/16 FR,1:1/32 FR), b4:0: cursor start line - FR = Field Rate
-		R11_CursorEnd = 11,			// CursorEnd			Cursor end scan line - relative position (0-31 start & send both odd or even for mode 01 & 11)
+		R10_CursorStart = 10,		// CursorStartRaster	
+									// b4:b0	cursor start raster address (0-31)
+									//	b6b5:	BP 
+									//			00		No blink
+									//			01		Curssor non-display
+									//			10		Blink 16 feild period
+									//			11		Blink 32 field period
+		R11_CursorEnd = 11,			// CursorEndRaster
+									// b4:b0 cursor end raster line (0-31)
 		R12_StartAddressH = 12,		// StartAddressH		Start refresh address after vertical blanking
 		R13_StartAddressL = 13,		// StartAddress		-""-
 		R14_CursorH = 14,			// CursorH				Cursor location (14 bits <=> 16K positions) -  display address of the char cell holding the cursor
@@ -91,6 +113,7 @@ public:
 	int mStartVisibleCharRow = 0;
 	int mStartVisibleCharCol = 0;
 	int mStartAdr = 0x0;
+	int mCursorAdr = 0x0;
 	int mVisibleCharRows = 1;
 	int mCharRows = 1;
 	int mCharCols = 1;
@@ -141,7 +164,7 @@ public:
 	bool advanceLine(uint64_t& endCycle) { return true; }
 
 	// Called by other device to get next memory address to fetch char/graphics data from
-	bool getMemFetchAdr(uint16_t& adr, bool& activeArea);
+	bool getMemFetchAdr(uint16_t& adr, uint16_t &cursor, bool& activeArea);
 
 	bool initialised() { return mInitialised; }
 

@@ -1,4 +1,5 @@
 #include "CRTC6845.h"
+#include <iomanip>
 
 //
 // Note:
@@ -12,9 +13,9 @@ CRTC6845::CRTC6845(
 
 	registerPort("CLK",			IN_PORT,  0x1,	CLK,		&mCLK);
 	registerPort("RESET",		IN_PORT,  0x1,	RESET,		&mRESET);
-	registerPort("DEN",			OUT_PORT, 0x1,	DEN,		&mDEN);
+	registerPort("DISPTMG",			OUT_PORT, 0x1,	DISPTMG,		&mDISPTMG);
 	registerPort("RA",			OUT_PORT, 0x1f, RA,			&mRA);
-	registerPort("CURS",		OUT_PORT, 0x1,	CURS,		&mCURS);
+	registerPort("CUDISP",		OUT_PORT, 0x1,	CUDISP,		&mCUDISP);
 	registerPort("HS",			OUT_PORT, 0x1,	HS,			&mHS);
 	registerPort("VS",			OUT_PORT, 0x1,	VS,			&mVS);
 
@@ -36,7 +37,7 @@ bool CRTC6845::reset()
 	// mReg[R0_HorizontalTotal] =		0x3f;	0x3f
 	// mReg[R1_HorizontalDisplayed] =	0x28;	0x28
 	// mReg[R2_HSYncPosition] =			0x33;	0x31
-	// mReg[R3_HSyncWidth] =			0x24;	0x4 (0x24 written but truncated to 4 bits)
+	// mReg[R3_SyncWidth] =			0x24;	0x4 (0x24 written but truncated to 4 bits)
 	// mReg[R4_VerticalTotal] =			0x1e;	0x26
 	// mReg[R5_VerticalTotalAdjust] =	0x02;	0x00
 	// mReg[R6_VerticalDisplayed] =		0x19;	0x20
@@ -58,10 +59,10 @@ bool CRTC6845::reset()
 }
 
 // Called by other device to get next memory address to fetch char/graphics data from
-bool CRTC6845::getMemFetchAdr(uint16_t &adr, bool &activeArea)
+bool CRTC6845::getMemFetchAdr(uint16_t &adr, uint16_t &cursor, bool &activeArea)
 {
 
-	// Advance time corresponding to one character and check for HS, VS & DEN
+	// Advance time corresponding to one character and check for HS, VS & DISPTMG
 	int step = max(1, (int)round((mCPUClock / mCLK)));
 	advance(mCycleCount + step);
 
@@ -71,8 +72,9 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr, bool &activeArea)
 	// If in the active display area, read the memory location and output the address on port RA and the read data on port D_OUT
 	adr = 0x0;
 	activeArea = false;
-	if (mDEN) {
+	if (mDISPTMG) {
 		adr = mStartAdr + (mCharRow - mStartVisibleCharRow) * mVisibleCharRows + mCharCol - mStartVisibleCharCol;
+		cursor = mCursorAdr;
 		activeArea = true;
 	}
 
@@ -116,25 +118,48 @@ bool CRTC6845::advance(uint64_t stopCycle)
 			updatePort(VS, 0x10);
 
 		// Check for Horizontal Sync Output
-		if (mCharCol >= mReg[R2_HSYncPosition] && mCharCol <= mReg[R2_HSYncPosition] + mReg[R3_HSyncWidth])
+		if (mCharCol >= mReg[R2_HSYncPosition] && mCharCol <= mReg[R2_HSYncPosition] + mReg[R3_SyncWidth])
 			updatePort(HS, 0x1);
 		else
 			updatePort(HS, 0x0);
 
+		//
 		// Check for Visible part of scan line
-		if (mCharRow < mReg[R6_VerticalDisplayed] && mCharCol < mReg[R1_HorizontalDisplayed])
-			updatePort(DEN, 0x1);
+		// 
+		// Determined by the hz sync pulse location and the no of chars/row
+		// and the row no.
+		// 
+		// Visible part of a row:
+		// 
+		// <-invisible-><-----visible-----><----invisible---->
+		//              <visible chars/row><sync pulse>
+		//    (R2-R1)            (R1)         (R2,R3)
+		// <------------------------------------------------->
+		//                  (R0)
+		//
+		// Visible rows:
+		// 
+		// <----visible----><---invisible--->
+		//      (R6)
+		// <-------------------------------->
+		//              (R4)
+		//
+		if (
+			mCharCol >= mReg[R2_HSYncPosition] - mReg[R1_HorizontalDisplayed] && mCharCol < mReg[R2_HSYncPosition] &&
+			mCharRow < mReg[R6_VerticalDisplayed]
+		)
+			updatePort(DISPTMG, 0x1);
 		else
-			updatePort(DEN, 0x0);
+			updatePort(DISPTMG, 0x0);
 
 		// Check for cursor being selected
 		int cursor_first_line = mReg[R10_CursorStart];
 		int curstor_last_line = mReg[R11_CursorEnd];
 		int cursor_char_pos = (mReg[R14_CursorH] << 8) + mReg[R15_CursorL];
-		if (mCharRow * mReg[R1_HorizontalDisplayed] + mCharCol == cursor_char_pos)
-			updatePort(CURS, 0x1);
+		if (mCursorAdr + mCharRow * mReg[R1_HorizontalDisplayed] + mCharCol == cursor_char_pos)
+			updatePort(CUDISP, 0x1);
 		else
-			updatePort(CURS, 0x0);
+			updatePort(CUDISP, 0x0);
 	}
 
 	
@@ -168,14 +193,14 @@ bool CRTC6845::read(uint16_t adr, uint8_t& data)
 // R2        Horizontal sync position          98    98    98    98    49    49    49    51
 // R3        Horizontal sync width(bits 0 - 3)  8     8     8     8     4     4     4     4
 //           +Vertical sync width(bits 4 - 7)   2     2     2     2     2     2     2     2
-// R4        Vertical total                    38    38    38    30    38    38    30    30 => (18+1) * 30 + 2 = 572 scan lines for mode 7
+// R4        Vertical total                    38    38    38    30    38    38    30    30 => (18+2) * (30+1) + 2 = 622 scan lines for mode 7
 // R5        Vertical total adjust              0     0     0     2     0     0     2     2
-// R6        Vertical displayed characters     32    32    32    25    32    32    25    25
-// R7        Vertical sync position            34    34    34    27    34    34    27    27 => (18+1) * 27 = 513 visible scan lines for mode 7
+// R6        Vertical displayed characters     32    32    32    25    32    32    25    25 => (18+2) * 25 = 500 visible scan lines for mode 7
+// R7        Vertical sync position            34    34    34    27    34    34    27    28 
 // R8        Interlace mode(bits 0, 1)          1     1     1     1     1     1     1     3
 //           +Display delay(bits 4, 5)          0     0     0     0     0     0     0     1
 //           +Cursor delay(bits 6, 7)           0     0     0     0     0     0     0     2
-// R9        Scan lines per character           7     7     7     9     7     7     9    18 => (18+1) x 30 = 570 scan lines for mode 7
+// R9        Scan lines per character           7     7     7     9     7     7     9    18 => (18+2)  = 20 raster lines for mode 7
 // R10       Cursor start(bits 0 - 4)           7     7     7     7     7     7     7    18
 //           Cursor type(bit 5)                 1     1     1     1     1     1     1     1
 //           Cursor blink(bit 6)                1     1     1     1     1     1     1     1
@@ -217,17 +242,21 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 void CRTC6845::updateSettings()
 {
 	if ((mReg[R8_InterlaceMode] & 0x3) == 0x3)
-		mVisibleLines = mReg[R6_VerticalDisplayed] * (mReg[R9_MaxScanLineAddress] + 2);
+		mCharLines = mReg[R9_MaxScanLineAddress] + 2;
 	else
-		mVisibleLines = mReg[R6_VerticalDisplayed] * (mReg[R9_MaxScanLineAddress] + 1);
-	mScanLines = (mReg[R4_VerticalTotal] + 1 + mReg[R5_VerticalTotalAdjust] / 32.0) * (mReg[R9_MaxScanLineAddress] + 1);
+		mCharLines = mReg[R9_MaxScanLineAddress] + 1;
+
+	mVisibleLines = mReg[R6_VerticalDisplayed] * mCharLines;
+
+	mScanLines = (mReg[R4_VerticalTotal] + 1 ) * mCharLines + mReg[R5_VerticalTotalAdjust];
 	mStartVisibleCharRow = mReg[R2_HSYncPosition] - mReg[R1_HorizontalDisplayed];
 	mStartVisibleCharRow = 0;
 	mStartAdr = (mReg[R12_StartAddressH] << 8) | mReg[R13_StartAddressL];
+	mCursorAdr = (mReg[R14_CursorH] << 8) | mReg[R15_CursorL];
 	mVisibleCharRows = mReg[R1_HorizontalDisplayed];
 	mCharRows = mReg[R4_VerticalTotal] + 1;
 	mCharCols = mReg[R0_HorizontalTotal] + 1;
-	mCharLines = mReg[R9_MaxScanLineAddress] + 1;
+
 
 }
 
@@ -236,35 +265,37 @@ void CRTC6845::printSettings()
 
 	// Update parameters based on the register update															Beeb Mode 0  (80 x 32 chars, 640 x 256 pixels)
 	double Tc = 1.0 / mCLK;														// [us]		Clock period
-	double Nsl = mReg[R9_MaxScanLineAddress] + 1;								// [lines]	Character Scan Lines (up to 32)						  8 lines
 	double Tsl = (mReg[R0_HorizontalTotal] + 1) * Tc;							// [us]		Scan Line duration					(127+1) * 0.5 =	 64 us
-	double Tcr = Nsl * Tsl;														// [us]		Character Row Period				7 * 64 =		448 us
+	double Tcr = mCharLines * Tsl;												// [us]		Character Row Period				7 * 64 =		448 us
 	double Nhd = mReg[R1_HorizontalDisplayed] * Tc;								// [us]		Visible horizontal area				80 * 0.5 =		 40 us
 	double Nhsp = mReg[R2_HSYncPosition] * Tc;									// [us]		Horizontal sync pos					98 * 0.5 =		49 us
-	double Nhsw = mReg[R3_HSyncWidth] * Tc;										// [us]		Horizontal sync pulse width			8 * 0.5 =		 4 us
+	double Nhsw = (mReg[R3_SyncWidth] & 0xf) * Tc;								// [us]		Horizontal sync pulse width			8 * 0.5 =		 4 us
+	double Nvsw = ((mReg[R3_SyncWidth] >> 4) & 0xf) * Tsl;						// [us]		Vertical sync pulse width			2 * 64 =	   128 us
 	double Nvt = (mReg[R4_VerticalTotal] + 1) * Tcr / 1000;						// [ms]		Vertical total (integer part)		(38+1) * 448 = 17.5 ms (57 Hz)
 	double Nadj = mReg[R5_VerticalTotalAdjust] * Tsl / 1000;					// [ms]		Vertical total (fraction)							  0 ms
 	double Nvd = mReg[R6_VerticalDisplayed] * Tcr;								// [ms]		Visible vertical duration			32 * 448 =	   14.3 ms
 	double Nvsp = mReg[R7_VSyncPosition] * Tcr;									// [ms]		Vertical sync position				34 * 448 =	   15.2 ms
 	int VS_pos = mReg[R7_VSyncPosition] * (mReg[R9_MaxScanLineAddress] + 1);	// Vertical sync position in scan lines			8 * 34 =	    272 lines
-	mVisibleLines = mReg[R6_VerticalDisplayed] * (mReg[R9_MaxScanLineAddress] + 1);
-	mScanLines = (mReg[R4_VerticalTotal] + 1) * (mReg[R9_MaxScanLineAddress] + 1) + mReg[R5_VerticalTotalAdjust];			// 39 * 8 + 0 =			312 lines
 
 	cout << dec;
 	for (int i = 0; i < 18; i++)
-		cout << "R" << i << ": " << hex << (int) mReg[i] << dec << "\n";
+		cout << "R" << setw(2) <<  setfill('0') << i << ": 0x" << hex << setfill('0') << setw(2) << (int)mReg[i] << dec << "\n";
  	cout << "CLK:                               " << (int) mCLK << "\tMhz\n";
 	cout << "Frame Rate:                        " << round(1000 / Nvt) << "\tHz\n";
 	cout << "No of scan lines per frame:        " << round(mScanLines) << "\n";
 	cout << "No of visible scan lines:          " << mVisibleLines << "\n";
 	cout << "Scan Line duration:                " << Tsl << "\tus\n";
-	cout << "Scan Lines per Character:          " << Nsl << "\tlines\n";
+	cout << "Scan Lines per Character:          " << mCharLines << "\tlines\n";
 	cout << "Total no of characters per line:   " << (int) mReg[R0_HorizontalTotal] + 1 << "\tchars\n";
 	cout << "No of visible characters per line: " << (int)mReg[R1_HorizontalDisplayed] << "\tchars\n";
 	cout << "Vertical sync position:            " << VS_pos << " lines (" << round(Nvsp / 1000) << " ms)\n";
 	cout << "Horizontal sync position:          " << (int) mReg[R2_HSYncPosition] << " chars (" << round(Nhsp) << " us)\n";
+	cout << "Horizontal sync pulse width:       " << (int)(mReg[R3_SyncWidth] & 0xf) << " chars (" << round(Nhsw) << " us)\n";
+	cout << "Vertical sync pulse width:         " << (int)((mReg[R3_SyncWidth] >> 4) & 0xf) << " lines (" << round(Nvsw) << " us)\n";
 	cout << "Start address:                     0x" << hex << (mReg[R12_StartAddressH] << 8) + mReg[R13_StartAddressL] << "\n";
-	cout << "Interlace mode:                    " << (mReg[R8_InterlaceMode]&1?"Non-interlaced":mReg[R8_InterlaceMode]&2?"Interlaced & video":"Interlaced") << "\n";
+	cout << "Cursor raster lines:               [" << dec << (int)(mReg[R10_CursorStart] & 0x1f) << ":" << (int)mReg[R11_CursorEnd] << "]\n";
+	cout << "Cursor position:                   0x" << hex << ((mReg[R14_CursorH] << 8) | mReg[R15_CursorL]) << "\n";
+	cout << "Interlace mode:                    " << ((mReg[R8_InterlaceMode]&1)==0?"Non-interlaced":mReg[R8_InterlaceMode]&2?"Interlaced & video":"Interlaced") << "\n";
 	
 }
 
@@ -299,7 +330,7 @@ inline double CRTC6845::getFrameRate()
 
 inline int CRTC6845::getCharScanLines()
 {
-	return mReg[R9_MaxScanLineAddress] + 1;
+	return mCharLines;
 }
 
 inline int CRTC6845::getVerticalSyncPos()
