@@ -116,16 +116,18 @@ bool CRTC6845::advance(uint64_t stopCycle)
 		mCycleCount += step;
 
 		// Check for Vertical Sync Output
-		if (mCharRow == mReg[R7_VSyncPosition])
+		if (mCharRow >= mReg[R7_VSyncPosition] && mCharRow < mReg[R7_VSyncPosition] + ((mReg[R3_SyncWidth] >> 4) & 0xf))
 			updatePort(VS, 0x1);
 		else
-			updatePort(VS, 0x10);
+			updatePort(VS, 0x0);
 
 		// Check for Horizontal Sync Output
-		if (mCharCol >= mReg[R2_HSYncPosition] && mCharCol <= mReg[R2_HSYncPosition] + mReg[R3_SyncWidth])
+		if (mCharCol >= mReg[R2_HSYncPosition] && mCharCol <= mReg[R2_HSYncPosition] + (mReg[R3_SyncWidth] & 0xf)) {
 			updatePort(HS, 0x1);
-		else
+		}
+		else {
 			updatePort(HS, 0x0);
+		}
 
 		//
 		// Check for Visible part of scan line

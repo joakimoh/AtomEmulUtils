@@ -40,14 +40,9 @@ public:
 
 
 	// SA5050 Ports
-	int DEW, CLR, LOSE, CRS;
-
-	uint8_t mDEW = 0x0;		// INPUT - Data Entry Window (start of field frame): resets ROM address counter prior to the display period
-	uint8_t mCLR = 0x1;		// INPUT - General clear: Start of line
+	int LOSE;
 	uint8_t mLOSE = 0x0;	// INPUT - Load Output Shift register: Start of visible part of line (i.e., the display line)
-	uint8_t pCLR = 0x1;
-	uint8_t pDEW = 0x0;
-	uint8_t mCRS = 0x0;		// INPUT Character Rounding Select (normal height characters only)
+
 
 	typedef struct TTSymbol_struct {
 		uint8_t rows[10];
@@ -227,7 +222,7 @@ public:
 
 	// Called by the device that needs the RGB pixel data (screenData) that
 	// the TT5050 generates based on page memory data (pageData).
-	bool getScreenData(uint8_t pageData, vector <TTColour> &screenData);
+	bool getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour> &screenData);
 
 	bool initialised() { return true; }
 

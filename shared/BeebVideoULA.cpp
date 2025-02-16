@@ -51,7 +51,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	if (scan_lines_per_frame != mScanLines) {
 		mScanLines = scan_lines_per_frame;
 		mScanLine = 0;
-	};
+
+	}
 	int VS_pos = getVerticalSyncLine();
 	if (VS_pos != mVerticalSyncPos) {
 		mVerticalSyncPos = VS_pos;
@@ -101,9 +102,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// to width of a screen char. 
 	int n_chars = getCharsPerLine();
 	unsigned int* bitmap_data_p = NULL;
-	if (mScanLine < getVerticalSyncLine())
+	if (mScanLine < mVerticalSyncPos)
 		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScanLine);
-	//cout << "\nL #" << dec << mScanLine << ": ";
+	bool new_scan_line = true;
 	for (int char_pos = 0; char_pos < n_chars; char_pos++) {
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
@@ -161,7 +162,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		if (!teletext)
 			dis_ena = ~(~mDISPTMG | ((mRA >> 3) & 0x1)); // RA3 shall never be set when not in teletext mode as raster lines are 0-7 only
 		else
-			dis_ena = mDISPTMG;
+			dis_ena = mDISPTMG; // In teletext mode raster lines are 0-19
 
 		if (dis_ena && in_active_area && mScanLine < getVerticalSyncLine()) {
 			
@@ -182,19 +183,15 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			}
 
 			// For teletext modes, decode video memory data as videotext data
-			if (teletext && !mTGC->getScreenData(screen_data, tgc_data)) {
+			if (teletext && !mTGC->getScreenData(new_scan_line, mFrame != pFrame, screen_data, tgc_data)) {
 				return false;
 			}
-			/*
-			if (screen_adr == 0x7c28 && screen_data > 0x20) {
-				cout << "CRTC LINE #" << dec << mScanLine << " " << hex << "0x" << screen_adr << " = 0x" << (int)screen_data << " '" <<
-					(char)screen_data << "' " << dec << tgc_data.size() << " raster pixels: ";
-				for (int i = 0; i < tgc_data.size(); i++)
-					cout << (tgc_data[i].R != 0 ? "x" : "_");
-				cout << "\n";
-			}
-			*/
-			//cout << hex << setw(2) << setfill('0') << screen_adr << ":" << (int)screen_data << " ";
+			if (mFrame != pFrame)
+				cout << "NEW FRAME AT SCAN LINE " << dec << mScanLine << "\n";
+			if (new_scan_line)
+				cout << "NEW SCAN LINE " << dec << mScanLine << "\n";
+			new_scan_line = false;
+			pFrame = mFrame;
 
 			// Get cursor configuration
 			uint8_t cursor_seg_ena = 0x0;
@@ -278,13 +275,13 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					Gt = Gt << 1;
 					Bt = Bt << 1;
 				}
-			}
+			}		
 
-			
 
 		}
+
 	}
-	//cout << "\n";
+
 	mScanLine = (mScanLine + 1) % scan_lines_per_frame;
 
 	return true;

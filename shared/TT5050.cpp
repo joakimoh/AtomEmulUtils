@@ -10,10 +10,7 @@ TT5050::TT5050(
 	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
 		cout << "Teletext Character Generator SA5050 '" << name << "' added\n";
 
-	registerPort("DEW", IN_PORT, 0x1, DEW, &mDEW);
-	registerPort("CLR", IN_PORT, 0x1, CLR, &mCLR);
 	registerPort("LOSE", IN_PORT, 0x1, LOSE, &mLOSE);
-	registerPort("CRS", IN_PORT, 0x1, CRS, &mCRS);
 
 	createInterpolatedSymbols();
 
@@ -139,8 +136,10 @@ bool TT5050::advance(uint64_t stopCycle)
 // 
 //				
 //
-bool TT5050::getScreenData(uint8_t pageData, vector <TTColour> &screenData)
+bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour> &screenData)
 {
+	const int n_raster_lines = 20;
+
 	if (!initialised()) {
 		mCycleCount += max(1, (int)round(mSystemClock / 1.0));
 		return true;
@@ -148,25 +147,19 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour> &screenData)
 
 	// Advance time 1 us
 	mCycleCount += max(1, (int) round(mSystemClock / 1.0));
-
-	// Check for start of frame
-	if (mDEW && mDEW != pDEW) { // start of frame => reset scan line, raster line & char row counters
+	
+	// start of frame => reset scan line, raster line & char row counters
+	if (VS) { 
 		mScanLine = 0;
 		mCharRowPos = 0;
 		mCharRasterLine = 0;
 	}
-	pDEW = mDEW;
-
-	// Check for start of line
-	if (mCLR && mCLR != pCLR) { // 
+	
+	// start of line => reset char pos
+	if (HS) {
 		mCharRowPos = 0;
-		int n_raster_lines = 20;
-		if (mScanLine > 0) { // start of new line (and not of new frame) => increase scan line counter		
-			mCharRasterLine = (mCharRasterLine + 1) % n_raster_lines;
-		}
-		mScanLine++;
 	}
-	pCLR = mCLR;
+	
 
 	uint8_t char_data = pageData & 0x7f;
 
@@ -228,7 +221,7 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour> &screenData)
 		}
 
 		if (draw_graphics) {
-			// Create one scan line of two "big" pixels occupying 6 actual pixels
+			// Create one scan line of two "big" pixels occupying 12 actual pixels
 			uint8_t b1b0;
 			if (mCharRasterLine <= 2)
 				b1b0 = symbol_index & 0x3;
@@ -238,9 +231,9 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour> &screenData)
 				b1b0 = ((symbol_index >> 3) & 0x2) | ((symbol_index >> 6) & 0x1);
 			TT5050::TTColour b1_colour = (b1b0 & 0x2) ? colour : mBackgroundColour;
 			TT5050::TTColour b0_colour = (b1b0 & 0x1) ? colour : mBackgroundColour;
-			for (int p = 0; p < 3; p++)
+			for (int p = 0; p < 6; p++)
 				screenData.push_back(b1_colour);
-			for (int p = 0; p < 3; p++)
+			for (int p = 0; p < 6; p++)
 				screenData.push_back(b0_colour);
 		}
 
@@ -259,7 +252,14 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour> &screenData)
 
 	}
 
-	mCharRowPos++; // if it was the last char pos, this will be corrected at the next call of getScreenData() based on the CLR input
+	if (HS) {
+		cout << "LINE " << dec << mScanLine << ", RASTER LINE " << mCharRasterLine << "\n";
+		mCharRowPos = 0;		
+		mCharRasterLine = (mCharRasterLine + 1) % n_raster_lines;
+		mScanLine++;		
+	}
+
+	mCharRowPos++; // if it was the last char pos, this will be corrected at the next call of getScreenData() based on the HS input
 
 	return true;
 }
