@@ -63,8 +63,10 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr, uint16_t &cursor, bool &activeArea)
 {
 
 	// Advance time corresponding to one character and check for HS, VS & DISPTMG
-	int step = max(1, (int)round((mCPUClock / mCLK)));
-	advance(mCycleCount + step);
+	int nextCycleCount = (int) round( mCycleCount + mCPUClock / mCLK);
+	if (nextCycleCount == mCycleCount)
+		nextCycleCount++;
+	advance(nextCycleCount);
 
 	if (!mInitialised)
 		return true;
@@ -232,7 +234,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 	updateSettings();
 	
 	if (mRegWrtCnt >= 18) {
-		if (true || (mDebugInfo.dbgLevel & DBG_VERBOSE))
+		if ((mDebugInfo.dbgLevel & DBG_VERBOSE))
 			printSettings();
 		mInitialised = true;
 	}
@@ -336,7 +338,7 @@ inline int CRTC6845::getCharScanLines()
 	return mCharLines;
 }
 
-inline int CRTC6845::getVerticalSyncPos()
+inline int CRTC6845::getVerticalSyncLine()
 {
 	return mReg[R7_VSyncPosition] * (mReg[R9_MaxScanLineAddress] + 1);
 }

@@ -195,7 +195,7 @@ public:
 	inline double getScanLinesPerFrame() { return 262; }
 	inline double getFrameRate() { return 60; }
 	inline int getCharScanLines() { return 12;}
-	inline int getVerticalSyncPos() { return mTVBlkH;  }
+	inline int getVerticalSyncLine() { return mTVBlkH;  }
 	inline int getHorizontalSyncPos() { return 0; }
 	inline int getCharsPerLine() { return 32; }
 	inline int getVisibleCharsPerLine() { return 32; }

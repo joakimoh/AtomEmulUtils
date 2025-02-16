@@ -40,7 +40,7 @@ public:
 	virtual double getScanLinesPerFrame() = 0;
 	virtual double getFrameRate() = 0;
 	virtual int getCharScanLines() = 0;
-	virtual int getVerticalSyncPos() = 0;
+	virtual int getVerticalSyncLine() = 0;
 	virtual int getHorizontalSyncPos() = 0;
 	virtual int getCharsPerLine() = 0;
 	virtual int getVisibleCharsPerLine() = 0;

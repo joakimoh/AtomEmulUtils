@@ -52,7 +52,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		mScanLines = scan_lines_per_frame;
 		mScanLine = 0;
 	};
-	int VS_pos = getVerticalSyncPos();
+	int VS_pos = getVerticalSyncLine();
 	if (VS_pos != mVerticalSyncPos) {
 		mVerticalSyncPos = VS_pos;
 		mScanLine = 0;
@@ -89,6 +89,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		mFrame++;
 
+		//cout << dec << mFrame << ":" << (getCRField(CR_TELETEXT) == 1 ? "teletext" : "Graphics") << ":" << mScreenW << "x" << mScreenH << "\n";
+
 		lockDisplay();
 
 	}
@@ -98,8 +100,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// on the screen and "Char" is actually one byte fetched from memory that only sometimes corresponds
 	// to width of a screen char. 
 	int n_chars = getCharsPerLine();
-	unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScanLine);
-	cout << "\nLINE #" << dec << mScanLine << ": ";
+	unsigned int* bitmap_data_p = NULL;
+	if (mScanLine < getVerticalSyncLine())
+		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScanLine);
+	//cout << "\nL #" << dec << mScanLine << ": ";
 	for (int char_pos = 0; char_pos < n_chars; char_pos++) {
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
@@ -155,18 +159,18 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// Is the screen (display) in the active area?
 		uint8_t dis_ena;
 		if (!teletext)
-			dis_ena = ~(~mDISPTMG | ((mRA >> 3) & 0x1));
+			dis_ena = ~(~mDISPTMG | ((mRA >> 3) & 0x1)); // RA3 shall never be set when not in teletext mode as raster lines are 0-7 only
 		else
 			dis_ena = mDISPTMG;
 
-		if (dis_ena && in_active_area) {
+		if (dis_ena && in_active_area && mScanLine < getVerticalSyncLine()) {
 			
 			if (!teletext) { // Normally modes 0-6 - raster address selected bytes within an 8 row byte block
 				screen_adr = crtc_adr * 8 + (mRA & 0x7);
 				cursor_adr = crtc_cursor * 8;
 			}
 			else { // Normally mode 7
-				screen_adr = crtc_adr + (0x7400 ^ 0x2000);
+				screen_adr = crtc_adr + (0x7400 ^ 0x2000); // CRTC MA13 is used to select the SA5050 and is cleared by 0x2000
 				cursor_adr = crtc_cursor + (0x7400 ^ 0x2000);
 			}
 			
@@ -178,12 +182,19 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			}
 
 			// For teletext modes, decode video memory data as videotext data
-			bool interpolated_char = false;
-			if (teletext && !mTGC->getScreenData(screen_data, interpolated_char, tgc_data)) {
+			if (teletext && !mTGC->getScreenData(screen_data, tgc_data)) {
 				return false;
 			}
-
-			cout << hex << setw(2) << setfill('0') << /*screen_adr << ":" <<*/ (int)screen_data << " ";
+			/*
+			if (screen_adr == 0x7c28 && screen_data > 0x20) {
+				cout << "CRTC LINE #" << dec << mScanLine << " " << hex << "0x" << screen_adr << " = 0x" << (int)screen_data << " '" <<
+					(char)screen_data << "' " << dec << tgc_data.size() << " raster pixels: ";
+				for (int i = 0; i < tgc_data.size(); i++)
+					cout << (tgc_data[i].R != 0 ? "x" : "_");
+				cout << "\n";
+			}
+			*/
+			//cout << hex << setw(2) << setfill('0') << screen_adr << ":" << (int)screen_data << " ";
 
 			// Get cursor configuration
 			uint8_t cursor_seg_ena = 0x0;
@@ -211,10 +222,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			}
 			else {
 				pixels_per_byte = 12;
-				if (interpolated_char)
-					pixel_width = mPixelW;
-				else
-					pixel_width = mPixelW * 2;
+				pixel_width = mPixelW;
 			}
 
 			//
@@ -260,7 +268,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 				// Update display with the R, G & B data
 				uint32_t colour = 0xff000000 | (R ? 0x00ff0000 : 0) | (G ? 0x0000ff00 : 0) | (G ? 0x000000ff : 0);
-				for (int pw = 0; pw < mPixelW; pw++)
+				for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL; pw++)
 					*bitmap_data_p++ = colour;
 
 				if (!teletext)
@@ -276,7 +284,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		}
 	}
-	cout << "\n";
+	//cout << "\n";
 	mScanLine = (mScanLine + 1) % scan_lines_per_frame;
 
 	return true;
@@ -321,7 +329,7 @@ void BeebVideoULA::updateScreenSz()
 	// resize screen when switching between teletext mode (720 x 513)  and non-telext modes (640 x 256)
 	if (pW != mScreenW || pH != mScreenH) {
 		al_destroy_bitmap(mDisplayBitmap);
-		cout << "create display bitmap " << dec << mScreenW << " x " << mScreenH << "\n";
+		//cout << "create display bitmap " << dec << mScreenW << " x " << mScreenH << "\n";
 		mDisplayBitmap = al_create_bitmap(mScreenW, mScreenH);
 		mLockedDisplayBitMap = al_lock_bitmap(mDisplayBitmap, ALLEGRO_PIXEL_FORMAT_ANY, ALLEGRO_LOCK_WRITEONLY);
 	}
@@ -429,10 +437,10 @@ int BeebVideoULA::getCharScanLines()
 		return 12;
 }
 
-int BeebVideoULA::getVerticalSyncPos()
+int BeebVideoULA::getVerticalSyncLine()
 {
 	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getVerticalSyncPos();
+		return mCRTC->getVerticalSyncLine();
 	else
 		return 0;
 }

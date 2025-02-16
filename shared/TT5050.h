@@ -211,7 +211,7 @@ public:
 	bool mSeparatedGraphics = false;	// If true, the graphic sixels will be made up of smaller blocks
 	bool mHiddenText = false;
 	bool mHeldGraphics = false;			// If true, control codes are displayed as a copy of the most recently displayed graphics symbol (and not  as spacesin the current background colour
-	uint8_t mLastGraphicsSymbolIndex = 0x0;
+	uint8_t mLastGraphicsSymbolIndex = 0x0; // symbol without any pixels (just background colour as the result)
 public:
 
 	ALLEGRO_COLOR green, black;
@@ -227,7 +227,7 @@ public:
 
 	// Called by the device that needs the RGB pixel data (screenData) that
 	// the TT5050 generates based on page memory data (pageData).
-	bool getScreenData(uint8_t pageData, bool &interpolatedChar, vector <TTColour> &screenData);
+	bool getScreenData(uint8_t pageData, vector <TTColour> &screenData);
 
 	bool initialised() { return true; }
 

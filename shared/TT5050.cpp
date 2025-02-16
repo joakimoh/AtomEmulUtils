@@ -133,15 +133,13 @@ bool TT5050::advance(uint64_t stopCycle)
 // Called by the display unit fetching the data from the page memory on 1 us character basis
 // 
 // pageData:			Data read from the page memory
-// interpolatedChar:	true if pixel symbol is interpolated
 // screenData:			One scan line of one of the following:
-//						- 6 x 10 pixel symbol
 //						- 12 x 20 pixel symbol interpolated from an 6 x 10 symbolc, or
-//						- 2 x 3 graphics encoded as 6 x 10 pixels
+//						- 2 x 3 graphics encoded as 12 x 20 pixels
 // 
 //				
 //
-bool TT5050::getScreenData(uint8_t pageData, bool &interpolatedChar, vector <TTColour> &screenData)
+bool TT5050::getScreenData(uint8_t pageData, vector <TTColour> &screenData)
 {
 	if (!initialised()) {
 		mCycleCount += max(1, (int)round(mSystemClock / 1.0));
@@ -150,11 +148,6 @@ bool TT5050::getScreenData(uint8_t pageData, bool &interpolatedChar, vector <TTC
 
 	// Advance time 1 us
 	mCycleCount += max(1, (int) round(mSystemClock / 1.0));
-
-	if (mCRS)
-		interpolatedChar = true;
-	else
-		interpolatedChar = false;
 
 	// Check for start of frame
 	if (mDEW && mDEW != pDEW) { // start of frame => reset scan line, raster line & char row counters
@@ -167,16 +160,15 @@ bool TT5050::getScreenData(uint8_t pageData, bool &interpolatedChar, vector <TTC
 	// Check for start of line
 	if (mCLR && mCLR != pCLR) { // 
 		mCharRowPos = 0;
-		int n_raster_lines = (interpolatedChar ? 20 : 10);
-		if (mScanLine > 0) { // start of new line (and not of new frame) => increase scan line counter
-			mScanLine++;
+		int n_raster_lines = 20;
+		if (mScanLine > 0) { // start of new line (and not of new frame) => increase scan line counter		
 			mCharRasterLine = (mCharRasterLine + 1) % n_raster_lines;
 		}
-
+		mScanLine++;
 	}
 	pCLR = mCLR;
 
-	uint8_t char_data = (pageData >> 1) & 0x7f;
+	uint8_t char_data = pageData & 0x7f;
 
 	if (char_data < 0x20) {
 		switch (char_data) {
@@ -213,23 +205,29 @@ bool TT5050::getScreenData(uint8_t pageData, bool &interpolatedChar, vector <TTC
 
 	// Generate output
 	if (mLOSE) {
-		uint16_t char_raster_data;
+		bool draw_graphics = mGraphics != 0;
 		uint8_t symbol_index = char_data - 0x20; // should give an index in the range [0,95]
 		TT5050::TTColour colour = mColours[(int)TT_BLACK];
-		if (!mHiddenText || char_data < 0x20) { // draw hidden text and control char as space as default
-			colour =mAlpaNumericColour;
-			char_raster_data = mSymbols[0x20].rows[mCharRasterLine];
-		}
-		else if (mHiddenText && char_data >= 0x20) { // draw control char as last graphics symbol
-			colour = mGraphicsColour;
-			char_raster_data = mSymbols[mLastGraphicsSymbolIndex].rows[mCharRasterLine];
+		if (char_data < 0x20) { // invisible control char - decide how to show it
+			if (!mHiddenText) { // draw hidden text and control char as space as default
+				colour = mAlpaNumericColour;
+				symbol_index = 0; // SPACE symbol
+			}
+			else { // draw control char as last graphics symbol
+				colour = mGraphicsColour;
+				symbol_index = mLastGraphicsSymbolIndex;
+				draw_graphics = true;
+			}
 		}
 		// Character or graphical symbol to be displayed
-		else if (!mGraphics) {
-			colour = mAlpaNumericColour;
-		}
 		else {
-			colour = mGraphicsColour;
+			if (draw_graphics)
+				colour = mGraphicsColour;
+			else
+				colour = mAlpaNumericColour;
+		}
+
+		if (draw_graphics) {
 			// Create one scan line of two "big" pixels occupying 6 actual pixels
 			uint8_t b1b0;
 			if (mCharRasterLine <= 2)
@@ -246,24 +244,19 @@ bool TT5050::getScreenData(uint8_t pageData, bool &interpolatedChar, vector <TTC
 				screenData.push_back(b0_colour);
 		}
 
-		if (interpolatedChar) {
+		else {
+
 			// Create 12 pixels of the correct colour
 			for (int p = 0; p < 12; p++) {
-				if (mInterpolatedSymbolRasterBits[symbol_index][mCharRasterLine][p])
+				if (mInterpolatedSymbolRasterBits[symbol_index][mCharRasterLine][p]) {
 					screenData.push_back(colour);
-				else
+				}
+				else {
 					screenData.push_back(mBackgroundColour);
+				}
 			}
 		}
-		else {
-			// Create 6 pixels of the correct colour
-			for (int p = 0; p < 6; p++) {
-				if (mSymbolRasterBits[symbol_index][mCharRasterLine][p])
-					screenData.push_back(colour);
-				else
-					screenData.push_back(mBackgroundColour);
-			}
-		}
+
 	}
 
 	mCharRowPos++; // if it was the last char pos, this will be corrected at the next call of getScreenData() based on the CLR input

@@ -148,7 +148,7 @@ public:
 	inline double getScanLinesPerFrame();
 	inline double getFrameRate();
 	inline int getCharScanLines();
-	inline int getVerticalSyncPos();
+	inline int getVerticalSyncLine();
 	inline int getHorizontalSyncPos();
 	inline int getCharsPerLine();
 	inline int getVisibleCharsPerLine();
