@@ -323,6 +323,7 @@ void BeebVideoULA::updateScreenSz()
 		al_destroy_bitmap(mDisplayBitmap);
 		cout << "create display bitmap " << dec << mScreenW << " x " << mScreenH << "\n";
 		mDisplayBitmap = al_create_bitmap(mScreenW, mScreenH);
+		mLockedDisplayBitMap = al_lock_bitmap(mDisplayBitmap, ALLEGRO_PIXEL_FORMAT_ANY, ALLEGRO_LOCK_WRITEONLY);
 	}
 }
 

@@ -226,7 +226,6 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 		// Iterate over all horizontal bytes
 
 		uint8_t mem_data;
-
 		if (mAG)
 			// Graphic mode
 		{		

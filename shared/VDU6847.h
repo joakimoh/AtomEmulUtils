@@ -116,7 +116,6 @@ public:
 	uint8_t mDin = 0x0;		// output - Data read from the graphics memory are provided as 'output' to be able to connect it directly to the inputs A/G, GM & CSS as required
 
 
-
 	int mN60HzCycles;
 
 	ALLEGRO_BITMAP* mDisplayBitmap = NULL;

@@ -19,6 +19,9 @@ RAM::RAM(string name, bool DRAM, uint16_t adr, uint16_t sz, DebugInfo debugInfo,
 	}
 	else {
 		// Initialise RAM with random values (for static RAM)
+		// Required for the Acorn Atom as its BASIC random no generator will fail
+		// otherwise (as the seed is coming from the RAM assuming it has an initial
+		// random content).
 		for (int i = 0; i < mMemorySpace.sz; i++)
 			mMem[i] = rand() % 256;
 	}
