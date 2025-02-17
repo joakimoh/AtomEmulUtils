@@ -64,10 +64,12 @@ public:
 	int mNCols = 0;				// No of visible columns
 	int mCursorSegment = -1;	// The current cursor segment being drawn (0-2 when active)
 	int mVerticalSyncPos = 0;	// Vertical sync pos (in scan lines)
-	int mScreenW = 640;			// Visible screen area
+	int mScreenW = 640;			// Visible screen area (including borders)
 	int mScreenH = 256;			//
-	int mScreenActOffsetW = 0;	// Active screen area offset
-	int mScreenActOffsetH = 0;
+	int mScreenActiveWidth = 640;	// Active screen area
+	int mSceenActiveHeight = 256;
+	int mScreenLeftBorder = 0;	// Active screen area offset
+	int mScreenTopBorder = 0;
 
 	double mCPUClock = 2.0; // [MHz]
 	double CRTCClock = 1.0; // [MHz]
@@ -125,6 +127,10 @@ public:
 	inline int getCharsPerLine();
 	inline int getVisibleCharsPerLine();
 	inline int getScanLine();
+	inline int getLeftBorderChars();
+	inline int getTopBorderLines();
+	inline int getActiveChars();
+	inline int getActiveLines();
 
 
 	// Reset device

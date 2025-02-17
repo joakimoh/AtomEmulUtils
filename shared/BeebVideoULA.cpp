@@ -186,10 +186,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			if (teletext && !mTGC->getScreenData(new_scan_line, mFrame != pFrame, screen_data, tgc_data)) {
 				return false;
 			}
-			if (mFrame != pFrame)
-				cout << "NEW FRAME AT SCAN LINE " << dec << mScanLine << "\n";
-			if (new_scan_line)
-				cout << "NEW SCAN LINE " << dec << mScanLine << "\n";
 			new_scan_line = false;
 			pFrame = mFrame;
 
@@ -206,7 +202,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				mCursorSegment++;
 			}
 
-			uint8_t Rt, Gt, Bt;
 			uint8_t Rs, Gs, Bs;
 			uint8_t R, G, B;
 
@@ -271,14 +266,31 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				if (!teletext)
 					mem_data = mem_data << 1;
 				else {
-					Rt = Rt << 1;
-					Gt = Gt << 1;
-					Bt = Bt << 1;
+					R = R << 1;
+					G = G << 1;
+					B = B << 1;
 				}
 			}		
 
 
 		}
+		else if (in_active_area) {
+
+			int pixels_per_byte = mPixelsPerByte;
+			int pixel_width = mPixelW;
+			if (teletext) {
+				pixels_per_byte = 12;
+				pixel_width = mPixelW;
+			}
+			uint8_t Rs, Gs, Bs;
+			for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
+				Rs = Gs = Bs = 0;
+				uint32_t colour = 0xff000000;
+				for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL; pw++)
+					*bitmap_data_p++ = colour;
+			}
+		}
+
 
 	}
 
@@ -309,13 +321,17 @@ void BeebVideoULA::updateScreenSz()
 	int pH = mScreenH;
 	if (getCRField(CR_TELETEXT)) {
 		if (mCRTC->initialised()) {
-			int c_w, c_h;
-			mCRTC->getVisibleCharArea(c_w, c_h);
-			mScreenW = c_w * 12;
-			mScreenH = c_h * getCharScanLines();
-			mScreenActOffsetW = (getHorizontalSyncPos() - 40) * 12;
-			mScreenActOffsetH = 0;
+			int chars_per_line, lines;
+			mCRTC->getVisibleCharArea(chars_per_line, lines);
+			mScreenW = chars_per_line * 12;
+			mScreenH = lines;
+			mScreenLeftBorder = mCRTC->getLeftBorderChars() * 12;
+			mScreenTopBorder = mCRTC->getTopBorderLines();
+			mScreenActiveWidth = mCRTC->getActiveChars() * 12;
+			mSceenActiveHeight = mCRTC->getActiveLines();
 			mPixelW = 1;
+			//cout << "teletext screen size: " << mScreenW << " x " << mScreenH << " with active area " << mScreenActiveWidth << " x " << mSceenActiveHeight <<
+			//	" at offset " << mScreenLeftBorder << " x " << mScreenTopBorder << "\n";
 		}
 	}
 	else {
@@ -470,6 +486,38 @@ int BeebVideoULA::getVisibleCharsPerLine()
 int BeebVideoULA::getScanLine()
 {
 	return mScanLine;
+}
+
+int BeebVideoULA::getLeftBorderChars()
+{
+	if (mCRTC != NULL && mCRTC->initialised())
+		return mCRTC->getLeftBorderChars();
+	else
+		return 0;
+}
+
+int BeebVideoULA::getTopBorderLines()
+{
+	if (mCRTC != NULL && mCRTC->initialised())
+		return mCRTC->getTopBorderLines();
+	else
+		return 0;
+}
+
+int BeebVideoULA::getActiveChars()
+{
+	if (mCRTC != NULL && mCRTC->initialised())
+		return mCRTC->getActiveChars();
+	else
+		return 40;
+}
+
+int BeebVideoULA::getActiveLines()
+{
+	if (mCRTC != NULL && mCRTC->initialised())
+		return mCRTC->getActiveLines();
+	else
+		return 25;
 }
 
 // Get pointer to other device to be able to call its methods

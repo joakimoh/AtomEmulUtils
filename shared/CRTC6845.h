@@ -107,17 +107,37 @@ public:
 	};
 
 	int mCharRow = 0;
-	int mCharCol = 0;
-	int mVisibleLines = 1;
-	double mScanLines = 1;
-	int mStartVisibleCharRow = 0;
-	int mStartVisibleCharCol = 0;
+	int mCharCol = 0;	
+
 	int mStartAdr = 0x0;
 	int mCursorAdr = 0x0;
-	int mVisibleCharRows = 1;
-	int mCharRows = 1;
-	int mCharCols = 1;
+
+	int mStartVisibleCharRow = 0;
+	int mStartVisibleCharCol = 0;
+	
 	int mCharLines = 1;
+
+
+	// Vertical scan lines: top border, active lines, sync pulse, bottom border (all in unit 'line')
+	int mTopBorderLines = 0;
+	int mActiveLines = 1; // A multiple of mCharLines
+	int mActiveRows = 1;
+	int mVSyncRow = 1;
+	int mVSyncLine = 1;
+	int mVSyncPulseW = 1;
+	int mBottomBorderLines = 0;
+	int mVisibleScanLines = 1; // mTopBorderLines + mActiveLines + mBottomBorderLines
+	int mCharRows = 1;
+	double mScanLines = 1;
+
+	// Horizontal line: left border, active chars, sync pulse, right border (all in unit 'char')
+	int mLeftBorderChars = 0;
+	int mActiveRowChars = 1;
+	int mHzSyncPos = 1;
+	int mHzSyncPulseW = 1;
+	int mRightBorderChars = 0;
+	int mVisibleChars = 1; // mLeftBorderChars + mActiveChars + mRightBorderChars
+	int mCharCols = 1;
 
 	double mCPUClock = 2.0;
 
@@ -126,7 +146,7 @@ public:
 
 public:
 
-	bool getVisibleCharArea(int& w, int& h);
+	bool getVisibleCharArea(int& charsPerLine, int& lines);
 	bool getVisibleArea(int& w, int& h) {
 		// Not supported as cannot be calculated by the M6845 iself
 		return false;
@@ -153,6 +173,11 @@ public:
 	inline int getCharsPerLine();
 	inline int getVisibleCharsPerLine();
 	inline int getScanLine() { return mScanLine;  }
+
+	inline int getLeftBorderChars();
+	inline int getTopBorderLines();
+	inline int getActiveChars();
+	inline int getActiveLines();
 
 
 	// Reset device

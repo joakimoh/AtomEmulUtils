@@ -22,7 +22,7 @@ using namespace std;
 // 0			0			1				1			External alphanumerics inverted (external 8 x 12 dot matrix characters)	2			512 bytes		No
 // 
 // For the Acorn Atom, INV is connected to b7 of read graphics memory data, A/S and INT/EXT to b6. But Acorn Atom
-// doesn't have external alphanumerics so b6 needs always to be '0'. The CSS imput is onnected to the PIA output PC4 and selects the colour palette for the
+// doesn't have external alphanumerics so b6 needs always to be '0'. The CSS imput is connected to the PIA output PC4 and selects the colour palette for the
 // semigraphics modes.
 // 
 // 

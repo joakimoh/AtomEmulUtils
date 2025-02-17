@@ -135,7 +135,7 @@ public:
 	const int mBVBlkH = 6;										//
 
 	// Calculated parameters (based on the base parameters)
-	const double mlineDur = (1e6 / mFrameFreq) / mScanLines;		// Line duration - approximately 63.6 us for NTSC
+	const double mlineDur = (1e6 / mFrameFreq) / mScanLines;	// Line duration - approximately 63.6 us for NTSC
 	const double mHalfCycleD = 1 / (mClockFreq * 2);			// Duration (in us) of one 1/2 cycle of the base frequency <=> one horizontal 'pixel'
 	const double mBrdH = mTAVB - mTAV;							// Duration of horizontal borders [us]
 	const double mHBlkDur = mlineDur - mTAVB;					// Horizontal blanking duration [us]
@@ -157,7 +157,7 @@ public:
 										
 	const int mTotalH = mTVBlkH + mVisH + mBVBlkH;				// Total dislay height (in scan lines) including invisble vertical  blanking
 																// - should equal mScanLines
-	const int mTotalW = (int)round(mLBlkW + mVisW + mRBlkW);	// Total display width including invisble horizontal blanking
+	const int mTotalW = (int)round(mLBlkW + mVisW + mRBlkW);	// Total display width including invisible horizontal blanking
 	const double scale_factor = 720 / (double)mVisW;			// Scale to 720 lines height
 	const int mScaledW = (int) round (scale_factor * mVisW);	//
 	const int mScaledH = (int) round(scale_factor * mVisH);		//
@@ -200,6 +200,10 @@ public:
 	inline int getCharsPerLine() { return 32; }
 	inline int getVisibleCharsPerLine() { return 32; }
 	inline int getScanLine() { return mScanLine; }
+	inline int getLeftBorderChars() { return mLBrdW / 8; }
+	inline int getTopBorderLines() { return mTBrdH; }
+	inline int getActiveChars() { return mActAreaW/8; }
+	inline int getActiveLines() { return mActAreaH; }
 
 
 	// Reset device

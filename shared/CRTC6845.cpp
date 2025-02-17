@@ -77,7 +77,7 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr, uint16_t &cursor, bool &activeArea)
 	if (mDISPTMG) {
 		//cout << "\nstart adr: 0x" << hex << mStartAdr << ", char row:" << dec << mCharRow << ", char col " << mCharCol << 
 			//", start visible col " << mStartVisibleCharCol  << "\n";
-		adr = mStartAdr + (mCharRow - mStartVisibleCharRow) * mVisibleCharRows + mCharCol - mStartVisibleCharCol;
+		adr = mStartAdr + (mCharRow - mStartVisibleCharRow) * mActiveRowChars + mCharCol - mStartVisibleCharCol;
 		cursor = mCursorAdr;
 		activeArea = true;
 	}
@@ -86,17 +86,16 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr, uint16_t &cursor, bool &activeArea)
 	// The M6845 linear address generator repeats the same sequence of addresses for each scan line of a character row
 	mCharCol = (mCharCol + 1) % mCharCols;
 	if (mCharCol == 0) {
+		mScanLine = (mScanLine + 1) % (int) round(mScanLines);
 		updatePort(RA, (mRA + 1) % mCharLines);
-		if (mRA == 0) {
+		if (mRA == 0)
 			mCharRow = (mCharRow + 1) % mCharRows;
-			if (mCharRow == 0) {
-				mScanLine = 0;
-				updatePort(RA, 0);
-			}
+		if (mScanLine == 0) {
+			mCharRow = 0;
+			mCharCol = 0;
+			updatePort(RA, 0);
 		}
 	}
-
-	mScanLine = mCharRow * mCharLines + mRA;
 
 	return true;
 
@@ -116,19 +115,19 @@ bool CRTC6845::advance(uint64_t stopCycle)
 		mCycleCount += step;
 
 		// Check for Vertical Sync Output
-		if (mCharRow >= mReg[R7_VSyncPosition] && mCharRow < mReg[R7_VSyncPosition] + ((mReg[R3_SyncWidth] >> 4) & 0xf))
+		if (mCharRow >= mVSyncRow && mCharRow < mVSyncRow + mVSyncPulseW)
 			updatePort(VS, 0x1);
 		else
 			updatePort(VS, 0x0);
 
 		// Check for Horizontal Sync Output
-		if (mCharCol >= mReg[R2_HSYncPosition] && mCharCol <= mReg[R2_HSYncPosition] + (mReg[R3_SyncWidth] & 0xf)) {
+		if (mCharCol >= mHzSyncPos  && mCharCol < mHzSyncPos + mHzSyncPulseW) {
 			updatePort(HS, 0x1);
 		}
 		else {
 			updatePort(HS, 0x0);
 		}
-
+		
 		//
 		// Check for Visible part of scan line
 		// 
@@ -137,23 +136,19 @@ bool CRTC6845::advance(uint64_t stopCycle)
 		// 
 		// Visible part of a row:
 		// 
-		// <-invisible-><-----visible-----><----invisible---->
-		//              <visible chars/row><sync pulse>
-		//    (R2-R1)            (R1)         (R2,R3)
-		// <------------------------------------------------->
+		// <left border> <active area> <hsync pulse> <right border>
+		//    (R2-R1)        (R1)         (R2,R3)        (R0-R2-R3)
+		// <------------------------------------------------------>
 		//                  (R0)
 		//
-		// Visible rows:
+		// Scan lines:
 		// 
-		// <----visible----><---invisible--->
-		//      (R6)
-		// <-------------------------------->
-		//              (R4)
+		// <     top border   > <active area> <    vsync pulse      > <     bottom border             >
+		//   (R7-R6)*(R9+1/2)    R6*(R9+1/2)    (R7:R7+R3)*(R9+1/2)   R4*(R9+1/2)+R5-(R7+R3)*(R9+1/2)
+		// <------------------------------------------------------------------------------------------>
+		//                          R4*(R9+1/2)+R5
 		//
-		if (
-			mCharCol >= mStartVisibleCharCol && mCharCol < mReg[R2_HSYncPosition] + 1 &&
-			mCharRow < mReg[R6_VerticalDisplayed]
-		)
+		if (mCharCol >= mStartVisibleCharCol && mCharCol < mHzSyncPos && mCharRow < mReg[R6_VerticalDisplayed])		
 			updatePort(DISPTMG, 0x1);
 		else
 			updatePort(DISPTMG, 0x0);
@@ -253,69 +248,80 @@ void CRTC6845::updateSettings()
 	else
 		mCharLines = mReg[R9_MaxScanLineAddress] + 1;
 
-	mVisibleLines = mReg[R6_VerticalDisplayed] * mCharLines;
-
-	mScanLines = (mReg[R4_VerticalTotal] + 1 ) * mCharLines + mReg[R5_VerticalTotalAdjust];
-	mStartVisibleCharCol = mReg[R2_HSYncPosition] + 1 - mReg[R1_HorizontalDisplayed];
-	mStartVisibleCharRow = 0;
-	mStartAdr = (mReg[R12_StartAddressH] << 8) | mReg[R13_StartAddressL];
-	mCursorAdr = (mReg[R14_CursorH] << 8) | mReg[R15_CursorL];
-	mVisibleCharRows = mReg[R1_HorizontalDisplayed];
+	// Vertical scan lines: top border, active lines, sync pulse, bottom border
 	mCharRows = mReg[R4_VerticalTotal] + 1;
-	mCharCols = mReg[R0_HorizontalTotal] + 1;
+	mScanLines = mCharRows * mCharLines + mReg[R5_VerticalTotalAdjust];
+	mVSyncRow = mReg[R7_VSyncPosition];
+	mVSyncLine = mVSyncRow * mCharLines;
+	mActiveRows = mReg[R6_VerticalDisplayed];
+	mActiveLines = mActiveRows * mCharLines;
+	mTopBorderLines = mVSyncRow * mCharLines - mActiveLines;
+	mVSyncPulseW = (mReg[R3_SyncWidth] >> 4) & 0xf;
+	if (mVSyncPulseW == 0)
+		mVSyncPulseW = 16;
+	mBottomBorderLines = mScanLines - mTopBorderLines - mActiveLines - mVSyncPulseW;
+	mVisibleScanLines = mTopBorderLines + mActiveLines + mBottomBorderLines;
 
+	// Horizontal line: left border, active chars, sync pulse, right border (all in unit 'char')
+	mCharCols = mReg[R0_HorizontalTotal] + 1;
+	mHzSyncPos = mReg[R2_HSYncPosition] + 1;
+	mActiveRowChars = mReg[R1_HorizontalDisplayed];
+	mLeftBorderChars = mHzSyncPos - mActiveRowChars;		
+	mHzSyncPulseW = mReg[R3_SyncWidth] & 0xf;
+	mRightBorderChars = mCharCols - mLeftBorderChars - mActiveRowChars - mHzSyncPulseW;
+	mVisibleChars = mLeftBorderChars + mActiveRowChars + mRightBorderChars;
+
+	// Video memory start address
+	mStartAdr = (mReg[R12_StartAddressH] << 8) | mReg[R13_StartAddressL];
+
+	// Current cursor address
+	mCursorAdr = (mReg[R14_CursorH] << 8) | mReg[R15_CursorL];
 
 }
 
 void CRTC6845::printSettings()
 {
 
-	// Update parameters based on the register update															Beeb Mode 0  (80 x 32 chars, 640 x 256 pixels)
-	double Tc = 1.0 / mCLK;														// [us]		Clock period
-	double Tsl = (mReg[R0_HorizontalTotal] + 1) * Tc;							// [us]		Scan Line duration					(127+1) * 0.5 =	 64 us
-	double Tcr = mCharLines * Tsl;												// [us]		Character Row Period				7 * 64 =		448 us
-	double Nhd = mReg[R1_HorizontalDisplayed] * Tc;								// [us]		Visible horizontal area				80 * 0.5 =		 40 us
-	double Nhsp = (mReg[R2_HSYncPosition] + 1) * Tc;							// [us]		Horizontal sync pos					98 * 0.5 =		49 us
-	double Nhsw = (mReg[R3_SyncWidth] & 0xf) * Tc;								// [us]		Horizontal sync pulse width			8 * 0.5 =		 4 us
-	double Nvsw = ((mReg[R3_SyncWidth] >> 4) & 0xf) * Tsl;						// [us]		Vertical sync pulse width			2 * 64 =	   128 us
-	double Nvt = (mReg[R4_VerticalTotal] + 1) * Tcr / 1000;						// [ms]		Vertical total (integer part)		(38+1) * 448 = 17.5 ms (57 Hz)
-	double Nadj = mReg[R5_VerticalTotalAdjust] * Tsl / 1000;					// [ms]		Vertical total (fraction)							  0 ms
-	double Nvd = mReg[R6_VerticalDisplayed] * Tcr;								// [ms]		Visible vertical duration			32 * 448 =	   14.3 ms
-	double Nvsp = mReg[R7_VSyncPosition] * Tcr;									// [ms]		Vertical sync position				34 * 448 =	   15.2 ms
-	int VS_pos = mReg[R7_VSyncPosition] * (mReg[R9_MaxScanLineAddress] + 1);	// Vertical sync position in scan lines			8 * 34 =	    272 lines
+	// Update parameters based on the register update														
+	double Tc = 1.0 / mCLK;	
 
 	cout << dec;
 	for (int i = 0; i < 18; i++)
 		cout << "R" << setw(2) <<  setfill('0') << i << ": 0x" << hex << setfill('0') << setw(2) << (int)mReg[i] << dec << "\n";
+
  	cout << "CLK:                               " << (int) mCLK << "\tMhz\n";
-	cout << "Frame Rate:                        " << round(1000 / Nvt) << "\tHz\n";
-	cout << "No of scan lines per frame:        " << round(mScanLines) << "\n";
-	cout << "No of visible scan lines:          " << mVisibleLines << "\n";
-	cout << "Scan Line duration:                " << Tsl << "\tus\n";
+	cout << "Frame Rate:                        " << round(mCLK * 1e6 / (mScanLines * mCharCols)) << "\tHz\n";
+	cout << "No of scan lines per frame:        " << round(mScanLines) << "\tlines\n";
+	cout << "Top border lines:                  " << mTopBorderLines << "\tlines\n";
+	cout << "Active scan lines:                 " << mActiveLines << "\tlines\n";
+	cout << "Bottom border lines:               " << mBottomBorderLines << "\tlines\n";
+	cout << "Scan Line duration:                " << mCharCols * Tc << "\tus\n";
 	cout << "Scan Lines per Character:          " << mCharLines << "\tlines\n";
-	cout << "Total no of characters per line:   " << (int) mReg[R0_HorizontalTotal] + 1 << "\tchars\n";
-	cout << "No of visible characters per line: " << (int)mReg[R1_HorizontalDisplayed] << "\tchars\n";
-	cout << "Vertical sync position:            " << VS_pos << " lines (" << round(Nvsp / 1000) << " ms)\n";
-	cout << "Horizontal sync position:          " << (int) (mReg[R2_HSYncPosition] + 1) << " chars (" << round(Nhsp) << " us)\n";
-	cout << "Horizontal sync pulse width:       " << (int)(mReg[R3_SyncWidth] & 0xf) << " chars (" << round(Nhsw) << " us)\n";
-	cout << "Vertical sync pulse width:         " << (int)((mReg[R3_SyncWidth] >> 4) & 0xf) << " lines (" << round(Nvsw) << " us)\n";
-	cout << "Start address:                     0x" << hex << (mReg[R12_StartAddressH] << 8) + mReg[R13_StartAddressL] << "\n";
+	cout << "Total no of characters per line:   " << (int) mCharCols << "\tchars\n";
+	cout << "Left border chars:                 " << mLeftBorderChars << "\tchars\n";
+	cout << "Active characters per line:        " << mActiveRowChars << "\tchars\n";
+	cout << "Right border chars:                " << mRightBorderChars << "\tchars\n";
+	cout << "Vertical sync position:            " << mVSyncLine << " lines (" << round(mVSyncLine * mCharCols * Tc / 1000) << " ms)\n";
+	cout << "Horizontal sync position:          " << (int)mHzSyncPos << " chars (" << round(mHzSyncPos*Tc) << " us)\n";
+	cout << "Horizontal sync pulse width:       " << (int)mHzSyncPulseW << " chars (" << round(mHzSyncPulseW*Tc) << " us)\n";
+	cout << "Vertical sync pulse width:         " << (int)mVSyncPulseW << " lines (" << round(mVSyncPulseW*mCharCols*Tc) << " us)\n";
+	cout << "Start address:                     0x" << hex << mStartAdr << "\n";
 	cout << "Cursor raster lines:               [" << dec << (int)(mReg[R10_CursorStart] & 0x1f) << ":" << (int)mReg[R11_CursorEnd] << "]\n";
 	cout << "Cursor position:                   0x" << hex << ((mReg[R14_CursorH] << 8) | mReg[R15_CursorL]) << "\n";
 	cout << "Interlace mode:                    " << ((mReg[R8_InterlaceMode]&1)==0?"Non-interlaced":mReg[R8_InterlaceMode]&2?"Interlaced & video":"Interlaced") << "\n";
 	
 }
 
-bool CRTC6845::getVisibleCharArea(int& w, int& h)
+bool CRTC6845::getVisibleCharArea(int &charsPerLine, int &lines)
 {
-	w = mReg[R1_HorizontalDisplayed];
-	h = mReg[R6_VerticalDisplayed];
+	charsPerLine = mLeftBorderChars + mActiveRowChars + mRightBorderChars;
+	lines = mTopBorderLines + mActiveLines + mBottomBorderLines;
 	return true;
 }
 
 inline double CRTC6845::getScanLineDuration()
 {
-	return (mReg[R0_HorizontalTotal] + 1) / mCLK;
+	return mCharCols / mCLK;
 }
 
 inline double CRTC6845::getScanLinesPerFrame()
@@ -325,14 +331,8 @@ inline double CRTC6845::getScanLinesPerFrame()
 
 inline double CRTC6845::getFrameRate()
 {
-	//																											Beeb Mode 0 (80 x 32 chars, 640 x 256 pixels)
-	double Tc = 1.0 / mCLK;										// [us]		Clock period
-	double Nsl = mReg[R9_MaxScanLineAddress] +1;				// [lines]	Character Scan Lines (up to 32)						  8 lines
-	double Tsl = (mReg[R0_HorizontalTotal] + 1) * Tc;			// [us]		Scan Line duration					(127+1) * 0.5 =	 64 us
-	double Tcr = Nsl * Tsl;										// [us]		Character Row Period				7 * 64 =		448 us
-	double Nvt = (mReg[R4_VerticalTotal] + 1) * Tcr / 1000;		// [ms]		Vertical total (integer part)		(38+1) * 448 = 17.5 ms (57 Hz) 
 
-	return 1000/Nvt;
+	return mCLK / (mScanLines * mCharCols);
 }
 
 inline int CRTC6845::getCharScanLines()
@@ -342,20 +342,37 @@ inline int CRTC6845::getCharScanLines()
 
 inline int CRTC6845::getVerticalSyncLine()
 {
-	return mReg[R7_VSyncPosition] * (mReg[R9_MaxScanLineAddress] + 1);
+	return mVSyncLine;
 }
 
 inline int CRTC6845::getHorizontalSyncPos()
 {
-	return mReg[R2_HSYncPosition];
+	return mVSyncRow;
 }
 
 inline int CRTC6845::getCharsPerLine()
 {
-	return mReg[R0_HorizontalTotal] + 1;
+	return mCharLines;
 }
 
 inline int CRTC6845::getVisibleCharsPerLine()
 {
-	return mReg[R1_HorizontalDisplayed];
+	return mActiveRowChars;
+}
+
+inline int CRTC6845::getLeftBorderChars()
+{
+	return mLeftBorderChars;
+}
+inline int CRTC6845::getTopBorderLines()
+{
+	return mTopBorderLines;
+}
+inline int CRTC6845::getActiveChars()
+{
+	return mActiveRowChars;
+}
+inline int CRTC6845::getActiveLines()
+{
+	return mActiveLines;
 }

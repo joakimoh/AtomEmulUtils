@@ -253,7 +253,6 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 	}
 
 	if (HS) {
-		cout << "LINE " << dec << mScanLine << ", RASTER LINE " << mCharRasterLine << "\n";
 		mCharRowPos = 0;		
 		mCharRasterLine = (mCharRasterLine + 1) % n_raster_lines;
 		mScanLine++;		
