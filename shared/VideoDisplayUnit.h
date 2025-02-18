@@ -46,9 +46,13 @@ public:
 	virtual int getVisibleCharsPerLine() = 0;
 	virtual int getScanLine() = 0;
 	virtual inline int getLeftBorderChars() = 0;
+	virtual inline int getRightBorderChars() = 0;
 	virtual inline int getTopBorderLines() = 0;
+	virtual inline int getBottomBorderLines() = 0;
 	virtual inline int getActiveChars() = 0;
 	virtual inline int getActiveLines() = 0;
+	virtual inline int getRetraceLines() = 0;
+	virtual inline int getRetraceChars() = 0;
 
 	virtual bool advanceLine(uint64_t& endCycle) = 0;
 

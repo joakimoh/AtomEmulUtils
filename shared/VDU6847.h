@@ -204,6 +204,10 @@ public:
 	inline int getTopBorderLines() { return mTBrdH; }
 	inline int getActiveChars() { return mActAreaW/8; }
 	inline int getActiveLines() { return mActAreaH; }
+	inline int getRightBorderChars() { return mRBrdW / 8; }
+	inline int getBottomBorderLines() { return mBBrdH; }
+	inline int getRetraceLines() { return mTVBlkH + mBVBlkH; }
+	inline int getRetraceChars() { return mLBlkW + mRBlkW; }
 
 
 	// Reset device

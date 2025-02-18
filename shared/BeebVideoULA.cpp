@@ -96,16 +96,34 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	}
 
-	// Process one scan line (should be 128 chars per scan line and the visible part being 40 or 80 chars)
+	// Process one scan line (should be 64/128 chars per scan line and the visible part being 20, 40 or 80 chars)
 	// Each char is not necessarily the same as character on the screen. "Big Char" is the char visible
 	// on the screen and "Char" is actually one byte fetched from memory that only sometimes corresponds
 	// to width of a screen char. 
+
+
 	int n_chars = getCharsPerLine();
+	int visible_lines = getTopBorderLines() + getActiveLines() + getBottomBorderLines();
+	int visible_chars = getLeftBorderChars() + getActiveChars() + getRightBorderChars();
+
+	int pixel_line = mScanLine - getRetraceLines();
+
 	unsigned int* bitmap_data_p = NULL;
-	if (mScanLine < mVerticalSyncPos)
-		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScanLine);
+	if (pixel_line >= 0 && pixel_line < getTopBorderLines() + getActiveLines() + getBottomBorderLines())
+		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * pixel_line);
 	bool new_scan_line = true;
+
+	int pixels_per_byte = mPixelsPerByte;
+	int pixel_width = mPixelW;
+	bool teletext = getCRField(CR_TELETEXT) == 1;
+	if (teletext) {
+		pixels_per_byte = 12;
+		pixel_width = mPixelW;
+	}
+
 	for (int char_pos = 0; char_pos < n_chars; char_pos++) {
+
+		int visible_char_pos = char_pos - getRetraceChars();
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
 		// the TGC character is only 6 pixels wide whereas the CRTC one is 8 pixels wide!
@@ -147,15 +165,13 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// (close enough).
 		vector<TT5050::TTColour> tgc_data;
 		
-		// Get encoded video memory address
+		// Get encoded video memory address (if in the active area)
 		uint16_t crtc_adr, screen_adr, crtc_cursor, cursor_adr;
 		bool in_active_area;
 		if (!mCRTC->getMemFetchAdr(crtc_adr, crtc_cursor, in_active_area)) {
 			cout << "Failed to get address from the CRTC!\n";
 			return false;
 		}
-
-		bool teletext = getCRField(CR_TELETEXT) == 1;
 
 		// Is the screen (display) in the active area?
 		uint8_t dis_ena;
@@ -164,124 +180,141 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		else
 			dis_ena = mDISPTMG; // In teletext mode raster lines are 0-19
 
-		if (dis_ena && in_active_area && mScanLine < getVerticalSyncLine()) {
-			
-			if (!teletext) { // Normally modes 0-6 - raster address selected bytes within an 8 row byte block
-				screen_adr = crtc_adr * 8 + (mRA & 0x7);
-				cursor_adr = crtc_cursor * 8;
-			}
-			else { // Normally mode 7
-				screen_adr = crtc_adr + (0x7400 ^ 0x2000); // CRTC MA13 is used to select the SA5050 and is cleared by 0x2000
-				cursor_adr = crtc_cursor + (0x7400 ^ 0x2000);
-			}
-			
-			// Read video memory data
-			uint8_t screen_data;
-			if (!mVideoMem->read(screen_adr, screen_data)) {
-				cout << "Failed to read video memory at address 0x" << hex << screen_adr << "\n";
-				return false;
-			}
+		if (pixel_line >= getTopBorderLines() && pixel_line < getTopBorderLines() + getActiveLines()) {
 
-			// For teletext modes, decode video memory data as videotext data
-			if (teletext && !mTGC->getScreenData(new_scan_line, mFrame != pFrame, screen_data, tgc_data)) {
-				return false;
-			}
-			new_scan_line = false;
-			pFrame = mFrame;
+			if (dis_ena) {
 
-			// Get cursor configuration
-			uint8_t cursor_seg_ena = 0x0;
-			if (mCURSOR) {
-				if (mCursorSegment < 0)
-					mCursorSegment = 0;
-				uint8_t cursor_segments = (mControlRegister >> 5) & 0x7;
-				uint8_t cursor_seg_ena = cursor_segments >> (2 - mCursorSegment);
-				bool clk_2_Mhz = ((mControlRegister >> 4) & 0x1) != 0;
-				uint8_t cs_01_width = (clk_2_Mhz ? 8 : 16);
-				uint8_t cs_2_width = (cs_01_width << 1) & 0x1;
-				mCursorSegment++;
-			}
+				if (!teletext) { // Normally modes 0-6 - raster address selected bytes within an 8 row byte block
+					screen_adr = crtc_adr * 8 + (mRA & 0x7);
+					cursor_adr = crtc_cursor * 8;
+				}
+				else { // Normally mode 7
+					screen_adr = crtc_adr + (0x7400 ^ 0x2000); // CRTC MA13 is used to select the SA5050 and is cleared by 0x2000
+					cursor_adr = crtc_cursor + (0x7400 ^ 0x2000);
+				}
 
-			uint8_t Rs, Gs, Bs;
-			uint8_t R, G, B;
+				// Read video memory data
+				uint8_t screen_data;
+				if (!mVideoMem->read(screen_adr, screen_data)) {
+					cout << "Failed to read video memory at address 0x" << hex << screen_adr << "\n";
+					return false;
+				}
 
-			uint8_t mem_data = 0x0;
-			int pixels_per_byte = mPixelsPerByte;
+				// For teletext modes, decode video memory data as videotext data
+				if (teletext && !mTGC->getScreenData(new_scan_line, mFrame != pFrame, screen_data, tgc_data)) {
+					return false;
+				}
+				if (new_scan_line) {
+					cout << "\n" << (teletext?"TLINE ":"LINE ") << dec << mScanLine << " ";
+				}
+				cout << dec << char_pos << ":" << hex << ":" << screen_adr << ":" << (int) screen_data << " ";
+				new_scan_line = false;
+				pFrame = mFrame;
 
-			int pixel_width = mPixelW;
-			if (!teletext) {
-				mem_data = screen_data;
-			}
-			else {
-				pixels_per_byte = 12;
-				pixel_width = mPixelW;
-			}
+				// Get cursor configuration
+				uint8_t cursor_seg_ena = 0x0;
+				if (mCURSOR) {
+					if (mCursorSegment < 0)
+						mCursorSegment = 0;
+					uint8_t cursor_segments = (mControlRegister >> 5) & 0x7;
+					uint8_t cursor_seg_ena = cursor_segments >> (2 - mCursorSegment);
+					bool clk_2_Mhz = ((mControlRegister >> 4) & 0x1) != 0;
+					uint8_t cs_01_width = (clk_2_Mhz ? 8 : 16);
+					uint8_t cs_2_width = (cs_01_width << 1) & 0x1;
+					mCursorSegment++;
+				}
 
-			//
-			//	Columns	Colours	Big Pixels	Real Pixels		Big Pixel Width		Big Pixels/byte		Bytes/line	
-			//	20		16		20*8 = 160	640				4					2					80
-			//	40		2		40*8 = 320	640				2					8					40
-			//	40		4		40*8 = 320	640				2					4					80
-			//	80		2		80*8 = 640	640				1					8					80
-			// 
-			// Big pixels/byte = 8 * cols / Visible "chars" per line
-			//
-			for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
+				uint8_t Rs, Gs, Bs;
+				uint8_t R, G, B;
 
+				uint8_t mem_data = 0x0;
+				int pixels_per_byte = mPixelsPerByte;
+
+				int pixel_width = mPixelW;
 				if (!teletext) {
-
-					uint8_t palette_mem_adr = ((mem_data >> 1) & 0x1) | ((mem_data >> 2) & 0x2) | ((mem_data >> 3) & 0x1) | ((mem_data >> 4) & 0x1);
-					uint8_t palette_data = mPaletteMem[palette_mem_adr] & 0xf;
-					uint8_t Ri = palette_data & 0x1;
-					uint8_t Gi = (palette_data >> 1) & 0x1;
-					uint8_t Bi = (palette_data >> 2) & 0x1;
-					uint8_t F = (palette_data >> 3) & 0x1;
-					uint8_t flash = mControlRegister & 0x1;
-
-					Rs = ~(Ri ^ ~(F & flash) & dis_ena);
-					Gs = ~(Gi ^ ~(F & flash) & dis_ena);
-					Bs = ~(Bi ^ ~(F & flash) & dis_ena);
+					mem_data = screen_data;
 				}
 				else {
-					if (big_pixel < tgc_data.size()) {
-						Rs = tgc_data[big_pixel].R;
-						Gs = tgc_data[big_pixel].G;
-						Bs = tgc_data[big_pixel].B;
+					pixels_per_byte = 12;
+					pixel_width = mPixelW;
+				}
+
+				//
+				//	Columns	Colours	Big Pixels	Real Pixels		Big Pixel Width		Big Pixels/byte		Bytes/line	
+				//	20		16		20*8 = 160	640				4					2					80
+				//	40		2		40*8 = 320	640				2					8					40
+				//	40		4		40*8 = 320	640				2					4					80
+				//	80		2		80*8 = 640	640				1					8					80
+				// 
+				// Big pixels/byte = 8 * cols / Visible "chars" per line
+				//
+				for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
+
+					if (!teletext) {
+
+						uint8_t palette_mem_adr = ((mem_data >> 1) & 0x1) | ((mem_data >> 2) & 0x2) | ((mem_data >> 3) & 0x1) | ((mem_data >> 4) & 0x1);
+						uint8_t palette_data = mPaletteMem[palette_mem_adr] & 0xf;
+						uint8_t Ri = palette_data & 0x1;
+						uint8_t Gi = (palette_data >> 1) & 0x1;
+						uint8_t Bi = (palette_data >> 2) & 0x1;
+						uint8_t F = (palette_data >> 3) & 0x1;
+						uint8_t flash = mControlRegister & 0x1;
+
+						Rs = ~(Ri ^ ~(F & flash) & dis_ena);
+						Gs = ~(Gi ^ ~(F & flash) & dis_ena);
+						Bs = ~(Bi ^ ~(F & flash) & dis_ena);
 					}
 					else {
-						Rs = Gs = Bs = 0;
+						if (big_pixel < tgc_data.size()) {
+							Rs = tgc_data[big_pixel].R;
+							Gs = tgc_data[big_pixel].G;
+							Bs = tgc_data[big_pixel].B;
+						}
+						else {
+							Rs = Gs = Bs = 0;
+						}
+					}
+
+					R = Rs ^ cursor_seg_ena ^ mINV;
+					G = Gs ^ cursor_seg_ena ^ mINV;
+					B = Bs ^ cursor_seg_ena ^ mINV;
+
+
+					// Update display with the R, G & B data
+					uint32_t colour = 0xff000000 | (R ? 0x00ff0000 : 0) | (G ? 0x0000ff00 : 0) | (G ? 0x000000ff : 0);
+					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL; pw++)
+						*bitmap_data_p++ = colour;
+
+					if (!teletext)
+						mem_data = mem_data << 1;
+					else {
+						R = R << 1;
+						G = G << 1;
+						B = B << 1;
 					}
 				}
 
-				R = Rs ^ cursor_seg_ena ^ mINV;
-				G = Gs ^ cursor_seg_ena ^ mINV;
-				B = Bs ^ cursor_seg_ena ^ mINV;
 
-
-				// Update display with the R, G & B data
-				uint32_t colour = 0xff000000 | (R ? 0x00ff0000 : 0) | (G ? 0x0000ff00 : 0) | (G ? 0x000000ff : 0);
-				for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL; pw++)
-					*bitmap_data_p++ = colour;
-
-				if (!teletext)
-					mem_data = mem_data << 1;
-				else {
-					R = R << 1;
-					G = G << 1;
-					B = B << 1;
-				}
-			}		
-
-
-		}
-		else if (in_active_area) {
-
-			int pixels_per_byte = mPixelsPerByte;
-			int pixel_width = mPixelW;
-			if (teletext) {
-				pixels_per_byte = 12;
-				pixel_width = mPixelW;
 			}
+
+			else if (
+				(visible_char_pos >= 0 && visible_char_pos < getLeftBorderChars()) ||
+				(visible_char_pos >= getLeftBorderChars() + getActiveChars() && visible_char_pos < visible_chars)
+			) {
+				uint8_t Rs, Gs, Bs;
+				for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
+					Rs = Gs = Bs = 0;
+					uint32_t colour = 0xff000000;
+					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL; pw++)
+						*bitmap_data_p++ = colour;
+				}
+			}
+		}
+		else if (
+			(pixel_line >= 0 && pixel_line < getTopBorderLines()) ||
+			(pixel_line >= getTopBorderLines() + getActiveLines() && pixel_line < visible_lines)
+		) {
+
 			uint8_t Rs, Gs, Bs;
 			for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
 				Rs = Gs = Bs = 0;
@@ -290,6 +323,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					*bitmap_data_p++ = colour;
 			}
 		}
+
+		
 
 
 	}
@@ -518,6 +553,38 @@ int BeebVideoULA::getActiveLines()
 		return mCRTC->getActiveLines();
 	else
 		return 25;
+}
+
+int BeebVideoULA::getRightBorderChars()
+{
+	if (mCRTC != NULL && mCRTC->initialised())
+		return mCRTC->getRightBorderChars();
+	else
+		return 10;
+}
+
+int BeebVideoULA::getBottomBorderLines()
+{
+	if (mCRTC != NULL && mCRTC->initialised())
+		return mCRTC->getBottomBorderLines();
+	else
+		return 10;
+}
+
+int BeebVideoULA::getRetraceLines()
+{
+	if (mCRTC != NULL && mCRTC->initialised())
+		return mCRTC->getRetraceLines();
+	else
+		return 10;
+}
+
+int BeebVideoULA::getRetraceChars()
+{
+	if (mCRTC != NULL && mCRTC->initialised())
+		return mCRTC->getRetraceChars();
+	else
+		return 10;
 }
 
 // Get pointer to other device to be able to call its methods

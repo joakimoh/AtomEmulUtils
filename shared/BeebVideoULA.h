@@ -131,6 +131,10 @@ public:
 	inline int getTopBorderLines();
 	inline int getActiveChars();
 	inline int getActiveLines();
+	inline int getRightBorderChars();
+	inline int getBottomBorderLines();
+	inline int getRetraceLines();
+	inline int getRetraceChars();
 
 
 	// Reset device
