@@ -13,7 +13,7 @@ CRTC6845::CRTC6845(
 
 	registerPort("CLK",			IN_PORT,  0x1,	CLK,		&mCLK);
 	registerPort("RESET",		IN_PORT,  0x1,	RESET,		&mRESET);
-	registerPort("DISPTMG",			OUT_PORT, 0x1,	DISPTMG,		&mDISPTMG);
+	registerPort("DISPTMG",		OUT_PORT, 0x1,	DISPTMG,	&mDISPTMG);
 	registerPort("RA",			OUT_PORT, 0x1f, RA,			&mRA);
 	registerPort("CUDISP",		OUT_PORT, 0x1,	CUDISP,		&mCUDISP);
 	registerPort("HS",			OUT_PORT, 0x1,	HS,			&mHS);
@@ -58,13 +58,43 @@ bool CRTC6845::reset()
 	return true;
 }
 
+// Called by other device to get next memory address to fetch char/graphics data from
+bool CRTC6845::getMemFetchAdr(uint16_t &adr, uint16_t &cursor, bool &activeArea)
+{
+
+	if (!mInitialised)
+		return true;
+
+	updateOutputs();
+
+	// If in the active display area, update the fetch address abd cursor position
+	adr = 0x0;
+	activeArea = false;
+	if (mDISPTMG) {
+		int active_char_col_offset = mRetraceChars + mLeftBorderChars;
+		int active_row_offset = mRetraceRows + mTopBorderRows;
+		adr = mStartAdr + (mCharRow - active_row_offset) * mActiveRowChars + mCharCol - active_char_col_offset;
+		cursor = mCursorAdr;
+		activeArea = true;
+		//cout << dec << "#" << mCharCol << "#";
+	}
+	
+	// Advance time corresponding to one character and check for HS, VS & DISPTMG
+	advanceChar();
+
+	return true;
+
+}
+
 bool CRTC6845::advanceChar()
 {
 	int nextCycleCount = (int)round(mCycleCount + mCPUClock / mCLK);
 	if (nextCycleCount == mCycleCount)
 		nextCycleCount++;
-	
-	advance(nextCycleCount);
+
+	mCycleCount = nextCycleCount;
+
+	updateOutputs();
 
 	// Increase char column
 	// The M6845 linear address generator repeats the same sequence of addresses for each scan line of a character row
@@ -84,36 +114,11 @@ bool CRTC6845::advanceChar()
 	return true;
 }
 
-// Called by other device to get next memory address to fetch char/graphics data from
-bool CRTC6845::getMemFetchAdr(uint16_t &adr, uint16_t &cursor, bool &activeArea)
-{
-
-	if (!mInitialised)
-		return true;
-
-	// If in the active display area, update the fetch address abd cursor position
-	adr = 0x0;
-	activeArea = false;
-	if (mDISPTMG) {
-		int active_char_col = mRetraceChars + mLeftBorderChars;
-		int active_row = mRetraceRows + mTopBorderRows;
-		adr = mStartAdr + (mCharRow - active_row) * mActiveRowChars + mCharCol - active_char_col;
-		cursor = mCursorAdr;
-		activeArea = true;
-	}
-	
-	// Advance time corresponding to one character and check for HS, VS & DISPTMG
-	advanceChar();
-
-	return true;
-
-}
-
 bool CRTC6845::updateOutputs()
 {
 	int active_char_col_offset = mRetraceChars + mLeftBorderChars;
-	int active_row = mRetraceRows + mTopBorderRows;
-	int act_char_row = (mCharRow - active_row + mCharRows) % mCharRows;
+	int active_row_offset = mRetraceRows + mTopBorderRows;
+	int act_char_row = (mCharRow - active_row_offset + mCharRows) % mCharRows;
 	int act_char_col = (mCharCol - active_char_col_offset + mCharCols) % mCharCols;
 
 	// Check for Vertical Sync Output
@@ -122,7 +127,6 @@ bool CRTC6845::updateOutputs()
 	else
 		updatePort(VS, 0x0);
 
-	//cout << act_char_col << " (" << mHzSyncPos << ":" << mHzSyncPos + mHzSyncPulseW << ")\n";
 	// Check for Horizontal Sync Output
 	if (act_char_col >= mHzSyncPos && act_char_col < mHzSyncPos + mHzSyncPulseW) {
 		updatePort(HS, 0x1);
@@ -157,17 +161,8 @@ bool CRTC6845::advance(uint64_t stopCycle)
 	if (!mInitialised)
 		mCycleCount = stopCycle;
 
-	while (mCycleCount < stopCycle) {
-
-		// Advance time corresponding to one character
-		int step = (int)round((mCPUClock / mCLK));
-		if (step == 0)
-			step = 1;
-		mCycleCount += step;
-
-		updateOutputs();
-
-	}
+	while (mCycleCount < stopCycle)
+		advanceChar();
 	
 	return true;
 
@@ -405,7 +400,7 @@ inline int CRTC6845::getHorizontalSyncPos()
 
 inline int CRTC6845::getCharsPerLine()
 {
-	return mCharLines;
+	return mCharCols;
 }
 
 inline int CRTC6845::getVisibleCharsPerLine()
@@ -417,14 +412,17 @@ inline int CRTC6845::getLeftBorderChars()
 {
 	return mLeftBorderChars;
 }
+
 inline int CRTC6845::getTopBorderLines()
 {
 	return mTopBorderLines;
 }
+
 inline int CRTC6845::getActiveChars()
 {
 	return mActiveRowChars;
 }
+
 inline int CRTC6845::getActiveLines()
 {
 	return mActiveLines;
