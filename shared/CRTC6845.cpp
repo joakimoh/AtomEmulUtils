@@ -58,15 +58,35 @@ bool CRTC6845::reset()
 	return true;
 }
 
+bool CRTC6845::advanceChar()
+{
+	int nextCycleCount = (int)round(mCycleCount + mCPUClock / mCLK);
+	if (nextCycleCount == mCycleCount)
+		nextCycleCount++;
+	
+	advance(nextCycleCount);
+
+	// Increase char column
+	// The M6845 linear address generator repeats the same sequence of addresses for each scan line of a character row
+	mCharCol = (mCharCol + 1) % mCharCols;
+	if (mCharCol == 0) {
+		mScanLine = (mScanLine + 1) % (int)round(mScanLines);
+		updatePort(RA, (mRA + 1) % mCharLines);
+		if (mRA == 0)
+			mCharRow = (mCharRow + 1) % mCharRows;
+		if (mScanLine == 0) {
+			mCharRow = 0;
+			mCharCol = 0;
+			updatePort(RA, 0);
+		}
+	}
+
+	return true;
+}
+
 // Called by other device to get next memory address to fetch char/graphics data from
 bool CRTC6845::getMemFetchAdr(uint16_t &adr, uint16_t &cursor, bool &activeArea)
 {
-
-	// Advance time corresponding to one character and check for HS, VS & DISPTMG
-	int nextCycleCount = (int) round( mCycleCount + mCPUClock / mCLK);
-	if (nextCycleCount == mCycleCount)
-		nextCycleCount++;
-	advance(nextCycleCount);
 
 	if (!mInitialised)
 		return true;
@@ -81,24 +101,55 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr, uint16_t &cursor, bool &activeArea)
 		cursor = mCursorAdr;
 		activeArea = true;
 	}
-
-	// Increase char column
-	// The M6845 linear address generator repeats the same sequence of addresses for each scan line of a character row
-	mCharCol = (mCharCol + 1) % mCharCols;
-	if (mCharCol == 0) {
-		mScanLine = (mScanLine + 1) % (int) round(mScanLines);
-		updatePort(RA, (mRA + 1) % mCharLines);
-		if (mRA == 0)
-			mCharRow = (mCharRow + 1) % mCharRows;
-		if (mScanLine == 0) {
-			mCharRow = 0;
-			mCharCol = 0;
-			updatePort(RA, 0);
-		}
-	}
+	
+	// Advance time corresponding to one character and check for HS, VS & DISPTMG
+	advanceChar();
 
 	return true;
 
+}
+
+bool CRTC6845::updateOutputs()
+{
+	int active_char_col_offset = mRetraceChars + mLeftBorderChars;
+	int active_row = mRetraceRows + mTopBorderRows;
+	int act_char_row = (mCharRow - active_row + mCharRows) % mCharRows;
+	int act_char_col = (mCharCol - active_char_col_offset + mCharCols) % mCharCols;
+
+	// Check for Vertical Sync Output
+	if (act_char_row >= mVSyncRow && act_char_row < mVSyncRow + mVSyncPulseH)
+		updatePort(VS, 0x1);
+	else
+		updatePort(VS, 0x0);
+
+	//cout << act_char_col << " (" << mHzSyncPos << ":" << mHzSyncPos + mHzSyncPulseW << ")\n";
+	// Check for Horizontal Sync Output
+	if (act_char_col >= mHzSyncPos && act_char_col < mHzSyncPos + mHzSyncPulseW) {
+		updatePort(HS, 0x1);
+	}
+	else {
+		updatePort(HS, 0x0);
+	}
+
+	//
+	// Check for Visible active part of scan line
+	// 
+
+	if (act_char_col >= 0 && act_char_col < mActiveRowChars && act_char_row >= 0 && act_char_row < mActiveRows)
+		updatePort(DISPTMG, 0x1);
+	else
+		updatePort(DISPTMG, 0x0);
+
+	// Check for cursor being selected
+	int cursor_first_line = mReg[R10_CursorStart];
+	int curstor_last_line = mReg[R11_CursorEnd];
+	int cursor_char_pos = (mReg[R14_CursorH] << 8) + mReg[R15_CursorL];
+	if (mCursorAdr + mCharRow * mReg[R1_HorizontalDisplayed] + mCharCol == cursor_char_pos)
+		updatePort(CUDISP, 0x1);
+	else
+		updatePort(CUDISP, 0x0);
+
+	return true;
 }
 
 bool CRTC6845::advance(uint64_t stopCycle)
@@ -108,53 +159,17 @@ bool CRTC6845::advance(uint64_t stopCycle)
 
 	while (mCycleCount < stopCycle) {
 
-		int active_char_col = mRetraceChars + mLeftBorderChars;
-		int active_row = mRetraceRows + mTopBorderRows;
-		int act_char_row = mCharRow - active_row;
-		int act_char_col = mCharCol - active_char_col;
-
 		// Advance time corresponding to one character
 		int step = (int)round((mCPUClock / mCLK));
 		if (step == 0)
 			step = 1;
 		mCycleCount += step;
 
-		// Check for Vertical Sync Output
-		if (act_char_row >= mVSyncRow && act_char_row < mVSyncRow + mVSyncPulseH)
-			updatePort(VS, 0x1);
-		else
-			updatePort(VS, 0x0);
+		updateOutputs();
 
-		// Check for Horizontal Sync Output
-		if (act_char_col >= mHzSyncPos  && act_char_col < mHzSyncPos + mHzSyncPulseW) {
-			updatePort(HS, 0x1);
-		}
-		else {
-			updatePort(HS, 0x0);
-		}
-		
-		//
-		// Check for Visible active part of scan line
-		// 
-
-		if (act_char_col >= 0 && act_char_col < mActiveRowChars && act_char_row >= 0 && act_char_row < mActiveRows)
-			updatePort(DISPTMG, 0x1);
-		else
-			updatePort(DISPTMG, 0x0);
-
-		// Check for cursor being selected
-		int cursor_first_line = mReg[R10_CursorStart];
-		int curstor_last_line = mReg[R11_CursorEnd];
-		int cursor_char_pos = (mReg[R14_CursorH] << 8) + mReg[R15_CursorL];
-		if (mCursorAdr + mCharRow * mReg[R1_HorizontalDisplayed] + mCharCol == cursor_char_pos)
-			updatePort(CUDISP, 0x1);
-		else
-			updatePort(CUDISP, 0x0);
 	}
-
 	
 	return true;
-
 
 }
 

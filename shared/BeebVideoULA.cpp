@@ -10,7 +10,9 @@ BeebVideoULA::BeebVideoULA(
 	registerPort("DISEN",		IN_PORT,	0x01, DISPTMG,			&mDISPTMG);
 	registerPort("CURSOR",		IN_PORT,	0x01, CURSOR,		&mCURSOR);	
 	registerPort("INV",			IN_PORT,	0x01, INV,			&mINV);
-	registerPort("RA",			IN_PORT,	0x0f, RA,			&mRA);
+	registerPort("RA", IN_PORT, 0x0f, RA, &mRA);
+	registerPort("VS", IN_PORT, 0x01, VS, &mVS);
+	registerPort("HS", IN_PORT, 0x01, HS, &mHS);
 
 
 	// Create 640 x 256 display bitmap and clear it
@@ -69,6 +71,27 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// Exit if the CRTC device is not initialised (a scan line of '1' will tell this)
 	if (!mCRTC->initialised())
 		return true;
+
+	// Reset scan line when vertical sync pulse comes
+	if (mVS && mVS != pVS) {
+		mScanLine = 0;
+	}
+	pVS = mVS;
+
+	// Wait for horizontal sync to secure that we start at the beginning of a scan line
+	mCRTC->updateOutputs();
+	bool hz_sync = mHS && mHS != pHS;
+	pHS = mHS;
+	while (!hz_sync) {
+		if (!mCRTC->advanceChar()) {
+			cout << "Failed to advance the CRTC!\n";
+			return false;
+		}
+		hz_sync = mHS && mHS != pHS;
+		pHS = mHS;	
+	}
+	//cout << "SYNC\n";
+	
 
 	// Check that screen size fits with the current graphics mode
 	updateScreenSz();
@@ -165,13 +188,17 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// (close enough).
 		vector<TT5050::TTColour> tgc_data;
 		
-		// Get encoded video memory address (if in the active area)
+		// Advance the CRT one character at a time
+		// If in the active, area, the video memory address containing 
+		// character/graphics data is also provided.
 		uint16_t crtc_adr, screen_adr, crtc_cursor, cursor_adr;
 		bool in_active_area;
 		if (!mCRTC->getMemFetchAdr(crtc_adr, crtc_cursor, in_active_area)) {
 			cout << "Failed to get address from the CRTC!\n";
 			return false;
 		}
+
+		
 
 		// Is the screen (display) in the active area?
 		uint8_t dis_ena;
@@ -180,9 +207,13 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		else
 			dis_ena = mDISPTMG; // In teletext mode raster lines are 0-19
 
-		if (pixel_line >= getTopBorderLines() && pixel_line < getTopBorderLines() + getActiveLines()) {
+		if (pixel_line >= getTopBorderLines() && pixel_line < getTopBorderLines() + getActiveLines())
+			// Visible active line
+		{
 
-			if (dis_ena) {
+			if (dis_ena)
+			// Active area of an active line
+			{
 
 				if (!teletext) { // Normally modes 0-6 - raster address selected bytes within an 8 row byte block
 					screen_adr = crtc_adr * 8 + (mRA & 0x7);
@@ -192,6 +223,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					screen_adr = crtc_adr + (0x7400 ^ 0x2000); // CRTC MA13 is used to select the SA5050 and is cleared by 0x2000
 					cursor_adr = crtc_cursor + (0x7400 ^ 0x2000);
 				}
+
+				//cout << dec << (teletext?"TL":"L") << mScanLine << " C" << char_pos << " A" << hex << crtc_adr << ":" << screen_adr << "\n";
 
 				// Read video memory data
 				uint8_t screen_data;
@@ -205,9 +238,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					return false;
 				}
 				if (new_scan_line) {
-					cout << "\n" << (teletext?"TLINE ":"LINE ") << dec << mScanLine << " ";
+					//cout << "\n" << (teletext?"TLINE ":"LINE ") << dec << mScanLine << " ";
 				}
-				cout << dec << char_pos << ":" << hex << ":" << screen_adr << ":" << (int) screen_data << " ";
+				//cout << dec << char_pos << ":" << hex << ":" << screen_adr << ":" << (int) screen_data << " ";
 				new_scan_line = false;
 				pFrame = mFrame;
 
@@ -300,7 +333,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			else if (
 				(visible_char_pos >= 0 && visible_char_pos < getLeftBorderChars()) ||
 				(visible_char_pos >= getLeftBorderChars() + getActiveChars() && visible_char_pos < visible_chars)
-			) {
+			)
+			// Left or right border of line with active area
+			{
 				uint8_t Rs, Gs, Bs;
 				for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
 					Rs = Gs = Bs = 0;
@@ -313,7 +348,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		else if (
 			(pixel_line >= 0 && pixel_line < getTopBorderLines()) ||
 			(pixel_line >= getTopBorderLines() + getActiveLines() && pixel_line < visible_lines)
-		) {
+		)
+		// Top or bottom border
+		{
 
 			uint8_t Rs, Gs, Bs;
 			for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {

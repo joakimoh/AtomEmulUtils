@@ -22,11 +22,15 @@ public:
 	// 
 
 	// Video ULA Ports
-	int DISPTMG, CURSOR, INV, RA;
+	int DISPTMG, CURSOR, INV, RA, HS, VS;
 	uint8_t mDISPTMG = 0x1;		// INPUT -	DISPTMG from the CRTC 6845; actual display enable DISEN is calculated as = ~(~DISPTMG | RA3)
 	uint8_t mCURSOR = 0x1;	// INPUT -	CURSOR from M6845
 	uint8_t mINV = 0x0;		// INPUT - invert video
 	uint8_t mRA = 0x0;		// INPUT - raster address (4 bits); used for modes 0-6 to select bytes within an 8 row pixel block
+	uint8_t mHS = 0;
+	uint8_t mVS = 0;
+	uint8_t pVS = 1;
+	uint8_t pHS = 1;
 
 
 	// Video ULA Registers
