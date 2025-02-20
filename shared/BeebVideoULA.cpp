@@ -409,7 +409,7 @@ void BeebVideoULA::updateScreenSz()
 
 	// resize screen when switching between teletext mode (500 x 480 + borders)  and non-telext modes (640 x 256)
 	if (pW != mScreenW || pH != mScreenH) {
-		cout << "create display bitmap " << dec << mScreenW << " x " << mScreenH << "\n";
+		//cout << "create display bitmap " << dec << mScreenW << " x " << mScreenH << "\n";
 		unlockDisplay();
 		al_destroy_bitmap(mDisplayBitmap);	
 		mDisplayBitmap = al_create_bitmap(mScreenW, mScreenH);

@@ -158,7 +158,13 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 	// start of line => reset char pos
 	if (HS) {
 		mCharRowPos = 0;
+		if (!VS) {
+			mCharRasterLine = (mCharRasterLine + 1) % n_raster_lines;
+			mScanLine++;
+		}
 	}
+
+	//cout << "#" << dec << mCharRasterLine << "#";
 	
 
 	uint8_t char_data = pageData & 0x7f;
@@ -250,11 +256,6 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 			}
 		}
 
-	}
-
-	if (HS) {	
-		mCharRasterLine = (mCharRasterLine + 1) % n_raster_lines;
-		mScanLine++;		
 	}
 
 	mCharRowPos++; // if it was the last char pos, this will be corrected at the next call of getScreenData() based on the HS input
