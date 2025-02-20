@@ -29,7 +29,7 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 {
 	mCycleCount = stopCycle;
 
-	if (mCOL_SEL <= 9 && ROW_SEL <= 7) {
+	if (mCOL_SEL <= 9 && mROW_SEL <= 7) {
 
 		// Check for key a COL_SEL,ROW_SEL being pressed as well as DIP switches being ON <=> Low
 		vector<Key> &key_vec = mKeyboardMatrix[mROW_SEL];
@@ -45,6 +45,7 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 			Key& key = mKeyboardMatrix[row][mCOL_SEL];
 			if (al_key_down(&mKeyboardState, key.keyCode)) {
 				key_pressed = true;
+				cout << "Key " << key.keyName << " pressed!\n";
 				break;
 			}
 				

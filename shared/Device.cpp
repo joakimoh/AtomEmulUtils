@@ -101,7 +101,7 @@ bool Device::updatePort(int index, uint8_t val)
 		else
 			*(input.port->val) = ((pval & ~input.mask) | ((val << (-input.shifts)) & input.mask)) & input.port->mask;
 
-		if ((mDebugInfo.dbgLevel & DBG_DEVICE) != 0 &&  *(input.port->val) != pval) {
+		if (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0) && *(input.port->val) != pval) {
 			string shift_s, c_dir;
 			if (input.shifts >= 0)
 				shift_s = "((src >> shifts) & mask)";

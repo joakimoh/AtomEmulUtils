@@ -59,7 +59,7 @@ bool CRTC6845::reset()
 }
 
 // Called by other device to get next memory address to fetch char/graphics data from
-bool CRTC6845::getMemFetchAdr(uint16_t &adr, uint16_t &cursor, bool &activeArea)
+bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 {
 
 	if (!mInitialised)
@@ -69,11 +69,8 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr, uint16_t &cursor, bool &activeArea)
 
 	// If in the active display area, update the fetch address abd cursor position
 	adr = 0x0;
-	activeArea = false;
 	if (mDISPTMG) {;
 		adr = mStartAdr + mCharRow * mActiveRowChars + mCharCol;
-		cursor = mCursorAdr;
-		activeArea = true;
 		//cout << dec << "#" << mCharCol << "#";
 	}
 	
@@ -99,6 +96,8 @@ bool CRTC6845::advanceChar()
 	mCharCol = (mCharCol + 1) % mCharCols;
 	if (mCharCol == 0) {
 		mScanLine = (mScanLine + 1) % (int)round(mScanLines);
+		if (mScanLine == 0)
+			mFrame++;
 		updatePort(RA, (mRA + 1) % mCharLines);
 		if (mRA == 0)
 			mCharRow = (mCharRow + 1) % mCharRows;		
@@ -139,10 +138,16 @@ bool CRTC6845::updateOutputs()
 		updatePort(DISPTMG, 0x0);
 
 	// Check for cursor being selected
-	int cursor_first_line = mReg[R10_CursorStart];
-	int curstor_last_line = mReg[R11_CursorEnd];
-	int cursor_char_pos = (mReg[R14_CursorH] << 8) + mReg[R15_CursorL];
-	if (mCursorAdr + mCharRow * mReg[R1_HorizontalDisplayed] + mCharCol == cursor_char_pos)
+	int cursor_first_line = mReg[R10_CursorStart] & 0x1f;
+	int cursor_last_line = mReg[R11_CursorEnd] & 0x1f;
+	int cursor_disp_mode = (mReg[R10_CursorStart] >> 5) & 0x3; // 00: Non-blink,  01: non-display, 10: blink 16-field, 11: blink 32-field
+	mCursorLocation = ((mReg[R14_CursorH] & 0x3f) << 8) | mReg[R15_CursorL] + mCursSkew - mCharSkew;
+	bool cursor_on = (
+		cursor_disp_mode == 0x0 ||
+		cursor_disp_mode == 0x2 && mFrame % 16 < 8 ||
+		cursor_disp_mode == 0x3 && mFrame % 32 < 16
+		) && mRA >= cursor_first_line && mRA <= cursor_last_line;
+	if (cursor_on && mStartAdr + mCharRow * mActiveRowChars + mCharCol == mCursorLocation)
 		updatePort(CUDISP, 0x1);
 	else
 		updatePort(CUDISP, 0x0);
@@ -199,9 +204,9 @@ bool CRTC6845::read(uint16_t adr, uint8_t& data)
 //           Cursor type(bit 5)                 1     1     1     1     1     1     1     1
 //           Cursor blink(bit 6)                1     1     1     1     1     1     1     1
 // R11       Cursor end                         8     8     8     9     8     8     9    19
-// R12, R13   Screen start address / 8 - -------
-// R14, R15   Cursor position - -------
-// R16, R17   Light pen position - -------
+// R12, R13   Screen start address / 8			-     -     -     -     -     -     -     -
+// R14, R15   Cursor position					-     -     -     -     -     -     -     -
+// R16, R17   Light pen position				-     -     -     -     -     -     -     -
 //
 bool CRTC6845::write(uint16_t adr, uint8_t data)
 {
@@ -296,7 +301,13 @@ void CRTC6845::updateSettings()
 		mVSyncPulseH = 16;
 	mActiveRows = mReg[R6_VerticalDisplayed];
 	mActiveLines = mActiveRows * mCharLines;
-	mBottomBorderLines = mVSyncLine - mActiveLines;	 
+	mCharSkew = (mReg[R8_InterlaceMode] >> 4) & 0x3;
+	if (mCharSkew == 3)
+		mCharSkew = 0;
+	mCursSkew = (mReg[R8_InterlaceMode] >> 6) & 0x3;
+	if (mCursSkew == 3)
+		mCursSkew = 0;
+	mBottomBorderLines = mVSyncLine - mActiveLines;
 	mTopBorderLines = mScanLines - mBottomBorderLines - mActiveLines - mRetraceLines;
 	mVisibleScanLines = mTopBorderLines + mActiveLines + mBottomBorderLines;
 
@@ -305,7 +316,7 @@ void CRTC6845::updateSettings()
 	mHzSyncPos = mReg[R2_HSYncPosition] + 1;
 	mActiveRowChars = mReg[R1_HorizontalDisplayed];
 	mRetraceChars = mActiveRowChars * 0.1;
-	mRightBorderChars = mHzSyncPos - mActiveRowChars; // Gap between active area and sync pulse
+	mRightBorderChars = mHzSyncPos - mActiveRowChars - mCharSkew; // Gap between active area and sync pulse
 	mHzSyncPulseW = mReg[R3_SyncWidth] & 0xf;
 	mLeftBorderChars = mCharCols - mRightBorderChars - mActiveRowChars - mRetraceChars;
 	mVisibleChars = mLeftBorderChars + mActiveRowChars + mRightBorderChars;
@@ -314,7 +325,7 @@ void CRTC6845::updateSettings()
 	mStartAdr = (mReg[R12_StartAddressH] << 8) | mReg[R13_StartAddressL];
 
 	// Current cursor address
-	mCursorAdr = (mReg[R14_CursorH] << 8) | mReg[R15_CursorL];
+	mCursorLocation = ((mReg[R14_CursorH] & 0x3f)<< 8) | mReg[R15_CursorL];
 
 }
 
@@ -350,7 +361,11 @@ void CRTC6845::printSettings()
 	cout << "Cursor raster lines:               [" << dec << (int)(mReg[R10_CursorStart] & 0x1f) << ":" << (int)mReg[R11_CursorEnd] << "]\n";
 	cout << "Cursor position:                   0x" << hex << ((mReg[R14_CursorH] << 8) | mReg[R15_CursorL]) << "\n";
 	cout << "Interlace mode:                    " << ((mReg[R8_InterlaceMode]&1)==0?"Non-interlaced":mReg[R8_InterlaceMode]&2?"Interlaced & video":"Interlaced") << "\n";
-	
+	cout << "Character skew:                    " << mCharSkew << "\tchars\n";
+	cout << "Cursor skew:                       " << mCursSkew << "\tchars\n";
+	int cursor_disp_mode = (mReg[R10_CursorStart] >> 5) & 0x3; // 00: Non-blink,  01: non-display, 10: blink 16-field, 11: blink 32-field
+	cout << "Cursor mode:                       " << (cursor_disp_mode==0?"Fixed":(cursor_disp_mode==1?"None":(cursor_disp_mode==2?"Blink-16":"Blink-32"))) <<
+		"\n";
 }
 
 bool CRTC6845::getVisibleCharArea(int &charsPerLine, int &lines)

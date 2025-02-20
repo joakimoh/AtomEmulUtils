@@ -211,6 +211,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 			if (DDRA & mask) // PBi is output => use ORB value
 				data = ~(data & ~mask) | (ORA & mask);
 		}
+		
 		if (!updatePort(PA, data)) // update PA
 			return false;
 		break;

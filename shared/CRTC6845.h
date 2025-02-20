@@ -28,7 +28,7 @@ public:
 	uint8_t mRESET = 0x1;	// INPUT
 	uint8_t mDISPTMG = 0x0;	// OUTPUT - DISPlay TiMinG: When high, the display is in the active area (delay specified by R9 skew bits)
 	uint8_t mRA = 0x0;		// OUTPUT - Raster Address for row of a character (5 bits)
-	uint8_t mCUDISP = 0x0;	// OUTPUT - CUrsor DISPlay: High when cursor shall be displayed (delay specified by R9 skew bits)
+	uint8_t mCUDISP = 0x2;	// OUTPUT - CUrsor DISPlay: High when cursor shall be displayed (delay specified by R9 skew bits)
 	uint8_t mHS = 0x0;		// OUTPUT -	Horizontal Sync
 	uint8_t mVS = 0x0;		// OUTPUT -	Vertical Sync
 
@@ -110,7 +110,7 @@ public:
 	int mCharCol = 0;	
 
 	int mStartAdr = 0x0;
-	int mCursorAdr = 0x0;
+	int mCursorLocation = 0x0;
 	
 	int mCharLines = 1;
 
@@ -139,6 +139,9 @@ public:
 	int mVisibleChars = 1; // mLeftBorderChars + mActiveChars + mRightBorderChars
 	int mCharCols = 1;
 	int mRetraceChars = 1;
+	int mCharSkew = 0;
+	int mCursSkew = 0;
+	int mFrame = 0;
 
 	double mCPUClock = 2.0;
 
@@ -196,7 +199,7 @@ public:
 	bool advanceLine(uint64_t& endCycle) { return true; }
 
 	// Called by other device to get next memory address to fetch char/graphics data from
-	bool getMemFetchAdr(uint16_t& adr, uint16_t &cursor, bool& activeArea);
+	bool getMemFetchAdr(uint16_t& adr);
 
 	bool initialised() { return mInitialised; }
 

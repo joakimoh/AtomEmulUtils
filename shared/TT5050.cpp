@@ -84,7 +84,7 @@ void TT5050::createInterpolatedSymbols()
 	}
 
 
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE) {
+	if (false && mDebugInfo.dbgLevel & DBG_VERBOSE) {
 
 		cout << "Non-interpolated and interpolated symbols:\n\n";
 

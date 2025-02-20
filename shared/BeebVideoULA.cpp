@@ -7,12 +7,12 @@ BeebVideoULA::BeebVideoULA(
 	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo debugInfo, ConnectionManager* connectionManager
 ) : VideoDisplayUnit(name, BEEB_VDU_DEV, adr, 0x10, disp, dispW, dispH, 0x0 /* dummy adr */, debugInfo, connectionManager), mCPUClock(clockSpeed)
 {
-	registerPort("DISEN",		IN_PORT,	0x01, DISPTMG,			&mDISPTMG);
+	registerPort("DISEN",		IN_PORT,	0x01, DISPTMG,		&mDISPTMG);
 	registerPort("CURSOR",		IN_PORT,	0x01, CURSOR,		&mCURSOR);	
 	registerPort("INV",			IN_PORT,	0x01, INV,			&mINV);
-	registerPort("RA", IN_PORT, 0x0f, RA, &mRA);
-	registerPort("VS", IN_PORT, 0x01, VS, &mVS);
-	registerPort("HS", IN_PORT, 0x01, HS, &mHS);
+	registerPort("RA",			IN_PORT,	0x0f, RA,			&mRA);
+	registerPort("VS",			IN_PORT,	0x01, VS,			&mVS);
+	registerPort("HS",			IN_PORT,	0x01, HS,			&mHS);
 
 
 	// Create 640 x 256 display bitmap and clear it
@@ -191,9 +191,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// Advance the CRT one character at a time
 		// If in the active, area, the video memory address containing 
 		// character/graphics data is also provided.
-		uint16_t crtc_adr, screen_adr, crtc_cursor, cursor_adr;
+		uint16_t crtc_adr, screen_adr;
 		bool in_active_area;
-		if (!mCRTC->getMemFetchAdr(crtc_adr, crtc_cursor, in_active_area)) {
+		if (!mCRTC->getMemFetchAdr(crtc_adr)) {
 			cout << "Failed to get address from the CRTC!\n";
 			return false;
 		}
@@ -207,11 +207,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		if (!teletext) { // Normally modes 0-6 - raster address selected bytes within an 8 row byte block
 			screen_adr = crtc_adr * 8 + (mRA & 0x7);
-			cursor_adr = crtc_cursor * 8;
 		}
 		else { // Normally mode 7
 			screen_adr = crtc_adr + (0x7400 ^ 0x2000); // CRTC MA13 is used to select the SA5050 and is cleared by 0x2000
-			cursor_adr = crtc_cursor + (0x7400 ^ 0x2000);
 		}
 
 		
@@ -261,7 +259,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					if (mCursorSegment < 0)
 						mCursorSegment = 0;
 					uint8_t cursor_segments = (mControlRegister >> 5) & 0x7;
-					uint8_t cursor_seg_ena = cursor_segments >> (2 - mCursorSegment);
+					cursor_seg_ena = cursor_segments >> (2 - mCursorSegment);
 					bool clk_2_Mhz = ((mControlRegister >> 4) & 0x1) != 0;
 					uint8_t cs_01_width = (clk_2_Mhz ? 8 : 16);
 					uint8_t cs_2_width = (cs_01_width << 1) & 0x1;
