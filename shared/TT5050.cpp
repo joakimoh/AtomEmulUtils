@@ -252,8 +252,7 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 
 	}
 
-	if (HS) {
-		mCharRowPos = 0;		
+	if (HS) {	
 		mCharRasterLine = (mCharRasterLine + 1) % n_raster_lines;
 		mScanLine++;		
 	}

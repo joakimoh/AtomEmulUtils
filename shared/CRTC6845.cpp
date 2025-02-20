@@ -70,10 +70,8 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr, uint16_t &cursor, bool &activeArea)
 	// If in the active display area, update the fetch address abd cursor position
 	adr = 0x0;
 	activeArea = false;
-	if (mDISPTMG) {
-		int active_char_col_offset = mRetraceChars + mLeftBorderChars;
-		int active_row_offset = mRetraceRows + mTopBorderRows;
-		adr = mStartAdr + (mCharRow - active_row_offset) * mActiveRowChars + mCharCol - active_char_col_offset;
+	if (mDISPTMG) {;
+		adr = mStartAdr + mCharRow * mActiveRowChars + mCharCol;
 		cursor = mCursorAdr;
 		activeArea = true;
 		//cout << dec << "#" << mCharCol << "#";
@@ -116,19 +114,15 @@ bool CRTC6845::advanceChar()
 
 bool CRTC6845::updateOutputs()
 {
-	int active_char_col_offset = mRetraceChars + mLeftBorderChars;
-	int active_row_offset = mRetraceRows + mTopBorderRows;
-	int act_char_row = (mCharRow - active_row_offset + mCharRows) % mCharRows;
-	int act_char_col = (mCharCol - active_char_col_offset + mCharCols) % mCharCols;
 
 	// Check for Vertical Sync Output
-	if (act_char_row >= mVSyncRow && act_char_row < mVSyncRow + mVSyncPulseH)
+	if (mCharRow >= mVSyncRow && mCharRow < mVSyncRow + mVSyncPulseH)
 		updatePort(VS, 0x1);
 	else
 		updatePort(VS, 0x0);
 
 	// Check for Horizontal Sync Output
-	if (act_char_col >= mHzSyncPos && act_char_col < mHzSyncPos + mHzSyncPulseW) {
+	if (mCharCol >= mHzSyncPos && mCharCol < mHzSyncPos + mHzSyncPulseW) {
 		updatePort(HS, 0x1);
 	}
 	else {
@@ -139,7 +133,7 @@ bool CRTC6845::updateOutputs()
 	// Check for Visible active part of scan line
 	// 
 
-	if (act_char_col >= 0 && act_char_col < mActiveRowChars && act_char_row >= 0 && act_char_row < mActiveRows)
+	if (mCharCol < mActiveRowChars && mCharRow < mActiveRows)
 		updatePort(DISPTMG, 0x1);
 	else
 		updatePort(DISPTMG, 0x0);
@@ -304,9 +298,6 @@ void CRTC6845::updateSettings()
 	mActiveLines = mActiveRows * mCharLines;
 	mBottomBorderLines = mVSyncLine - mActiveLines;	 
 	mTopBorderLines = mScanLines - mBottomBorderLines - mActiveLines - mRetraceLines;
-	mTopBorderRows = mTopBorderLines / mCharLines;	// Make sure top border is a multiple of the no lines/char row
-	mTopBorderLines = mTopBorderRows * mCharLines;	//
-	mBottomBorderLines = mScanLines - mTopBorderLines - mActiveLines - mRetraceLines; // uptdate bottom border to reflect potential change in top border
 	mVisibleScanLines = mTopBorderLines + mActiveLines + mBottomBorderLines;
 
 	// Horizontal line: left border, active chars, sync pulse, right border (all in unit 'char')
