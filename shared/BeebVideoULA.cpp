@@ -96,7 +96,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// Check that screen size fits with the current graphics mode
 	updateScreenSz();
 
-	if (mScanLine == mVerticalSyncPos) {
+	int visible_line = (mScanLine - getRetraceLines() + mScanLines) % mScanLines;
+	int active_line = (visible_line - getTopBorderLines() + mScanLines) % mScanLines;
+
+	if (active_line == mVerticalSyncPos) {
 
 		unlockDisplay();
 
@@ -124,19 +127,17 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// on the screen and "Char" is actually one byte fetched from memory that only sometimes corresponds
 	// to width of a screen char. 
 
-
 	int n_chars = getCharsPerLine();
 	int visible_lines = getTopBorderLines() + getActiveLines() + getBottomBorderLines();
 	int visible_chars = getLeftBorderChars() + getActiveChars() + getRightBorderChars();
 	int active_chars = getActiveChars();
 	int act_chars_offset = getRetraceChars();// +getLeftBorderChars();
 
-	int pixel_line = mScanLine - getRetraceLines();
-
 	unsigned int* bitmap_data_p = NULL;
-	if (pixel_line >= 0 && pixel_line < visible_lines)
-		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * pixel_line);
-	bool new_scan_line = true;
+	if (visible_line >= 0 && visible_line < visible_lines)
+		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_line);
+	
+	bool new_active_line = true;
 
 	int pixels_per_byte = mPixelsPerByte;
 	int pixel_width = mPixelW;
@@ -149,6 +150,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	for (int char_pos = 0; char_pos < n_chars; char_pos++) {
 
 		int visible_char_pos = (char_pos - act_chars_offset + n_chars) % n_chars;
+
+
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
 		// the TGC character is only 6 pixels wide whereas the CRTC one is 8 pixels wide!
@@ -189,7 +192,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// The full frame rate should correspond to 1/2 the interlaced frame rate, i.e. 50 /2 = 25 Hz but here the Beeb uses 27 Hz 
 		// (close enough).
 		vector<TT5050::TTColour> tgc_data;
-		
+
 		// Advance the CRT one character at a time
 		// If in the active, area, the video memory address containing 
 		// character/graphics data is also provided.
@@ -207,27 +210,31 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		else
 			dis_ena = mDISPTMG; // In teletext mode raster lines are 0-19
 
-		if (pixel_line >= getTopBorderLines() && pixel_line < getTopBorderLines() + getActiveLines())
+		if (!teletext) { // Normally modes 0-6 - raster address selected bytes within an 8 row byte block
+			screen_adr = crtc_adr * 8 + (mRA & 0x7);
+			cursor_adr = crtc_cursor * 8;
+		}
+		else { // Normally mode 7
+			screen_adr = crtc_adr + (0x7400 ^ 0x2000); // CRTC MA13 is used to select the SA5050 and is cleared by 0x2000
+			cursor_adr = crtc_cursor + (0x7400 ^ 0x2000);
+		}
+
+		if (false) {
+			if (char_pos == 0)
+				cout << "\nL" << dec << mScanLine << (visible_line >= getTopBorderLines() && visible_line < getTopBorderLines() + getActiveLines() ? "V " : " ");
+			cout << (teletext?"T":"") << (new_active_line ? "L" : "") << (mHS ? "H" : "") << (dis_ena ? "D" : "") << dec << char_pos << "/" << visible_char_pos << ":" << hex << screen_adr << " ";
+
+		}
+
+		if (visible_line >= getTopBorderLines() && visible_line < getTopBorderLines() + getActiveLines())
 			// Visible active line
 		{
-				
+
 			if (dis_ena)
-			// Active area of an active line
+				// Active area of an active line
 			{
 
-				if (!teletext) { // Normally modes 0-6 - raster address selected bytes within an 8 row byte block
-					screen_adr = crtc_adr * 8 + (mRA & 0x7);
-					cursor_adr = crtc_cursor * 8;
-				}
-				else { // Normally mode 7
-					screen_adr = crtc_adr + (0x7400 ^ 0x2000); // CRTC MA13 is used to select the SA5050 and is cleared by 0x2000
-					cursor_adr = crtc_cursor + (0x7400 ^ 0x2000);
-					/*
-					if (visible_char_pos == getLeftBorderChars())
-						cout << "\nL" << dec << mScanLine << " ";
-					cout << (mHS ? "*" : "") << (dis_ena ? "+" : "") << dec << char_pos << " (" << visible_char_pos << "):" << hex << screen_adr << " ";
-					*/
-				}
+
 
 				//cout << dec << (teletext?"TL":"L") << mScanLine << " C" << char_pos << " A" << hex << crtc_adr << ":" << screen_adr << "\n";
 
@@ -239,15 +246,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				}
 
 				// For teletext modes, decode video memory data as videotext data
-				if (teletext && !mTGC->getScreenData(new_scan_line, mFrame != pFrame, screen_data, tgc_data)) {
+				if (teletext && !mTGC->getScreenData(new_active_line, mFrame != pFrame, screen_data, tgc_data)) {
 					return false;
 				}
-				if (new_scan_line) {
-					//cout << "\n" << (teletext?"TLINE ":"LINE ") << dec << mScanLine << " ";
-				}
-				//cout << dec << char_pos << ":" << hex << ":" << screen_adr << ":" << (int) screen_data << " ";
-				new_scan_line = false;
-				pFrame = mFrame;
+
 
 				// Get cursor configuration
 				uint8_t cursor_seg_ena = 0x0;
@@ -322,14 +324,15 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					}
 				}
 
-
+				new_active_line = false;
+				pFrame = mFrame;
 			}
 
 			else if (
 				(visible_char_pos >= 0 && visible_char_pos < getLeftBorderChars()) ||
 				(visible_char_pos >= getLeftBorderChars() + getActiveChars() && visible_char_pos < visible_chars)
-			)
-			// Left or right border of line with active area
+				)
+				// Left or right border of line with active area
 			{
 				uint8_t Rs, Gs, Bs;
 				for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
@@ -341,12 +344,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			}
 		}
 		else if (
-			(pixel_line >= 0 && pixel_line < getTopBorderLines()) ||
-			(pixel_line >= getTopBorderLines() + getActiveLines() && pixel_line < visible_lines && false)
-		)
-		// Top or bottom border
+			(visible_line >= 0 && visible_line < getTopBorderLines()) ||
+			(visible_line >= getTopBorderLines() + getActiveLines() && visible_line < visible_lines && false)
+			)
+			// Top or bottom border
 		{
-			
+
 			uint8_t Rs, Gs, Bs;
 			for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
 				Rs = Gs = Bs = 0;
@@ -355,7 +358,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					*bitmap_data_p++ = colour;
 			}
 		}
-
+		
 	}
 
 	mScanLine = (mScanLine + 1) % scan_lines_per_frame;

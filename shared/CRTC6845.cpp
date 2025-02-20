@@ -103,7 +103,7 @@ bool CRTC6845::advanceChar()
 		mScanLine = (mScanLine + 1) % (int)round(mScanLines);
 		updatePort(RA, (mRA + 1) % mCharLines);
 		if (mRA == 0)
-			mCharRow = (mCharRow + 1) % mCharRows;
+			mCharRow = (mCharRow + 1) % mCharRows;		
 		if (mScanLine == 0) {
 			mCharRow = 0;
 			mCharCol = 0;
@@ -245,7 +245,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 // 
 // The visible part of a scan line is determined by the hz sync pulse location,
 // the no of chars/row and the retrace time (that time is not configured but 
-// rather a property of the connected monitor - we will assume 20% of the line
+// rather a property of the connected monitor - we will assume 10% of the line
 // duration for this). The hz sync pulse starts a new line but time for
 // retracing needs to be considered before content can be displayed.
 // 
@@ -304,14 +304,16 @@ void CRTC6845::updateSettings()
 	mActiveLines = mActiveRows * mCharLines;
 	mBottomBorderLines = mVSyncLine - mActiveLines;	 
 	mTopBorderLines = mScanLines - mBottomBorderLines - mActiveLines - mRetraceLines;
-	mTopBorderRows = (int)round(mTopBorderLines / mCharLines);
+	mTopBorderRows = mTopBorderLines / mCharLines;	// Make sure top border is a multiple of the no lines/char row
+	mTopBorderLines = mTopBorderRows * mCharLines;	//
+	mBottomBorderLines = mScanLines - mTopBorderLines - mActiveLines - mRetraceLines; // uptdate bottom border to reflect potential change in top border
 	mVisibleScanLines = mTopBorderLines + mActiveLines + mBottomBorderLines;
 
 	// Horizontal line: left border, active chars, sync pulse, right border (all in unit 'char')
 	mCharCols = mReg[R0_HorizontalTotal] + 1;
 	mHzSyncPos = mReg[R2_HSYncPosition] + 1;
 	mActiveRowChars = mReg[R1_HorizontalDisplayed];
-	mRetraceChars = mActiveRowChars * 0.2;
+	mRetraceChars = mActiveRowChars * 0.1;
 	mRightBorderChars = mHzSyncPos - mActiveRowChars; // Gap between active area and sync pulse
 	mHzSyncPulseW = mReg[R3_SyncWidth] & 0xf;
 	mLeftBorderChars = mCharCols - mRightBorderChars - mActiveRowChars - mRetraceChars;
