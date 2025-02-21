@@ -146,6 +146,13 @@ uint16_t Devices::getHexVal(stringstream& sin)
 
 }
 
+double Devices::getDoubleVal(stringstream& sin)
+{
+	string v_s;
+	sin >> v_s;
+	return stod(v_s);
+}
+
 string Devices::getFileName(string &path, stringstream& sin)
 {
 
@@ -326,7 +333,8 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					VIA6522* via = new VIA6522(dev_name, dev_adr, mDebugInfo, &connection_manager);
+					double clk = getDoubleVal(sin);
+					VIA6522* via = new VIA6522(dev_name, dev_adr, clk, clockSpeed, mDebugInfo, &connection_manager);
 					mDevices.push_back(via);
 
 				}
