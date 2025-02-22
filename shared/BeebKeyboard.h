@@ -119,7 +119,11 @@ private:
 	Key mBreakKey = { ALLEGRO_KEY_PAUSE , -1, -1, "BREAK" };
 
 	// Ports that can be conALLEGROnected to other devices
-	int  COL_SEL, ROW_SEL, ROW, BREAK, PRESSED;
+	int  CTRL, COL_SEL, ROW_SEL, ROW, BREAK, PRESSED;
+	uint8_t mCTRL = 0xf;			// CTRL input; b3: data; b2:b0 selects #3 KB:ENA, #6: LED2 & #7: LED1
+	uint8_t mKB_ENA = 0x1;			// Not a port but updated based on the CTRL input
+	uint8_t mLED1 = 0x0;			//
+	uint8_t mLED2 = 0x0;			//
 	uint8_t mCOL_SEL = 0x0;			// Column Select: 0-9 BCD-coded;								connected to VIA 6522 (IC3) PA0:3 output
 	uint8_t mROW_SEL = 0x0;			// Row Select:  0-9 BCD-coded;									connected to VIA 6522 (IC3) PA4:6 output
 	uint8_t mROW = 0x1;				// Value of selected row (LOW if any key on row is pressed);	connected to VIA 6522 (IC3) PA7 input
