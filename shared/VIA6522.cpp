@@ -650,7 +650,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	case IFR:
 		// Interrupt Flag Register - writing an '1' will clear the corresponding flag!!!
 	{
-		mIFR = (~data) & 0x7f;
+		mIFR &= (~data) & 0x7f;
 		cout << "VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (";
 		if (mIFR & 0x1)
 			cout << ":CA2";

@@ -81,16 +81,16 @@ private:
 #define IER_SR_MASK			0x04
 #define IER_CB2_MASK		0x08
 #define IER_CB1_MASK		0x10
-#define IER_T1_MASK			0x20
-#define IER_T2_MASK			0x40
+#define IER_T2_MASK			0x20
+#define IER_T1_MASK			0x40
 #define IER_ENA_MASK		0x80
 #define IER_CA2		((mIER >> 0) & 1)
 #define IER_CA1		((mIER >> 1) & 1)
 #define IER_SR		((mIER >> 2) & 1)
 #define IER_CB2		((mIER >> 3) & 1)
 #define IER_CB1		((mIER >> 4) & 1)
-#define IER_T1		((mIER >> 5) & 1)
-#define IER_T2		((mIER >> 6) & 1)
+#define IER_T2		((mIER >> 5) & 1)
+#define IER_T1		((mIER >> 6) & 1)
 #define IER_ENA		((mIER >> 7) & 1)
 
 // Interrupt Flag Register (IFR) Fields
@@ -99,16 +99,16 @@ private:
 #define IFR_SR_MASK			0x04
 #define IFR_CB2_MASK		0x08
 #define IFR_CB1_MASK		0x10
-#define IFR_T1_MASK			0x20
-#define IFR_T2_MASK			0x40
+#define IFR_T2_MASK			0x20
+#define IFR_T1_MASK			0x40
 #define IFR_CLR_IRQ_MASK	0x80
 #define IFR_CA2		((mIFR >> 0) & 1)
 #define IFR_CA1		((mIFR >> 1) & 1)
 #define IFR_SR		((mIFR >> 2) & 1)
 #define IFR_CB2		((mIFR >> 3) & 1)
 #define IFR_CB1		((mIFR >> 4) & 1)
-#define IFR_T1		((mIFR >> 5) & 1)
-#define IFR_T2		((mIFR >> 6) & 1)
+#define IFR_T2		((mIFR >> 5) & 1)
+#define IFR_T1		((mIFR >> 6) & 1)
 #define IFR_CLR_IRQ	((mIFR >> 7) & 1)
 
 // Timers

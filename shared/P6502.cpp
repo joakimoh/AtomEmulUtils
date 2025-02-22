@@ -1469,8 +1469,8 @@ bool P6502::readDevice(uint16_t adr, uint8_t& data)
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
 			bool success = dev->read(adr, data);
-			if (mDebugInfo.dbgLevel & DBG_6502)
-				cout << "READ DEVICE AT 0x" << hex << adr << " => " << (int)data << "\n";
+			//if (mDebugInfo.dbgLevel & DBG_6502)
+			//	cout << "READ DEVICE AT 0x" << hex << adr << " => " << (int)data << "\n";
 			return success;
 		}
 	}
@@ -1483,8 +1483,8 @@ bool P6502::readZP(uint8_t adr, uint8_t &data)
 {
 	data = 0xff;
 	if (mZPMemDev != NULL && mZPMemDev->read(adr, data)) {
-		if (mDebugInfo.dbgLevel & DBG_6502)
-			cout << "READ ZERO PAGE ADR 0x" << hex << (int) adr << " => " << (int)data << "\n";
+		//if (mDebugInfo.dbgLevel & DBG_6502)
+		//	cout << "READ ZERO PAGE ADR 0x" << hex << (int) adr << " => " << (int)data << "\n";
 		return true;
 	}
 	return false;
@@ -1500,8 +1500,8 @@ bool P6502::readProgramMem(uint16_t adr, uint8_t& data)
 		MemoryMappedDevice* dev = mMemories[i];
 		if (dev->selected(adr)) {
 			bool success = dev->read(adr, data);
-			if (mDebugInfo.dbgLevel & DBG_6502)
-				cout << "READ PROGRAM MEMORY AT 0x" << hex << adr << " => " << (int)data << " (" << (success ? "OK" : "NOK") << ")\n";
+			//if (mDebugInfo.dbgLevel & DBG_6502)
+			//	cout << "READ PROGRAM MEMORY AT 0x" << hex << adr << " => " << (int)data << " (" << (success ? "OK" : "NOK") << ")\n";
 			mLastPgmDevice = dev;
 			return success;
 		}
@@ -1520,8 +1520,8 @@ bool P6502::writeDevice(uint16_t adr, uint8_t data)
 	for (int i = 0; i < mDevices.size(); i++) {
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
-			if (mDebugInfo.dbgLevel & DBG_6502)
-				cout << "WRITE DEVICE 0x" << hex << (int)data << " to 0x" << adr << "\n";
+			//if (mDebugInfo.dbgLevel & DBG_6502)
+			//	cout << "WRITE DEVICE 0x" << hex << (int)data << " to 0x" << adr << "\n";
 			return dev->write(adr, data);
 		}
 	}

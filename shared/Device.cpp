@@ -22,6 +22,7 @@
 #include "AtomSpeaker.h"
 #include "MemoryMappedDevice.h"
 #include "BeebRomSel.h"
+#include "ACIA6850.h"
 
 using namespace std;
 
@@ -338,6 +339,16 @@ Devices::Devices(
 					mDevices.push_back(via);
 
 				}
+
+				else if (dev_type == "ACIA6850") {
+
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
+					double clk = getDoubleVal(sin);
+					ACIA6850* acia = new ACIA6850(dev_name, dev_adr, clk, clockSpeed, mDebugInfo, &connection_manager);
+					mDevices.push_back(acia);
+
+					}
 
 				//
 				// Video Devices
