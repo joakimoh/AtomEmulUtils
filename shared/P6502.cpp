@@ -32,27 +32,8 @@ P6502::~P6502()
 bool P6502::serveNMI()
 {
 	
-	// Save PC & Status to stack
-	uint16_t PC_push_val = mProgramCounter + 2;
-	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
-	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
-	uint8_t SR_push_val = mStatusRegister | B_set_mask;
-	writeDevice(0x100 + (uint16_t)mStackPointer--, SR_push_val);
-
-	// Fetch break vector
-	uint8_t adr_L, adr_H;
-	if (!readProgramMem(0xfffe, adr_L) || !readProgramMem(0xffff, adr_H))
-		return false;
-	mProgramCounter = adr_H * 256 + adr_L;
+	// Disable IRQ interrupts
 	mStatusRegister |= I_set_mask;
-	return true;
-	return true;
-}
-
-bool P6502::serveIRQ()
-{
-	if (mStatusRegister & I_set_mask)
-		return false;
 
 	// Save PC & Status to stack
 	uint16_t PC_push_val = mProgramCounter + 2;
@@ -66,6 +47,38 @@ bool P6502::serveIRQ()
 	if (!readProgramMem(0xfffa, adr_L) || !readProgramMem(0xfffb, adr_H))
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
+	mStatusRegister |= I_set_mask;
+	return true;
+	return true;
+}
+
+bool P6502::serveIRQ()
+{
+
+	if (mStatusRegister & I_set_mask)
+		return false;
+
+	
+
+	// Disable IRQ interrupts
+	mStatusRegister |= I_set_mask;
+
+	// Save PC & Status to stack
+	uint16_t PC_push_val = mProgramCounter + 2;
+	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
+	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
+	uint8_t SR_push_val = mStatusRegister;
+	writeDevice(0x100 + (uint16_t)mStackPointer--, SR_push_val);
+
+	// Fetch break vector
+	uint8_t adr_L, adr_H;
+	if (!readProgramMem(0xfffe, adr_L) || !readProgramMem(0xffff, adr_H))
+		return false;
+	mProgramCounter = adr_H * 256 + adr_L;
+
+	//cout << "SERVING IRQ -  handler at 0x" << hex << mProgramCounter << " will be executed!\n";
+	
+
 	return true;
 }
 
@@ -105,6 +118,8 @@ bool P6502::advance(uint64_t stopCycle)
 {
 	bool success = true;
 
+	
+
 	// Serve RESET, NMI & IRQ in priority order
 	if (!mRESET) {
 		reset();
@@ -112,18 +127,22 @@ bool P6502::advance(uint64_t stopCycle)
 		mCycleCount = stopCycle;
 		return true;
 	}
-	else if (!mNMI) {
-		if ((mDebugInfo.dbgLevel & DBG_6502) && mNMI != pNMI)
-			cout << "NMI active\n";
-		pNMI = mNMI;
+	else if (!mNMI && pNMI)	// NMI is edge-triggered!
 		serveNMI();
-	}
-	else if (!mIRQ) {
-		if ((mDebugInfo.dbgLevel & DBG_6502) && mNMI != pNMI)
-			cout << "IRQ active\n";
-		pIRQ = mIRQ;
+	else if (!mIRQ)	// IRQ is level-triggered!
 		serveIRQ();
-	}	
+
+	if ((true || (mDebugInfo.dbgLevel & DBG_6502)) && mIRQ != pIRQ) {
+		cout << "IRQ => " << dec << (int)mIRQ << ", I flag = " << (int)I_flag << dec << "\n";
+		if (!mIRQ && !I_flag)
+			mDebugInfo.dbgLevel = DBG_6502;
+	}
+
+	if ((mDebugInfo.dbgLevel & DBG_6502) && mNMI != pNMI)
+		cout << "NMI => " << dec << (int)mNMI << "\n";
+
+	pNMI = mNMI;
+	pIRQ = mIRQ;
 
 	while (mCycleCount < stopCycle) {	
 

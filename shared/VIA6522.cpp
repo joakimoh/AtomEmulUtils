@@ -36,6 +36,22 @@ bool VIA6522::reset()
 {
 	Device::reset();
 
+	mIRB = 0x0;
+	mORB = 0x0;	
+	mIRA = 0x0;
+	mORA = 0x0;	
+	mDDRB = 0x0;
+	mDDRA = 0x0;
+	mSR = 0x0;
+	mACR = 0x0;
+	mPCR = 0x0;
+	mIFR = 0x0;
+	mIER = 0x0;
+	mORA2 = 0x0;
+	mIRA2 = 0x0;
+
+	pIFR = 0xff;
+
 	if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
 		cout << "VIA 6522 '" << this->name << "' RESET\n";
 		pRESET = mRESET;
@@ -64,9 +80,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 	mTimer1Counter = mTimer1Counter - (int) round((stopCycle - mCycleCount) * mClock / mCPUClock);
 	if (mTimer1Counter <= 0) {
 		if (mTimer1Running) {
-			mIFR |= IER_T1_MASK;
-			if (IER_T1)
-				updatePort(IRQ, 0x0);
+			setIFR(IFR_T1_MASK);
 		}	
 		switch (ACR_T1_CTRL) {
 		case 0x0:	// One-shot Interrupt, PB7 inactive
@@ -108,9 +122,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 	}	
 	if (mTimer2Counter <= 0) {
 		if (mTimer2Running) {
-			mIFR |= IER_T2_MASK;
-			if (IER_T2)
-				updatePort(IRQ, 0x0);
+			setIFR(IFR_T2_MASK);
 		}
 		mTimer2Running = false;
 	}
@@ -122,10 +134,6 @@ bool VIA6522::advance(uint64_t stopCycle)
 	uint8_t CA2_mode = PCR_CA2_CTRL;
 	uint8_t CB1_mode = PCR_CB1_CTRL;
 	uint8_t CB2_mode = PCR_CB2_CTRL;
-	uint8_t CA1_IRQ_Ena = IER_CA1;
-	uint8_t CB1_IRQ_Ena = IER_CB1;
-	uint8_t CA2_IRQ_Ena = IER_CA2;	
-	uint8_t CB2_IRQ_Ena = IER_CB2;
 
 	//
 	// Check for CA2 input transition and set flag and IRQ
@@ -134,28 +142,23 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 	uint8_t CA2 = (mCA >> 1) & 0x1;
 	uint8_t pCA2 = (pCA >> 1) & 0x1;
-	bool CA2_edge = false;
 	switch (CA2_mode) {
 	case 0x0:	// Input, negative edge
 	case 0x1:	// Interrupt input, negative edge
-		if (!CA2 && CA2 != pCA2)
-			mIFR |= IFR_CA2_MASK;
-		break;
-		CA2_edge = true;
+		if (!CA2 && CA2 != pCA2) {
+			setIFR(IFR_CA2_MASK);
+		}
 		break;
 	case 0x2:	// Input, positive edge
 	case 0x3:	// Interrupt input, positive edge
-		if (CA2 && CA2 != pCA2)
-			mIFR |= IFR_CA2_MASK;
-		break;
-		CA2_edge = true;
+		if (CA2 && CA2 != pCA2) {
+			setIFR(IFR_CA2_MASK);
+		}
 		break;
 	default:
 		break;
 	}
 
-	if (CA2_edge && CA2_IRQ_Ena)
-		updatePort(IRQ, 0x0);
 
 	//
 	// Check for CB2 input transition and set flag and IRQ
@@ -165,28 +168,22 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 	uint8_t CB2 = (mCB >> 1) & 0x1;
 	uint8_t pCB2 = (pCB >> 1) & 0x1;
-	bool CB2_edge = false;
 	switch (CB2_mode) {
 	case 0x0:	// Input, negative edge
 	case 0x1:	// Interrupt input, negative edge
-		if (!CB2 && CB2 != pCB2)
-			mIFR |= IFR_CB2_MASK;
-		break;
-		CB2_edge = true;
+		if (!CB2 && CB2 != pCB2) {
+			setIFR(IFR_CB2_MASK);
+		}
 		break;
 	case 0x2:	// Input, positive edge
 	case 0x3:	// Interrupt input, positive edge
-		if (CB2 && CB2 != pCB2)
-			mIFR |= IFR_CB2_MASK;
-		break;
-		CB2_edge = true;
+		if (CB2 && CB2 != pCB2) {
+			setIFR(IFR_CB2_MASK);
+		}
 		break;
 	default:
 		break;
 	}
-
-	if (CB2_edge && CB2_IRQ_Ena)
-		updatePort(IRQ, 0x0);
 
 
 
@@ -204,18 +201,16 @@ bool VIA6522::advance(uint64_t stopCycle)
 	// Generate IRQ if enabled.
 	bool CA1_edge = false;
 	if (CA1_mode == 0x0) { // Interrupt input, negative edge
-		if (!CA1 && CA1 != pCA1)
-			mIFR |= IFR_CA1_MASK;
-		if (CA1_IRQ_Ena)
-			updatePort(IRQ, 0x0);
-		CA1_edge = true;
+		if (!CA1 && CA1 != pCA1) {
+			setIFR(IFR_CA1_MASK);
+			CA1_edge = true;
+		}
 	}
 	else { // Interrupt input, positive edge
-		if (CA1 && CA1 != pCA1)
-			mIFR |= IFR_CA1_MASK;
-		if (CA1_IRQ_Ena)
-			updatePort(IRQ, 0x0);
-		CA1_edge = true;
+		if (CA1 && CA1 != pCA1) {
+			setIFR(IFR_CA1_MASK);
+			CA1_edge = true;
+		}
 	}
 	
 	// Deactivate "Data Taken" CA2 output if "Data Ready" was received
@@ -243,18 +238,17 @@ bool VIA6522::advance(uint64_t stopCycle)
 	// Check for "Data Taken" input CB1. 
 	bool CB1_edge = false;
 	if (CB1_mode == 0x0) { // Interrupt input, negative edge
-		if (!CB1 && CB1 != pCB1)
-			mIFR |= 0x2;
-		if (CB1_IRQ_Ena)
-			updatePort(IRQ, 0x0);
-		CB1_edge = true;
+		if (!CB1 && CB1 != pCB1) {
+			setIFR(IFR_CB1_MASK);
+			CB1_edge = true;
+		}
+
 	}
 	else { // Interrupt input, positive edge
-		if (CB1 && CB1 != pCB1)
-			mIFR |= 0x2;
-		if (CB1_IRQ_Ena)
-			updatePort(IRQ, 0x0);
-		CB1_edge = true;
+		if (CB1 && CB1 != pCB1) {
+			setIFR(IFR_CB1_MASK);
+			CB1_edge = true;
+		}
 	}
 
 	// Deactive "Data Ready" CB2 output if "Data Taken" CB1 was received
@@ -283,13 +277,86 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 void VIA6522::updateIRQ()
 {
-	if (((mIFR & mIER) & 0x7f) == 0) { // No pending interrupts
+	if ((mIFR & mIER & 0x7f) == 0) { // No pending interrupts
 		updatePort(IRQ, 0x1);
-		mIFR &= ~0x80; // clear IRQ bit
+		if (mIRQ != pIRQ)
+			cout << "CLEAR IRQ!\n";
+		pIRQ = mIRQ;
 	}
 	else { // Pending interrupts
-		mIFR |= 0x80; // set IRQ bit
+		updatePort(IRQ, 0x0);
+		if (mIRQ != pIRQ) {
+			cout << "SET IRQ (";
+			if (mIFR & mIER & 0x1)
+				cout << ":CA2";
+			if (mIFR & mIER & 0x2)
+				cout << ":CA1";
+			if (mIFR & mIER & 0x4)
+				cout << ":SHIFTS";
+			if (mIFR & mIER & 0x8)
+				cout << ":CB2";
+			if (mIFR & mIER & 0x10)
+				cout << ":CB1";
+			if (mIFR & mIER & 0x20)
+				cout << ":T2";
+			if (mIFR & mIER & 0x40)
+				cout << ":T1";
+			cout << ")\n";
+		}
+		pIRQ = mIRQ;
 	}
+}
+
+void VIA6522::clearIFR(uint8_t mask)
+{
+	uint8_t oIFR = mIFR;
+	mIFR &= ~mask;
+	if (mIFR != oIFR) {
+		cout << "CLEAR IFR 0x" << hex << (int)oIFR << " => 0x" << (int)mIFR << dec << " ";
+		if (mask & IFR_CA1_MASK)
+			cout << ":CA1 (" << hex << (int)IFR_CA1_MASK << ")";
+		if (mask & IFR_CA2_MASK)
+			cout << ":CA2 (" << hex << (int)IFR_CA2_MASK << ")";
+		if (mask & IFR_CB1_MASK)
+			cout << ":CB1 (" << hex << (int)IFR_CB1_MASK << ")";
+		if (mask & IFR_CB2_MASK)
+			cout << ":CB2 (" << hex << (int)IFR_CB2_MASK << ")";
+		if (mask & IFR_SR_MASK)
+			cout << ":SR (" << hex << (int)IFR_SR_MASK << ")";
+		if (mask & IFR_T1_MASK)
+			cout << ":T1 (" << hex << (int)IFR_T1_MASK << ")";
+		if (mask & IFR_T2_MASK)
+			cout << ":T2 (" << hex << (int)IFR_T2_MASK << ")";
+		cout << "\n";
+	}
+	pIFR = mIFR;
+	updateIRQ();
+}
+
+void VIA6522::setIFR(uint8_t mask)
+{
+	uint8_t oIFR = mIFR;
+	mIFR |= mask;
+	if (mIFR != oIFR) {
+		cout << "SET IFR 0x" << hex << (int)oIFR << " => 0x" << (int)mIFR << dec << " ";
+		if (mask & IFR_CA1_MASK)
+			cout << ":CA1 (" << hex << (int)IFR_CA1_MASK << ")";
+		if (mask & IFR_CA2_MASK)
+			cout << ":CA2 (" << hex << (int)IFR_CA2_MASK << ")";
+		if (mask & IFR_CB1_MASK)
+			cout << ":CB1 (" << hex << (int)IFR_CB1_MASK << ")";
+		if (mask & IFR_CB2_MASK)
+			cout << ":CB2 (" << hex << (int)IFR_CB2_MASK << ")";
+		if (mask & IFR_SR_MASK)
+			cout << ":SR (" << hex << (int)IFR_SR_MASK << ")";
+		if (mask & IFR_T1_MASK)
+			cout << ":T1 (" << hex << (int)IFR_T1_MASK << ")";
+		if (mask & IFR_T2_MASK)
+			cout << ":T2 (" << hex << (int)IFR_T2_MASK << ")";
+		cout << "\n";
+	}
+	pIFR = mIFR;
+	updateIRQ();
 }
 
 bool VIA6522::read(uint16_t adr, uint8_t &data)
@@ -326,7 +393,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		switch (CA2_mode) {
 		case 0x4:	// Handshake output
 		case 0x5:	// Pulse output
-			mIFR &= ~0x1;
+			clearIFR(IFR_CA2_MASK);
 			break;
 		default:
 			break;
@@ -348,7 +415,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 	case T1CL:
 		// T1 Low-Order Counter
 		data = mTimer1Counter & 0xff;
-		mIER &= ~IER_T1_MASK;
+		clearIFR(IFR_T1_MASK);
 		break;
 
 	case T1CH:
@@ -362,16 +429,14 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		break;
 
 	case T1LH:
-		// T1 Low-Roder Latch
+		// T1 Low-Order Latch
 		data = mTimer1LatchHigh;
 		break;
 
 	case T2CL:
 		// T2 Low-Order Counter
 		data = mTimer2Counter & 0xff;
-		if (ACR_T2_CTRL == 0)
-			mIFR &= ~IFR_T2_MASK; // Clear T2 interrupt flag
-		updateIRQ();
+		clearIFR(IFR_T2_MASK); // Clear T2 interrupt flag
 
 		break;
 
@@ -397,7 +462,10 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 
 	case IFR:
 		// Interrupt Flag Register
-		data = mIFR;
+		if (((mIFR & mIER) & 0x7f) == 0)
+			data = mIFR & 0x7f; // Clear IRQ bit
+		else
+			data = mIFR | 0x80; // Set IRQ bit
 		break;
 
 	case IER:
@@ -439,7 +507,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		switch (CB2_mode) {
 		case 0x4:	// Handshake output
 		case 0x5:	// Pulse output
-			mIFR &= ~0x8;
+			clearIFR(IFR_CB2_MASK);
 			break;
 		default:
 			break;
@@ -462,7 +530,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		switch (CA2_mode) {
 		case 0x4:	// Handshake output
 		case 0x5:	// Pulse output
-			mIFR &= ~0x1;
+			clearIFR(~IFR_CA2_MASK);
 			break;
 		default:
 			break;
@@ -494,9 +562,9 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// T1 High-Order Counter
 	{
 		mTimer1LatchHigh = data;
+		clearIFR(IFR_T1_MASK); // Clear T1 interrupt flag
 		if (mTimer1XCounterHWrite) {
-			mTimer1Counter = (data << 8) | mTimer1LatchLow;
-			mIER &= ~IER_T1_MASK;
+			mTimer1Counter = (data << 8) | mTimer1LatchLow;		
 		}
 		else
 			mTimer1Counter = (mTimer1Counter & 0x00ff) | (data << 8);
@@ -541,8 +609,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// T2 High-Order Counter
 	{
 		mTimer1LatchHigh = data;
-		mIFR &= ~IFR_T2_MASK; // Clear T2 interrupt flag
-		updateIRQ();
+		clearIFR(IFR_T2_MASK); // Clear T2 interrupt flag
 		mTimer2Running = true;
 
 		break;
@@ -581,9 +648,25 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		break;
 	}
 	case IFR:
-		// Interrupt Flag Register
+		// Interrupt Flag Register - writing an '1' will clear the corresponding flag!!!
 	{
-		mIFR = (data & 0x7f);
+		mIFR = (~data) & 0x7f;
+		cout << "VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (";
+		if (mIFR & 0x1)
+			cout << ":CA2";
+		if (mIFR & 0x2)
+			cout << ":CA1";
+		if (mIER & 0x4)
+			cout << ":SR";
+		if (mIFR & 0x8)
+			cout << ":CB2";
+		if (mIFR & 0x10)
+			cout << ":CB1";
+		if (mIFR & 0x20)
+			cout << ":T2";
+		if (mIFR & 0x40)
+			cout << ":T1";
+		cout << ")\n";
 		updateIRQ();
 
 		break;
@@ -597,7 +680,22 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		else { // disable interrupts		
 			mIER = (mIER & ~data) & 0x7f;
 		}
-		cout << "VIA 6522 at 0x" << hex  << adr << " IER = 0x" <<  (int)mIER << "\n";
+		cout << "VIA 6522 at 0x" << hex << adr << " IER = 0x" << (int)mIER << " (";
+		if (mIER & 0x1)
+			cout << ":CA2";
+		if (mIER & 0x2)
+			cout << ":CA1";
+		if (mIER & 0x4)
+			cout << ":SR";
+		if (mIER & 0x8)
+			cout << ":CB2";
+		if (mIER & 0x10)
+			cout << ":CB1";
+		if (mIER & 0x20)
+			cout << ":T2";
+		if (mIER & 0x40)
+			cout << ":T1";
+		cout << ")\n";
 		break;
 	}
 	case ORA2:
