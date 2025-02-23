@@ -60,6 +60,8 @@ double instr_scheduled_devices_cnt[128] = { 0 };
 double wait_cnt = 0;
 int frame_cnt = 0;
 
+ALLEGRO_KEYBOARD_STATE keyboard_state;
+
 
 int main(int argc, const char* argv[])
 {
@@ -331,6 +333,12 @@ int main(int argc, const char* argv[])
                     cout << "Failed to launch popup menu!\n";
 			}
 		}
+
+        // Turn on microprocessor debugging (tracing) if user presses <CTRL>-D
+        al_get_keyboard_state(&keyboard_state);
+        if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_D)) {
+            microprocessor->debug(true);
+        }
 
     }
 

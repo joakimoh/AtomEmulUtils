@@ -81,7 +81,7 @@ private:
 			{ALLEGRO_KEY_PGUP,		3,  7, "{["},
 			{ALLEGRO_KEY_UP,		3,  9, "UP ARROW"}
 		},{
-			{ALLEGRO_KEY_F,			2,  0, "F0"},
+			{-1,					2,  0, "F0"},
 			{ALLEGRO_KEY_W,			2,  1, "W"},
 			{ALLEGRO_KEY_E,			2,  2, "E"},
 			{ALLEGRO_KEY_T,			2,  3, "T"},

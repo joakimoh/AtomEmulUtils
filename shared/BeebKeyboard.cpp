@@ -46,6 +46,12 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 
 	//cout << "ADVANCE KB, mCOL_SEL = " << dec << (int)mCOL_SEL << ", mROW_SEL=" << (int)mROW_SEL << "...\n";
 
+	al_get_keyboard_state(&mKeyboardState);
+
+	// Toggle ROW state from active (HIGH) to inactive (LOW) to secure that update is propagated (as it's only propagated on change normally)
+	updatePort(ROW, 0x1);
+	updatePort(ROW, 0x0);
+
 	if (mCOL_SEL <= 9 && mROW_SEL <= 7) {
 
 		// Check for key a COL_SEL,ROW_SEL being pressed as well as DIP switches being ON <=> LOW

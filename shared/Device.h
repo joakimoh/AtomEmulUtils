@@ -155,6 +155,8 @@ public:
 	// Called by a other device when the device is asked to process/transform data.
 	virtual bool getDeviceData(uint8_t dIn, uint8_t& dOut) { dOut = 0xff;  return false; }
 
+	void debug(bool debugOn) { if (debugOn) mDebugInfo.dbgLevel |= DBG_6502; else mDebugInfo.dbgLevel &= ~DBG_6502; }
+
 };
 
 class Devices {
