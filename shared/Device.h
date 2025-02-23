@@ -68,6 +68,7 @@ public:
 	uint8_t	*				val;					// pointer to variable holding the port's value
 	vector<InputReference>	inputs;					// connected inputs (used only if the port is an output port)
 	bool					triggerDevice = false;	// true if the device's trigger() method shall be called on an update of an input port
+	bool					firstUpdate = true;		// Used to force a first initial update (as updates otherwise only are on change)
 };
 
 typedef struct BitsSelection_struct {
@@ -92,6 +93,9 @@ typedef struct Routing_struct { // specifies how an output port of one device is
 
 class Device {
 
+private:
+	bool updatePort(int index, uint8_t val, bool triggerConnectedDevices);
+
 protected:
 
 	DebugInfo mDebugInfo;
@@ -108,6 +112,10 @@ protected:
 
 	bool mMemoryMapped = false;
 
+	int RESET;
+	uint8_t mRESET = 0x1;
+	uint8_t pRESET = 0x0;
+
 public:
 
 	Scheduling scheduling = INSTR; // default scheduling if nothing specified
@@ -122,7 +130,13 @@ public:
 	~Device();
 
 	// Reset device
-	virtual bool reset() { return true; }
+	virtual bool reset() {
+		if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
+			cout << "'" << this->name << "' RESET\n";
+			pRESET = mRESET;
+		}
+		return true;
+	}
 
 	//  Advance until clock cycle stopcycle has been reached
 	virtual bool advance(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }
@@ -132,6 +146,10 @@ public:
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 	bool updatePort(int index, uint8_t val);
+
+	// Force an update of a device's all ports to secure that all connected devices have the correct port value
+	// Should be made after all device's have been connected. No triggering of connected devices are made.
+	bool updatePorts();
 
 	// Get local port index for a named I/O (used by connection manager at initialisation)
 	bool getPortIndex(string name, DevicePort * &port);

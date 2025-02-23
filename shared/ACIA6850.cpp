@@ -21,6 +21,7 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 // Reset device
 bool ACIA6850::reset()
 {
+	Device::reset();
 	return true;
 }
 

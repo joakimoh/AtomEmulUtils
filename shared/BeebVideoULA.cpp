@@ -30,6 +30,7 @@ BeebVideoULA::~BeebVideoULA()
 // Reset device
 bool BeebVideoULA::reset()
 {
+	Device::reset();
 	return true;
 }
 

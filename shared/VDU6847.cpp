@@ -130,13 +130,10 @@ VDU6847::~VDU6847()
 bool VDU6847::reset()
 {
 	Device::reset();
+
 	mScanLine = 0;
 	mFieldCount = 0;
 
-	if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
-		cout << "VDU 6847 RESET\n";
-		pRESET = mRESET;
-	}
 
 	return true;
 }

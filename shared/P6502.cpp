@@ -87,11 +87,7 @@ bool P6502::serveIRQ()
 //
 bool P6502::reset()
 {
-
-	if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
-		cout << "6502 RESET\n";
-		pRESET = mRESET;
-	}
+	Device::reset();
 
 	mLastPgmDevice = NULL;
 

@@ -20,6 +20,8 @@ BeebKeyboard::BeebKeyboard(string name, uint8_t startupOptions, DebugInfo debugI
 // Reset device
 bool BeebKeyboard::reset()
 {
+	Device::reset();
+
 	mCycleCount = 0;
 
 	return true;

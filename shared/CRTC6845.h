@@ -22,10 +22,9 @@ public:
 	// 
 
 	// M6845 Ports
-	int CLK, DISPTMG, RA, CUDISP, HS, VS, RESET;
+	int CLK, DISPTMG, RA, CUDISP, HS, VS;
 	uint8_t mCLK = 1;		// INPUT - Clock rate [MHz] (1 or 2 MHz for a BBC Micro Model B e.g.)
 	uint8_t mNEXT_CHAR;		// INPUT  - Advance one character
-	uint8_t mRESET = 0x1;	// INPUT
 	uint8_t mDISPTMG = 0x0;	// OUTPUT - DISPlay TiMinG: When high, the display is in the active area (delay specified by R9 skew bits)
 	uint8_t mRA = 0x0;		// OUTPUT - Raster Address for row of a character (5 bits)
 	uint8_t mCUDISP = 0x2;	// OUTPUT - CUrsor DISPlay: High when cursor shall be displayed (delay specified by R9 skew bits)

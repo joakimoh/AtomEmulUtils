@@ -167,21 +167,11 @@ int main(int argc, const char* argv[])
 
     al_start_timer(emu_speed_timer);
 
-    
-    
+     
     uint64_t cycle_count = 0;
 
-    // RESET all devices
-    for (int d = 0; d < frame_scheduled_devices.size(); d++)
-        frame_scheduled_devices[d]->reset();
-    for (int d = 0; d < half_line_scheduled_devices.size(); d++)
-        half_line_scheduled_devices[d]->reset();
-    for (int d = 0; d < instr_scheduled_devices.size(); d++)
-        instr_scheduled_devices[d]->reset();
-    vdu->reset();
-    microprocessor->reset();   
-    if (arg_parser.debugInfo.dbgLevel & DBG_VERBOSE)
-        cout << "All devices now reset...\n";
+
+
 
     al_clear_to_color(al_map_rgb(0, 0, 0));
 

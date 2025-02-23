@@ -102,9 +102,6 @@ public:
 	int VDU_PORT_AS, VDU_PORT_AG, VDU_PORT_GM;
 	int VDU_PORT_CSS, VDU_PORT_INT_EXT, VDU_PORT_INV;
 	int VDU_PORT_FS, VDU_PORT_DIN;
-	int RESET;
-	uint8_t mRESET = 0x1;	// input  - RESET
-	uint8_t pRESET = 0x0;
 	
 	uint8_t mAS = 0x0;		// input  - selects alphanumeric (LOW) or semigraphics (HIGH)
 	uint8_t mAG = 0x0;		// input  - selects alphanumeric/semigraphics (LOW) or graphics (HIGH)

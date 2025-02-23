@@ -26,6 +26,8 @@ bool PIA8255::reset()
 
 bool PIA8255::advance(uint64_t stopCycle)
 {
+	Device::reset();
+
 	if (!mRESET) {
 		reset();
 		mCycleCount = stopCycle;

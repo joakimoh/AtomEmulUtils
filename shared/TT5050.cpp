@@ -115,6 +115,8 @@ void TT5050::createInterpolatedSymbols()
 // Reset device
 bool TT5050::reset()
 {
+	Device::reset();
+
 	return true;
 }
 

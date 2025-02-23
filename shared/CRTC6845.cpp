@@ -19,11 +19,12 @@ CRTC6845::CRTC6845(
 	registerPort("HS",			OUT_PORT, 0x1,	HS,			&mHS);
 	registerPort("VS",			OUT_PORT, 0x1,	VS,			&mVS);
 
-	reset();
 }
 
 bool CRTC6845::reset()
 {
+	Device::reset();
+
 	mCycleCount = 0;
 	mCharRow = 0;
 	mScanLine = 0;

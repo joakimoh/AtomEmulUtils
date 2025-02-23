@@ -52,11 +52,6 @@ bool VIA6522::reset()
 
 	pIFR = 0xff;
 
-	if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
-		cout << "VIA 6522 '" << this->name << "' RESET\n";
-		pRESET = mRESET;
-	}
-
 	return true;
 }
 

@@ -15,8 +15,6 @@ private:
 	// Ports that can be connected to other devices
 	uint8_t mIRQ = 0x1;
 	uint8_t pIRQ = 0x1;
-	uint8_t mRESET = 0x1;
-	uint8_t pRESET = 0x0;
 	uint8_t mPA = 0xff;
 	uint8_t mPB = 0xff;
 	uint8_t mCA = 0x3;

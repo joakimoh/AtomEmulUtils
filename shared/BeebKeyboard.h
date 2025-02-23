@@ -126,7 +126,7 @@ private:
 	uint8_t mLED2 = 0x0;			//
 	uint8_t mCOL_SEL = 0x0;			// Column Select: 0-9 BCD-coded;								connected to VIA 6522 (IC3) PA0:3 output
 	uint8_t mROW_SEL = 0x0;			// Row Select:  0-9 BCD-coded;									connected to VIA 6522 (IC3) PA4:6 output
-	uint8_t mROW = 0x1;				// Value of selected row (LOW if any key on row is pressed);	connected to VIA 6522 (IC3) PA7 input
+	uint8_t mROW = 0x0;				// Value of selected row (HIGH if any key on row is pressed);	connected to VIA 6522 (IC3) PA7 input
 	uint8_t mBREAK = 0x1;			// BREAK key (LOW when pressed <=> RESET)
 	uint8_t mPRESSED = 0x0;			// HIGH when any key is pressed;								connected to VIA 6522 (IC3) CA2 input
 	uint8_t mSW = 0x0;				// Start-up options DIL switches (8-bit) - see table below...
