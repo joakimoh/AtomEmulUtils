@@ -54,11 +54,9 @@ bool P6502::serveNMI()
 
 bool P6502::serveIRQ()
 {
-
+	// Exit if IRQ disabled
 	if (mStatusRegister & I_set_mask)
-		return false;
-
-	
+		return false;	
 
 	// Disable IRQ interrupts
 	mStatusRegister |= I_set_mask;
@@ -70,14 +68,22 @@ bool P6502::serveIRQ()
 	uint8_t SR_push_val = mStatusRegister;
 	writeDevice(0x100 + (uint16_t)mStackPointer--, SR_push_val);
 
+	cout << "PC = 0x" << hex << mProgramCounter << ", SR = 0x " << (int) mStatusRegister << "\n";
+	for (int i = 0; i < 3; i++) {
+		uint16_t a = 0x100 + mStackPointer + i + 1;
+		uint8_t d;
+		readDevice(a, d);
+		cout << "0x" << hex << 0x100 + mStackPointer + i + 1 << " = 0x" << (int) d << "\n";
+	}
+
 	// Fetch break vector
 	uint8_t adr_L, adr_H;
 	if (!readProgramMem(0xfffe, adr_L) || !readProgramMem(0xffff, adr_H))
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
 
-	//cout << "SERVING IRQ -  handler at 0x" << hex << mProgramCounter << " will be executed!\n";
-	
+	cout << "SERVING IRQ - execution at adr 0x" << hex << PC_push_val-2 << " interrupted by handler at 0x" << hex << mProgramCounter << "!\n";
+
 
 	return true;
 }
@@ -839,6 +845,14 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// +	+	+	+	+	+
 	{
+
+		for (int i = 0; i < 3; i++) {
+			uint16_t a = 0x100 + mStackPointer + i + 1;
+			uint8_t d;
+			readDevice(a, d);
+			cout << "0x" << hex << 0x100 + mStackPointer + i + 1 << " = 0x" << (int) d << "\n";
+		}
+
 		// Pull Status Register
 		uint8_t stack_val;
 		readProgramMem(0x100 + (uint16_t)++mStackPointer, stack_val);
@@ -850,7 +864,10 @@ bool P6502::executeInstr(
 		uint8_t PC_l, PC_h;
 		readProgramMem(0x100 + (uint16_t)++mStackPointer, PC_l);
 		readProgramMem(0x100 + (uint16_t)++mStackPointer, PC_h);
+		uint16_t oPC = mProgramCounter;
 		mProgramCounter = PC_h * 256 + PC_l;
+
+		cout << "RTI executed at 0x" << hex << oPC << "; resume execution at 0x" << mProgramCounter << "!\n";
 
 		break;
 	}
@@ -1482,7 +1499,7 @@ bool P6502::readDevice(uint16_t adr, uint8_t& data)
 		}
 	}
 
-	data = 0xff;
+	data = 0x0;// Better to return 0x00 than 0xff for now when not all devices are implemented as peripheral status 0x00 usually means inactive/no event
 	return true;
 }
 

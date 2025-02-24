@@ -1,6 +1,7 @@
 #include "VIA6522.h"
 #include <filesystem>
 #include <iostream>
+#include <sstream>
 
 using namespace std;
 
@@ -281,22 +282,7 @@ void VIA6522::updateIRQ()
 	else { // Pending interrupts
 		updatePort(IRQ, 0x0);
 		if (mIRQ != pIRQ) {
-			cout << "SET IRQ (";
-			if (mIFR & mIER & 0x1)
-				cout << ":CA2";
-			if (mIFR & mIER & 0x2)
-				cout << ":CA1";
-			if (mIFR & mIER & 0x4)
-				cout << ":SHIFTS";
-			if (mIFR & mIER & 0x8)
-				cout << ":CB2";
-			if (mIFR & mIER & 0x10)
-				cout << ":CB1";
-			if (mIFR & mIER & 0x20)
-				cout << ":T2";
-			if (mIFR & mIER & 0x40)
-				cout << ":T1";
-			cout << ")\n";
+			cout << "SET IRQ (" << IFR2Str() << ")\n";
 		}
 		pIRQ = mIRQ;
 	}
@@ -307,22 +293,7 @@ void VIA6522::clearIFR(uint8_t mask)
 	uint8_t oIFR = mIFR;
 	mIFR &= ~mask;
 	if (mIFR != oIFR) {
-		cout << "CLEAR IFR 0x" << hex << (int)oIFR << " => 0x" << (int)mIFR << dec << " ";
-		if (mask & IFR_CA1_MASK)
-			cout << ":CA1 (" << hex << (int)IFR_CA1_MASK << ")";
-		if (mask & IFR_CA2_MASK)
-			cout << ":CA2 (" << hex << (int)IFR_CA2_MASK << ")";
-		if (mask & IFR_CB1_MASK)
-			cout << ":CB1 (" << hex << (int)IFR_CB1_MASK << ")";
-		if (mask & IFR_CB2_MASK)
-			cout << ":CB2 (" << hex << (int)IFR_CB2_MASK << ")";
-		if (mask & IFR_SR_MASK)
-			cout << ":SR (" << hex << (int)IFR_SR_MASK << ")";
-		if (mask & IFR_T1_MASK)
-			cout << ":T1 (" << hex << (int)IFR_T1_MASK << ")";
-		if (mask & IFR_T2_MASK)
-			cout << ":T2 (" << hex << (int)IFR_T2_MASK << ")";
-		cout << "\n";
+		cout << "CLEAR IFR 0x" << hex << (int)oIFR << " => " << IFR2Str() << " for PCR = " << PCR2Str() << " and ACR = " << ACR2Str() << "\n";
 	}
 	pIFR = mIFR;
 	updateIRQ();
@@ -332,24 +303,8 @@ void VIA6522::setIFR(uint8_t mask)
 {
 	uint8_t oIFR = mIFR;
 	mIFR |= mask;
-	if (mIFR != oIFR) {
-		cout << "SET IFR 0x" << hex << (int)oIFR << " => 0x" << (int)mIFR << dec << " ";
-		if (mask & IFR_CA1_MASK)
-			cout << ":CA1 (" << hex << (int)IFR_CA1_MASK << ")";
-		if (mask & IFR_CA2_MASK)
-			cout << ":CA2 (" << hex << (int)IFR_CA2_MASK << ")";
-		if (mask & IFR_CB1_MASK)
-			cout << ":CB1 (" << hex << (int)IFR_CB1_MASK << ")";
-		if (mask & IFR_CB2_MASK)
-			cout << ":CB2 (" << hex << (int)IFR_CB2_MASK << ")";
-		if (mask & IFR_SR_MASK)
-			cout << ":SR (" << hex << (int)IFR_SR_MASK << ")";
-		if (mask & IFR_T1_MASK)
-			cout << ":T1 (" << hex << (int)IFR_T1_MASK << ")";
-		if (mask & IFR_T2_MASK)
-			cout << ":T2 (" << hex << (int)IFR_T2_MASK << ")";
-		cout << "\n";
-	}
+	if (mIFR != oIFR)
+		cout << "SET IFR 0x" << hex << (int)oIFR << " => " << IFR2Str() << " for PCR = " << PCR2Str() << " and ACR = " << ACR2Str() << "\n";
 	pIFR = mIFR;
 	updateIRQ();
 }
@@ -470,10 +425,12 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 
 	case IRA2:
 		// Input Register A when no handshaking
-		mIRA2 = (mIRA2 & mDDRA) | (mPA & ~mDDRA);
+		{
+			mIRA2 = (mIRA2 & mDDRA) | (mPA & ~mDDRA);
 		data = mIRA2;
 		cout << "READ IRA2 WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)mPA << " = > 0x" << (int)mIRA2 << "\n";
 		break;
+	}
 
 	default:
 		data = 0xff;
@@ -648,22 +605,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Interrupt Flag Register - writing an '1' will clear the corresponding flag!!!
 	{
 		mIFR &= (~data) & 0x7f;
-		cout << "VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (";
-		if (mIFR & 0x1)
-			cout << ":CA2";
-		if (mIFR & 0x2)
-			cout << ":CA1";
-		if (mIER & 0x4)
-			cout << ":SR";
-		if (mIFR & 0x8)
-			cout << ":CB2";
-		if (mIFR & 0x10)
-			cout << ":CB1";
-		if (mIFR & 0x20)
-			cout << ":T2";
-		if (mIFR & 0x40)
-			cout << ":T1";
-		cout << ")\n";
+		cout << "VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
 		updateIRQ();
 
 		break;
@@ -677,22 +619,8 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		else { // disable interrupts		
 			mIER = (mIER & ~data) & 0x7f;
 		}
-		//cout << "VIA 6522 at 0x" << hex << adr << " IER = 0x" << (int)mIER << " (";
-		if (mIER & 0x1)
-			cout << ":CA2";
-		if (mIER & 0x2)
-			cout << ":CA1";
-		if (mIER & 0x4)
-			cout << ":SR";
-		if (mIER & 0x8)
-			cout << ":CB2";
-		if (mIER & 0x10)
-			cout << ":CB1";
-		if (mIER & 0x20)
-			cout << ":T2";
-		if (mIER & 0x40)
-			cout << ":T1";
-		cout << ")\n";
+		cout << "VIA 6522 at 0x" << hex << adr << " IER = 0x" << (int)mIER << " (" << IER2Str() << ")\n";
+
 		break;
 	}
 	case ORA2:
@@ -704,6 +632,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 
 		//cout << "WRITE TO PA WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)oPA << " => 0x" << (int)mPA << "\n";
 
+
 		break;
 	}
 	default:
@@ -713,4 +642,148 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	}
 
 	return true;
+}
+
+string VIA6522::IFR2Str()
+{
+	stringstream sout;
+	sout << "0x" << (int)mIFR << hex << " ";
+	if (mIFR & IFR_CA1_MASK)
+		sout << ":CA1 (" << hex << (int)IFR_CA1_MASK << ")";
+	if (mIFR & IFR_CA2_MASK)
+		sout << ":CA2 (" << hex << (int)IFR_CA2_MASK << ")";
+	if (mIFR & IFR_CB1_MASK)
+		sout << ":CB1 (" << hex << (int)IFR_CB1_MASK << ")";
+	if (mIFR & IFR_CB2_MASK)
+		sout << ":CB2 (" << hex << (int)IFR_CB2_MASK << ")";
+	if (mIFR & IFR_SR_MASK)
+		sout << ":SR (" << hex << (int)IFR_SR_MASK << ")";
+	if (mIFR & IFR_T1_MASK)
+		sout << ":T1 (" << hex << (int)IFR_T1_MASK << ")";
+	if (mIFR & IFR_T2_MASK)
+		sout << ":T2 (" << hex << (int)IFR_T2_MASK << ")";
+
+	return sout.str();
+}
+
+string VIA6522::IER2Str()
+{
+	stringstream sout;
+	sout << "0x" << hex << (int)mIER <<  " ";
+	if (mIER & IER_CA1_MASK)
+		sout << ":CA1 (0x" << hex << (int)IER_CA1_MASK << ")";
+	if (mIER & IER_CA2_MASK)
+		sout << ":CA2 (0x" << hex << (int)IER_CA2_MASK << ")";
+	if (mIER & IER_CB1_MASK)
+		sout << ":CB1 (0x" << hex << (int)IER_CB1_MASK << ")";
+	if (mIER & IER_CB2_MASK)
+		sout << ":CB2 (0x" << hex << (int)IER_CB2_MASK << ")";
+	if (mIER & IER_SR_MASK)
+		sout << ":SR (0x" << hex << (int)IER_SR_MASK << ")";
+	if (mIER & IER_T1_MASK)
+		sout << ":T1 (0x" << hex << (int)IER_T1_MASK << ")";
+	if (mIER & IER_T2_MASK)
+		sout << ":T2 (0x" << hex << (int)IER_T2_MASK << ")";
+
+	return sout.str();
+}
+string VIA6522::ACR2Str()
+{
+	stringstream sout;
+	sout << "0x" << hex << (int)mACR <<  " <=> ";
+	if (mACR & ACR_PA_LATCH_MASK)
+		sout << ":PA Latch (" << ACRLE2Str(ACR_PA_LATCH) << ")";
+	if (mACR & ACR_PB_LATCH_MASK)
+		sout << ":PB Latch (" << ACRLE2Str(ACR_PB_LATCH) << ")";
+	if (mACR & ACR_SR_CTRL_MASK)
+		sout << ":SR (" << ACRSR2Str(ACR_SR_CTRL) << ")";
+	if (mACR & ACR_T2_CTRL_MASK)
+		sout << ":T2 (" << ACRT22Str(ACR_T2_CTRL) << ")";
+	if (mACR & ACR_T1_CTRL_MASK)
+		sout << ":T1 (" << ACRT12Str(ACR_T1_CTRL) << ")";
+
+	return sout.str();
+}
+string VIA6522::PCR2Str()
+{
+	stringstream sout;
+	sout << "0x" << hex << (int)mPCR <<  " <=> ";
+	if (mPCR & PCR_CA1_CTRL_MASK)
+		sout << ":CA1 (" << PCRCx12Str(PCR_CA1_CTRL) << ")";
+	if (mPCR & PCR_CA2_CTRL_MASK)
+		sout << ":CA2 (" << PCRCx22Str(PCR_CA2_CTRL) << ")";
+	if (mPCR & PCR_CB1_MASK)
+		sout << ":CB1 (" << PCRCx12Str(PCR_CB1_CTRL) << ")";
+	if (mPCR & PCR_CB2_CTRL_MASK)
+		sout << ":CB2 (" << PCRCx22Str(PCR_CB2_CTRL) << ")";
+
+	return sout.str();
+}
+
+string VIA6522::PCRCx22Str(uint8_t op)
+{
+	switch (op) {
+	case 0x0: return "Input Neg Act Edge";
+	case 0x1: return "Ind. IRQ Input Neg Edge";
+	case 0x2: return "Input Pos Act Edge";
+	case 0x3: return "Ind. IRQ Input Pos Edge";
+	case 0x4: return "Handshake Output";
+	case 0x5: return "Pulse Output";
+	case 0x6: return "Low Output";
+	case 0x7: return "High Output";
+	default: return "???";
+	}
+}
+
+string VIA6522::PCRCx12Str(uint8_t op)
+{
+	switch (op) {
+	case 0x0: return "Neg. Act. Edge";
+	case 0x1: return "Pos. Act. Edge";
+	default: return "???";
+	}
+}
+
+string VIA6522::ACRT12Str(uint8_t t)
+{
+	switch (t) {
+	case 0x0: return "T1 Timed IRQ; no PB7";
+	case 0x1: return "Cont. IRQ; no PB7";
+	case 0x2: return "T1 Timed IRQ; PB7";
+	case 0x3: return "Cont. IRQ; PB7";
+	default: return "???";
+	}
+}
+
+string VIA6522::ACRT22Str(uint8_t t)
+{
+	switch (t) {
+	case 0x0: return "Timed IRQ";
+	case 0x1: return "PB6 Count";
+	default: return "???";
+	}
+}
+
+string VIA6522::ACRSR2Str(uint8_t s)
+{
+	switch (s) {
+	case 0x0: return "Disabled";
+	case 0x1: return "T2 Shift In";
+	case 0x2: return "Phi2 Shift In";
+	case 0x3: return "Ext Shift In";
+	case 0x4: return "T2 Rate FR Shift Out";
+	case 0x5: return "T2 Shift Out";
+	case 0x6: return "Phi2 Shift Out";
+	case 0x7: return "Ext Shift Out";
+	default: return "???";
+	}
+}
+
+string VIA6522::ACRLE2Str(uint8_t l)
+{
+	switch (l) {
+	case 0x0: return "No Latch";
+	case 0x1: return "Latch";
+	default: return "???";
+	}
 }

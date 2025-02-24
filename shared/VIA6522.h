@@ -73,6 +73,7 @@ private:
 #define PCR_CB1_CTRL		((mPCR >> 4) & 0x1)
 #define PCR_CB2_CTRL		((mPCR >> 5) & 0x7)
 
+
 // Interrupt Enable Register (IER) Fields
 #define IER_CA2_MASK		0x01
 #define IER_CA1_MASK		0x02
@@ -140,6 +141,17 @@ private:
 	void updateIRQ();
 	void clearIFR(uint8_t mask);
 	void setIFR(uint8_t mask);
+
+	string IFR2Str();
+	string IER2Str();
+	string ACR2Str();
+	string PCR2Str();
+	string PCRCx22Str(uint8_t op);
+	string PCRCx12Str(uint8_t op);
+	string ACRT12Str(uint8_t t);
+	string ACRT22Str(uint8_t t);
+	string ACRSR2Str(uint8_t s);
+	string ACRLE2Str(uint8_t l);
 
 public:
 
