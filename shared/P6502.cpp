@@ -107,20 +107,31 @@ bool P6502::reset()
 
 	return true;
 }
+
 // 
-// Advance until clock cycle stopcycle has been reached
-//
+// Advance until stop cycle has been reached
 bool P6502::advance(uint64_t stopCycle)
 {
-	bool success = true;
 
-	
+	while (mCycleCount < stopCycle) {
+		if (!advanceInstr(stopCycle))
+			return false;
+	}
+
+	return true;
+}
+
+
+// Advance one instruction if the stop cycle hasn't already been reached
+bool P6502::advanceInstr(uint64_t& endCycle)
+{
+	bool success = true;
 
 	// Serve RESET, NMI & IRQ in priority order
 	if (!mRESET) {
 		reset();
 		// No meaning to continue execution before RESET line becomes HIGH again
-		mCycleCount = stopCycle;
+		endCycle = mCycleCount;
 		return true;
 	}
 	else if (!mNMI && pNMI)	// NMI is edge-triggered!
@@ -140,100 +151,100 @@ bool P6502::advance(uint64_t stopCycle)
 	pNMI = mNMI;
 	pIRQ = mIRQ;
 
-	while (mCycleCount < stopCycle) {	
 
-		if (mDebugInfo.traceAdr > 0) {
-			if (mProgramCounter == mDebugInfo.traceAdr && !mStopDebugBuffering) {
-				mDebugInfo.dbgLevel |= DBG_6502;
-				mTraceCount = 0;
-				for (int i = 0; i < mBufferedTraceLines.size(); i++)
-					cout << mBufferedTraceLines[i];
-				mBufferedTraceLines.clear();
-				mStopDebugBuffering = true;
-			}
-			if (mStopDebugBuffering && mTraceCount > mDebugInfo.postTraceLen) {
-				mDebugInfo.dbgLevel &= ~DBG_6502;
-				mEndOfTracingReached = true;
-			}
-			mTraceCount++;
+	if (mDebugInfo.traceAdr > 0) {
+		if (mProgramCounter == mDebugInfo.traceAdr && !mStopDebugBuffering) {
+			mDebugInfo.dbgLevel |= DBG_6502;
+			mTraceCount = 0;
+			for (int i = 0; i < mBufferedTraceLines.size(); i++)
+				cout << mBufferedTraceLines[i];
+			mBufferedTraceLines.clear();
+			mStopDebugBuffering = true;
 		}
+		if (mStopDebugBuffering && mTraceCount > mDebugInfo.postTraceLen) {
+			mDebugInfo.dbgLevel &= ~DBG_6502;
+			mEndOfTracingReached = true;
+		}
+		mTraceCount++;
+	}
 
-		if (mDebugInfo.stopAdr > 0 && mProgramCounter == mDebugInfo.stopAdr) {
-			std::cout << "Execution stop triggered!\n";
-			if (mDebugInfo.dumpAdr > 0) {
-				// Output pre post tracing
-				for (int a = mDebugInfo.dumpAdr; a < mDebugInfo.dumpAdr + mDebugInfo.dumpSz; a++) {
-					uint8_t d;
-					readProgramMem(a, d);
-					std::cout << "0x" << hex << setw(4) << setfill('0') << a <<
-						" 0x" << setw(2) << (int) d << "\n";
-				}
+	if (mDebugInfo.stopAdr > 0 && mProgramCounter == mDebugInfo.stopAdr) {
+		std::cout << "Execution stop triggered!\n";
+		if (mDebugInfo.dumpAdr > 0) {
+			// Output pre post tracing
+			for (int a = mDebugInfo.dumpAdr; a < mDebugInfo.dumpAdr + mDebugInfo.dumpSz; a++) {
+				uint8_t d;
+				readProgramMem(a, d);
+				std::cout << "0x" << hex << setw(4) << setfill('0') << a <<
+					" 0x" << setw(2) << (int) d << "\n";
 			}
 		}
+	}
 
-		// Get opcode of next instruction
-		uint8_t opcode;
-		uint16_t opcode_PC = mProgramCounter;
-		if (!readProgramMem(mProgramCounter++, opcode)) {
-			success = false;
-			if (mDebugInfo.dbgLevel & DBG_ERROR)
-				std::cout << "Failed to read instruction!\n";
+	// Get opcode of next instruction
+	uint8_t opcode;
+	uint16_t opcode_PC = mProgramCounter;
+	if (!readProgramMem(mProgramCounter++, opcode)) {
+		success = false;
+		if (mDebugInfo.dbgLevel & DBG_ERROR)
+			std::cout << "Failed to read instruction!\n";
+	}
+
+	// Decode the opcode
+	Codec6502::InstructionInfo instr;
+	if (!mCodec.decodeInstruction(opcode, instr)) {
+		success = false;
+		if (mDebugInfo.dbgLevel & DBG_ERROR)
+			std::cout << "Invalid instruction 0x" << hex << (int) opcode << " encountered at address 0x" << hex << opcode_PC << "!\n";
+	}
+
+	// Get the operand
+	uint16_t operand = 0x0;
+	uint16_t calc_op_adr = 0x0;
+	uint8_t read_val = 0x0;
+	if (!getOperand(instr, operand, calc_op_adr, read_val)) {
+		success = false;
+		if (mDebugInfo.dbgLevel & DBG_ERROR)
+			std::cout << "Failed to get operand for instruction 0x" << hex << (int)opcode << " at address 0x" << opcode_PC << "!\n";
+	}
+
+	// Execute the instruction
+	uint8_t written_val;
+	if (!executeInstr(instr, opcode_PC, operand, calc_op_adr, read_val, written_val)) {
+		success = false;
+		if (mDebugInfo.dbgLevel & DBG_ERROR)
+			std::cout << "Failed to execute instruction!\n";
+	}
+
+	if ((mDebugInfo.dbgLevel & DBG_6502)  || (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached)) {
+		string instr_s = mCodec.decode(opcode_PC, opcode, operand);
+		stringstream sout;
+		sout << setfill(' ') << setw(30) << left << instr_s << right <<
+			" " << getState();
+		if (instr.readsMem || instr.writesMem)
+			sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << calc_op_adr;
+		if (instr.readsMem)
+			sout << " READ 0x" << setw(2) << (int)read_val;
+		if (instr.writesMem)
+			sout << " WROTE 0x" << setw(2) << (int)written_val;
+		sout << "\n";
+		if (mDebugInfo.dbgLevel & DBG_6502)
+			cout << sout.str();
+		if (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached && !mStopDebugBuffering) {
+			mBufferedTraceLines.push_back(sout.str());
+			if (mBufferedTraceLines.size() > mDebugInfo.preTraceLen)
+				mBufferedTraceLines.erase(mBufferedTraceLines.begin(), mBufferedTraceLines.end() - mDebugInfo.preTraceLen);
+
 		}
-
-		// Decode the opcode
-		Codec6502::InstructionInfo instr;
-		if (!mCodec.decodeInstruction(opcode, instr)) {
-			success = false;
-			if (mDebugInfo.dbgLevel & DBG_ERROR)
-				std::cout << "Invalid instruction 0x" << hex << (int) opcode << " encountered at address 0x" << hex << opcode_PC << "!\n";
-		}
-
-		// Get the operand
-		uint16_t operand = 0x0;
-		uint16_t calc_op_adr = 0x0;
-		uint8_t read_val = 0x0;
-		if (!getOperand(instr, operand, calc_op_adr, read_val)) {
-			success = false;
-			if (mDebugInfo.dbgLevel & DBG_ERROR)
-				std::cout << "Failed to get operand for instruction 0x" << hex << (int)opcode << " at address 0x" << opcode_PC << "!\n";
-		}
-
-		// Execute the instruction
-		uint8_t written_val;
-		if (!executeInstr(instr, opcode_PC, operand, calc_op_adr, read_val, written_val)) {
-			success = false;
-			if (mDebugInfo.dbgLevel & DBG_ERROR)
-				std::cout << "Failed to execute instruction!\n";
-		}
-
-		if ((mDebugInfo.dbgLevel & DBG_6502)  || (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached)) {
-			string instr_s = mCodec.decode(opcode_PC, opcode, operand);
-			stringstream sout;
-			sout << setfill(' ') << setw(30) << left << instr_s << right <<
-				" " << getState();
-			if (instr.readsMem || instr.writesMem)
-				sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << calc_op_adr;
-			if (instr.readsMem)
-				sout << " READ 0x" << setw(2) << (int)read_val;
-			if (instr.writesMem)
-				sout << " WROTE 0x" << setw(2) << (int)written_val;
-			sout << "\n";
-			if (mDebugInfo.dbgLevel & DBG_6502)
-				cout << sout.str();
-			if (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached && !mStopDebugBuffering) {
-				mBufferedTraceLines.push_back(sout.str());
-				if (mBufferedTraceLines.size() > mDebugInfo.preTraceLen)
-					mBufferedTraceLines.erase(mBufferedTraceLines.begin(), mBufferedTraceLines.end() - mDebugInfo.preTraceLen);
-
-			}
-		}
+	}
 
 		
+	// Increase time by the no of clock cycles specified for the instruction and mode.
+	// This excludes extra cycle at page boundary as this is instead address in getOperand().
+	tick(instr.cycles);
 
-		// Increase time by the no of clock cycles specified for the instruction and mode.
-		// This excludes extra cycle at page boundary as this is instead address in getOperand().
-		tick(instr.cycles);
-	}
+	// Return time reached
+	endCycle = mCycleCount;
 
 	return success;
 }

@@ -50,8 +50,13 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 
 	al_get_keyboard_state(&mKeyboardState);
 
-	// Toggle ROW state from active (HIGH) to inactive (LOW) to secure that update is propagated (as it's only propagated on change normally)
-	updatePort(ROW, 0x1);
+	uint8_t oROW = mROW;
+
+	// Toggle ROW state from active (HIGH) to inactive (LOW) to secure that update is propagated.
+	// The keyboard ROW output is connected to the System VIA PA7 input.
+	// If the PA7 was previously configured as an output (with a HIGH value) and the keyboard's
+	// ROW output was LOW, then the VIA will not get an update of the ROW unless a port update is made here.
+	// Therefore we start by setting ROW output to '0' (inactive)
 	updatePort(ROW, 0x0);
 
 	if (mCOL_SEL <= 9 && mROW_SEL <= 7) {
@@ -87,6 +92,8 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 			updatePort(BREAK, 0x1);
 
 	}
+
+	oROW = mROW;
 
 	return true;
 }

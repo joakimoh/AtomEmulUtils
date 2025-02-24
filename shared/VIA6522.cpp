@@ -472,6 +472,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		// Input Register A when no handshaking
 		mIRA2 = (mIRA2 & mDDRA) | (mPA & ~mDDRA);
 		data = mIRA2;
+		cout << "READ IRA2 WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)mPA << " = > 0x" << (int)mIRA2 << "\n";
 		break;
 
 	default:
@@ -543,6 +544,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Data Direction Register A - '0' means corresponding PA acts as input; otherwise as output
 	{
 		mDDRA = data;
+		cout << "DDRA = 0x" << hex << (int)mDDRA << "\n";
 		break;
 	}
 	case T1CL:
@@ -675,7 +677,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		else { // disable interrupts		
 			mIER = (mIER & ~data) & 0x7f;
 		}
-		cout << "VIA 6522 at 0x" << hex << adr << " IER = 0x" << (int)mIER << " (";
+		//cout << "VIA 6522 at 0x" << hex << adr << " IER = 0x" << (int)mIER << " (";
 		if (mIER & 0x1)
 			cout << ":CA2";
 		if (mIER & 0x2)
@@ -697,9 +699,11 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Output Register A when no handshaking
 	{
 		mORA2 = data;
+		uint8_t oPA = mPA;
 		updatePort(PA, (mPA & ~mDDRA) | (data & mDDRA));
 
-		//cout << "PA = 0x" << hex << (int) mPA << "\n";
+		//cout << "WRITE TO PA WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)oPA << " => 0x" << (int)mPA << "\n";
+
 		break;
 	}
 	default:

@@ -62,8 +62,8 @@ bool MemoryMappedDevice::write(uint16_t adr, uint8_t data) {
 		return false;
 	for (int i = 0; i < mScheduleOnWrite.size(); i++) {
 		if (mScheduleOnWrite[i].triggeringAdr == adr) {
-			if (mDebugInfo.dbgLevel & DBG_DEVICE)
-				cout << "WRITE 0x" << hex << data << " TO 0x" << adr << " => triggers " << mScheduleOnRead[i].device->name << " at " << dec << mCycleCount << "\n";
+			if ((mDebugInfo.dbgLevel & DBG_DEVICE))
+				cout << "WRITE 0x" << hex << (int) data << " TO 0x" << adr << " => triggers " << mScheduleOnWrite[i].device->name << " at " << dec << mCycleCount << "\n";
 			mScheduleOnWrite[i].device->advance(mCycleCount); // align the triggered device's time with this device
 		}
 	}

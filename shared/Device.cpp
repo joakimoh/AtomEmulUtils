@@ -89,48 +89,62 @@ bool Device::updatePort(int index, uint8_t val)
 	return updatePort(index, val, true);
 }
 
-bool Device::updatePort(int index, uint8_t val, bool triggerConnectedDevices)
+bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_t val, DevicePort *port, bool triggerConnectedDevices)
 {
-	if (index < 0 && index >= mPorts.size())
-		return false;
-
-	if (!mPorts[index]->firstUpdate && *(mPorts[index]->val) == val)
-		return true;
-
-	*(mPorts[index]->val) = val;
-
-	for (int i = 0; i < mPorts[index]->inputs.size(); i++) {
-		InputReference input = mPorts[index]->inputs[i];
+	for (int i = 0; i < connectedPorts.size(); i++) {
+		InputReference input = connectedPorts[i];
 		uint8_t pval = *(input.port->val);
 		if (input.shifts >= 0)
 			*(input.port->val) = ((pval & ~input.mask) | ((val >> input.shifts) & input.mask)) & input.port->mask;
 		else
 			*(input.port->val) = ((pval & ~input.mask) | ((val << (-input.shifts)) & input.mask)) & input.port->mask;
 
-		if ((mPorts[index]->firstUpdate && (mDebugInfo.dbgLevel & DBG_VERBOSE)) || (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0) && *(input.port->val) != pval)) {
+		if ((port->firstUpdate && (mDebugInfo.dbgLevel & DBG_VERBOSE)) || (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0) && *(input.port->val) != pval)) {
 			string shift_s, c_dir;
 			if (input.shifts >= 0)
 				shift_s = "((src >> shifts) & mask)";
 			else
 				shift_s = "((src << shifts) & mask)";
-			cout << this->name << ":" << mPorts[index]->name << " = 0x" << (int) val << " => " << 
-				input.port->dev->name << ":" << input.port->name <<  " = " <<
+			cout << this->name << ":" << port->name << " = 0x" << (int)val << " => " <<
+				input.port->dev->name << ":" << input.port->name << " = " <<
 				input.port->name << " &  ~mask | " << shift_s << " = 0x" << hex <<
 				(int)pval << " & 0x" << hex << setfill('0') << setw(2) << (int)(uint8_t)(~input.mask) << " | ((0x" << hex << (int)val <<
 				(input.shifts >= 0 ? " >> " : " << ") << setfill(' ') << dec << (input.shifts >= 0 ? input.shifts : -input.shifts) <<
 				") & 0x" << hex << (int)input.mask << ")" << setfill('0') << setw(2) <<
 				" = 0x" << hex << (int)*(input.port->val) << dec << "\n";
 		}
-		
+
 		if (triggerConnectedDevices && input.port->triggerDevice)
 			input.port->dev->trigger(input.port->localIndex);
 
-		
-
-		
 	}
 
-	// All subsequent updates will only be considered on change to lower CPU load
+	return true;
+}
+
+bool Device::updatePort(int index, uint8_t val, bool triggerConnectedDevices)
+{
+	if (index < 0 && index >= mPorts.size())
+		return false;
+
+	bool no_change_and_not_init = !mPorts[index]->firstUpdate && *(mPorts[index]->val) == val;
+
+	if (no_change_and_not_init && mPorts[index]->bidirectionalInputs.size() == 0)
+		return true;
+
+	*(mPorts[index]->val) = val;
+
+	// Only update pure input ports on change
+	if (!no_change_and_not_init) {
+		if (!updateConnectedPorts(mPorts[index]->inputs, val, mPorts[index], triggerConnectedDevices))
+			return false;
+	}
+
+	// Always update bidirectional ports
+	if (!updateConnectedPorts(mPorts[index]->bidirectionalInputs, val, mPorts[index], triggerConnectedDevices))
+		return false;
+
+	// For pure input ports (but not bidirectional ports), all subsequent updates will only be considered on change to lower CPU load
 	mPorts[index]->firstUpdate = false;
 
 	return true;

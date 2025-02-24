@@ -67,6 +67,7 @@ public:
 	uint8_t					mask = 0x1;				// mask to select only the implemented bits
 	uint8_t	*				val;					// pointer to variable holding the port's value
 	vector<InputReference>	inputs;					// connected inputs (used only if the port is an output port)
+	vector<InputReference>	bidirectionalInputs;	// connected bidirectional ports (used only if the port is an output port)
 	bool					triggerDevice = false;	// true if the device's trigger() method shall be called on an update of an input port
 	bool					firstUpdate = true;		// Used to force a first initial update (as updates otherwise only are on change)
 };
@@ -95,6 +96,7 @@ class Device {
 
 private:
 	bool updatePort(int index, uint8_t val, bool triggerConnectedDevices);
+	bool updateConnectedPorts(vector<InputReference>& connectedPorts, uint8_t val, DevicePort* port, bool triggerConnectedDevices);
 
 protected:
 

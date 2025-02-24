@@ -94,7 +94,6 @@ int main(int argc, const char* argv[])
 
     int frame_rate = 60;
     double emu_speed = frame_rate * (arg_parser.emulationSpeed / 100);
-    int cycle_step = 2;
 
     ALLEGRO_TIMER* emu_speed_timer = al_create_timer(1.0 / emu_speed); // 60 Hz frequency as default emulation speed
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
@@ -243,16 +242,17 @@ int main(int argc, const char* argv[])
                 // update devices scheduled on instruction basis in a tight loop
                 while (cycle_count < half_line_target) {
 
-                    cycle_count += cycle_step;
-                 
-                    // advance time for the microprocessor
+                    // Execute one microprocessor instruction and advance time accordingly (cycle_count updated)
                     auto uc_start = chrono::high_resolution_clock::now();
-                    microprocessor->advance(cycle_count);
+                    uint64_t target_up_count;
+                    microprocessor->advanceInstr(cycle_count);
+                    
                     auto uc_stop = chrono::high_resolution_clock::now();
                     auto uc_dur = chrono::duration_cast<chrono::microseconds>(uc_stop - uc_start);
                     uc_cnt += uc_dur.count();
 
-                    // Advance time for each device scheduled on instruction basis
+                    // Advance time for each device scheduled on instruction basis so that it matches the time
+                    // of the microprocessor.
                     for (int d = 0; d < instr_scheduled_devices.size(); d++) {
 
                         auto other_dev_start = chrono::high_resolution_clock::now();

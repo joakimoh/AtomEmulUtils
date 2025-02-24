@@ -137,7 +137,10 @@ bool ConnectionManager::connect(string srcName, string dstName)
 	input_ref.port = dst_port.port;
 	input_ref.mask = dst_port.bits.mask;
 	input_ref.shifts = src_port.bits.lowBit - dst_port.bits.lowBit;
-	src_port.port->inputs.push_back(input_ref);
+	if (dst_port.port->dir == PortDirection::IO_PORT)
+		src_port.port->bidirectionalInputs.push_back(input_ref);
+	else
+		src_port.port->inputs.push_back(input_ref);
 	if (mDebugInfo.dbgLevel & DBG_DEVICE)
 		cout << "CONNECT " << srcName << " AND " << dstName << " => shifts = " << dec << input_ref.shifts  << " & mask = 0x" << hex << (int) input_ref.mask  << dec << "\n";
 
@@ -174,6 +177,9 @@ string ConnectionManager::printDevicePort(DevicePort * device_port)
 	for (int i = 0; i < device_port->inputs.size(); i++)
 		sout << "\n\t\t" << " >> " << dec << device_port->inputs[i].shifts << " & 0x" << hex << 
 		(int)device_port->inputs[i].mask << hex << " @ " << printDevicePort(device_port->inputs[i].port) << dec << "; ";
+	for (int i = 0; i < device_port->bidirectionalInputs.size(); i++)
+		sout << "\n\t\t" << " >> " << dec << device_port->bidirectionalInputs[i].shifts << " & 0x" << hex <<
+		(int)device_port->bidirectionalInputs[i].mask << hex << " @ " << printDevicePort(device_port->bidirectionalInputs[i].port) << dec << "; ";
 	return sout.str();
 
 }
