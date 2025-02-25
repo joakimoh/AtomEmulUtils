@@ -428,7 +428,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		{
 			mIRA2 = (mIRA2 & mDDRA) | (mPA & ~mDDRA);
 		data = mIRA2;
-		cout << "READ IRA2 WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)mPA << " = > 0x" << (int)mIRA2 << "\n";
+		cout << "*READ* IRA2 WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)mPA << " = > 0x" << (int)mIRA2 << "\n";
 		break;
 	}
 
@@ -605,7 +605,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Interrupt Flag Register - writing an '1' will clear the corresponding flag!!!
 	{
 		mIFR &= (~data) & 0x7f;
-		cout << "VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
+		cout << "*WRITE* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
 		updateIRQ();
 
 		break;
@@ -619,7 +619,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		else { // disable interrupts		
 			mIER = (mIER & ~data) & 0x7f;
 		}
-		cout << "VIA 6522 at 0x" << hex << adr << " IER = 0x" << (int)mIER << " (" << IER2Str() << ")\n";
+		cout << "*WRITE* VIA 6522 at 0x" << hex << adr << " IER = 0x" << (int)mIER << " (" << IER2Str() << ")\n";
 
 		break;
 	}

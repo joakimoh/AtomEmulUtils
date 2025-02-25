@@ -68,7 +68,8 @@ bool P6502::serveIRQ()
 	uint8_t SR_push_val = mStatusRegister;
 	writeDevice(0x100 + (uint16_t)mStackPointer--, SR_push_val);
 
-	cout << "PC = 0x" << hex << mProgramCounter << ", SR = 0x " << (int) mStatusRegister << "\n";
+	cout << "PC = 0x" << hex << mProgramCounter << ", SR = 0x" << (int) mStatusRegister << "\n";
+	cout << "IRQ stack:\n";
 	for (int i = 0; i < 3; i++) {
 		uint16_t a = 0x100 + mStackPointer + i + 1;
 		uint8_t d;
@@ -845,11 +846,11 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// +	+	+	+	+	+
 	{
-
+		cout << "RTI stack:\n";
 		for (int i = 0; i < 3; i++) {
 			uint16_t a = 0x100 + mStackPointer + i + 1;
 			uint8_t d;
-			readDevice(a, d);
+			readDevice(a, d);		
 			cout << "0x" << hex << 0x100 + mStackPointer + i + 1 << " = 0x" << (int) d << "\n";
 		}
 
