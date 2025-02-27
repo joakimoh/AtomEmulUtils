@@ -37,7 +37,7 @@ private:
 
 
 public:
-	TapeRecorder(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	TapeRecorder(string name, double systemClock, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
 	~TapeRecorder();
 
 	bool advance(uint64_t stopCycle);

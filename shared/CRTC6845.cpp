@@ -7,7 +7,7 @@
 // 
 //
 CRTC6845::CRTC6845(
-	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo debugInfo, ConnectionManager* connectionManager
+	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo  *debugInfo, ConnectionManager* connectionManager
 ) : VideoDisplayUnit(name, CRTC6845_DEV, adr, 0x2, disp, dispW, dispH, 0x0 /* dummy adr as not used by the 6845 */, debugInfo, connectionManager)
 {
 
@@ -171,7 +171,7 @@ bool CRTC6845::advance(uint64_t stopCycle)
 bool CRTC6845::read(uint16_t adr, uint8_t& data)
 {
 	// Call parent class to trigger scheduling of other devices when applicable
-	if (!VideoDisplayUnit::read(adr, data))
+	if (!VideoDisplayUnit::triggerBeforeRead(adr, data))
 		return false;
 
 	int16_t a = adr - mMemorySpace.adr;
@@ -212,8 +212,7 @@ bool CRTC6845::read(uint16_t adr, uint8_t& data)
 bool CRTC6845::write(uint16_t adr, uint8_t data)
 {
 
-	// Call parent class to trigger scheduling of other devices when applicable
-	if (!VideoDisplayUnit::write(adr, data))
+	if (!selected(adr))
 		return false;
 
 	
@@ -230,13 +229,14 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 	updateSettings();
 	
 	if (mRegWrtCnt >= 18) {
-		if ((mDebugInfo.dbgLevel & DBG_VERBOSE))
+		if ((mDebugInfo->dbgLevel & DBG_VERBOSE))
 			printSettings();
 		mInitialised = true;
 	}
 
 
-	return true;
+	// Call parent class to trigger scheduling of other devices when applicable
+	return VideoDisplayUnit::triggerAfterWrite(adr, data);
 }
 
 //

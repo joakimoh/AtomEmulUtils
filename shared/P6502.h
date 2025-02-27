@@ -99,7 +99,7 @@ public:
 	vector<MemoryMappedDevice*> mDevices;
 	vector< MemoryMappedDevice*> mMemories;
 
-	P6502(string name, double clockSpeed, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	P6502(string name, double clockSpeed, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
 	~P6502();
 
 	// Reset device

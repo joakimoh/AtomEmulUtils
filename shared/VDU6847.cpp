@@ -69,7 +69,7 @@ using namespace std;
 // 1	1	1	1	7		256 x 192	2			6kB					resolution graphics six (RG6)		Yes - Graphics mode 4
 //
 
-VDU6847::VDU6847(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+VDU6847::VDU6847(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
 	VideoDisplayUnit(name, VDU6847_DEV, adr, 0x100, disp, dispW, dispH, videoMemAdr, debugInfo, connectionManager), mN60HzCycles((int)round(clockSpeed * 1e6 / 60))
 {
 	// Specify ports that can be connectde to other devices
@@ -90,7 +90,7 @@ VDU6847::VDU6847(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* d
 	// Initialise the VDU registers with zeros
 	mMem.assign(mMemorySpace.sz, 0);
 
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+	if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
 		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
 
@@ -102,7 +102,7 @@ VDU6847::VDU6847(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* d
 
 	lockDisplay();
 
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE) {
+	if (mDebugInfo->dbgLevel & DBG_VERBOSE) {
 		cout << dec << "\n\nM6847 Parameters:\n\n";
 		cout << "Frame rate: " << mFrameFreq << " [Hz]\n";
 		cout << "Scane lines per field frame: " << mScanLines << " lines\n";
@@ -419,7 +419,7 @@ bool VDU6847::read(uint16_t adr, uint8_t& data)
 {
 
 	// Call parent class to trigger scheduling of other devices when applicable
-	if (!MemoryMappedDevice::read(adr, data))
+	if (!MemoryMappedDevice::triggerBeforeRead(adr, data))
 		return false;
 
 	data = mMem[adr - mMemorySpace.adr];
@@ -429,13 +429,13 @@ bool VDU6847::read(uint16_t adr, uint8_t& data)
 }
 bool VDU6847::write(uint16_t adr, uint8_t data)
 {
-	// Call parent class to trigger scheduling of other devices when applicable
-	if (!MemoryMappedDevice::write(adr, data))
+	if (!selected(adr))
 		return false;
 
 	mMem[adr - mMemorySpace.adr] = data;
 
-	return true;
+	// Call parent class to trigger scheduling of other devices when applicable
+	return MemoryMappedDevice::triggerAfterWrite(adr, data);
 }
 
 inline bool VDU6847::readGraphicsMem(uint16_t adr, uint8_t& data)

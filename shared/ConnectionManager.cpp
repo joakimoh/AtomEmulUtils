@@ -4,7 +4,7 @@
 
 using namespace std;
 
-ConnectionManager::ConnectionManager(DebugInfo debugInfo) : mDebugInfo(debugInfo)
+ConnectionManager::ConnectionManager(DebugInfo  *debugInfo) : mDebugInfo(debugInfo)
 {
 
 }
@@ -25,7 +25,7 @@ bool ConnectionManager::addDevicePort(Device* dev, DevicePort *localPort)
 	
 	mDevicePorts[dev][localPort->localIndex] = localPort;
 	
-	if (mDebugInfo.dbgLevel & DBG_DEVICE) {
+	if (mDebugInfo->dbgLevel & DBG_DEVICE) {
 		printDevicePort(localPort);
 		cout << "CONNECTION MANAGER ADDS " << printDevicePort(mDevicePorts[dev][localPort->localIndex]) << "\n";
 	}
@@ -141,7 +141,7 @@ bool ConnectionManager::connect(string srcName, string dstName)
 		src_port.port->bidirectionalInputs.push_back(input_ref);
 	else
 		src_port.port->inputs.push_back(input_ref);
-	if (mDebugInfo.dbgLevel & DBG_DEVICE)
+	if (mDebugInfo->dbgLevel & DBG_DEVICE)
 		cout << "CONNECT " << srcName << " AND " << dstName << " => shifts = " << dec << input_ref.shifts  << " & mask = 0x" << hex << (int) input_ref.mask  << dec << "\n";
 
 	return true;

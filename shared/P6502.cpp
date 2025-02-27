@@ -10,7 +10,7 @@
 #include <cmath>
 
 
-P6502::P6502(string name, double clockSpeed, DebugInfo debugInfo, ConnectionManager *connectionManager):
+P6502::P6502(string name, double clockSpeed, DebugInfo  *debugInfo, ConnectionManager *connectionManager):
 	Device(name, P6502_DEV, MICROROCESSOR_DEVICE, debugInfo, connectionManager)
 {
 	cPeriod = (int) round(1000 / clockSpeed);
@@ -36,7 +36,7 @@ bool P6502::serveNMI()
 	mStatusRegister |= I_set_mask;
 
 	// Save PC & Status to stack
-	uint16_t PC_push_val = mProgramCounter + 2;
+	uint16_t PC_push_val = mProgramCounter;
 	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
 	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
 	uint8_t SR_push_val = mStatusRegister | B_set_mask;
@@ -62,7 +62,7 @@ bool P6502::serveIRQ()
 	mStatusRegister |= I_set_mask;
 
 	// Save PC & Status to stack
-	uint16_t PC_push_val = mProgramCounter + 2;
+	uint16_t PC_push_val = mProgramCounter;
 	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
 	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
 	uint8_t SR_push_val = mStatusRegister;
@@ -146,40 +146,40 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	else if (!mIRQ)	// IRQ is level-triggered!
 		serveIRQ();
 
-	if ((true || (mDebugInfo.dbgLevel & DBG_6502)) && mIRQ != pIRQ) {
+	if ((true || (mDebugInfo->dbgLevel & DBG_6502)) && mIRQ != pIRQ) {
 		cout << "IRQ => " << dec << (int)mIRQ << ", I flag = " << (int)I_flag << dec << "\n";
 		if (!mIRQ && !I_flag)
-			mDebugInfo.dbgLevel = DBG_6502;
+			mDebugInfo->dbgLevel = DBG_6502;
 	}
 
-	if ((mDebugInfo.dbgLevel & DBG_6502) && mNMI != pNMI)
+	if ((mDebugInfo->dbgLevel & DBG_6502) && mNMI != pNMI)
 		cout << "NMI => " << dec << (int)mNMI << "\n";
 
 	pNMI = mNMI;
 	pIRQ = mIRQ;
 
 
-	if (mDebugInfo.traceAdr > 0) {
-		if (mProgramCounter == mDebugInfo.traceAdr && !mStopDebugBuffering) {
-			mDebugInfo.dbgLevel |= DBG_6502;
+	if (mDebugInfo->traceAdr > 0) {
+		if (mProgramCounter == mDebugInfo->traceAdr && !mStopDebugBuffering) {
+			mDebugInfo->dbgLevel |= DBG_6502;
 			mTraceCount = 0;
 			for (int i = 0; i < mBufferedTraceLines.size(); i++)
 				cout << mBufferedTraceLines[i];
 			mBufferedTraceLines.clear();
 			mStopDebugBuffering = true;
 		}
-		if (mStopDebugBuffering && mTraceCount > mDebugInfo.postTraceLen) {
-			mDebugInfo.dbgLevel &= ~DBG_6502;
+		if (mStopDebugBuffering && mTraceCount > mDebugInfo->postTraceLen) {
+			mDebugInfo->dbgLevel &= ~DBG_6502;
 			mEndOfTracingReached = true;
 		}
 		mTraceCount++;
 	}
 
-	if (mDebugInfo.stopAdr > 0 && mProgramCounter == mDebugInfo.stopAdr) {
+	if (mDebugInfo->stopAdr > 0 && mProgramCounter == mDebugInfo->stopAdr) {
 		std::cout << "Execution stop triggered!\n";
-		if (mDebugInfo.dumpAdr > 0) {
+		if (mDebugInfo->dumpAdr > 0) {
 			// Output pre post tracing
-			for (int a = mDebugInfo.dumpAdr; a < mDebugInfo.dumpAdr + mDebugInfo.dumpSz; a++) {
+			for (int a = mDebugInfo->dumpAdr; a < mDebugInfo->dumpAdr + mDebugInfo->dumpSz; a++) {
 				uint8_t d;
 				readProgramMem(a, d);
 				std::cout << "0x" << hex << setw(4) << setfill('0') << a <<
@@ -193,7 +193,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	uint16_t opcode_PC = mProgramCounter;
 	if (!readProgramMem(mProgramCounter++, opcode)) {
 		success = false;
-		if (mDebugInfo.dbgLevel & DBG_ERROR)
+		if (mDebugInfo->dbgLevel & DBG_ERROR)
 			std::cout << "Failed to read instruction!\n";
 	}
 
@@ -201,7 +201,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	Codec6502::InstructionInfo instr;
 	if (!mCodec.decodeInstruction(opcode, instr)) {
 		success = false;
-		if (mDebugInfo.dbgLevel & DBG_ERROR)
+		if (mDebugInfo->dbgLevel & DBG_ERROR)
 			std::cout << "Invalid instruction 0x" << hex << (int) opcode << " encountered at address 0x" << hex << opcode_PC << "!\n";
 	}
 
@@ -211,7 +211,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	uint8_t read_val = 0x0;
 	if (!getOperand(instr, operand, calc_op_adr, read_val)) {
 		success = false;
-		if (mDebugInfo.dbgLevel & DBG_ERROR)
+		if (mDebugInfo->dbgLevel & DBG_ERROR)
 			std::cout << "Failed to get operand for instruction 0x" << hex << (int)opcode << " at address 0x" << opcode_PC << "!\n";
 	}
 
@@ -219,11 +219,11 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	uint8_t written_val;
 	if (!executeInstr(instr, opcode_PC, operand, calc_op_adr, read_val, written_val)) {
 		success = false;
-		if (mDebugInfo.dbgLevel & DBG_ERROR)
+		if (mDebugInfo->dbgLevel & DBG_ERROR)
 			std::cout << "Failed to execute instruction!\n";
 	}
 
-	if ((mDebugInfo.dbgLevel & DBG_6502)  || (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached)) {
+	if ((mDebugInfo->dbgLevel & DBG_6502)  || (mDebugInfo->traceAdr > 0 && !mEndOfTracingReached)) {
 		string instr_s = mCodec.decode(opcode_PC, opcode, operand);
 		stringstream sout;
 		sout << setfill(' ') << setw(30) << left << instr_s << right <<
@@ -235,12 +235,12 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		if (instr.writesMem)
 			sout << " WROTE 0x" << setw(2) << (int)written_val;
 		sout << "\n";
-		if (mDebugInfo.dbgLevel & DBG_6502)
+		if (mDebugInfo->dbgLevel & DBG_6502)
 			cout << sout.str();
-		if (mDebugInfo.traceAdr > 0 && !mEndOfTracingReached && !mStopDebugBuffering) {
+		if (mDebugInfo->traceAdr > 0 && !mEndOfTracingReached && !mStopDebugBuffering) {
 			mBufferedTraceLines.push_back(sout.str());
-			if (mBufferedTraceLines.size() > mDebugInfo.preTraceLen)
-				mBufferedTraceLines.erase(mBufferedTraceLines.begin(), mBufferedTraceLines.end() - mDebugInfo.preTraceLen);
+			if (mBufferedTraceLines.size() > mDebugInfo->preTraceLen)
+				mBufferedTraceLines.erase(mBufferedTraceLines.begin(), mBufferedTraceLines.end() - mDebugInfo->preTraceLen);
 
 		}
 	}
@@ -1494,7 +1494,7 @@ bool P6502::readDevice(uint16_t adr, uint8_t& data)
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
 			bool success = dev->read(adr, data);
-			//if (mDebugInfo.dbgLevel & DBG_6502)
+			//if (mDebugInfo->dbgLevel & DBG_6502)
 			//	cout << "READ DEVICE AT 0x" << hex << adr << " => " << (int)data << "\n";
 			return success;
 		}
@@ -1508,7 +1508,7 @@ bool P6502::readZP(uint8_t adr, uint8_t &data)
 {
 	data = 0xff;
 	if (mZPMemDev != NULL && mZPMemDev->read(adr, data)) {
-		//if (mDebugInfo.dbgLevel & DBG_6502)
+		//if (mDebugInfo->dbgLevel & DBG_6502)
 		//	cout << "READ ZERO PAGE ADR 0x" << hex << (int) adr << " => " << (int)data << "\n";
 		return true;
 	}
@@ -1525,7 +1525,7 @@ bool P6502::readProgramMem(uint16_t adr, uint8_t& data)
 		MemoryMappedDevice* dev = mMemories[i];
 		if (dev->selected(adr)) {
 			bool success = dev->read(adr, data);
-			//if (mDebugInfo.dbgLevel & DBG_6502)
+			//if (mDebugInfo->dbgLevel & DBG_6502)
 			//	cout << "READ PROGRAM MEMORY AT 0x" << hex << adr << " => " << (int)data << " (" << (success ? "OK" : "NOK") << ")\n";
 			mLastPgmDevice = dev;
 			return success;
@@ -1545,7 +1545,7 @@ bool P6502::writeDevice(uint16_t adr, uint8_t data)
 	for (int i = 0; i < mDevices.size(); i++) {
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
-			//if (mDebugInfo.dbgLevel & DBG_6502)
+			//if (mDebugInfo->dbgLevel & DBG_6502)
 			//	cout << "WRITE DEVICE 0x" << hex << (int)data << " to 0x" << adr << "\n";
 			return dev->write(adr, data);
 		}

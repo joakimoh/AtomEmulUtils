@@ -1,7 +1,7 @@
 #include "TapeRecorder.h"
 #include <cmath>
 
-TapeRecorder::TapeRecorder(string name, double systemClock, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+TapeRecorder::TapeRecorder(string name, double systemClock, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
 	Device(name, TAPE_RECORDER_DEV, OTHER_DEVICE, debugInfo, connectionManager), mSystemClock(systemClock * 1e6)
 {
 	registerPort("CAS_IN", OUT_PORT, 0x01, CAS_IN, &mCAS_IN);

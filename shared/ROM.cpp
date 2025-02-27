@@ -6,7 +6,7 @@
 
 using namespace std;
 
-ROM::ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+ROM::ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
 	MemoryMappedDevice(name, ROM_DEV, MEMORY_DEVICE, adr, sz, debugInfo, connectionManager)
 {
 	registerPort("CS", IN_PORT, 0x1, CS, &mCS);
@@ -30,13 +30,13 @@ ROM::ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo
 
 	uint16_t upper_sz = mMemorySpace.sz;
 	if (file_sz < (streamsize)sz) {
-		if (mDebugInfo.dbgLevel & DBG_WARNING)
+		if (mDebugInfo->dbgLevel & DBG_WARNING)
 			cout << "Warning - size of Beeb Paged ROM file " << binaryContent << " (" << file_sz <<
 			" ) is smaller than the expected one(" << sz << ") => filling up with zeros...\n";
 		upper_sz = (uint16_t)file_sz;
 	}
 	else if (file_sz > (streamsize)sz) {
-		if (mDebugInfo.dbgLevel & DBG_WARNING)
+		if (mDebugInfo->dbgLevel & DBG_WARNING)
 			cout << "Warning - size of Beeb Paged ROM file " << binaryContent << " (" << file_sz <<
 			" ) is larger than the expected one(" << sz << ") => truncating...\n";
 		upper_sz = mMemorySpace.sz;
@@ -52,10 +52,10 @@ ROM::ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo
 	// Read ROM content
 	fin.read((char*)&mMem[0], upper_sz);
 
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE) {
+	if (mDebugInfo->dbgLevel & DBG_VERBOSE) {
 		filesystem::path path = binaryContent;
 		string file_name = path.filename().string();
-		if (mDebugInfo.dbgLevel & DBG_ALL)
+		if (mDebugInfo->dbgLevel & DBG_ALL)
 			cout << "Beeb Paged ROM file was '" << file_name << "'\n";
 	}
 
@@ -64,7 +64,7 @@ ROM::ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo
 bool ROM::read(uint16_t adr, uint8_t& data)
 {
 	// Call parent class to trigger scheduling of other devices when applicable
-	if (!MemoryMappedDevice::read(adr, data) || mCS != 0)
+	if (!MemoryMappedDevice::triggerBeforeRead(adr, data) || mCS != 0)
 		return false;
 
 	data = mMem[adr - mMemorySpace.adr];

@@ -4,7 +4,7 @@
 #include <iomanip>
 
 BeebVideoULA::BeebVideoULA(
-	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo debugInfo, ConnectionManager* connectionManager
+	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo  *debugInfo, ConnectionManager* connectionManager
 ) : VideoDisplayUnit(name, BEEB_VDU_DEV, adr, 0x10, disp, dispW, dispH, 0x0 /* dummy adr */, debugInfo, connectionManager), mCPUClock(clockSpeed)
 {
 	registerPort("DISEN",		IN_PORT,	0x01, DISPTMG,		&mDISPTMG);
@@ -376,7 +376,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 bool BeebVideoULA::read(uint16_t adr, uint8_t& data)
 {
 	// Call parent class to trigger scheduling of other devices when applicable
-	if (!VideoDisplayUnit::read(adr, data))
+	if (!VideoDisplayUnit::triggerBeforeRead(adr, data))
 		return false;
 
 	// All registers are write-only => return 0xff for read operations
@@ -418,9 +418,10 @@ void BeebVideoULA::updateScreenSz()
 
 bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 {
-	// Call parent class to trigger scheduling of other devices when applicable
-	if (!VideoDisplayUnit::write(adr, data))
+
+	if (!VideoDisplayUnit::selected(adr))
 		return false;
+
 
 	uint16_t a = adr - mMemorySpace.adr;
 
@@ -445,7 +446,7 @@ bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 		mPaletteMem[pa] = data & 0xf;
 	}
 
-	if (mCRTC != NULL && mCRTC->initialised() && (mDebugInfo.dbgLevel & DBG_VERBOSE)) {
+	if (mCRTC != NULL && mCRTC->initialised() && (mDebugInfo->dbgLevel & DBG_VERBOSE)) {
 		cout << "\n" << dec;
 		cout << "Video ULA PixelRate:       " << mPixelRate << " MHz\n";
 		cout << "Video ULA PixelWidth:      " << (int) mPixelW << "\n";
@@ -456,7 +457,9 @@ bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 		cout << "Video ULA Cursor Segments: " << hex << (int)getCRField(CR_CURSOR_SEGMENT) << "\n";
 		cout << "\n";
 	}
-	return true;
+	
+	// Call parent class to trigger scheduling of other devices when applicable
+	return VideoDisplayUnit::triggerAfterWrite(adr, data);
 }
 
 bool BeebVideoULA::readGraphicsMem(uint16_t adr, uint8_t& data)

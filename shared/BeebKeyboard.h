@@ -126,6 +126,8 @@ private:
 	uint8_t mLED2 = 0x0;			//
 	uint8_t mCOL_SEL = 0x0;			// Column Select: 0-9 BCD-coded;								connected to VIA 6522 (IC3) PA0:3 output
 	uint8_t mROW_SEL = 0x0;			// Row Select:  0-9 BCD-coded;									connected to VIA 6522 (IC3) PA4:6 output
+	uint8_t pCOL_SEL = 0x1;
+	uint8_t pROW_SEL = 0x1;
 	uint8_t mROW = 0x0;				// Value of selected row (HIGH if any key on row is pressed);	connected to VIA 6522 (IC3) PA7 input
 	uint8_t mBREAK = 0x1;			// BREAK key (LOW when pressed <=> RESET)
 	uint8_t mPRESSED = 0x0;			// HIGH when any key is pressed;								connected to VIA 6522 (IC3) CA2 input
@@ -163,7 +165,7 @@ private:
 
 public:
 
-	BeebKeyboard(string name, uint8_t startupOptions, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	BeebKeyboard(string name, uint8_t startupOptions, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
 
 	// Reset device
 	bool reset();

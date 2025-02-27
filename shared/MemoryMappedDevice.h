@@ -26,12 +26,15 @@ protected:
 
 public:
 
-	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, uint16_t adr, uint16_t sz, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, uint16_t adr, uint16_t sz, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
 
 	virtual bool read(uint16_t adr, uint8_t& data);
 
 	virtual bool write(uint16_t adr, uint8_t data);
 
+	bool triggerBeforeRead(uint16_t adr, uint8_t data);
+
+	bool triggerAfterWrite(uint16_t adr, uint8_t data);
 	bool selected(uint16_t adr);
 
 	bool registerAccess(Device* dev, uint16_t adr, bool writeAccess);

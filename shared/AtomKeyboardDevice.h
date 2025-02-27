@@ -135,7 +135,7 @@ private:
 
 public:
 
-	AtomKeyboardDevice(string name, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	AtomKeyboardDevice(string name, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
 
 	// Reset device
 	bool reset() { mCycleCount = 0; return true; }

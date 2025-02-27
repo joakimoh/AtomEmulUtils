@@ -7,7 +7,7 @@
 using namespace std;
 
 
-AtomKeyboardDevice::AtomKeyboardDevice(string name, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+AtomKeyboardDevice::AtomKeyboardDevice(string name, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
 	Device(name, ATOM_KB_DEV, KEYBOARD_DEVICE, debugInfo, connectionManager)
 {
 	// Specify ports that can be connected to other devices	
@@ -37,7 +37,7 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, DebugInfo debugInfo, Connect
 			mBreakKeyCode = key->keyCode;
 	}
 
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE) {
+	if (mDebugInfo->dbgLevel & DBG_VERBOSE) {
 		cout << "KeyBoard initialised\n";
 		cout << "SHIFT keys have keycodes 0x" << hex << mShiftKeyCodes[0] << " and 0x" << mShiftKeyCodes[1] << dec << "\n";
 		cout << "CTRL key has keycode 0x" << hex << mCtrlKeyCode << dec << "\n";
@@ -106,7 +106,7 @@ bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 		return false;
 
 
-	if (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0) && (column_L != 0xff || column_H != 0x3))
+	if (((mDebugInfo->dbgLevel & DBG_DEVICE) != 0) && (column_L != 0xff || column_H != 0x3))
 		cout << "column L = 0x" << hex << (int)column_L << ", column H = 0x" << (int)column_H << "\n";
 
 

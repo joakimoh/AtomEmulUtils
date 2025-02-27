@@ -1,6 +1,6 @@
 #include "ACIA6850.h"
 
-ACIA6850::ACIA6850(string name, uint16_t adr, double clock, double cpuClock, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+ACIA6850::ACIA6850(string name, uint16_t adr, double clock, double cpuClock, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
 	MemoryMappedDevice(name, ACIA6850_DEV, PERIPHERAL, adr, 0x08, debugInfo, connectionManager), mClock(clock), mCPUClock(cpuClock)
 {
 

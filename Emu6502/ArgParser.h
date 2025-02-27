@@ -16,7 +16,7 @@ public:
 	string mapFileName;
 	Program program, data;
 	
-	DebugInfo debugInfo;
+	DebugInfo  debugInfo;
 
 	double emulationSpeed = 100; // %
 

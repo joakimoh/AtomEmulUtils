@@ -100,7 +100,7 @@ private:
 
 protected:
 
-	DebugInfo mDebugInfo;
+	DebugInfo *mDebugInfo = NULL;
 
 	uint64_t mCycleCount = 0;
 	
@@ -128,12 +128,12 @@ public:
 
 	DeviceCategory category;
 
-	Device(string name, DeviceId typ, DeviceCategory cat, DebugInfo debugInfo, ConnectionManager *connectionManager);
+	Device(string name, DeviceId typ, DeviceCategory cat, DebugInfo *debugInfo, ConnectionManager *connectionManager);
 	~Device();
 
 	// Reset device
 	virtual bool reset() {
-		if (((mDebugInfo.dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
+		if (((mDebugInfo->dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
 			cout << "'" << this->name << "' RESET\n";
 			pRESET = mRESET;
 		}
@@ -175,7 +175,7 @@ public:
 	// Called by a other device when the device is asked to process/transform data.
 	virtual bool getDeviceData(uint8_t dIn, uint8_t& dOut) { dOut = 0xff;  return false; }
 
-	void debug(bool debugOn) { if (debugOn) mDebugInfo.dbgLevel |= DBG_6502; else mDebugInfo.dbgLevel &= ~DBG_6502; }
+	void debug(bool debugOn) { if (debugOn) mDebugInfo->dbgLevel |= DBG_6502; else mDebugInfo->dbgLevel &= ~DBG_6502; }
 
 };
 
@@ -184,7 +184,7 @@ class Devices {
 private:
 
 	vector<Device*> mDevices;
-	DebugInfo mDebugInfo;
+	DebugInfo *mDebugInfo = NULL;
 
 	string getFileName(string& path, stringstream& sin);
 	uint16_t getHexVal(stringstream& sin);
@@ -193,7 +193,7 @@ private:
 public:
 
 	Devices(
-		string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo debugInfo,
+		string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo  *debugInfo,
 		Program program, Program data, ConnectionManager &connectionManager, P6502* &microprocessor, VideoDisplayUnit* &vdu,
 		vector<Device *> &frameScheduledDevices, vector<Device*> &halfLineScheduledDevices, vector<Device*> &instructionScheduledDevices
 	);
@@ -256,7 +256,7 @@ private:
 
 	bool extractPort(string name, PortSelection& port);
 
-	DebugInfo mDebugInfo;
+	DebugInfo *mDebugInfo = NULL;
 	
 
 public:
@@ -265,7 +265,7 @@ public:
 	string printDevicePort(DevicePort * device_port);
 	string printPortSelection(PortSelection & port_selection);
 
-	ConnectionManager(DebugInfo debugInfo);
+	ConnectionManager(DebugInfo  *debugInfo);
 	~ConnectionManager();
 
 	void setDevices(Devices* devices);

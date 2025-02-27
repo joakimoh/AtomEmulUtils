@@ -15,7 +15,7 @@ using namespace std;
 //
 
 
-VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
 	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL, adr, 0x10, debugInfo, connectionManager), mClock(clock), mCPUClock(cpuClock)
 {
 
@@ -27,7 +27,7 @@ VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, Debug
 	registerPort("CA", IO_PORT, 0x03, CA, &mCA);
 	registerPort("CB", IO_PORT, 0x03, CB, &mCB);
 
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+	if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 		cout << "VIA 6522 '" << name << "' at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
 		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
 
@@ -63,6 +63,10 @@ bool VIA6522::advance(uint64_t stopCycle)
 		reset();
 		mCycleCount = stopCycle;
 		return true;
+	}
+
+	if (mDebugInfo->dbgLevel & DBG_6502) {
+		cout << "CA2 = " << (int)((mCA >> 1) & 0x1) << "\n";
 	}
 
 	if (ACR_PA_LATCH && (mCA & 0x1)) // PA shall be latched on a high CA1
@@ -312,7 +316,7 @@ void VIA6522::setIFR(uint8_t mask)
 bool VIA6522::read(uint16_t adr, uint8_t &data)
 {
 	// Call parent class to trigger scheduling of other devices when applicable
-	if (!MemoryMappedDevice::read(adr, data))
+	if (!MemoryMappedDevice::triggerBeforeRead(adr, data))
 		return false;
 
 	uint16_t a = (adr - mMemorySpace.adr) & 0xf;
@@ -444,8 +448,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 bool VIA6522::write(uint16_t adr, uint8_t data)
 {
 
-	// Call parent class to trigger scheduling of other devices when applicable
-	if (!MemoryMappedDevice::write(adr, data))
+	if (!selected(adr))
 		return false;
 
 
@@ -630,7 +633,8 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		uint8_t oPA = mPA;
 		updatePort(PA, (mPA & ~mDDRA) | (data & mDDRA));
 
-		//cout << "WRITE TO PA WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)oPA << " => 0x" << (int)mPA << "\n";
+		if (mDebugInfo->dbgLevel & DBG_6502)
+			cout << "WRITE TO PA WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)oPA << " => 0x" << (int)mPA << "\n";
 
 
 		break;
@@ -641,7 +645,8 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	}
 	}
 
-	return true;
+	// Call parent class to trigger scheduling of other devices when applicable
+	return MemoryMappedDevice::triggerAfterWrite(adr, data);
 }
 
 string VIA6522::IFR2Str()

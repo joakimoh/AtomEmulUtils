@@ -30,7 +30,7 @@ private:
 	int mSoundCnt = 0;
 public:
 
-	AtomSpeaker(string name, double systemClock, int sampleFreq, DebugInfo debugInfo, ConnectionManager* connectionManager);
+	AtomSpeaker(string name, double systemClock, int sampleFreq, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
 	~AtomSpeaker();
 
 	bool advance(uint64_t stopCycle);

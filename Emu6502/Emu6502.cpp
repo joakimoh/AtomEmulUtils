@@ -120,7 +120,7 @@ int main(int argc, const char* argv[])
 	//al_register_event_source(queue, al_get_mouse_event_source());
     
 
-    ConnectionManager connection_manager(arg_parser.debugInfo);
+    ConnectionManager connection_manager(&arg_parser.debugInfo);
 
     VideoDisplayUnit* vdu = NULL;
     vector<Device*> frame_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices;
@@ -130,7 +130,7 @@ int main(int argc, const char* argv[])
         arg_parser.cMHz,            // CPU Clock frequency in MHz
         32000,                      // audio sample rate corresponding to a rate of at least twice per scan line
         disp_bm, disp_w, disp_h,
-        arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu,
+        &arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu,
         frame_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices
 
     );

@@ -4,10 +4,10 @@
 using namespace std;
 
 TT5050::TT5050(
-	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo debugInfo, ConnectionManager* connectionManager
+	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo  *debugInfo, ConnectionManager* connectionManager
 ) : Device(name, TT_5050_DEV, OTHER_DEVICE, debugInfo, connectionManager), mSystemClock(clockSpeed)
 {
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+	if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 		cout << "Teletext Character Generator SA5050 '" << name << "' added\n";
 
 	registerPort("LOSE", IN_PORT, 0x1, LOSE, &mLOSE);
@@ -84,7 +84,7 @@ void TT5050::createInterpolatedSymbols()
 	}
 
 
-	if (false && mDebugInfo.dbgLevel & DBG_VERBOSE) {
+	if (false && mDebugInfo->dbgLevel & DBG_VERBOSE) {
 
 		cout << "Non-interpolated and interpolated symbols:\n\n";
 

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <filesystem>
 
-RAM::RAM(string name, bool DRAM, uint16_t adr, uint16_t sz, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+RAM::RAM(string name, bool DRAM, uint16_t adr, uint16_t sz, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
 	MemoryMappedDevice(name, RAM_DEV, MEMORY_DEVICE, adr, sz, debugInfo, connectionManager)
 {
 
@@ -33,7 +33,7 @@ bool RAM::read(uint16_t adr, uint8_t& data)
 {
 
 	// Call parent class to trigger scheduling of other devices when applicable
-	if (!MemoryMappedDevice::read(adr, data) || mCS != 0)
+	if (!MemoryMappedDevice::triggerBeforeRead(adr,data) || mCS != 0)
 		return false;
 	
 	data = mMem[adr - mMemorySpace.adr];
@@ -43,13 +43,14 @@ bool RAM::read(uint16_t adr, uint8_t& data)
 }
 bool RAM::write(uint16_t adr, uint8_t data)
 {
-	// Call parent class to trigger scheduling of other devices when applicable
-	if (!MemoryMappedDevice::write(adr, data) || mCS != 0)
+
+	if (!selected(adr) || mCS != 0)
 		return false;
 
 	mMem[adr - mMemorySpace.adr] = data;
 
-	return true;
+	// Call parent class to trigger scheduling of other devices when applicable
+	return MemoryMappedDevice::triggerAfterWrite(adr, data);
 }
 
 bool RAM::write(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
@@ -62,7 +63,7 @@ bool RAM::write(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
 			return false;
 	}
 
-	if (mDebugInfo.dbgLevel & DBG_DEVICE)
+	if (mDebugInfo->dbgLevel & DBG_DEVICE)
 		cout << "Wrote " << dec << sz << " bytes to RAM at location " << hex << setw(4) << setfill('0') << adr << "\n";
 
 	return true;

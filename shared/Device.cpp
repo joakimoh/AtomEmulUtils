@@ -30,7 +30,7 @@ using namespace std;
 // Device class
 //
 
-Device::Device(string n, DeviceId typ, DeviceCategory cat, DebugInfo debugInfo, ConnectionManager *connectionManager) :
+Device::Device(string n, DeviceId typ, DeviceCategory cat, DebugInfo  *debugInfo, ConnectionManager *connectionManager) :
 	devType(typ), mConnectionManager(connectionManager), mDebugInfo(debugInfo), name(n), category(cat)
 {
 }
@@ -44,7 +44,7 @@ Device::~Device()
 // Get pointer to other device to be able to call its methods
 bool Device::connectDevice(Device* dev)
 {
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+	if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 		cout << "DEVICE '" << dev->name << "' can be invoked by device '" << this->name << "'!\n";
 	mConnectedDevices.push_back(dev);
 	return true;
@@ -63,14 +63,14 @@ bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &ind
 	device_port->localIndex = index;
 	device_port->val = val;
 	device_port->globalIndex = -1;
-	if (mDebugInfo.dbgLevel & DBG_DEVICE)
+	if (mDebugInfo->dbgLevel & DBG_DEVICE)
 		cout << "DEVICE ADDS PORT " << mConnectionManager->printDevicePort(device_port) << "\n";
 
 	mPorts.push_back(device_port);
 	
 	mConnectionManager->addDevicePort(this, device_port);
 
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+	if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 		cout << "ADDED " << this->name << " " << _PORT_DIR(dir) << " PORT '" << name << "' #" << dec << index << " (#" << device_port->globalIndex << ")\n";
 	
 
@@ -91,6 +91,7 @@ bool Device::updatePort(int index, uint8_t val)
 
 bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_t val, DevicePort *port, bool triggerConnectedDevices)
 {
+	
 	for (int i = 0; i < connectedPorts.size(); i++) {
 		InputReference input = connectedPorts[i];
 		uint8_t pval = *(input.port->val);
@@ -99,7 +100,7 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 		else
 			*(input.port->val) = ((pval & ~input.mask) | ((val << (-input.shifts)) & input.mask)) & input.port->mask;
 
-		if ((port->firstUpdate && (mDebugInfo.dbgLevel & DBG_VERBOSE)) || (((mDebugInfo.dbgLevel & DBG_DEVICE) != 0) && *(input.port->val) != pval)) {
+		if ((port->firstUpdate && (mDebugInfo->dbgLevel & DBG_VERBOSE)) || (((mDebugInfo->dbgLevel & DBG_6502) != 0) && *(input.port->val) != pval)) {
 			string shift_s, c_dir;
 			if (input.shifts >= 0)
 				shift_s = "((src >> shifts) & mask)";
@@ -157,7 +158,7 @@ bool Device::updatePorts()
 			return false;
 	}
 
-	if (mDebugInfo.dbgLevel == DBG_VERBOSE)
+	if (mDebugInfo->dbgLevel == DBG_VERBOSE)
 		cout << "All ports for "  << this->name << " have been shared...\n";
 
 	return true;
@@ -206,7 +207,7 @@ string Devices::getFileName(string &path, stringstream& sin)
 }
 
 Devices::Devices(
-	string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo debugInfo,
+	string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo  *debugInfo,
 	Program program, Program data, ConnectionManager& connection_manager, P6502* &microprocessor, VideoDisplayUnit * &mainVDU,
 	vector<Device*>& frameScheduledDevices, vector<Device*>& halflineScheduledDevices, vector<Device*>& instrScheduledDevices) :mDebugInfo(debugInfo)
 {
@@ -594,7 +595,7 @@ Devices::Devices(
 			// Get RAM device that matches the program load address
 			RAM* ram = NULL;
 			uint16_t video_mem_start_adr = vdu->getVideoMemAdr();
-			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+			if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 				cout << "Video Memory starts at address 0x" << hex << video_mem_start_adr << "\n";
 			for (int i = 0; i < mDevices.size(); i++) {
 				Device* dev = mDevices[i];
@@ -611,10 +612,10 @@ Devices::Devices(
 				cout << "couldn't find a RAM device large enough to become video memory\n";
 				throw runtime_error("couldn't find a RAM device large enough to become video memory");
 			}
-			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+			if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 				cout << "Found RAM that matches video memory range\n";
 			vdu->setVideoRam(ram);
-			if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+			if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 				cout << "Video RAM set for '" << vdu->name << "' (" << _DEVICE_ID(vdu->devType) << ")\n";
 
 		}
@@ -640,10 +641,10 @@ Devices::Devices(
 			halflineScheduledDevices.push_back(d);
 		else if (d->scheduling == FRAME)
 			frameScheduledDevices.push_back(d);
-		if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+		if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 			cout << d->name << " scheduled on " << _SCHEDULING(d->scheduling) << " basis\n";
 	}
-	if (debugInfo.dbgLevel & DBG_VERBOSE)
+	if (debugInfo->dbgLevel & DBG_VERBOSE)
 		cout << "Each device now reset and each of its port's output have been shared with the connected devices...\n";
 
 	if (!getZPMemDevice(microprocessor->mZPMemDev)) {
@@ -657,7 +658,7 @@ Devices::Devices(
 	if (!loadData(data))
 		throw runtime_error("");
 
-	if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+	if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 		connection_manager.printRouting();
 
 	if (sound_device != NULL)
@@ -704,7 +705,7 @@ bool Devices::loadData(Program data)
 		vector<uint8_t> d(program_size);
 		pin.read((char*)&d[0], (streamsize)program_size);
 
-		if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+		if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 			cout << "Data from file '" << data.fileName << "' of size " << dec << program_size << " bytes (0x" << hex << program_size << ")" <<
 			" will be written to memory at address 0x" << data.loadAdr << " to 0x" << data.loadAdr + program_size - 1 << "\n";
 
@@ -727,7 +728,7 @@ bool Devices::getPeripherals(vector<Device*>& devices)
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->category == PERIPHERAL || mDevices[i]->category == VDU_DEVICE) {
 			devices.push_back(mDevices[i]);
-			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
+			if (mDebugInfo->dbgLevel && DBG_VERBOSE)
 				cout << "Adding peripheral '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
@@ -739,7 +740,7 @@ bool Devices::getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices)
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->memoryMapped()) {
 			devices.push_back((MemoryMappedDevice *) mDevices[i]);
-			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
+			if (mDebugInfo->dbgLevel && DBG_VERBOSE)
 				cout << "Adding memory-mapped device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
@@ -757,7 +758,7 @@ bool Devices::getOtherDevices(vector<Device *> &devices)
 			mDevices[i]->category != KEYBOARD_DEVICE
 			) {
 			devices.push_back(mDevices[i]);
-			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
+			if (mDebugInfo->dbgLevel && DBG_VERBOSE)
 				cout << "Adding other device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
@@ -769,7 +770,7 @@ bool Devices::getMemoryDevices(vector<MemoryMappedDevice*> &devices)
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->category == MEMORY_DEVICE) {
 			devices.push_back((MemoryMappedDevice * ) mDevices[i]);
-			if (mDebugInfo.dbgLevel && DBG_VERBOSE)
+			if (mDebugInfo->dbgLevel && DBG_VERBOSE)
 				cout << "Adding memory device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
@@ -782,7 +783,7 @@ bool Devices::getZPMemDevice(MemoryMappedDevice * &zpMem)
 		if (dev->category == MEMORY_DEVICE) {
 			MemoryMappedDevice* mdev = (MemoryMappedDevice*)dev;
 			if (mdev->selected(0x0) && mdev->selected(0xff)) {
-				if (mDebugInfo.dbgLevel & DBG_VERBOSE)
+				if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 					cout << "Adding zero page memory device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 				zpMem = mdev;
 			}

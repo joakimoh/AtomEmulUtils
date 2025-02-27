@@ -26,7 +26,7 @@ private:
 public:
 
 
-	BeebROMSel(string name, uint16_t adr, DebugInfo debugInfo, ConnectionManager * connectionManager);
+	BeebROMSel(string name, uint16_t adr, DebugInfo  *debugInfo, ConnectionManager * connectionManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

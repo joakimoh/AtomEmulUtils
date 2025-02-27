@@ -18,7 +18,7 @@
 //
 
 
-AtomSpeaker::AtomSpeaker(string name, double systemClock, int sampleFreq, DebugInfo debugInfo, ConnectionManager* connectionManager) :
+AtomSpeaker::AtomSpeaker(string name, double systemClock, int sampleFreq, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
 	SoundDevice(name, ATOM_SPEAKER_DEV, sampleFreq, debugInfo, connectionManager), mSystemClock(systemClock)
 {
 	registerPort("OUT", IN_PORT, 0x01, OUT, &mOUT);	// From PIA PC2

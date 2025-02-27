@@ -5,7 +5,7 @@
 #include "DebugInfo.h"
 #include "BeebKeyboard.h"
 
-BeebKeyboard::BeebKeyboard(string name, uint8_t startupOptions, DebugInfo debugInfo, ConnectionManager* connectionManager):
+BeebKeyboard::BeebKeyboard(string name, uint8_t startupOptions, DebugInfo  *debugInfo, ConnectionManager* connectionManager):
 	Device(name, BEEB_KEYBOARD_DEV, KEYBOARD_DEVICE, debugInfo, connectionManager)
 {
 	// Specify ports that can be connected to other devices	
@@ -61,9 +61,13 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 	updatePort(BREAK, 0x1);
 	updatePort(PRESSED, 0x0);
 
+	if (mDebugInfo->dbgLevel & DBG_6502)
+		cout << "COL_SEL = " << dec << (int)mCOL_SEL << ", ROW_SEL = " << (int)mROW_SEL << "\n";
+
+
 	if (mCOL_SEL <= 9 && mROW_SEL <= 7) {
 
-		// Check for key a COL_SEL,ROW_SEL being pressed as well as DIP switches being ON <=> LOW
+		// Check for key at COL_SEL,ROW_SEL being pressed as well as DIP switches being ON <=> LOW
 		vector<Key> &key_vec = mKeyboardMatrix[mROW_SEL];
 		Key& key = key_vec[mCOL_SEL];
 		if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode) || (mROW_SEL == 0 && (mSW & (1 << (mCOL_SEL-2))) == 0x1))
@@ -75,7 +79,7 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 			Key& key = mKeyboardMatrix[row][mCOL_SEL];
 			if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
 				key_pressed = true;
-				cout << "Key " << key.keyName << " pressed!\n";
+				//cout << "Key " << key.keyName << " pressed!\n";
 				break;
 			}
 				
@@ -88,6 +92,11 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 		if (al_key_down(&mKeyboardState, mBreakKey.keyCode))
 			updatePort(BREAK, 0x0);
 
+		if (mDebugInfo->dbgLevel & DBG_6502 || mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL) {
+			cout << "COL_SEL = " << dec << (int)mCOL_SEL << ", ROW_SEL = " << (int)mROW_SEL << ", PRESSED = " << (int)mPRESSED << ", ROW =" << (int) mROW << "\n";
+		}
+		pCOL_SEL = mCOL_SEL;
+		pROW_SEL = mROW_SEL;
 
 	}
 
