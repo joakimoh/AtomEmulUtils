@@ -19,6 +19,7 @@ typedef struct DebugInfo_struct {
 	int traceAdr = -1;
 	int postTraceLen = 0;
 	int preTraceLen = 10;
+	int logAdr = -1;
 } DebugInfo;
 
 

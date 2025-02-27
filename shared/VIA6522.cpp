@@ -65,8 +65,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 		return true;
 	}
 
-	if (mDebugInfo->dbgLevel & DBG_6502) {
-		cout << "CA2 = " << (int)((mCA >> 1) & 0x1) << "\n";
+	if ((mDebugInfo->dbgLevel & DBG_6502) && mCA != pCA) {
+		//cout << "CA1 = " << (int)(mCA & 0x1) << ", CA2 = " << (int)((mCA >> 1) & 0x1) << "\n";
 	}
 
 	if (ACR_PA_LATCH && (mCA & 0x1)) // PA shall be latched on a high CA1
@@ -279,25 +279,26 @@ void VIA6522::updateIRQ()
 {
 	if ((mIFR & mIER & 0x7f) == 0) { // No pending interrupts
 		updatePort(IRQ, 0x1);
-		if (mIRQ != pIRQ)
-			cout << "CLEAR IRQ!\n";
+		//if (mIRQ != pIRQ)
+		//	cout << "CLEAR IRQ!\n";
 		pIRQ = mIRQ;
 	}
 	else { // Pending interrupts
 		updatePort(IRQ, 0x0);
-		if (mIRQ != pIRQ) {
-			cout << "SET IRQ (" << IFR2Str() << ")\n";
-		}
+		//if (mIRQ != pIRQ) {
+		//	cout << "SET IRQ (" << IFR2Str() << ")\n";
+		//}
 		pIRQ = mIRQ;
 	}
 }
+
 
 void VIA6522::clearIFR(uint8_t mask)
 {
 	uint8_t oIFR = mIFR;
 	mIFR &= ~mask;
 	if (mIFR != oIFR) {
-		cout << "CLEAR IFR 0x" << hex << (int)oIFR << " => " << IFR2Str() << " for PCR = " << PCR2Str() << " and ACR = " << ACR2Str() << "\n";
+		//cout << "CLEAR IFR 0x" << hex << (int)oIFR << " => " << IFR2Str() << " for PCR = " << PCR2Str() << " and ACR = " << ACR2Str() << "\n";
 	}
 	pIFR = mIFR;
 	updateIRQ();
@@ -307,8 +308,8 @@ void VIA6522::setIFR(uint8_t mask)
 {
 	uint8_t oIFR = mIFR;
 	mIFR |= mask;
-	if (mIFR != oIFR)
-		cout << "SET IFR 0x" << hex << (int)oIFR << " => " << IFR2Str() << " for PCR = " << PCR2Str() << " and ACR = " << ACR2Str() << "\n";
+	//if (mIFR != oIFR)
+		//cout << "SET IFR 0x" << hex << (int)oIFR << " => " << IFR2Str() << " for PCR = " << PCR2Str() << " and ACR = " << ACR2Str() << "\n";
 	pIFR = mIFR;
 	updateIRQ();
 }
@@ -352,6 +353,9 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		default:
 			break;
 		}
+
+		// Clear IFR's CA1 active edge bit on read
+		clearIFR(IFR_CA1_MASK);
 
 
 		break;
@@ -432,7 +436,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		{
 			mIRA2 = (mIRA2 & mDDRA) | (mPA & ~mDDRA);
 		data = mIRA2;
-		cout << "*READ* IRA2 WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)mPA << " = > 0x" << (int)mIRA2 << "\n";
+		//cout << "*READ* IRA2 WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)mPA << " = > 0x" << (int)mIRA2 << "\n";
 		break;
 	}
 
@@ -486,11 +490,15 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		switch (CA2_mode) {
 		case 0x4:	// Handshake output
 		case 0x5:	// Pulse output
-			clearIFR(~IFR_CA2_MASK);
+			clearIFR(IFR_CA2_MASK);
 			break;
 		default:
 			break;
 		}
+
+		// Clear IFR's CA1 active edge bit on write
+		clearIFR(IFR_CA1_MASK);
+
 
 		break;
 	}
@@ -504,7 +512,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Data Direction Register A - '0' means corresponding PA acts as input; otherwise as output
 	{
 		mDDRA = data;
-		cout << "DDRA = 0x" << hex << (int)mDDRA << "\n";
+		//cout << "DDRA = 0x" << hex << (int)mDDRA << "\n";
 		break;
 	}
 	case T1CL:
@@ -608,7 +616,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Interrupt Flag Register - writing an '1' will clear the corresponding flag!!!
 	{
 		mIFR &= (~data) & 0x7f;
-		cout << "*WRITE* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
+		//cout << "*WRITE* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
 		updateIRQ();
 
 		break;
@@ -622,7 +630,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		else { // disable interrupts		
 			mIER = (mIER & ~data) & 0x7f;
 		}
-		cout << "*WRITE* VIA 6522 at 0x" << hex << adr << " IER = 0x" << (int)mIER << " (" << IER2Str() << ")\n";
+		//cout << "*WRITE* VIA 6522 at 0x" << hex << adr << " IER = 0x" << (int)mIER << " (" << IER2Str() << ")\n";
 
 		break;
 	}
@@ -633,8 +641,8 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		uint8_t oPA = mPA;
 		updatePort(PA, (mPA & ~mDDRA) | (data & mDDRA));
 
-		if (mDebugInfo->dbgLevel & DBG_6502)
-			cout << "WRITE TO PA WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)oPA << " => 0x" << (int)mPA << "\n";
+		//if (mDebugInfo->dbgLevel & DBG_6502)
+		//	cout << "WRITE TO PA WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)oPA << " => 0x" << (int)mPA << "\n";
 
 
 		break;
@@ -696,16 +704,11 @@ string VIA6522::ACR2Str()
 {
 	stringstream sout;
 	sout << "0x" << hex << (int)mACR <<  " <=> ";
-	if (mACR & ACR_PA_LATCH_MASK)
-		sout << ":PA Latch (" << ACRLE2Str(ACR_PA_LATCH) << ")";
-	if (mACR & ACR_PB_LATCH_MASK)
-		sout << ":PB Latch (" << ACRLE2Str(ACR_PB_LATCH) << ")";
-	if (mACR & ACR_SR_CTRL_MASK)
-		sout << ":SR (" << ACRSR2Str(ACR_SR_CTRL) << ")";
-	if (mACR & ACR_T2_CTRL_MASK)
-		sout << ":T2 (" << ACRT22Str(ACR_T2_CTRL) << ")";
-	if (mACR & ACR_T1_CTRL_MASK)
-		sout << ":T1 (" << ACRT12Str(ACR_T1_CTRL) << ")";
+	sout << ":PA Latch (" << ACRLE2Str(ACR_PA_LATCH) << ")";
+	sout << ":PB Latch (" << ACRLE2Str(ACR_PB_LATCH) << ")";
+	sout << ":SR (" << ACRSR2Str(ACR_SR_CTRL) << ")";
+	sout << ":T2 (" << ACRT22Str(ACR_T2_CTRL) << ")";
+	sout << ":T1 (" << ACRT12Str(ACR_T1_CTRL) << ")";
 
 	return sout.str();
 }
@@ -713,14 +716,10 @@ string VIA6522::PCR2Str()
 {
 	stringstream sout;
 	sout << "0x" << hex << (int)mPCR <<  " <=> ";
-	if (mPCR & PCR_CA1_CTRL_MASK)
-		sout << ":CA1 (" << PCRCx12Str(PCR_CA1_CTRL) << ")";
-	if (mPCR & PCR_CA2_CTRL_MASK)
-		sout << ":CA2 (" << PCRCx22Str(PCR_CA2_CTRL) << ")";
-	if (mPCR & PCR_CB1_MASK)
-		sout << ":CB1 (" << PCRCx12Str(PCR_CB1_CTRL) << ")";
-	if (mPCR & PCR_CB2_CTRL_MASK)
-		sout << ":CB2 (" << PCRCx22Str(PCR_CB2_CTRL) << ")";
+	sout << ":CA1 (" << PCRCx12Str(PCR_CA1_CTRL) << ")";
+	sout << ":CA2 (" << PCRCx22Str(PCR_CA2_CTRL) << ")";
+	sout << ":CB1 (" << PCRCx12Str(PCR_CB1_CTRL) << ")";
+	sout << ":CB2 (" << PCRCx22Str(PCR_CB2_CTRL) << ")";
 
 	return sout.str();
 }

@@ -26,6 +26,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "-trace <hex address> <pre trace len> <post trace len>: turn on 'all debug mode when an certain address is read\n";
 	cout << "\tor written to. The tracing starts <pre trace len> instructions prior to the trigger and lasts <post trace len>\n";
 	cout << "\tinstructions after the trigger.\n\n";
+	cout << "-clog <hex adr>:\n\tCyclicallly logs the result of the execution of an instruction at the specified address\n\n";
 	cout << "-dbg 'w' | 'e' | 'u' | 'd' | 'a': Debugging of different detail.\n";
 	cout << "\t'w' errors only\n";
 	cout << "\t'w' warning and errors\n";
@@ -51,6 +52,10 @@ ArgParser::ArgParser(int argc, const char* argv[])
 		}
 		else if (strcmp(argv[a], "-speed") == 0) {
 			emulationSpeed = stod(argv[a + 1]);
+			a++;
+		}
+		else if (strcmp(argv[a], "-clog") == 0) {
+			debugInfo.logAdr = stoi(argv[a + 1], 0, 16);
 			a++;
 		}
 		else if (strcmp(argv[a], "-stop") == 0) {

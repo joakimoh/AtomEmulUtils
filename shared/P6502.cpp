@@ -68,22 +68,13 @@ bool P6502::serveIRQ()
 	uint8_t SR_push_val = mStatusRegister;
 	writeDevice(0x100 + (uint16_t)mStackPointer--, SR_push_val);
 
-	cout << "PC = 0x" << hex << mProgramCounter << ", SR = 0x" << (int) mStatusRegister << "\n";
-	cout << "IRQ stack:\n";
-	for (int i = 0; i < 3; i++) {
-		uint16_t a = 0x100 + mStackPointer + i + 1;
-		uint8_t d;
-		readDevice(a, d);
-		cout << "0x" << hex << 0x100 + mStackPointer + i + 1 << " = 0x" << (int) d << "\n";
-	}
-
 	// Fetch break vector
 	uint8_t adr_L, adr_H;
 	if (!readProgramMem(0xfffe, adr_L) || !readProgramMem(0xffff, adr_H))
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
 
-	cout << "SERVING IRQ - execution at adr 0x" << hex << PC_push_val-2 << " interrupted by handler at 0x" << hex << mProgramCounter << "!\n";
+	//cout << "SERVING IRQ - execution at adr 0x" << hex << PC_push_val << " interrupted by handler at 0x" << hex << mProgramCounter << "!\n";
 
 
 	return true;
@@ -146,7 +137,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	else if (!mIRQ)	// IRQ is level-triggered!
 		serveIRQ();
 
-	if ((true || (mDebugInfo->dbgLevel & DBG_6502)) && mIRQ != pIRQ) {
+	if (((mDebugInfo->dbgLevel & DBG_6502)) && mIRQ != pIRQ) {
 		cout << "IRQ => " << dec << (int)mIRQ << ", I flag = " << (int)I_flag << dec << "\n";
 		if (!mIRQ && !I_flag)
 			mDebugInfo->dbgLevel = DBG_6502;
@@ -223,7 +214,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			std::cout << "Failed to execute instruction!\n";
 	}
 
-	if ((mDebugInfo->dbgLevel & DBG_6502)  || (mDebugInfo->traceAdr > 0 && !mEndOfTracingReached)) {
+	if ((mDebugInfo->dbgLevel & DBG_6502)  || (opcode_PC == mDebugInfo->logAdr) || (mDebugInfo->traceAdr > 0 && !mEndOfTracingReached)) {
 		string instr_s = mCodec.decode(opcode_PC, opcode, operand);
 		stringstream sout;
 		sout << setfill(' ') << setw(30) << left << instr_s << right <<
@@ -235,7 +226,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		if (instr.writesMem)
 			sout << " WROTE 0x" << setw(2) << (int)written_val;
 		sout << "\n";
-		if (mDebugInfo->dbgLevel & DBG_6502)
+		if ((mDebugInfo->dbgLevel & DBG_6502) || (opcode_PC == mDebugInfo->logAdr))
 			cout << sout.str();
 		if (mDebugInfo->traceAdr > 0 && !mEndOfTracingReached && !mStopDebugBuffering) {
 			mBufferedTraceLines.push_back(sout.str());
@@ -846,13 +837,6 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// +	+	+	+	+	+
 	{
-		cout << "RTI stack:\n";
-		for (int i = 0; i < 3; i++) {
-			uint16_t a = 0x100 + mStackPointer + i + 1;
-			uint8_t d;
-			readDevice(a, d);		
-			cout << "0x" << hex << 0x100 + mStackPointer + i + 1 << " = 0x" << (int) d << "\n";
-		}
 
 		// Pull Status Register
 		uint8_t stack_val;
@@ -868,7 +852,7 @@ bool P6502::executeInstr(
 		uint16_t oPC = mProgramCounter;
 		mProgramCounter = PC_h * 256 + PC_l;
 
-		cout << "RTI executed at 0x" << hex << oPC << "; resume execution at 0x" << mProgramCounter << "!\n";
+		//cout << "RTI executed at 0x" << hex << oPC << "; resume execution at 0x" << mProgramCounter << "!\n";
 
 		break;
 	}
