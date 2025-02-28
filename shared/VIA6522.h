@@ -122,6 +122,14 @@ private:
 	bool mTimer1Running = false;
 	bool mTimer2Running = false;
 
+	uint16_t pTimer1Counter = 0x0;
+	uint16_t pTimer2Counter = 0x0;
+	uint8_t mShifts = 0;
+	uint8_t mCB1ShiftPulse = 0;
+	bool mStartShifting = false;
+	bool mShiftInterrupt = false;
+	bool mShiftGenerateCB1 = false;
+
 
 
 	enum VIARegAdr {

@@ -65,212 +65,321 @@ bool VIA6522::advance(uint64_t stopCycle)
 		return true;
 	}
 
-	if ((mDebugInfo->dbgLevel & DBG_6502) && mCA != pCA) {
-		//cout << "CA1 = " << (int)(mCA & 0x1) << ", CA2 = " << (int)((mCA >> 1) & 0x1) << "\n";
-	}
+	while (mCycleCount < stopCycle) {
 
-	if (ACR_PA_LATCH && (mCA & 0x1)) // PA shall be latched on a high CA1
-		mPA_latched = mPA;
+		// Advance exactly one phi2 cycle (or at least one CPU cycle)
+		int one_phi2_cycle = (int)round(mClock / mCPUClock);
+		mCycleCount += max(1, one_phi2_cycle);
 
-	if (ACR_PB_LATCH && (mCB & 0x1)) // PB shall be latched on a high CB1
-		mPB_latched = mPB;
+		// Modes
+		uint8_t CA1_mode = PCR_CA1_CTRL;
+		uint8_t CA2_mode = PCR_CA2_CTRL;
+		uint8_t CB1_mode = PCR_CB1_CTRL;
+		uint8_t CB2_mode = PCR_CB2_CTRL;
 
-	// Check Timer 1
+		// Ports
+		uint8_t CA1 = mCA & 0x1;
+		uint8_t pCA1 = pCA & 0x1;
+		uint8_t CA2 = (mCA >> 1) & 0x1;
+		uint8_t pCA2 = (pCA >> 1) & 0x1;
+		uint8_t CB1 = mCB & 0x1;
+		uint8_t pCB1 = pCB & 0x1;
+		uint8_t CB2 = (mCB >> 1) & 0x1;
+		uint8_t pCB2 = (pCB >> 1) & 0x1;
 
-	mTimer1Counter = mTimer1Counter - (int) round((stopCycle - mCycleCount) * mClock / mCPUClock);
-	if (mTimer1Counter <= 0) {
-		if (mTimer1Running) {
-			setIFR(IFR_T1_MASK);
-		}	
-		switch (ACR_T1_CTRL) {
-		case 0x0:	// One-shot Interrupt, PB7 inactive
-			mTimer1Running = false;
-			break;
-		case 0x1:	// Continuous interrupts, PB7 inactive
-			mTimer1Counter = (mTimer1LatchHigh << 8) | mTimer1LatchLow;
-			break;
-		case 0x2:	// One-shot Interrupt, PB7 low when timer starts and back high when timer reaches zero
-			mTimer1Running = false;
-			updatePort(PB, mPB | 0x80);
-			break;
-		case 0x3:	// Continuous interrupts, PB7 toggled
-			mTimer1Counter = (mTimer1LatchHigh << 8) | mTimer1LatchLow;
-			updatePort(PB, mPB ^ 0x80);
-			break;
-		default:
-			break;
-		}
-	}
-
-
-	// Check Timer 2
-	switch (ACR_T2_CTRL) {
-	case 0x0:	// Timed interrupt
-		mTimer2Counter = mTimer2Counter - (int)round((stopCycle - mCycleCount) * mClock / mCPUClock);
-		break;
-	case 0x1:	// Count down with pulses on PB6
-	{
 		uint8_t PB6 = (mPB >> 6) & 0x1;
 		uint8_t pPB6 = (pPB >> 6) & 0x1;
-		if (PB6 != pPB6) {
+
+
+		if ((mDebugInfo->dbgLevel & DBG_6502) && mCA != pCA) {
+			//cout << "CA1 = " << (int)(mCA & 0x1) << ", CA2 = " << (int)((mCA >> 1) & 0x1) << "\n";
+		}
+
+		if (ACR_PA_LATCH && (mCA & 0x1)) // PA shall be latched on a high CA1
+			mPA_latched = mPA;
+
+		if (ACR_PB_LATCH && (mCB & 0x1)) // PB shall be latched on a high CB1
+			mPB_latched = mPB;
+
+		// Shift Register Function
+		if (mStartShifting) {
+			switch (ACR_SR_CTRL) {
+			case 0x0:	// Shift in on positive edge of CB1 - no interrupt flag set
+				mCB1ShiftPulse = CB1;
+				mShiftInterrupt = false;
+				break;
+			case 0x1:	// Shift in on timeout of T2 (lower bits only) and generate shift pulses on CB1 - interrupt flag set
+				if (mTimer2Counter % 256 == 0 && pTimer2Counter % 256 != 0)
+					mCB1ShiftPulse = 1 - mCB1ShiftPulse;
+				mShiftInterrupt = true;
+				mShiftGenerateCB1 = true;
+				break;
+			case 0x2:	// Shift in under control of phi2 and generate shift pulses on CB1 - interrupt flag set
+				mCB1ShiftPulse = 1 - mCB1ShiftPulse;
+				mShiftInterrupt = true;
+				mShiftGenerateCB1 = true;
+				break;
+			case 0x3:	// Shift in under control of external clock (on CB1) -  - interrupt flag set
+				mCB1ShiftPulse = CB1;
+				mShiftInterrupt = true;
+				mShiftGenerateCB1 = false;
+				break;
+			case 0x4:	// Shift out fre-running at T2 rate
+				break;
+			case 0x5:	// Shift out under control of T2
+				if (mTimer2Counter % 256 == 0 && pTimer2Counter % 256 != 0)
+					mCB1ShiftPulse = 1 - mCB1ShiftPulse;
+				mShiftInterrupt = true;
+				mShiftGenerateCB1 = true;
+				break;
+			case 0x6:	// Shift out under control of phi2
+				mCB1ShiftPulse = 1 - mCB1ShiftPulse;
+				break;
+			case 0x7:	// Shift out under control of external clock
+				mCB1ShiftPulse = CB1;
+				break;
+			}
+
+			// Shift Register Function
+			switch (ACR_SR_CTRL) {
+			case 0x0:	// Shift in on positive edge of CB1 - no interrupt flag set
+			case 0x1:	// Shift in on timeout of T2 (lower bits only) and generate shift pulses on CB1 - interrupt flag set
+			case 0x2:	// Shift in under control of phi2 and generate shift pulses on CB1 - interrupt flag set
+			case 0x3:	// Shift in under control of external clock (on CB1) - negative transition used
+			{
+				if (mCB1ShiftPulse) { // shift in on HIGH CB1 shift pulse
+					mSR = (mSR << 1) | CB2;
+					mShifts = mShifts % 8;
+					if (mShifts == 0) {
+						if (mShiftInterrupt)
+							setIFR(IFR_SR_MASK);
+						mCB1ShiftPulse = 0;
+						mStartShifting = false;
+					}
+				}
+				if (mShiftGenerateCB1)
+					updatePort(CB, (CB & ~0x1) | mCB1ShiftPulse);
+				break;
+			}
+			case 0x4:	// Shift out fre-running at T2 rate
+			case 0x5:	// Shift out under control of T2
+			case 0x6:	// Shift out under control of phi2
+			case 0x7:	// Shift out under control of external clock
+			{
+				if (mCB1ShiftPulse) { // shift in out HIGH CB1 shift pulse
+					updatePort(CB, (mCB & ~0x2) | ((mSR & 0x1) << 1)); // output b0 on CB2
+					mSR = (mSR >> 1) | ((mSR << 7) & 0x80); // shift register right one bit with b0 going into b7
+					mShifts = mShifts % 8;
+					if (mShifts == 0) {
+						if (ACR_SR_CTRL == 1 || ACR_SR_CTRL == 4 || ACR_SR_CTRL == 5)
+							mCycleCount += max(1, one_phi2_cycle); // 2 extra phi2 cycles for T2 modes
+						if (mShiftInterrupt)
+							setIFR(IFR_SR_MASK);
+						mCB1ShiftPulse = 0;
+						if (ACR_SR_CTRL != 0x4 && ACR_SR_CTRL != 0x7) // shifting not to be stopped for modes 4 & 7!
+							mStartShifting = false;
+					}
+				}
+				if (mShiftGenerateCB1)
+					updatePort(CB, (CB & ~0x1) | mCB1ShiftPulse);
+				break;
+				break;
+			}
+			default:
+			{
+				break;
+			}
+			}
+
+		}
+
+
+		// Check Timer 1
+		mTimer1Counter--;
+		if (mTimer1Counter <= 0) {
+			if (mTimer1Running) {
+				setIFR(IFR_T1_MASK);
+			}
+			switch (ACR_T1_CTRL) {
+			case 0x0:	// One-shot Interrupt, PB7 inactive
+				mTimer1Running = false;
+				break;
+			case 0x1:	// Continuous interrupts, PB7 inactive
+				mTimer1Counter = (mTimer1LatchHigh << 8) | mTimer1LatchLow;
+				break;
+			case 0x2:	// One-shot Interrupt, PB7 low when timer starts and back high when timer reaches zero
+				mTimer1Running = false;
+				updatePort(PB, mPB | 0x80);
+				break;
+			case 0x3:	// Continuous interrupts, PB7 toggled
+				mTimer1Counter = (mTimer1LatchHigh << 8) | mTimer1LatchLow;
+				updatePort(PB, mPB ^ 0x80);
+				break;
+			default:
+				break;
+			}
+		}
+
+
+		// Check Timer 2
+		switch (ACR_T2_CTRL) {
+		case 0x0:	// Timed interrupt
 			mTimer2Counter = mTimer2Counter - 1;
+			break;
+		case 0x1:	// Count down with pulses on PB6
+		{
+
+			if (PB6 != pPB6) {
+				mTimer2Counter = mTimer2Counter - 1;
+			}
+			break;
 		}
-		break;
-	}
-	default:
-		break;
-	}	
-	if (mTimer2Counter <= 0) {
-		if (mTimer2Running) {
-			setIFR(IFR_T2_MASK);
+		default:
+			break;
 		}
-		mTimer2Running = false;
-	}
-
-	// If no handshaking
-	mIRA2 = mPA;
-
-	uint8_t CA1_mode = PCR_CA1_CTRL;
-	uint8_t CA2_mode = PCR_CA2_CTRL;
-	uint8_t CB1_mode = PCR_CB1_CTRL;
-	uint8_t CB2_mode = PCR_CB2_CTRL;
-
-	//
-	// Check for CA2 input transition and set flag and IRQ
-	// if a transition is detected and IRQ is enabled.
-	//
-
-	uint8_t CA2 = (mCA >> 1) & 0x1;
-	uint8_t pCA2 = (pCA >> 1) & 0x1;
-	switch (CA2_mode) {
-	case 0x0:	// Input, negative edge
-	case 0x1:	// Interrupt input, negative edge
-		if (!CA2 && CA2 != pCA2) {
-			setIFR(IFR_CA2_MASK);
+		if (mTimer2Counter <= 0) {
+			if (mTimer2Running) {
+				setIFR(IFR_T2_MASK);
+			}
+			mTimer2Running = false;
 		}
-		break;
-	case 0x2:	// Input, positive edge
-	case 0x3:	// Interrupt input, positive edge
-		if (CA2 && CA2 != pCA2) {
-			setIFR(IFR_CA2_MASK);
-		}
-		break;
-	default:
-		break;
-	}
 
-
-	//
-	// Check for CB2 input transition and set flag and IRQ
-	// if a transition is detected and IRQ is enabled.
-	//
-
-
-	uint8_t CB2 = (mCB >> 1) & 0x1;
-	uint8_t pCB2 = (pCB >> 1) & 0x1;
-	switch (CB2_mode) {
-	case 0x0:	// Input, negative edge
-	case 0x1:	// Interrupt input, negative edge
-		if (!CB2 && CB2 != pCB2) {
-			setIFR(IFR_CB2_MASK);
-		}
-		break;
-	case 0x2:	// Input, positive edge
-	case 0x3:	// Interrupt input, positive edge
-		if (CB2 && CB2 != pCB2) {
-			setIFR(IFR_CB2_MASK);
-		}
-		break;
-	default:
-		break;
-	}
+		// If no handshaking
+		mIRA2 = mPA;
 
 
 
-	//
-	// Check for read and write handshaking using CA1 (Data Ready/Data Ready - input),
-	// CA2 (Data Taken/Data Ready - output) and PA (Data - input/output).
-	//
+		//
+		// Check for CA2 input transition and set flag and IRQ
+		// if a transition is detected and IRQ is enabled.
+		//
 
 
-	uint8_t CA1 = mCA & 0x1;	
-	uint8_t pCA1 = pCA & 0x1;
-
-
-	// Check for "Data Ready"/"Data Taken" input CA1. 
-	// Generate IRQ if enabled.
-	bool CA1_edge = false;
-	if (CA1_mode == 0x0) { // Interrupt input, negative edge
-		if (!CA1 && CA1 != pCA1) {
-			setIFR(IFR_CA1_MASK);
-			CA1_edge = true;
-		}
-	}
-	else { // Interrupt input, positive edge
-		if (CA1 && CA1 != pCA1) {
-			setIFR(IFR_CA1_MASK);
-			CA1_edge = true;
-		}
-	}
-	
-	// Deactivate "Data Taken" CA2 output if "Data Ready" was received
-	// Deactive "Data Ready" CA2 output if "Data Taken" was received
-	if (CA1_edge) {
 		switch (CA2_mode) {
-		case 0x4:	// Handshake output
-		case 0x5:	// Pulse output
-			updatePort(CA, mCA | 0x2);
+		case 0x0:	// Input, negative edge
+		case 0x1:	// Interrupt input, negative edge
+			if (!CA2 && CA2 != pCA2) {
+				setIFR(IFR_CA2_MASK);
+			}
+			break;
+		case 0x2:	// Input, positive edge
+		case 0x3:	// Interrupt input, positive edge
+			if (CA2 && CA2 != pCA2) {
+				setIFR(IFR_CA2_MASK);
+			}
 			break;
 		default:
 			break;
 		}
-	}
-
-	//
-	// Check for write handshaking using CB2 (Data Ready - output),
-	// CB1 (Data Taken - input) and PB (Data - output).
-	//
 
 
-	uint8_t CB1 = mCB & 0x1;
-	uint8_t pCB1 = pCB & 0x1;
+		//
+		// Check for CB2 input transition and set flag and IRQ
+		// if a transition is detected and IRQ is enabled.
+		//
 
-	// Check for "Data Taken" input CB1. 
-	bool CB1_edge = false;
-	if (CB1_mode == 0x0) { // Interrupt input, negative edge
-		if (!CB1 && CB1 != pCB1) {
-			setIFR(IFR_CB1_MASK);
-			CB1_edge = true;
-		}
 
-	}
-	else { // Interrupt input, positive edge
-		if (CB1 && CB1 != pCB1) {
-			setIFR(IFR_CB1_MASK);
-			CB1_edge = true;
-		}
-	}
 
-	// Deactive "Data Ready" CB2 output if "Data Taken" CB1 was received
-	if (CB1_edge) {
 		switch (CB2_mode) {
-		case 0x4:	// Handshake output
-		case 0x5:	// Pulse output
-			updatePort(CB, mCB | 0x2);
+		case 0x0:	// Input, negative edge
+		case 0x1:	// Interrupt input, negative edge
+			if (!CB2 && CB2 != pCB2) {
+				setIFR(IFR_CB2_MASK);
+			}
+			break;
+		case 0x2:	// Input, positive edge
+		case 0x3:	// Interrupt input, positive edge
+			if (CB2 && CB2 != pCB2) {
+				setIFR(IFR_CB2_MASK);
+			}
 			break;
 		default:
 			break;
 		}
+
+
+
+		//
+		// Check for read and write handshaking using CA1 (Data Ready/Data Ready - input),
+		// CA2 (Data Taken/Data Ready - output) and PA (Data - input/output).
+		//
+
+
+
+
+		// Check for "Data Ready"/"Data Taken" input CA1. 
+		// Generate IRQ if enabled.
+		bool CA1_edge = false;
+		if (CA1_mode == 0x0) { // Interrupt input, negative edge
+			if (!CA1 && CA1 != pCA1) {
+				setIFR(IFR_CA1_MASK);
+				CA1_edge = true;
+			}
+		}
+		else { // Interrupt input, positive edge
+			if (CA1 && CA1 != pCA1) {
+				setIFR(IFR_CA1_MASK);
+				CA1_edge = true;
+			}
+		}
+
+		// Deactivate "Data Taken" CA2 output if "Data Ready" was received
+		// Deactive "Data Ready" CA2 output if "Data Taken" was received
+		if (CA1_edge) {
+			switch (CA2_mode) {
+			case 0x4:	// Handshake output
+			case 0x5:	// Pulse output
+				updatePort(CA, mCA | 0x2);
+				break;
+			default:
+				break;
+			}
+		}
+
+		//
+		// Check for write handshaking using CB2 (Data Ready - output),
+		// CB1 (Data Taken - input) and PB (Data - output).
+		//
+
+
+
+		// Check for "Data Taken" input CB1. 
+		bool CB1_edge = false;
+		if (CB1_mode == 0x0) { // Interrupt input, negative edge
+			if (!CB1 && CB1 != pCB1) {
+				setIFR(IFR_CB1_MASK);
+				CB1_edge = true;
+			}
+
+		}
+		else { // Interrupt input, positive edge
+			if (CB1 && CB1 != pCB1) {
+				setIFR(IFR_CB1_MASK);
+				CB1_edge = true;
+			}
+		}
+
+		// Deactive "Data Ready" CB2 output if "Data Taken" CB1 was received
+		if (CB1_edge) {
+			switch (CB2_mode) {
+			case 0x4:	// Handshake output
+			case 0x5:	// Pulse output
+				updatePort(CB, mCB | 0x2);
+				break;
+			default:
+				break;
+			}
+		}
+
+		pCA = mCA;
+		pCB = mCB;
+		pPA = mPA;
+		pPB = mPB;
+
+		pTimer1Counter = mTimer1Counter;
+		pTimer2Counter = mTimer2Counter;
+
 	}
-
-
-
-	pCA = mCA;
-	pCB = mCB;
-	pPA = mPA;
-	pPB = mPB;
-
-	mCycleCount = stopCycle;
 
 	return true;
 }
@@ -405,8 +514,34 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 
 	case SR:
 		// Shift Register
+	{
+		
 		data = mSR;
-		break;
+
+
+		// Start input shifting on read
+		if (mShifts == 0) {
+			switch (ACR_SR_CTRL) {
+			case 0x0:	// Shift in on positive edge of CB2 - no interrupt flag set
+			case 0x1:	// Shift in on timeout of T2 (lower bits only) and generate shift pulses on CB1 - interrupt flag set
+			case 0x2:	// Shift in under control of phi2 and generate shift pulses on CB1 - interrupt flag set	
+			case 0x3:	// Shift in under control of external clock (on CB1) - negative transition used
+			case 0x4:	// Shift out fre-running at T2 rate
+			case 0x5:	// Shift out under control of T2	
+			case 0x7:	// Shift out under control of external clock
+				mStartShifting = true;
+
+				break;
+			default:
+				break;
+			}
+		}
+
+		// Clear IFR's SR bit on read
+		clearIFR(IFR_SR_MASK);
+
+
+	}
 
 	case ACR:
 		// Auxiliary Control Register
@@ -583,6 +718,29 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Shift Register
 	{
 		mSR = data;
+
+
+		// Start input shifting on write
+		if (mShifts == 0) {
+			switch (ACR_SR_CTRL) {		
+			case 0x0:	// Shift in on positive edge of CB2 - no interrupt flag set
+			case 0x1:	// Shift in on timeout of T2 (lower bits only) and generate shift pulses on CB1 - interrupt flag set
+			case 0x2:	// Shift in under control of phi2 and generate shift pulses on CB1 - interrupt flag set	
+			case 0x3:	// Shift in under control of external clock (on CB1) - negative transition used
+			case 0x4:	// Shift out fre-running at T2 rate
+			case 0x5:	// Shift out under control of T2	
+			case 0x7:	// Shift out under control of external clock
+				mStartShifting = true;
+				break;
+			default:
+				break;
+			}
+		}
+
+		// Clear IFR's SR bit on write
+		clearIFR(IFR_SR_MASK);
+
+
 		break;
 	}
 	case ACR:
