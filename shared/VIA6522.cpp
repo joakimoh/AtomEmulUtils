@@ -68,7 +68,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 	while (mCycleCount < stopCycle) {
 
 		// Advance exactly one phi2 cycle (or at least one CPU cycle)
-		int one_phi2_cycle = (int)round(mClock / mCPUClock);
+		int one_phi2_cycle = (int)round(mCPUClock / mClock);
 		mCycleCount += max(1, one_phi2_cycle);
 
 		// Modes

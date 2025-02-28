@@ -12,7 +12,6 @@ class ArgParser
 {
 public:
 
-	double cMHz = 1.0;
 	string mapFileName;
 	Program program, data;
 	

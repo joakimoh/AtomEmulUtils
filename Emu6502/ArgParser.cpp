@@ -14,7 +14,7 @@ bool ArgParser::failed()
 void ArgParser::printUsage(const char* name)
 {
 	cout << "Emulates an Acorn\n";
-	cout << "Usage:\t" << name << " -map <memory map file> [-pgm <program> <hex adr>] [-clk <clock speed>] [-speed <emulation speed>] [-v] <advanced options>\n\n";
+	cout << "Usage:\t" << name << " -map <memory map file> [-pgm <program> <hex adr>] [-speed <emulation speed>] [-v] <advanced options>\n\n";
 	cout << "<clock speed>:\nEmulation speed in %. If not specified, 100% (real time) is assumed\n\n";
 	cout << "<clock speed>:\nClock speed in MHz. If not specified, 1 Mhz is assumed\n\n";
 	cout << "<memory map file>:\n\tFile which defines devices and their memory mapping.\n\n";
@@ -46,11 +46,7 @@ ArgParser::ArgParser(int argc, const char* argv[])
 	int a = 1;
 	bool genFiles = false;
 	while (a < argc) {
-		if(strcmp(argv[a], "-clk") == 0) {
-			cMHz = stod(argv[a + 1]);
-			a++;
-		}
-		else if (strcmp(argv[a], "-speed") == 0) {
+		if(strcmp(argv[a], "-speed") == 0) {
 			emulationSpeed = stod(argv[a + 1]);
 			a++;
 		}

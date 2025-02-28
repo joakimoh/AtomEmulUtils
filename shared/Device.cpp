@@ -207,11 +207,13 @@ string Devices::getFileName(string &path, stringstream& sin)
 }
 
 Devices::Devices(
-	string memMapFile, double clockSpeed, int audioSampleFreq, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo  *debugInfo,
+	string memMapFile, double &cpuClock, int audioSampleFreq, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo  *debugInfo,
 	Program program, Program data, ConnectionManager& connection_manager, P6502* &microprocessor, VideoDisplayUnit * &mainVDU,
 	vector<Device*>& frameScheduledDevices, vector<Device*>& halflineScheduledDevices, vector<Device*>& instrScheduledDevices) :mDebugInfo(debugInfo)
 {
 	vector<VideoDisplayUnit*> vdus;
+
+	cpuClock = 1.0; // Default 1 Mhz CPU clock
 
 	// BBC Micro Page ROM support
 	vector<ROM*> paged_ROMs;
@@ -244,6 +246,10 @@ Devices::Devices(
 
 			if (cmd.substr(0,2) == "//" || cmd == "") {
 				// Commment
+			}
+
+			else if (cmd == "CLOCK") {
+				sin >> cpuClock;
 			}
 
 			else if (cmd == "ADD") {
@@ -281,7 +287,7 @@ Devices::Devices(
 
 				else if (dev_type == "ATOMSP") {
 
-					AtomSpeaker* sp = new AtomSpeaker(dev_name, clockSpeed, audioSampleFreq, mDebugInfo, &connection_manager);
+					AtomSpeaker* sp = new AtomSpeaker(dev_name, cpuClock, audioSampleFreq, mDebugInfo, &connection_manager);
 					mDevices.push_back(sp);
 					sound_device = sp;
 
@@ -293,14 +299,14 @@ Devices::Devices(
 
 				else if (dev_type == "TAPREC") {
 
-					TapeRecorder* tr = new TapeRecorder(dev_name, clockSpeed, mDebugInfo, &connection_manager);
+					TapeRecorder* tr = new TapeRecorder(dev_name, cpuClock, mDebugInfo, &connection_manager);
 					mDevices.push_back(tr);
 
 				}
 
 				else if (dev_type == "ATOMCAS") {
 
-					AtomCUTSInterface* cuts = new AtomCUTSInterface(dev_name, clockSpeed, mDebugInfo, &connection_manager);
+					AtomCUTSInterface* cuts = new AtomCUTSInterface(dev_name, cpuClock, mDebugInfo, &connection_manager);
 					mDevices.push_back(cuts);
 
 				}
@@ -311,7 +317,7 @@ Devices::Devices(
 
 				else if (dev_type == "UC6502") {
 
-					microprocessor = new P6502(dev_name, clockSpeed, mDebugInfo, &connection_manager);
+					microprocessor = new P6502(dev_name, cpuClock, mDebugInfo, &connection_manager);
 					mDevices.push_back(microprocessor);
 
 				}
@@ -375,7 +381,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					double clk = getDoubleVal(sin);
-					VIA6522* via = new VIA6522(dev_name, dev_adr, clk, clockSpeed, mDebugInfo, &connection_manager);
+					VIA6522* via = new VIA6522(dev_name, dev_adr, clk, cpuClock, mDebugInfo, &connection_manager);
 					mDevices.push_back(via);
 
 				}
@@ -385,7 +391,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					double clk = getDoubleVal(sin);
-					ACIA6850* acia = new ACIA6850(dev_name, dev_adr, clk, clockSpeed, mDebugInfo, &connection_manager);
+					ACIA6850* acia = new ACIA6850(dev_name, dev_adr, clk, cpuClock, mDebugInfo, &connection_manager);
 					mDevices.push_back(acia);
 
 					}
@@ -399,7 +405,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint16_t video_mem_adr = getHexVal(sin);
-					mainVDU = new VDU6847(dev_name, dev_adr, clockSpeed, disp, dispW, dispH, video_mem_adr, mDebugInfo, &connection_manager);
+					mainVDU = new VDU6847(dev_name, dev_adr, cpuClock, disp, dispW, dispH, video_mem_adr, mDebugInfo, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 
@@ -409,14 +415,14 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, clockSpeed, disp, dispW, dispH, mDebugInfo, &connection_manager);
+					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, cpuClock, disp, dispW, dispH, mDebugInfo, &connection_manager);
 					mDevices.push_back(crtc);
 					vdus.push_back(crtc);
 				}
 
 				else if (dev_type == "TT5050") {
 
-					TT5050* tcg = new TT5050(dev_name, 0x0, clockSpeed, disp, 0x0, mDebugInfo, &connection_manager);
+					TT5050* tcg = new TT5050(dev_name, 0x0, cpuClock, disp, 0x0, mDebugInfo, &connection_manager);
 					mDevices.push_back(tcg);
 				}
 
@@ -424,7 +430,7 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					mainVDU = new BeebVideoULA(dev_name, dev_adr, clockSpeed, disp, dispW, dispH, mDebugInfo, &connection_manager);
+					mainVDU = new BeebVideoULA(dev_name, dev_adr, cpuClock, disp, dispW, dispH, mDebugInfo, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 				}

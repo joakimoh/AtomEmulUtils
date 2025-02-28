@@ -125,9 +125,10 @@ int main(int argc, const char* argv[])
     VideoDisplayUnit* vdu = NULL;
     vector<Device*> frame_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices;
     P6502 * microprocessor = NULL;
+    double CPU_clock = 1.0; // MHz
     Devices devices(
         arg_parser.mapFileName,
-        arg_parser.cMHz,            // CPU Clock frequency in MHz
+        CPU_clock,            // CPU Clock frequency in MHz
         32000,                      // audio sample rate corresponding to a rate of at least twice per scan line
         disp_bm, disp_w, disp_h,
         &arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu,
@@ -183,7 +184,7 @@ int main(int argc, const char* argv[])
         // Get frame rate and no of scan lines from the VDU itself.
         // required for the cases these parameters re not hard-coded but can be reconfigured by
         // the software.
-        int cycles_per_frame = (int)round(arg_parser.cMHz * 1e6 / vdu->getFrameRate());
+        int cycles_per_frame = (int)round(CPU_clock * 1e6 / vdu->getFrameRate());
         int n_scan_lines = vdu->getScanLinesPerFrame();
         if (n_scan_lines < 200)
             n_scan_lines = 312;
