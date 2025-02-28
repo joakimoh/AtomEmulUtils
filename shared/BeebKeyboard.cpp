@@ -96,7 +96,7 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 		if (al_key_down(&mKeyboardState, mBreakKey.keyCode))
 			updatePort(BREAK, 0x0);
 
-		if (mDebugInfo->dbgLevel & DBG_6502 && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL)) {
+		if ((true||(mDebugInfo->dbgLevel & DBG_6502)) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL)) {
 			cout << "COL_SEL = " << dec << (int)mCOL_SEL << ", ROW_SEL = " << (int)mROW_SEL << ", PRESSED = " << (int)mPRESSED << ", ROW = " << (int) mROW << "\n";
 		}
 		pCOL_SEL = mCOL_SEL;

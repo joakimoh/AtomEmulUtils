@@ -41,7 +41,7 @@ private:
 	//uint8_t mT1LH;			// base address + 0x07	T1 High-Order Latches		-
 	///uint8_t mT2CL;			// base address + 0x08	T2 Low-Order Latches		T2 Low-Order Counter
 	//uint8_t mT2CH;			// base address + 0x09	T2 High-Order Counter =>
-	uint8_t mSR = 0x0;			// base address + 0x0a	Shift Register =>
+	uint8_t mShiftRegister = 0x0;			// base address + 0x0a	Shift Register =>
 	uint8_t mACR = 0x0;			// base address + 0x0b	Auxiliary Control Register =>
 	uint8_t mPCR = 0x0;			// base address + 0x0c	Peripheral Control Register =>
 	uint8_t mIFR = 0x0;			// base address + 0x0d	Interrupt Flag Register =>

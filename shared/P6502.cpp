@@ -96,12 +96,11 @@ bool P6502::reset()
 	if (!readProgramMem(0xfffc, adr_L) || !readProgramMem(0xfffd, adr_H))
 		return false;
 
-	//out << "RESET succesful!\n";
-
 	mProgramCounter = adr_H * 256 + adr_L;
 
 	// Increase time by 7 clock cycles for the RESET
 	tick(7);
+
 
 	return true;
 }
@@ -137,8 +136,8 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	else if (!mIRQ)	// IRQ is level-triggered!
 		serveIRQ();
 
-	if (((mDebugInfo->dbgLevel & DBG_6502)) && mIRQ != pIRQ) {
-		cout << "IRQ => " << dec << (int)mIRQ << ", I flag = " << (int)I_flag << dec << "\n";
+	if ((true||(mDebugInfo->dbgLevel & DBG_6502)) && mIRQ != pIRQ) {
+		cout << "IRQ => " << dec << (int)mIRQ << ", I flag = " << (int)I_flag << dec << " at PC = 0x" << hex << mProgramCounter << "\n";
 		if (!mIRQ && !I_flag)
 			mDebugInfo->dbgLevel = DBG_6502;
 	}

@@ -43,7 +43,7 @@ bool VIA6522::reset()
 	mORA = 0x0;	
 	mDDRB = 0x0;
 	mDDRA = 0x0;
-	mSR = 0x0;
+	mShiftRegister = 0x0;
 	mACR = 0x0;
 	mPCR = 0x0;
 	mIFR = 0x0;
@@ -148,7 +148,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 			case 0x3:	// Shift in under control of external clock (on CB1) - negative transition used
 			{
 				if (mCB1ShiftPulse) { // shift in on HIGH CB1 shift pulse
-					mSR = (mSR << 1) | CB2;
+					mShiftRegister = (mShiftRegister << 1) | CB2;
 					mShifts = mShifts % 8;
 					if (mShifts == 0) {
 						if (mShiftInterrupt)
@@ -167,8 +167,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 			case 0x7:	// Shift out under control of external clock
 			{
 				if (mCB1ShiftPulse) { // shift in out HIGH CB1 shift pulse
-					updatePort(CB, (mCB & ~0x2) | ((mSR & 0x1) << 1)); // output b0 on CB2
-					mSR = (mSR >> 1) | ((mSR << 7) & 0x80); // shift register right one bit with b0 going into b7
+					updatePort(CB, (mCB & ~0x2) | ((mShiftRegister & 0x1) << 1)); // output b0 on CB2
+					mShiftRegister = (mShiftRegister >> 1) | ((mShiftRegister << 7) & 0x80); // shift register right one bit with b0 going into b7
 					mShifts = mShifts % 8;
 					if (mShifts == 0) {
 						if (ACR_SR_CTRL == 1 || ACR_SR_CTRL == 4 || ACR_SR_CTRL == 5)
@@ -388,15 +388,15 @@ void VIA6522::updateIRQ()
 {
 	if ((mIFR & mIER & 0x7f) == 0) { // No pending interrupts
 		updatePort(IRQ, 0x1);
-		//if (mIRQ != pIRQ)
-		//	cout << "CLEAR IRQ!\n";
+		if (mIRQ != pIRQ)
+			cout << "*** VIA RESET IRQ\n\tIFR = " << IFR2Str() << "\n\tACR = " << ACR2Str() << "\n\tPCR = " << PCR2Str() << "\n\n";
 		pIRQ = mIRQ;
 	}
 	else { // Pending interrupts
 		updatePort(IRQ, 0x0);
-		//if (mIRQ != pIRQ) {
-		//	cout << "SET IRQ (" << IFR2Str() << ")\n";
-		//}
+		if (mIRQ != pIRQ) {
+			cout << "*** VIA SET IRQ\n\tIFR = " << IFR2Str() << "\n\tACR = " << ACR2Str() << "\n\tPCR = " << PCR2Str() << "\n\n";
+		}
 		pIRQ = mIRQ;
 	}
 }
@@ -516,7 +516,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		// Shift Register
 	{
 		
-		data = mSR;
+		data = mShiftRegister;
 
 
 		// Start input shifting on read
@@ -717,7 +717,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	case SR:
 		// Shift Register
 	{
-		mSR = data;
+		mShiftRegister = data;
 
 
 		// Start input shifting on write
@@ -818,21 +818,36 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 string VIA6522::IFR2Str()
 {
 	stringstream sout;
-	sout << "0x" << (int)mIFR << hex << " ";
-	if (mIFR & IFR_CA1_MASK)
-		sout << ":CA1 (" << hex << (int)IFR_CA1_MASK << ")";
-	if (mIFR & IFR_CA2_MASK)
-		sout << ":CA2 (" << hex << (int)IFR_CA2_MASK << ")";
-	if (mIFR & IFR_CB1_MASK)
-		sout << ":CB1 (" << hex << (int)IFR_CB1_MASK << ")";
-	if (mIFR & IFR_CB2_MASK)
-		sout << ":CB2 (" << hex << (int)IFR_CB2_MASK << ")";
-	if (mIFR & IFR_SR_MASK)
-		sout << ":SR (" << hex << (int)IFR_SR_MASK << ")";
-	if (mIFR & IFR_T1_MASK)
-		sout << ":T1 (" << hex << (int)IFR_T1_MASK << ")";
-	if (mIFR & IFR_T2_MASK)
-		sout << ":T2 (" << hex << (int)IFR_T2_MASK << ")";
+	string prefix = "";
+	sout << "0x" << hex << (int)mIFR << " <=> ";
+	if (mIFR & IFR_CA1_MASK) {
+		sout << prefix << "CA1";
+		prefix = ", ";
+	}
+	if (mIFR & IFR_CA2_MASK) {
+		sout << prefix << "CA2";
+		prefix = ", ";
+	}
+	if (mIFR & IFR_CB1_MASK) {
+		sout << prefix << "CB1";
+		prefix = ", ";
+	}
+	if (mIFR & IFR_CB2_MASK) {
+		sout << prefix << "CB2";
+		prefix = ", ";
+	}
+	if (mIFR & IFR_SR_MASK) {
+		sout << prefix << "SR";
+		prefix = ", ";
+	}
+	if (mIFR & IFR_T1_MASK) {
+		sout << prefix << "T1";
+		prefix = ", ";
+	}
+	if (mIFR & IFR_T2_MASK) {
+		sout << prefix << "T2";
+		prefix = ", ";
+	}
 
 	return sout.str();
 }
@@ -840,21 +855,36 @@ string VIA6522::IFR2Str()
 string VIA6522::IER2Str()
 {
 	stringstream sout;
-	sout << "0x" << hex << (int)mIER <<  " ";
-	if (mIER & IER_CA1_MASK)
-		sout << ":CA1 (0x" << hex << (int)IER_CA1_MASK << ")";
-	if (mIER & IER_CA2_MASK)
-		sout << ":CA2 (0x" << hex << (int)IER_CA2_MASK << ")";
-	if (mIER & IER_CB1_MASK)
-		sout << ":CB1 (0x" << hex << (int)IER_CB1_MASK << ")";
-	if (mIER & IER_CB2_MASK)
-		sout << ":CB2 (0x" << hex << (int)IER_CB2_MASK << ")";
-	if (mIER & IER_SR_MASK)
-		sout << ":SR (0x" << hex << (int)IER_SR_MASK << ")";
-	if (mIER & IER_T1_MASK)
-		sout << ":T1 (0x" << hex << (int)IER_T1_MASK << ")";
-	if (mIER & IER_T2_MASK)
-		sout << ":T2 (0x" << hex << (int)IER_T2_MASK << ")";
+	string prefix = "";
+	sout << "0x" << hex << (int)mIER <<  " <=> ";
+	if (mIER & IER_CA1_MASK) {
+		sout << prefix << "CA1";
+		prefix = ", ";
+	}
+	if (mIER & IER_CA2_MASK) {
+		sout << prefix << "CA2";
+		prefix = ", ";
+	}
+	if (mIER & IER_CB1_MASK) {
+		sout << prefix << "CB1";
+		prefix = ", ";
+	}
+	if (mIER & IER_CB2_MASK) {
+		sout << prefix << "CB2";
+		prefix = ", ";
+	}
+	if (mIER & IER_SR_MASK) {
+		sout << prefix << "SR";
+		prefix = ", ";
+	}
+	if (mIER & IER_T1_MASK) {
+		sout << prefix << "T1";
+		prefix = ", ";
+	}
+	if (mIER & IER_T2_MASK) {
+		sout << prefix << "T2";
+		prefix = ", ";
+	}
 
 	return sout.str();
 }
@@ -862,11 +892,11 @@ string VIA6522::ACR2Str()
 {
 	stringstream sout;
 	sout << "0x" << hex << (int)mACR <<  " <=> ";
-	sout << ":PA Latch (" << ACRLE2Str(ACR_PA_LATCH) << ")";
-	sout << ":PB Latch (" << ACRLE2Str(ACR_PB_LATCH) << ")";
-	sout << ":SR (" << ACRSR2Str(ACR_SR_CTRL) << ")";
-	sout << ":T2 (" << ACRT22Str(ACR_T2_CTRL) << ")";
-	sout << ":T1 (" << ACRT12Str(ACR_T1_CTRL) << ")";
+	sout << "PA Latch:" << ACRLE2Str(ACR_PA_LATCH);
+	sout << ", PB Latch:" << ACRLE2Str(ACR_PB_LATCH);
+	sout << ", SR:" << ACRSR2Str(ACR_SR_CTRL);
+	sout << ", T2:" << ACRT22Str(ACR_T2_CTRL);
+	sout << ", T1:" << ACRT12Str(ACR_T1_CTRL);
 
 	return sout.str();
 }
@@ -874,10 +904,10 @@ string VIA6522::PCR2Str()
 {
 	stringstream sout;
 	sout << "0x" << hex << (int)mPCR <<  " <=> ";
-	sout << ":CA1 (" << PCRCx12Str(PCR_CA1_CTRL) << ")";
-	sout << ":CA2 (" << PCRCx22Str(PCR_CA2_CTRL) << ")";
-	sout << ":CB1 (" << PCRCx12Str(PCR_CB1_CTRL) << ")";
-	sout << ":CB2 (" << PCRCx22Str(PCR_CB2_CTRL) << ")";
+	sout << "CA1:" << PCRCx12Str(PCR_CA1_CTRL);
+	sout << ", CA2:" << PCRCx22Str(PCR_CA2_CTRL);
+	sout << ", CB1:" << PCRCx12Str(PCR_CB1_CTRL);
+	sout << ", CB2:" << PCRCx22Str(PCR_CB2_CTRL);
 
 	return sout.str();
 }
