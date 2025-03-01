@@ -100,7 +100,7 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 		else
 			*(input.port->val) = ((pval & ~input.mask) | ((val << (-input.shifts)) & input.mask)) & input.port->mask;
 
-		if ((port->firstUpdate && (mDebugInfo->dbgLevel & DBG_VERBOSE)) || (((mDebugInfo->dbgLevel & DBG_6502) != 0) && *(input.port->val) != pval)) {
+		if ((port->firstUpdate && (mDebugInfo->dbgLevel & DBG_PORT)) || (((mDebugInfo->dbgLevel & DBG_PORT) != 0) && *(input.port->val) != pval)) {
 			string shift_s, c_dir;
 			if (input.shifts >= 0)
 				shift_s = "((src >> shifts) & mask)";
@@ -734,7 +734,7 @@ bool Devices::getPeripherals(vector<Device*>& devices)
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->category == PERIPHERAL || mDevices[i]->category == VDU_DEVICE) {
 			devices.push_back(mDevices[i]);
-			if (mDebugInfo->dbgLevel && DBG_VERBOSE)
+			if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 				cout << "Adding peripheral '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
@@ -746,7 +746,7 @@ bool Devices::getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices)
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->memoryMapped()) {
 			devices.push_back((MemoryMappedDevice *) mDevices[i]);
-			if (mDebugInfo->dbgLevel && DBG_VERBOSE)
+			if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 				cout << "Adding memory-mapped device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
@@ -764,7 +764,7 @@ bool Devices::getOtherDevices(vector<Device *> &devices)
 			mDevices[i]->category != KEYBOARD_DEVICE
 			) {
 			devices.push_back(mDevices[i]);
-			if (mDebugInfo->dbgLevel && DBG_VERBOSE)
+			if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 				cout << "Adding other device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
@@ -776,7 +776,7 @@ bool Devices::getMemoryDevices(vector<MemoryMappedDevice*> &devices)
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->category == MEMORY_DEVICE) {
 			devices.push_back((MemoryMappedDevice * ) mDevices[i]);
-			if (mDebugInfo->dbgLevel && DBG_VERBOSE)
+			if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 				cout << "Adding memory device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}

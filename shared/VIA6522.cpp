@@ -171,8 +171,6 @@ bool VIA6522::advance(uint64_t stopCycle)
 					mShiftRegister = (mShiftRegister >> 1) | ((mShiftRegister << 7) & 0x80); // shift register right one bit with b0 going into b7
 					mShifts = mShifts % 8;
 					if (mShifts == 0) {
-						if (ACR_SR_CTRL == 1 || ACR_SR_CTRL == 4 || ACR_SR_CTRL == 5)
-							mCycleCount += max(1, one_phi2_cycle); // 2 extra phi2 cycles for T2 modes
 						if (mShiftInterrupt)
 							setIFR(IFR_SR_MASK);
 						mCB1ShiftPulse = 0;
@@ -388,14 +386,14 @@ void VIA6522::updateIRQ()
 {
 	if ((mIFR & mIER & 0x7f) == 0) { // No pending interrupts
 		updatePort(IRQ, 0x1);
-		if (mIRQ != pIRQ)
-			cout << "*** VIA RESET IRQ\n\tIFR = " << IFR2Str() << "\n\tACR = " << ACR2Str() << "\n\tPCR = " << PCR2Str() << "\n\n";
+		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && mIRQ != pIRQ)
+			cout << "*** VIA RESET IRQ\n\tIFR = " << IFR2Str() << "\n\tIER = " << IER2Str() << "\n\tACR = " << ACR2Str() << "\n\tPCR = " << PCR2Str() << "\n\n";
 		pIRQ = mIRQ;
 	}
 	else { // Pending interrupts
 		updatePort(IRQ, 0x0);
-		if (mIRQ != pIRQ) {
-			cout << "*** VIA SET IRQ\n\tIFR = " << IFR2Str() << "\n\tACR = " << ACR2Str() << "\n\tPCR = " << PCR2Str() << "\n\n";
+		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && mIRQ != pIRQ) {
+			cout << "*** VIA SET IRQ\n\tIFR = " << IFR2Str() << "\n\tIER = " << IER2Str() << "\n\tACR = " << ACR2Str() << "\n\tPCR = " << PCR2Str() << "\n\n";
 		}
 		pIRQ = mIRQ;
 	}
@@ -819,7 +817,9 @@ string VIA6522::IFR2Str()
 {
 	stringstream sout;
 	string prefix = "";
-	sout << "0x" << hex << (int)mIFR << " <=> ";
+	sout << "0x" << hex << (int)mIFR;
+	if (mIFR != 0)
+		sout << " <=> ";
 	if (mIFR & IFR_CA1_MASK) {
 		sout << prefix << "CA1";
 		prefix = ", ";
@@ -856,7 +856,9 @@ string VIA6522::IER2Str()
 {
 	stringstream sout;
 	string prefix = "";
-	sout << "0x" << hex << (int)mIER <<  " <=> ";
+	sout << "0x" << hex << (int)mIER;
+	if (mIER != 0)
+		sout << " <=> ";
 	if (mIER & IER_CA1_MASK) {
 		sout << prefix << "CA1";
 		prefix = ", ";
@@ -974,8 +976,8 @@ string VIA6522::ACRSR2Str(uint8_t s)
 string VIA6522::ACRLE2Str(uint8_t l)
 {
 	switch (l) {
-	case 0x0: return "No Latch";
-	case 0x1: return "Latch";
+	case 0x0: return "No";
+	case 0x1: return "Yes";
 	default: return "???";
 	}
 }

@@ -215,7 +215,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 	if (!selected(adr))
 		return false;
 
-	
+	int pRegWrtCnt = mRegWrtCnt;
 
 	int16_t a = adr - mMemorySpace.adr;
 	if (a == 0 && (data & 0x1f) < 18)
@@ -228,7 +228,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 
 	updateSettings();
 	
-	if (mRegWrtCnt >= 18) {
+	if (mRegWrtCnt >= 18 && pRegWrtCnt < 18) {
 		if ((mDebugInfo->dbgLevel & DBG_VERBOSE))
 			printSettings();
 		mInitialised = true;

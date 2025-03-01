@@ -245,7 +245,6 @@ int main(int argc, const char* argv[])
 
                     // Execute one microprocessor instruction and advance time accordingly (cycle_count updated)
                     auto uc_start = chrono::high_resolution_clock::now();
-                    uint64_t target_up_count;
                     microprocessor->advanceInstr(cycle_count);
                     
                     auto uc_stop = chrono::high_resolution_clock::now();

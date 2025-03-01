@@ -27,17 +27,17 @@ private:
 	Codec6502 mCodec;
 
 	// Registers
-	uint16_t mProgramCounter;	// Program Counter
-	uint8_t mAcc;				// Accumulator
-	uint8_t mRegisterX;			// Index Register mRegisterX
-	uint8_t mRegisterY;			// Index Register mRegisterY
-	uint8_t mStackPointer;		// Stack Pointer
+	uint16_t mProgramCounter = 0x0;	// Program Counter
+	uint8_t mAcc = 0x0;				// Accumulator
+	uint8_t mRegisterX = 0x0;		// Index Register mRegisterX
+	uint8_t mRegisterY = 0x0;		// Index Register mRegisterY
+	uint8_t mStackPointer = 0x0;	// Stack Pointer
 	// Status Register
 	// b7 = Negative, b6 = Overflow (V), b5 not used, b4 = break (B),
 	// b3 = Decimal (D), b2 = Interrupt Disable (I),b1 = zero (Z), b0 = carry (C) 
 	// The B flag is not stored in the register but only put on stack (as b4) together with
 	// the Status Register content when a BRK instruction is executed.
-	uint8_t mStatusRegister;
+	uint8_t mStatusRegister = 0x0;
 #define N_set_mask 0x80 // 1000 0000 - b7
 #define V_set_mask 0x40 // 0100 0000 - b6
 #define b5_set_mask 0x30// 0010 0000 - b5 (not used)
@@ -77,7 +77,7 @@ private:
 	bool mStopDebugBuffering = false;
 
 	// Ports that can be connected to other devices
-	int NMI, IRQ;
+	int NMI = 0, IRQ = 0;
 	uint8_t mNMI = 0x1;
 	uint8_t mIRQ = 0x1;
 

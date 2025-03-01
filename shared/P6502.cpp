@@ -31,7 +31,11 @@ P6502::~P6502()
 
 bool P6502::serveNMI()
 {
-	
+	// Save SP, SR & PC for logging later on
+	uint8_t oStackPointer = mStackPointer;
+	uint8_t oStatusRegister = mStatusRegister;
+	uint16_t oProgramCounter = mProgramCounter;
+
 	// Disable IRQ interrupts
 	mStatusRegister |= I_set_mask;
 
@@ -48,15 +52,41 @@ bool P6502::serveNMI()
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
 	mStatusRegister |= I_set_mask;
-	return true;
+
+	if (mProgramCounter == mDebugInfo->interruptLogAdr)
+		mDebugInfo->dbgLevel = DBG_6502;
+
+	if (mDebugInfo->dbgLevel & DBG_INTERRUPTS) {
+		cout << "Serving NMI at PC = 0x" << hex << oProgramCounter << "\n";
+		if (mIRQ == 0) {
+			cout << "StackPointer 0x" << hex << 0x100 + oStackPointer << " => 0x" << 0x100 + mStackPointer << "\n";
+			cout << "Statusregister NV--DIZC:" << setw(8) << bitset<8>(oStatusRegister & 0xdf) << " => 0x" << bitset<8>(mStatusRegister & 0xdf) << "\n";
+			cout << "ProgramCounter 0x" << hex << oProgramCounter << " => 0x" << mProgramCounter << "\n";
+			cout << "Stack after the interrupt is:\n";
+			for (int a = 0x100 + mStackPointer - 2; a < 0x100 + mStackPointer + 1; a++) {
+				uint8_t d;
+				readProgramMem(a, d);
+				cout << "mem[0x" << a << "] = 0x" << (int)d << "\n";
+			}
+		}
+	}
+
 	return true;
 }
 
 bool P6502::serveIRQ()
 {
 	// Exit if IRQ disabled
-	if (mStatusRegister & I_set_mask)
-		return false;	
+	if (mStatusRegister & I_set_mask) {
+		if (mDebugInfo->dbgLevel & DBG_INTERRUPTS && mIRQ != pIRQ)
+			cout << "I flag set => IRQ ignored at 0x" << hex << mProgramCounter << "...\n";
+		return false;
+	}
+
+	// Save SP, SR & PC for logging later on
+	uint8_t oStackPointer = mStackPointer;
+	uint8_t oStatusRegister = mStatusRegister;
+	uint16_t oProgramCounter = mProgramCounter;
 
 	// Disable IRQ interrupts
 	mStatusRegister |= I_set_mask;
@@ -74,8 +104,23 @@ bool P6502::serveIRQ()
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
 
-	//cout << "SERVING IRQ - execution at adr 0x" << hex << PC_push_val << " interrupted by handler at 0x" << hex << mProgramCounter << "!\n";
+	if (mProgramCounter == mDebugInfo->interruptLogAdr)
+		mDebugInfo->dbgLevel = DBG_6502;
 
+	if (mDebugInfo->dbgLevel & DBG_INTERRUPTS) {
+		cout << "Serving IRQ at PC = 0x" << hex << oProgramCounter << "\n";
+		if (mIRQ == 0) {		
+			cout << "StackPointer 0x" << hex << 0x100 + oStackPointer << " => 0x" << 0x100 + mStackPointer << "\n";
+			cout << "Statusregister NV--DIZC:" << setw(8) << bitset<8>(oStatusRegister & 0xdf) << " => 0x" << bitset<8>(mStatusRegister & 0xdf) << "\n";
+			cout << "ProgramCounter 0x" << hex << oProgramCounter << " => 0x" << mProgramCounter << "\n";
+			cout << "Stack after the interrupt is:\n";
+			for (int a = 0x100 + oStackPointer - 2; a < 0x100 + oStackPointer + 1; a++) {
+				uint8_t d;
+				readProgramMem(a, d);
+				cout << "mem[0x" << a << "] = 0x" << (int)d << "\n";
+			}
+		}
+	}
 
 	return true;
 }
@@ -124,6 +169,15 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 {
 	bool success = true;
 
+	if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && mRESET != pRESET)
+		cout << "RESET => " << dec << (int)mNMI << "\n";
+
+	if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && mIRQ != pIRQ)
+		cout << "IRQ => " << dec << (int)mIRQ << "\n";
+
+	if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && mNMI != pNMI)
+		cout << "NMI => " << dec << (int)mNMI << "\n";
+
 	// Serve RESET, NMI & IRQ in priority order
 	if (!mRESET) {
 		reset();
@@ -136,17 +190,9 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	else if (!mIRQ)	// IRQ is level-triggered!
 		serveIRQ();
 
-	if ((true||(mDebugInfo->dbgLevel & DBG_6502)) && mIRQ != pIRQ) {
-		cout << "IRQ => " << dec << (int)mIRQ << ", I flag = " << (int)I_flag << dec << " at PC = 0x" << hex << mProgramCounter << "\n";
-		if (!mIRQ && !I_flag)
-			mDebugInfo->dbgLevel = DBG_6502;
-	}
-
-	if ((mDebugInfo->dbgLevel & DBG_6502) && mNMI != pNMI)
-		cout << "NMI => " << dec << (int)mNMI << "\n";
-
 	pNMI = mNMI;
 	pIRQ = mIRQ;
+	pRESET = mRESET;
 
 
 	if (mDebugInfo->traceAdr > 0) {
@@ -213,7 +259,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			std::cout << "Failed to execute instruction!\n";
 	}
 
-	if ((mDebugInfo->dbgLevel & DBG_6502)  || (opcode_PC == mDebugInfo->logAdr) || (mDebugInfo->traceAdr > 0 && !mEndOfTracingReached)) {
+	if ((mDebugInfo->dbgLevel & DBG_6502)  || (opcode_PC == mDebugInfo->cyclicLogAdr) || (mDebugInfo->traceAdr > 0 && !mEndOfTracingReached)) {
 		string instr_s = mCodec.decode(opcode_PC, opcode, operand);
 		stringstream sout;
 		sout << setfill(' ') << setw(30) << left << instr_s << right <<
@@ -225,7 +271,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		if (instr.writesMem)
 			sout << " WROTE 0x" << setw(2) << (int)written_val;
 		sout << "\n";
-		if ((mDebugInfo->dbgLevel & DBG_6502) || (opcode_PC == mDebugInfo->logAdr))
+		if ((mDebugInfo->dbgLevel & DBG_6502) || (opcode_PC == mDebugInfo->cyclicLogAdr))
 			cout << sout.str();
 		if (mDebugInfo->traceAdr > 0 && !mEndOfTracingReached && !mStopDebugBuffering) {
 			mBufferedTraceLines.push_back(sout.str());
@@ -837,6 +883,10 @@ bool P6502::executeInstr(
 		// +	+	+	+	+	+
 	{
 
+		uint8_t oStackPointer = mStackPointer;
+		uint8_t oStatusRegister = mStatusRegister;
+		uint16_t oProgramCounter = mProgramCounter;
+
 		// Pull Status Register
 		uint8_t stack_val;
 		readProgramMem(0x100 + (uint16_t)++mStackPointer, stack_val);
@@ -851,7 +901,18 @@ bool P6502::executeInstr(
 		uint16_t oPC = mProgramCounter;
 		mProgramCounter = PC_h * 256 + PC_l;
 
-		//cout << "RTI executed at 0x" << hex << oPC << "; resume execution at 0x" << mProgramCounter << "!\n";
+		if (mDebugInfo->dbgLevel & DBG_INTERRUPTS) {
+			cout << "RTI executed at 0x" << hex << oPC << "; execution resumed at 0x" << mProgramCounter << "!\n";
+			cout << "StackPointer 0x" << hex << 0x100 + oStackPointer << " => 0x"  << 0x100 + mStackPointer << "\n";
+			cout << "Statusregister NV--DIZC:" << setw(8) << bitset<8>(oStatusRegister & 0xdf) << " => 0x" << bitset<8>(mStatusRegister & 0xdf) << "\n";
+			cout << "ProgramCounter 0x" << hex << oProgramCounter << " => 0x" << mProgramCounter << "\n";
+			cout << "Stack before the execution of the RTI was:\n";
+			for (int a = 0x100 + mStackPointer - 2; a < 0x100 + mStackPointer+1; a++) {
+				uint8_t d;
+				readProgramMem(a, d);
+				cout << "mem[0x" << a << "] = 0x" << (int)d << "\n";
+			}
+		}
 
 		break;
 	}

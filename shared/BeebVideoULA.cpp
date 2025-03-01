@@ -11,8 +11,7 @@ BeebVideoULA::BeebVideoULA(
 	registerPort("CURSOR",		IN_PORT,	0x01, CURSOR,		&mCURSOR);	
 	registerPort("INV",			IN_PORT,	0x01, INV,			&mINV);
 	registerPort("RA",			IN_PORT,	0x0f, RA,			&mRA);
-	registerPort("VS",			IN_PORT,	0x01, VS,			&mVS);
-	registerPort("HS",			IN_PORT,	0x01, HS,			&mHS);
+	registerPort("CRTC_CLK",	OUT_PORT,	0x01, CRTC_CLK,		&mCRTC_CLK);
 
 
 	// Create 640 x 256 display bitmap and clear it
@@ -30,7 +29,11 @@ BeebVideoULA::~BeebVideoULA()
 // Reset device
 bool BeebVideoULA::reset()
 {
+
 	Device::reset();
+
+	mScanLine = 0;
+
 	return true;
 }
 
@@ -80,13 +83,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	if (!mCRTC->initialised())
 		return true;
 
-	// Reset scan line when vertical sync pulse comes
-	/*
-	if (mVS && mVS != pVS) {
-		mScanLine = 0;
-	}
-	pVS = mVS;
-	*/
 
 	// Check that screen size fits with the current graphics mode
 	updateScreenSz();
@@ -429,9 +425,9 @@ bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 
 		mControlRegister = data;
 		if (getCRField(CR_CLOCK_RATE) == 1)
-			CRTCClock = 2.0;
+			updatePort(CRTC_CLK, 2);
 		else
-			CRTCClock = 1.0;
+			updatePort(CRTC_CLK, 1);
 
 		mNCols = (1 << getCRField(CR_N_COLS)) * 10;
 		mPixelRate = 1 << (getCRField(CR_N_COLS) + 1); // pixel rate: 2, 4, 8 or 16 MHz
@@ -451,7 +447,7 @@ bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 		cout << "Video ULA PixelRate:       " << mPixelRate << " MHz\n";
 		cout << "Video ULA PixelWidth:      " << (int) mPixelW << "\n";
 		cout << "Video ULA Pixels/byte:     " << (int)mPixelsPerByte << "\n";
-		cout << "Video ULA CRTC Clock:      " << CRTCClock << " MHz\n";
+		cout << "Video ULA CRTC Clock:      " << mCRTC_CLK << " MHz\n";
 		cout << "Video ULA No of cols:      " << mNCols << "\n";
 		cout << "Video ULA Teletext:        " << (getCRField(CR_TELETEXT) ? "ON" : "OFF") << "\n";
 		cout << "Video ULA Cursor Segments: " << hex << (int)getCRField(CR_CURSOR_SEGMENT) << "\n";
