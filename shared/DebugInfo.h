@@ -2,15 +2,18 @@
 #define DEBUG_INFO_H
 
 typedef int DebugLevel;
-#define	DBG_NONE			0x00
-#define	DBG_ERROR			0x01
-#define	DBG_VERBOSE			0x02
-#define	DBG_WARNING			0x04
-#define	DBG_6502			0x08
-#define DBG_PORT			0x10
-#define DBG_INTERRUPTS		0x20
-#define	DBG_DEVICE			0x40
-#define	DBG_ALL				0xff
+#define	DBG_NONE			0x000
+#define	DBG_ERROR			0x001
+#define	DBG_VERBOSE			0x002
+#define	DBG_WARNING			0x004
+#define	DBG_6502			0x008
+#define DBG_PORT			0x010
+#define DBG_INTERRUPTS		0x020
+#define DBG_KEYBOARD		0x040
+#define DBG_VDU				0x080
+#define DBG_IO_PERIPHERAL	0x100
+#define	DBG_DEVICE			0x200
+#define	DBG_ALL				0xfff
 
 
 typedef struct DebugInfo_struct {

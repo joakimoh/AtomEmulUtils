@@ -66,7 +66,10 @@ bool P6502::serveNMI()
 			for (int a = 0x100 + mStackPointer - 2; a < 0x100 + mStackPointer + 1; a++) {
 				uint8_t d;
 				readProgramMem(a, d);
-				cout << "mem[0x" << a << "] = 0x" << (int)d << "\n";
+				if (a == 0x100 + mStackPointer - 2)
+					cout << "mem[0x" << a << "] = 0x" << (int)d << " <=> NV-(B)DIZC " << setw(8) << bitset<8>(d) << "\n";
+				else
+					cout << "mem[0x" << a << "] = 0x" << (int)d << "\n";
 			}
 		}
 	}
@@ -117,7 +120,10 @@ bool P6502::serveIRQ()
 			for (int a = 0x100 + oStackPointer - 2; a < 0x100 + oStackPointer + 1; a++) {
 				uint8_t d;
 				readProgramMem(a, d);
-				cout << "mem[0x" << a << "] = 0x" << (int)d << "\n";
+				if (a == 0x100 + oStackPointer - 2)
+					cout << "mem[0x" << a << "] = 0x" << (int)d << " <=> NV-(B)DIZC " << setw(8) << bitset<8>(d) << "\n";
+				else
+					cout << "mem[0x" << a << "] = 0x" << (int)d << "\n";
 			}
 		}
 	}
@@ -476,6 +482,11 @@ bool P6502::executeInstr(
 		// -	-	-	1	-	-
 	{
 		// Force Break
+
+		// Save SP, SR & PC for logging later on
+		uint8_t oStackPointer = mStackPointer;
+		uint8_t oStatusRegister = mStatusRegister;
+		uint16_t oProgramCounter = mProgramCounter;
 		
 		// Save PC & Status to stack
 		uint16_t PC_push_val = opcode_PC + 2;
@@ -489,6 +500,24 @@ bool P6502::executeInstr(
 		if (!readProgramMem(0xfffe, adr_L) || !readProgramMem(0xffff, adr_H))
 			return false;
 		mProgramCounter = adr_H * 256 + adr_L;
+
+		if (mDebugInfo->dbgLevel & DBG_INTERRUPTS) {
+			cout << "BRK executed at PC = 0x" << hex << oProgramCounter << "\n";
+			if (mIRQ == 0) {
+				cout << "StackPointer 0x" << hex << 0x100 + oStackPointer << " => 0x" << 0x100 + mStackPointer << "\n";
+				cout << "Statusregister NV--DIZC:" << setw(8) << bitset<8>(oStatusRegister & 0xdf) << " => 0x" << bitset<8>(mStatusRegister & 0xdf) << "\n";
+				cout << "ProgramCounter 0x" << hex << oProgramCounter << " => 0x" << mProgramCounter << "\n";
+				cout << "Stack after the interrupt is:\n";
+				for (int a = 0x100 + oStackPointer - 2; a < 0x100 + oStackPointer + 1; a++) {
+					uint8_t d;
+					readProgramMem(a, d);
+					if (a == 0x100 + oStackPointer - 2)
+						cout << "mem[0x" << a << "] = 0x" << (int)d << " <=> NV-(B)DIZC " << setw(8) << bitset<8>(d)<< "\n";
+					else
+						cout << "mem[0x" << a << "] = 0x" << (int)d << "\n";
+				}
+			}
+		}
 
 
 		break;
@@ -539,7 +568,10 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// -	-	-	0	-	-
 	{
+		uint8_t oStatusRegister = mStatusRegister;
 		mStatusRegister &= ~I_set_mask;
+		if ((mDebugInfo->dbgLevel && DBG_INTERRUPTS) && (oStatusRegister & I_set_mask) != 0)
+			cout << "IRQ enabled (by CLI) at 0x" << hex << opcode_PC << "\n";
 		break;
 	}
 
@@ -910,7 +942,10 @@ bool P6502::executeInstr(
 			for (int a = 0x100 + mStackPointer - 2; a < 0x100 + mStackPointer+1; a++) {
 				uint8_t d;
 				readProgramMem(a, d);
-				cout << "mem[0x" << a << "] = 0x" << (int)d << "\n";
+				if (a == 0x100 + mStackPointer - 2)
+					cout << "mem[0x" << a << "] = 0x" << (int)d << " <=> NV-(B)DIZC " << setw(8) << bitset<8>(d) << "\n";
+				else
+					cout << "mem[0x" << a << "] = 0x" << (int)d << "\n";
 			}
 		}
 
@@ -1003,7 +1038,10 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// -	-	-	1	-	-
 	{
+		uint8_t oStatusRegister = mStatusRegister; 
 		mStatusRegister |= I_set_mask;
+		if ((mDebugInfo->dbgLevel && DBG_INTERRUPTS) && (oStatusRegister & I_set_mask) == 0)
+			cout << "IRQ disabled (by SEI) at 0x" << hex << opcode_PC << "\n";
 		break;
 	}
 

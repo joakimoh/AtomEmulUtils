@@ -189,7 +189,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// If in the active, area, the video memory address containing 
 		// character/graphics data is also provided.
 		uint16_t crtc_adr, screen_adr;
-		bool in_active_area;
 		if (!mCRTC->getMemFetchAdr(crtc_adr)) {
 			cout << "Failed to get address from the CRTC!\n";
 			return false;

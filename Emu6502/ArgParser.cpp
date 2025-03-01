@@ -33,7 +33,10 @@ void ArgParser::printUsage(const char* name)
 	cout << "\t'u' microprocessor execution\n";
 	cout << "\t'p' device port updates\n";
 	cout << "\t'i' interrupts\n";
-	cout << "\t'd' device execution\n";
+	cout << "\t'k' keyboard\n";
+	cout << "\t'v' video display units\n";
+	cout << "\t's' serial/parallel I/O peripherals\n";
+	cout << "\t'd' device execution in general\n";
 	cout << "\t'a' all the above\n\n";
 }
 
@@ -135,6 +138,12 @@ ArgParser::ArgParser(int argc, const char* argv[])
 				debugInfo.dbgLevel |= DBG_PORT;
 			else if (strstr(argv[a], "i") != NULL)
 				debugInfo.dbgLevel |= DBG_INTERRUPTS;
+			else if (strstr(argv[a], "k") != NULL)
+				debugInfo.dbgLevel |= DBG_KEYBOARD;
+			else if (strstr(argv[a], "v") != NULL)
+				debugInfo.dbgLevel |= DBG_VDU;
+			else if (strstr(argv[a], "s") != NULL)
+				debugInfo.dbgLevel |= DBG_IO_PERIPHERAL;
 			else if (strstr(argv[a], "a") != NULL)
 				debugInfo.dbgLevel |= DBG_ALL;
 			else {

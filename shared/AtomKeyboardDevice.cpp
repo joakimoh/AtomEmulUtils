@@ -106,7 +106,7 @@ bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 		return false;
 
 
-	if (((mDebugInfo->dbgLevel & DBG_DEVICE) != 0) && (column_L != 0xff || column_H != 0x3))
+	if (((mDebugInfo->dbgLevel & DBG_KEYBOARD) != 0) && (column_L != 0xff || column_H != 0x3))
 		cout << "column L = 0x" << hex << (int)column_L << ", column H = 0x" << (int)column_H << "\n";
 
 

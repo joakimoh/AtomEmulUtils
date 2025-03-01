@@ -91,8 +91,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 		uint8_t pPB6 = (pPB >> 6) & 0x1;
 
 
-		if ((mDebugInfo->dbgLevel & DBG_6502) && mCA != pCA) {
-			//cout << "CA1 = " << (int)(mCA & 0x1) << ", CA2 = " << (int)((mCA >> 1) & 0x1) << "\n";
+		if ((mDebugInfo->dbgLevel & DBG_IO_PERIPHERAL) && mCA != pCA) {
+			cout << "CA1 = " << (int)(mCA & 0x1) << ", CA2 = " << (int)((mCA >> 1) & 0x1) << "\n";
 		}
 
 		if (ACR_PA_LATCH && (mCA & 0x1)) // PA shall be latched on a high CA1
@@ -538,6 +538,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		// Clear IFR's SR bit on read
 		clearIFR(IFR_SR_MASK);
 
+		break;
 
 	}
 
@@ -797,8 +798,8 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		uint8_t oPA = mPA;
 		updatePort(PA, (mPA & ~mDDRA) | (data & mDDRA));
 
-		//if (mDebugInfo->dbgLevel & DBG_6502)
-		//	cout << "WRITE TO PA WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)oPA << " => 0x" << (int)mPA << "\n";
+		if (mDebugInfo->dbgLevel & DBG_IO_PERIPHERAL)
+			cout << "WRITE TO PA WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)oPA << " => 0x" << (int)mPA << "\n";
 
 
 		break;
