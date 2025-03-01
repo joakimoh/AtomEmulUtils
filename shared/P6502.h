@@ -91,6 +91,9 @@ private:
 
 	bool readProgramMem(uint16_t adr, uint8_t& data);
 	bool readZP(uint8_t adr, uint8_t& data);
+
+	void printInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister);
+	void printCallStack();
 	
 
 public:
