@@ -435,6 +435,11 @@ Devices::Devices(
 					vdus.push_back(mainVDU);
 				}
 
+				else {
+					cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
+					throw runtime_error("Syntax error");
+				}
+
 			}
 
 			else if (cmd == "GAP") {

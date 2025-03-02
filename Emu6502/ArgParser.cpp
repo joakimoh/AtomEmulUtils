@@ -128,28 +128,24 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			}
 			if (strstr(argv[a ], "e") != NULL)
 				debugInfo.dbgLevel |= DBG_ERROR;
-			else if (strstr(argv[a], "w") != NULL)
+			if (strstr(argv[a], "w") != NULL)
 				debugInfo.dbgLevel |= DBG_WARNING;
-			else if (strstr(argv[a], "d") != NULL)
+			if (strstr(argv[a], "d") != NULL)
 				debugInfo.dbgLevel |= DBG_DEVICE;
-			else if (strstr(argv[a], "u") != NULL)
+			if (strstr(argv[a], "u") != NULL)
 				debugInfo.dbgLevel |= DBG_6502;
-			else if (strstr(argv[a], "p") != NULL)
+			if (strstr(argv[a], "p") != NULL)
 				debugInfo.dbgLevel |= DBG_PORT;
-			else if (strstr(argv[a], "i") != NULL)
+			if (strstr(argv[a], "i") != NULL)
 				debugInfo.dbgLevel |= DBG_INTERRUPTS;
-			else if (strstr(argv[a], "k") != NULL)
+			if (strstr(argv[a], "k") != NULL)
 				debugInfo.dbgLevel |= DBG_KEYBOARD;
-			else if (strstr(argv[a], "v") != NULL)
+			if (strstr(argv[a], "v") != NULL)
 				debugInfo.dbgLevel |= DBG_VDU;
-			else if (strstr(argv[a], "s") != NULL)
+			if (strstr(argv[a], "s") != NULL)
 				debugInfo.dbgLevel |= DBG_IO_PERIPHERAL;
-			else if (strstr(argv[a], "a") != NULL)
+			if (strstr(argv[a], "a") != NULL)
 				debugInfo.dbgLevel |= DBG_ALL;
-			else {
-				printUsage(argv[0]);
-				return;
-			}
 		}
 		else {
 			cout << "Unknown option " << argv[a] << "\n";
@@ -163,7 +159,6 @@ ArgParser::ArgParser(int argc, const char* argv[])
 		printUsage(argv[0]);
 		return;
 	}
-
 
 	mParseSuccess = true;
 }

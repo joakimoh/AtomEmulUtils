@@ -1,0 +1,58 @@
+CLOCK	2.0	// CPU clock in MHz
+
+//	Device	Unique name		Addr	Size
+//
+ADD	DRAM		RAM32K		0000	8000			// 32kB RAM	0000 -	7fff
+GAP			RAM32K		0400	0400			// Gap in 32K RAM space between 400-7ff
+//ADD	ROM		LANGUAGE	0400	0400			// Language ROM
+ADD	ROM 		BASIC		8000	4000	BASIC2.rom	// Paged ROM #15 8000 - bfff
+ADD	ROM		OS		c000	4000	OS12.rom	// OS		 c000 -	ffff
+GAP			OS		fc00	0300			// Gap in OS ROM space between fc00-ff00	
+									// SHEILA	fe00 -	feff
+ADD	CRTC6845	CRTC		fe00	0008			// H6845SP CRTC
+ADD	TT5050		TCG						// Teletext Character Generator			
+ADD	ACIA6850	ACIA		fe08	0008	1.0		// ACIA 6850
+//ADD	BeebSerULA	SerialULA	fe10	0010
+ADD	BeebVideoULA	VDU		fe20	0010			// Beeb Video ULA
+ADD	BeebRomSel	ROMSel		fe30	0010
+ADD	VIA6522		SYS_VIA		fe40	0020	1.0		// IC3	fe40 -	fe4f; 1 Mhz Clock
+//ADD	VIA6522		USER_VIA	fe60	0020	1.0		// IC69	fe60 -	fe6f; 1 MHz Clock
+//ADD	ADC7002		ADC		fec0	0003			// ADC Converter
+ADD	BEEBKB		KB		00				// startup options (DIP switches)
+ADD	UC6502		UC						// Microcontroller 6502
+
+//
+//	Device connections
+//
+//	Specifies (when applicable) each device's connection to other
+//	devices. Only one port at a time can be specified per line.
+//	For a multiple-bit port, the bits (starting with the high bit no)
+//	to be connected shall be specified unless all bits shall be
+//	connected.
+//
+CONNECT	CRTC:DISPTMG	TCG:LOSE
+CONNECT	CRTC:DISPTMG	VDU:DISEN
+CONNECT	CRTC:CUDISP	VDU:CURSOR
+CONNECT	CRTC:RA		VDU:RA
+CONNECT	CRTC:VS		SYS_VIA:CA;0	// VS => CA1
+CONNECT ROMSel:SE	BASIC:CS
+CONNECT SYS_VIA:PB;3;0	KB:CTRL		// PB3:0 => CTRL
+CONNECT SYS_VIA:PA;3;0	KB:COL_SEL	// PA3:0 => COL_SEL
+CONNECT SYS_VIA:PA;6;4	KB:ROW_SEL	// PA6:4 => ROW_SEL
+CONNECT SYS_VIA:IRQ	UC:IRQ		// VIA generates 100 Hz timer interrupts and more
+CONNECT KB:ROW		SYS_VIA:PA;7	// ROW => PA7
+CONNECT KB:PRESSED	SYS_VIA:CA;1	// PRESSED = CA2
+CONNECT KB:BREAK	UC:RESET
+CONNECT KB:BREAK	SYS_VIA:RESET
+CONNECT KB:BREAK	CRTC:RESET		
+
+//
+//	Device scheduling
+//
+TRIGGER KB	MEM	OS	READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release)
+//SCHED	KB	FRAME				// Also schedule the keyboard on frame basis (for RESET release)
+TRIGGER	KB	MEM	SYS_VIA	WRITE	fe4f	// Beeb selects keyboard row & col by writing to VIA Port A (address fe4f)
+TRIGGER	CRTC	CALL	VDU			// Trigger the CRTC explictly by VDU function calls
+TRIGGER	TCG	CALL	VDU			// Trigger the TCG explictly by VDU function calls
+SCHED	TCG	NONE
+SCHED	CRTC	NONE

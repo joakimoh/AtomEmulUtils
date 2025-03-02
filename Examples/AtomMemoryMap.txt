@@ -1,3 +1,5 @@
+CLOCK 1.0	// CPU Clock in MHz
+
 //
 //	Device instances
 //
@@ -21,21 +23,21 @@
 //
 //	Device	Unique name	Addr	Size
 //
-	SRAM	BLOCK_ZERO	0000	0400				// Block Zero RAM
-	VDU6847	VDU		0800	0100 8000			// VDU CRT Controller 6847
-	SRAM	PROGRAM		2800	5800				// Program RAM - 22K
-	SRAM	GRAPHICS	8000	1800				// Graphics RAM - 6K
-	ROM	WILLOW		A000	1000 Willow.rom			// Willow Utility ROM
-	PIA8255	PIA		b000	0004 				// PIA 8255
-	VIA6522	VIA		b800	0010 				// VIA 6522
-	ROM	BASIC		c000	1000 Atom_basic.rom		// BASIC ROM
-	ROM	FP		d000	1000 Atom_FloatingPoint.rom	// Floating-point ROM
-	ROM	KERNEL		f000	1000 Atom_Kernel.rom		// CAS ROM
-	ATOMKB	ATOMKB							// Acorn Atom keyboard
-	ATOMCAS	CUTS							// CUTS Cassette Interface
-	UC6502	UC							// Microcontroller 6502
-	TAPREC	TAPREC							// Standard Tape Recorder
-	ATOMSP	SPEAKER							// Acorn Atom Speaker
+ADD	SRAM	BLOCK_ZERO	0000	0400				// Block Zero RAM
+ADD	VDU6847	VDU		0800	0100 8000			// VDU CRT Controller 6847
+ADD	SRAM	PROGRAM		2800	5800				// Program RAM - 22K
+ADD	SRAM	GRAPHICS	8000	1800				// Graphics RAM - 6K
+ADD	ROM	WILLOW		A000	1000 Willow.rom			// Willow Utility ROM
+ADD	PIA8255	PIA		b000	0004 				// PIA 8255
+ADD	VIA6522	VIA		b800	0010	1.0 			// VIA 6522
+ADD	ROM	BASIC		c000	1000 Atom_basic.rom		// BASIC ROM
+ADD	ROM	FP		d000	1000 Atom_FloatingPoint.rom	// Floating-point ROM
+ADD	ROM	KERNEL		f000	1000 Atom_Kernel.rom		// CAS ROM
+ADD	ATOMKB	ATOMKB							// Acorn Atom keyboard
+ADD	ATOMCAS	CUTS							// CUTS Cassette Interface
+ADD	UC6502	UC							// Microcontroller 6502
+ADD	TAPREC	TAPREC							// Standard Tape Recorder
+ADD	ATOMSP	SPEAKER							// Acorn Atom Speaker
 //
 //	Device connections
 //
@@ -85,8 +87,13 @@ CONNECT	PIA:PortC;2	SPEAKER:OUT
 // can trigger another device as only a single address can be specified (corresponding to
 // the access of that peripheral's register). The device being triggered should be
 // a non-memory mapped device (like a keyboard, tape recorder, speaker etc.).
-// Default (when no triggering is specified) is to schedule each device periodically.
+// Default (when no triggering is specified) is to schedule each device periodically
+// synchronised with the microcontroller instruction execution (INSTR)
+//
+// SCHEDULING IS ONE OF FRAME, HLINE, INSTR, NONE
 //
 // A device scheduled like this will not also be scheduled periodically.
-TRIGGER	ATOMKB	PIA	READ	b001	// Acorn Atom polls keyboard by reading from PIA Port B
-TRIGGER ATOMKB	KERNEL	READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release) 
+TRIGGER	ATOMKB	MEM	PIA	READ	b001	// Acorn Atom polls keyboard by reading from PIA Port B
+TRIGGER ATOMKB	MEM	KERNEL	READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release)
+SCHED	ATOMKB	FRAME
+SCHED	SPEAKER	HLINE

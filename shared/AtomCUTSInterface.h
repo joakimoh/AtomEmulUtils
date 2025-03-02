@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include "CSWCodec.h"
+#include <cmath>
 
 class AtomCUTSInterface : public Device {
 

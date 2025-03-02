@@ -6,6 +6,7 @@
 #include "RAM.h"
 #include "TT5050.h"
 #include "CRTC6845.h"
+#include <cmath>
 
 
 

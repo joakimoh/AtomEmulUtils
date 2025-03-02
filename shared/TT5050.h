@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "Device.h"
 #include "RAM.h"
+#include <cmath>
 
 
 //

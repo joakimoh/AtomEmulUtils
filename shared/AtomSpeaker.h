@@ -6,6 +6,7 @@
 #include <iostream>
 #include "CSWCodec.h"
 #include "allegro5/allegro_audio.h"
+#include <cmath>
 
 class AtomSpeaker : public SoundDevice {
 

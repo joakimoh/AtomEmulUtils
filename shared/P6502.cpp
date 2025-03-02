@@ -40,11 +40,8 @@ bool P6502::serveNMI()
 	mStatusRegister |= I_set_mask;
 
 	// Save PC & Status to stack
-	uint16_t PC_push_val = mProgramCounter;
-	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
-	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
-	uint8_t SR_push_val = mStatusRegister | B_set_mask;
-	writeDevice(0x100 + (uint16_t)mStackPointer--, SR_push_val);
+	pushWord(mProgramCounter);
+	push(mStatusRegister | B_set_mask);
 
 	// Fetch break vector
 	uint8_t adr_L, adr_H;
@@ -69,7 +66,7 @@ bool P6502::serveIRQ()
 {
 	// Exit if IRQ disabled
 	if (mStatusRegister & I_set_mask) {
-		if (mDebugInfo->dbgLevel & DBG_INTERRUPTS && mIRQ != pIRQ)
+		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && mIRQ != pIRQ)
 			cout << "I flag set => IRQ ignored at 0x" << hex << mProgramCounter << "...\n";
 		return false;
 	}
@@ -83,11 +80,8 @@ bool P6502::serveIRQ()
 	mStatusRegister |= I_set_mask;
 
 	// Save PC & Status to stack
-	uint16_t PC_push_val = mProgramCounter;
-	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
-	writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
-	uint8_t SR_push_val = mStatusRegister;
-	writeDevice(0x100 + (uint16_t)mStackPointer--, SR_push_val);
+	pushWord(mProgramCounter);
+	push(mStatusRegister);
 
 	// Fetch break vector
 	uint8_t adr_L, adr_H;
@@ -264,6 +258,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		if (mDebugInfo->dbgLevel & DBG_ERROR)
 			std::cout << "Failed to get operand for instruction 0x" << hex << (int)opcode << " at address 0x" << opcode_PC << "!\n";
 	}
+	// After reading the operand, the PC points at the next instruction...
 
 	// Execute the instruction
 	uint8_t written_val;
@@ -488,7 +483,7 @@ bool P6502::executeInstr(
 		// Force Break
 		// Initiates a software interrupt
 		// push PC+2, push SR (together with a set b4 = B)
-		// The low PC byte is pushed first (so that the PC is stored in little endian format in the memory)
+		// The high PC byte is pushed first (so that the PC is stored in little endian format in the memory)
 		// N	Z	C	I	D	V
 		// -	-	-	1	-	-
 	{
@@ -500,11 +495,8 @@ bool P6502::executeInstr(
 		uint16_t oProgramCounter = mProgramCounter;
 		
 		// Save PC & Status to stack
-		uint16_t PC_push_val = opcode_PC + 2;
-		writeDevice(0x100 + (uint16_t) mStackPointer--, PC_push_val / 256);
-		writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
-		uint8_t SR_push_val = mStatusRegister | B_set_mask;
-		writeDevice(0x100 + (uint16_t)mStackPointer--, SR_push_val);
+		pushWord(opcode_PC+3); // this is the same as PC after the opcode has been read + 2
+		push(mStatusRegister | B_set_mask);
 
 		// Fetch break vector
 		uint8_t adr_L, adr_H;
@@ -513,9 +505,8 @@ bool P6502::executeInstr(
 		mProgramCounter = adr_H * 256 + adr_L;
 
 		if (mDebugInfo->dbgLevel & DBG_INTERRUPTS) {
-			cout << "BRK executed at PC = 0x" << hex << oProgramCounter << "\n";
-			if (mIRQ == 0)
-				printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
+			cout << "BRK executed at PC = 0x" << hex << opcode_PC << "\n";
+			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
 		}
 
 
@@ -569,7 +560,7 @@ bool P6502::executeInstr(
 	{
 		uint8_t oStatusRegister = mStatusRegister;
 		mStatusRegister &= ~I_set_mask;
-		if ((mDebugInfo->dbgLevel && DBG_INTERRUPTS) && (oStatusRegister & I_set_mask) != 0)
+		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && (oStatusRegister & I_set_mask) != 0)
 			cout << "IRQ enabled (by CLI) at 0x" << hex << opcode_PC << "\n";
 		break;
 	}
@@ -719,7 +710,6 @@ bool P6502::executeInstr(
 	{
 		
 		mProgramCounter = calc_op_adr;
-
 		break;
 	}
 
@@ -731,10 +721,11 @@ bool P6502::executeInstr(
 		// -	-	-	-	-	-
 	{
 		
-		uint16_t PC_push_val = opcode_PC + 2;
-		writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val / 256);
-		writeDevice(0x100 + (uint16_t)mStackPointer--, PC_push_val % 256);
+		pushWord(opcode_PC + 3); // this is the same as PC after the opcode has been read + 2
+
 		mProgramCounter = calc_op_adr;
+	
+		//cout << "JSR at 0x" << hex << opcode_PC << "; "; printCallStack();
 
 		break;
 	}
@@ -819,7 +810,7 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
-		writeDevice(0x100 + (uint16_t)mStackPointer--, mAcc);
+		push(mAcc);
 		break;
 	}
 
@@ -831,7 +822,7 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// -	-	-	-	-	-
 	{
-		writeDevice(0x100 + (uint16_t)mStackPointer--, mStatusRegister | B_set_mask | b5_set_mask);
+		push(mStatusRegister | B_set_mask | b5_set_mask);
 		break;
 	}
 
@@ -841,7 +832,7 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// +	+	-	-	-	-
 	{
-		readProgramMem(0x100 + (uint16_t)++mStackPointer, mAcc);
+		pull(mAcc);
 		setNZflags(mAcc);
 		break;
 	}
@@ -851,8 +842,8 @@ bool P6502::executeInstr(
 		// N	Z	C	I	D	V
 		// +	+	+	+	+	+
 	{
-		uint8_t stack_val;
-		readProgramMem(0x100 + (uint16_t)++mStackPointer, stack_val);
+		uint8_t stack_val; 
+		pull(stack_val);
 		stack_val &= ~(B_set_mask | b5_set_mask);
 		mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
 		mStatusRegister |= stack_val;
@@ -920,17 +911,14 @@ bool P6502::executeInstr(
 
 		// Pull Status Register
 		uint8_t stack_val;
-		readProgramMem(0x100 + (uint16_t)++mStackPointer, stack_val);
+		pull(stack_val);
 		stack_val &= ~(B_set_mask | b5_set_mask);
 		mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
 		mStatusRegister |= stack_val;
 
 		// Pull PC
-		uint8_t PC_l, PC_h;
-		readProgramMem(0x100 + (uint16_t)++mStackPointer, PC_l);
-		readProgramMem(0x100 + (uint16_t)++mStackPointer, PC_h);
 		uint16_t oPC = mProgramCounter;
-		mProgramCounter = PC_h * 256 + PC_l;
+		pullWord(mProgramCounter);
 
 		if (mDebugInfo->dbgLevel & DBG_INTERRUPTS) {
 			cout << "RTI executed at 0x" << hex << oPC << "; execution resumed at 0x" << mProgramCounter << "!\n";
@@ -948,10 +936,10 @@ bool P6502::executeInstr(
 		// -	-	-	-	-	-
 
 	{
-		uint8_t PC_l, PC_h;
-		readProgramMem(0x100 + (uint16_t)++mStackPointer, PC_l);
-		readProgramMem(0x100 + (uint16_t)++mStackPointer, PC_h);
-		mProgramCounter = PC_h * 256 + PC_l + 1;
+		//cout << "RTS at 0x" << hex << opcode_PC << "; "; printCallStack();
+		uint16_t oPC = mProgramCounter;
+		pullWord(mProgramCounter);
+
 		break;
 	}
 
@@ -1028,7 +1016,7 @@ bool P6502::executeInstr(
 	{
 		uint8_t oStatusRegister = mStatusRegister; 
 		mStatusRegister |= I_set_mask;
-		if ((mDebugInfo->dbgLevel && DBG_INTERRUPTS) && (oStatusRegister & I_set_mask) == 0)
+		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && (oStatusRegister & I_set_mask) == 0)
 			cout << "IRQ disabled (by SEI) at 0x" << hex << opcode_PC << "\n";
 		break;
 	}
@@ -1570,6 +1558,9 @@ bool P6502::readDevice(uint16_t adr, uint8_t& data)
 		}
 	}
 
+	if (mDebugInfo->dbgLevel & DBG_WARNING)
+		cout << "*Warning* Read at unmapped address 0x" << hex << adr << ". Returns 0x0 for all unmapped addresses...\n";
+
 	data = 0x0;// Better to return 0x00 than 0xff for now when not all devices are implemented as peripheral status 0x00 usually means inactive/no event
 	return true;
 }
@@ -1621,4 +1612,28 @@ bool P6502::writeDevice(uint16_t adr, uint8_t data)
 		}
 	}
 	return false;
+}
+
+void P6502::push(uint8_t v)
+{
+	writeDevice(0x100 + (uint16_t)mStackPointer--, v);
+}
+
+void P6502::pull(uint8_t& v)
+{
+	readProgramMem(0x100 + (uint16_t)++mStackPointer, v);
+}
+
+void P6502::pushWord(uint16_t word)
+{
+	push(word / 256);
+	push(word % 256);
+}
+
+void P6502::pullWord(uint16_t& word)
+{
+	uint8_t low, high;
+	pull(low);
+	pull(high);
+	word = (high << 8) | low;
 }

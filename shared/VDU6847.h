@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "VideoDisplayUnit.h"
 #include "RAM.h"
+#include <cmath>
 
 
 class VDU6847 : public VideoDisplayUnit {

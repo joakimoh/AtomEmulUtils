@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include "MemoryMappedDevice.h"
+#include <cmath>
 
 using namespace std;
 

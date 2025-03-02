@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "VideoDisplayUnit.h"
 #include "RAM.h"
-
+#include <cmath>
 
 
 class CRTC6845 : public VideoDisplayUnit {
