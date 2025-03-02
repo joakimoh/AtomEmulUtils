@@ -10,6 +10,7 @@
 #include <cmath>
 
 
+
 P6502::P6502(string name, double clockSpeed, DebugInfo  *debugInfo, ConnectionManager *connectionManager):
 	Device(name, P6502_DEV, MICROROCESSOR_DEVICE, debugInfo, connectionManager)
 {
@@ -101,32 +102,6 @@ bool P6502::serveIRQ()
 	return true;
 }
 
-void P6502::printInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister)
-{
-	cout << "StackPointer 0x" << hex << 0x100 + oStackPointer << " => 0x" << 0x100 + mStackPointer << "\n";
-	cout << "Statusregister NV--DIZC:" << setw(8) << bitset<8>(oStatusRegister & 0xdf) << " => 0x" << bitset<8>(mStatusRegister & 0xdf) << "\n";
-	cout << "ProgramCounter 0x" << hex << oProgramCounter << " => 0x" << mProgramCounter << "\n";
-	cout << "Interrupt Stack:\n";
-	for (int a = 0x100 + stackStart; a < 0x100 + stackStart + 3; a++) {
-		uint8_t d;
-		readProgramMem(a, d);
-		if (a == 0x100 + stackStart)
-			cout << "mem[0x" << a << "] = 0x" << hex << (int)d << " <=> NV-(B)DIZC " << setw(8) << bitset<8>(d) << "\n";
-		else
-			cout << "mem[0x" << a << "] = 0x" << hex << (int)d << "\n";
-	}
-}
-
-void P6502::printCallStack()
-{
-	cout << "Call Stack:\n";
-	int start_adr = 0x100 + mStackPointer + 1;
-	for (int a = start_adr; a < start_adr + 2; a++) {
-		uint8_t d;
-		readProgramMem(a, d);
-		cout << "mem[0x" << a << "] = 0x" << hex << (int)d << "\n";
-	}
-}
 
 //
 // Emulate RESET sequence which should take 7 clock cycles
@@ -193,9 +168,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	else if (!mIRQ)	// IRQ is level-triggered!
 		serveIRQ();
 
-	pNMI = mNMI;
-	pIRQ = mIRQ;
-	pRESET = mRESET;
+
 
 
 	if (mDebugInfo->traceAdr > 0) {
@@ -215,7 +188,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	}
 
 	if (mDebugInfo->stopAdr > 0 && mProgramCounter == mDebugInfo->stopAdr) {
-		std::cout << "Execution stop triggered!\n";
+		//std::cout << "Execution stop triggered!\n";
 		if (mDebugInfo->dumpAdr > 0) {
 			// Output pre post tracing
 			for (int a = mDebugInfo->dumpAdr; a < mDebugInfo->dumpAdr + mDebugInfo->dumpSz; a++) {
@@ -225,6 +198,9 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 					" 0x" << setw(2) << (int) d << "\n";
 			}
 		}
+		mCycleCount++;
+		endCycle = mCycleCount;
+		return true;
 	}
 
 	if (mProgramCounter == mDebugInfo->cyclicLogAdr) {
@@ -243,30 +219,36 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 
 	// Decode the opcode
 	Codec6502::InstructionInfo instr;
+	bool decode_success = true;
 	if (!mCodec.decodeInstruction(opcode, instr)) {
-		success = false;
+		decode_success = false;
 		if (mDebugInfo->dbgLevel & DBG_ERROR)
 			std::cout << "Invalid instruction 0x" << hex << (int) opcode << " encountered at address 0x" << hex << opcode_PC << "!\n";
 	}
+	success = success && decode_success;
 
 	// Get the operand
 	uint16_t operand = 0x0;
 	uint16_t calc_op_adr = 0x0;
 	uint8_t read_val = 0x0;
+	bool operand_success = true;
 	if (!getOperand(instr, operand, calc_op_adr, read_val)) {
-		success = false;
+		operand_success = false;
 		if (mDebugInfo->dbgLevel & DBG_ERROR)
 			std::cout << "Failed to get operand for instruction 0x" << hex << (int)opcode << " at address 0x" << opcode_PC << "!\n";
 	}
+	success = success && operand_success;
 	// After reading the operand, the PC points at the next instruction...
 
 	// Execute the instruction
 	uint8_t written_val;
+	bool exec_success = true;
 	if (!executeInstr(instr, opcode_PC, operand, calc_op_adr, read_val, written_val)) {
-		success = false;
+		exec_success = false;
 		if (mDebugInfo->dbgLevel & DBG_ERROR)
 			std::cout << "Failed to execute instruction!\n";
 	}
+	success = success && exec_success;
 
 	if ((mDebugInfo->dbgLevel & DBG_6502)  || (opcode_PC == mDebugInfo->cyclicLogAdr) || (mDebugInfo->traceAdr > 0 && !mEndOfTracingReached)) {
 		string instr_s = mCodec.decode(opcode_PC, opcode, operand);
@@ -279,6 +261,17 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			sout << " READ 0x" << setw(2) << (int)read_val;
 		if (instr.writesMem)
 			sout << " WROTE 0x" << setw(2) << (int)written_val;
+		sout << " " << stack2Str();
+		if (!decode_success)
+			sout << "UNKNOWN INSTR";
+		if (!operand_success)
+			sout << " R/W FAILURE";
+		if (!exec_success)
+			sout << " EXEC FAILURE";
+		if (!mIRQ && mIRQ != pIRQ)
+			sout << " *IRQ";
+		if (!mNMI && mNMI != pNMI)
+			sout << " *NMI";
 		sout << "\n";
 		if ((mDebugInfo->dbgLevel & DBG_6502))
 			cout << sout.str();
@@ -300,6 +293,10 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 
 	// Return time reached
 	endCycle = mCycleCount;
+
+	pNMI = mNMI;
+	pIRQ = mIRQ;
+	pRESET = mRESET;
 
 	return success;
 }
@@ -495,7 +492,7 @@ bool P6502::executeInstr(
 		uint16_t oProgramCounter = mProgramCounter;
 		
 		// Save PC & Status to stack
-		pushWord(opcode_PC+3); // this is the same as PC after the opcode has been read + 2
+		pushWord(opcode_PC+2); // this is the same as PC after the opcode has been read + 2
 		push(mStatusRegister | B_set_mask);
 
 		// Fetch break vector
@@ -721,7 +718,7 @@ bool P6502::executeInstr(
 		// -	-	-	-	-	-
 	{
 		
-		pushWord(opcode_PC + 3); // this is the same as PC after the opcode has been read + 2
+		pushWord(opcode_PC + 2); // this is the same as PC after the opcode has been read + 2
 
 		mProgramCounter = calc_op_adr;
 	
@@ -939,6 +936,7 @@ bool P6502::executeInstr(
 		//cout << "RTS at 0x" << hex << opcode_PC << "; "; printCallStack();
 		uint16_t oPC = mProgramCounter;
 		pullWord(mProgramCounter);
+		mProgramCounter++;
 
 		break;
 	}
@@ -1636,4 +1634,48 @@ void P6502::pullWord(uint16_t& word)
 	pull(low);
 	pull(high);
 	word = (high << 8) | low;
+}
+
+string P6502::stack2Str()
+{
+	if (mStackPointer < 0xff) {
+		stringstream sout;
+		uint16_t a = (0x100 + mStackPointer + 1) & 0x1ff;
+		uint8_t l, h;
+		readProgramMem(a, l);
+		readProgramMem(a + 1, h);
+		uint16_t w = (h << 8) | l;
+		sout << "mem[" << hex << setw(3) << setfill('0') << a << "]=" << setw(2) << setfill('0') << hex << w;
+		return sout.str();
+	}
+	else
+		return "";
+
+}
+
+void P6502::printInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister)
+{
+	cout << "StackPointer 0x" << hex << 0x100 + oStackPointer << " => 0x" << 0x100 + mStackPointer << "\n";
+	cout << "Statusregister NV--DIZC:" << setw(8) << bitset<8>(oStatusRegister & 0xdf) << " => 0x" << bitset<8>(mStatusRegister & 0xdf) << "\n";
+	cout << "ProgramCounter 0x" << hex << oProgramCounter << " => 0x" << mProgramCounter << "\n";
+	cout << "Interrupt Stack:\n";
+	for (int a = 0x100 + stackStart; a < 0x100 + stackStart + 3; a++) {
+		uint8_t d;
+		readProgramMem(a, d);
+		if (a == 0x100 + stackStart)
+			cout << "mem[0x" << a << "] = 0x" << hex << (int)d << " <=> NV-(B)DIZC " << setw(8) << bitset<8>(d) << "\n";
+		else
+			cout << "mem[0x" << a << "] = 0x" << hex << (int)d << "\n";
+	}
+}
+
+void P6502::printCallStack()
+{
+	cout << "Call Stack:\n";
+	int start_adr = 0x100 + mStackPointer + 1;
+	for (int a = start_adr; a < start_adr + 2; a++) {
+		uint8_t d;
+		readProgramMem(a, d);
+		cout << "mem[0x" << a << "] = 0x" << hex << (int)d << "\n";
+	}
 }

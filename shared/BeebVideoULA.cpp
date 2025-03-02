@@ -213,11 +213,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		if (mScanLine < active_lines)
 			// Visible active line
 		{
-			/*
-			if (char_pos == 0)
-				cout << "\nL" << dec << mScanLine << " ";
-			cout << dec << char_pos << ":" << hex << screen_adr << " ";
-			*/
+			
+			//if (char_pos == 0)
+			//	cout << "\nL" << dec << mScanLine << " ";
+			
 			if (dis_ena)
 				// Active area of an active line
 			{
@@ -242,6 +241,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					cout << "Failed to read video memory at address 0x" << hex << screen_adr << "\n";
 					return false;
 				}
+				//cout << dec << char_pos << ":" << hex << screen_adr << ":" << (int) screen_data << " ";
 
 				// For teletext modes, decode video memory data as videotext data
 				if (teletext && !mTGC->getScreenData(char_pos == 0, mScanLine == 0 && char_pos == 0, screen_data, tgc_data)) {

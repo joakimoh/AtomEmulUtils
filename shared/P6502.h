@@ -96,10 +96,11 @@ private:
 	void printInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister);
 	void printCallStack();
 
-	void P6502::push(uint8_t v);
-	void P6502::pull(uint8_t& v);
-	void P6502::pushWord(uint16_t word);
-	void P6502::pullWord(uint16_t& word);
+	void push(uint8_t v);
+	void pull(uint8_t& v);
+	void pushWord(uint16_t word);
+	void pullWord(uint16_t& word);
+	string stack2Str();
 	
 
 public:
