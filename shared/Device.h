@@ -116,7 +116,7 @@ protected:
 
 	int RESET;
 	uint8_t mRESET = 0x1;
-	uint8_t pRESET = 0x0;
+	uint8_t pRESET = 0x1;
 
 public:
 
@@ -133,9 +133,9 @@ public:
 
 	// Reset device
 	virtual bool reset() {
-		if (((mDebugInfo->dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
+		if ((mDebugInfo->dbgLevel & DBG_VERBOSE) != 0) {
 			cout << "'" << this->name << "' RESET\n";
-			pRESET = mRESET;
+			//pRESET = mRESET;
 		}
 		return true;
 	}
@@ -144,7 +144,7 @@ public:
 	virtual bool advance(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }
 
 	// Executed on input port update (when configured)
-	virtual bool trigger(int port) { return true; }
+	virtual bool trigger(int port) { this->advance(mCycleCount+1); return true; }
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 	bool updatePort(int index, uint8_t val);

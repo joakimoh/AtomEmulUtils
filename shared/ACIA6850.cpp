@@ -2,19 +2,44 @@
 
 ACIA6850::ACIA6850(string name, uint16_t adr, double clock, double cpuClock, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
 	MemoryMappedDevice(name, ACIA6850_DEV, PERIPHERAL, adr, 0x08, debugInfo, connectionManager), mClock(clock), mCPUClock(cpuClock)
-{
-
+{	registerPort("RxD",		IN_PORT,	0x1,	RxD,	&mRxD);			// Receive Data 	registerPort("CTS",		IN_PORT,	0x1,	CTS,	&mCTS);			// Clear To Send 	registerPort("DCD",		IN_PORT,	0x1,	DCD,	&mDCD);			// Data Carrier Detect 	registerPort("RxCLK",	IN_PORT,	0x1,	RxCLK,	&mRxCLK);		// Receive Clock	registerPort("TxCLK",	IN_PORT,	0x1,	TxCLK,	&mTxCLK);		// Transmit Clock	registerPort("TxD",		OUT_PORT,	0x1,	TxD,	&mTxD);			// Transmit Data	registerPort("RTS",		OUT_PORT,	0x1,	RTS,	&mRTS);			// Request To Send
 }
 
 bool ACIA6850::read(uint16_t adr, uint8_t& data)
 {
-	data = 0x00;
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!MemoryMappedDevice::triggerBeforeRead(adr, data))
+		return false;
+
+	if ((adr & 0x1) == 0) {
+		// Status Register
+		data = 0x00;
+	}
+	else {
+		// Receive Data Register
+		data = 0x00;
+	}
+	
+
 
 	return true;
 }
 
 bool ACIA6850::write(uint16_t adr, uint8_t data)
 {
+
+	// Call parent class to trigger scheduling of other devices when applicable
+	return MemoryMappedDevice::triggerAfterWrite(adr, data);
+
+	if ((adr & 0x1) == 0) {
+		// Control Register
+
+	}
+	else {
+		// Transmit Data Register
+
+	}
+
 	return true;
 }
 

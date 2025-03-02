@@ -147,7 +147,10 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 {
 	bool success = true;
 
-	if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && mRESET != pRESET)
+	bool reset_transition = (mRESET == 0 && mRESET != pRESET);
+	pRESET = mRESET;
+
+	if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && reset_transition)
 		cout << "RESET => " << dec << (int)mNMI << "\n";
 
 	if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && mIRQ != pIRQ)
@@ -157,7 +160,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		cout << "NMI => " << dec << (int)mNMI << "\n";
 
 	// Serve RESET, NMI & IRQ in priority order
-	if (!mRESET) {
+	if (!mRESET && reset_transition) {
 		reset();
 		// No meaning to continue execution before RESET line becomes HIGH again
 		endCycle = mCycleCount;
@@ -203,9 +206,9 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		return true;
 	}
 
-	if (mProgramCounter == mDebugInfo->cyclicLogAdr) {
-		printCallStack();
-	}
+	//if (mProgramCounter == mDebugInfo->cyclicLogAdr) {
+	//	printCallStack();
+	//}
 
 
 	// Get opcode of next instruction
@@ -235,7 +238,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	if (!getOperand(instr, operand, calc_op_adr, read_val)) {
 		operand_success = false;
 		if (mDebugInfo->dbgLevel & DBG_ERROR)
-			std::cout << "Failed to get operand for instruction 0x" << hex << (int)opcode << " at address 0x" << opcode_PC << "!\n";
+			std::cout << "Failed to get operand for instruction " << hex << (int)opcode << " at address 0x" << opcode_PC << "!\n";
 	}
 	success = success && operand_success;
 	// After reading the operand, the PC points at the next instruction...
@@ -243,12 +246,15 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	// Execute the instruction
 	uint8_t written_val;
 	bool exec_success = true;
+	uint8_t oI_flag = I_flag;
 	if (!executeInstr(instr, opcode_PC, operand, calc_op_adr, read_val, written_val)) {
 		exec_success = false;
 		if (mDebugInfo->dbgLevel & DBG_ERROR)
 			std::cout << "Failed to execute instruction!\n";
 	}
 	success = success && exec_success;
+	if (I_flag != oI_flag && (mDebugInfo->dbgLevel & DBG_INTERRUPTS) != 0)
+		cout << "I disable flag " << (I_flag?"set":"cleared") << " by instruction " << mCodec.instr2str[instr.instruction] << " at address 0x" << hex << opcode_PC << "\n";
 
 	if ((mDebugInfo->dbgLevel & DBG_6502)  || (opcode_PC == mDebugInfo->cyclicLogAdr) || (mDebugInfo->traceAdr > 0 && !mEndOfTracingReached)) {
 		string instr_s = mCodec.decode(opcode_PC, opcode, operand);
@@ -296,7 +302,6 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 
 	pNMI = mNMI;
 	pIRQ = mIRQ;
-	pRESET = mRESET;
 
 	return success;
 }
@@ -557,8 +562,6 @@ bool P6502::executeInstr(
 	{
 		uint8_t oStatusRegister = mStatusRegister;
 		mStatusRegister &= ~I_set_mask;
-		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && (oStatusRegister & I_set_mask) != 0)
-			cout << "IRQ enabled (by CLI) at 0x" << hex << opcode_PC << "\n";
 		break;
 	}
 
@@ -1014,8 +1017,6 @@ bool P6502::executeInstr(
 	{
 		uint8_t oStatusRegister = mStatusRegister; 
 		mStatusRegister |= I_set_mask;
-		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && (oStatusRegister & I_set_mask) == 0)
-			cout << "IRQ disabled (by SEI) at 0x" << hex << opcode_PC << "\n";
 		break;
 	}
 

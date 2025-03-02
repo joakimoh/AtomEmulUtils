@@ -18,6 +18,7 @@ CRTC6845::CRTC6845(
 	registerPort("CUDISP",		OUT_PORT, 0x1,	CUDISP,		&mCUDISP);
 	registerPort("HS",			OUT_PORT, 0x1,	HS,			&mHS);
 	registerPort("VS",			OUT_PORT, 0x1,	VS,			&mVS);
+	registerPort("RESET",		IN_PORT,  0x1, RESET,		&mRESET);
 
 }
 
@@ -31,6 +32,18 @@ bool CRTC6845::reset()
 	mCharCol = 0;
 	mInitialised = false;
 	mRegWrtCnt = 0;
+
+	// Reset ports
+	mDISPTMG = 0x0;
+	mRA = 0x0;
+	mCUDISP = 0x2;
+	mHS = 0x0;
+	mVS = 0x0;
+	updatePort(DISPTMG, mDISPTMG);
+	updatePort(RA, mRA);
+	updatePort(CUDISP, mCUDISP);
+	updatePort(HS, mHS);
+	updatePort(VS, mVS);
 
 	for (int i = 0; i < 18; mReg[i++] = 0);
 
@@ -55,6 +68,7 @@ bool CRTC6845::reset()
 	// mReg[R17_LightPenH] =			0;
 	
 	updateSettings();
+	
 
 	return true;
 }
@@ -62,6 +76,7 @@ bool CRTC6845::reset()
 // Called by other device to get next memory address to fetch char/graphics data from
 bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 {
+	adr = 0x0;
 
 	if (!mInitialised)
 		return true;
@@ -69,7 +84,7 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 	updateOutputs();
 
 	// If in the active display area, update the fetch address abd cursor position
-	adr = 0x0;
+	
 	if (mDISPTMG) {;
 		adr = mStartAdr + mCharRow * mActiveRowChars + mCharCol;
 		//cout << dec << "#" << mCharCol << "#";
@@ -84,6 +99,8 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 
 bool CRTC6845::advanceChar()
 {
+
+
 	int nextCycleCount = (int)round(mCycleCount + mCPUClock / mCLK);
 	if (nextCycleCount == mCycleCount)
 		nextCycleCount++;
@@ -158,8 +175,16 @@ bool CRTC6845::updateOutputs()
 
 bool CRTC6845::advance(uint64_t stopCycle)
 {
-	if (!mInitialised)
+	bool reset_transition = (mRESET == 0 && mRESET != pRESET);
+	pRESET = mRESET;
+
+	if (reset_transition)
+		reset();
+
+	if (!mInitialised) {
 		mCycleCount = stopCycle;
+		return true;
+	}
 
 	while (mCycleCount < stopCycle)
 		advanceChar();

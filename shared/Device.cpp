@@ -100,7 +100,11 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 		else
 			*(input.port->val) = ((pval & ~input.mask) | ((val << (-input.shifts)) & input.mask)) & input.port->mask;
 
-		if ((port->firstUpdate && (mDebugInfo->dbgLevel & DBG_PORT)) || (((mDebugInfo->dbgLevel & DBG_PORT) != 0) && *(input.port->val) != pval)) {
+		if (
+			(
+				(port->firstUpdate && (mDebugInfo->dbgLevel & DBG_PORT)!=0) || ((mDebugInfo->dbgLevel & DBG_PORT) != 0 && *(input.port->val) != pval)
+				)
+			) {
 			string shift_s, c_dir;
 			if (input.shifts >= 0)
 				shift_s = "((src >> shifts) & mask)";

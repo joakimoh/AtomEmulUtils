@@ -51,6 +51,11 @@ bool VIA6522::reset()
 	mORA2 = 0x0;
 	mIRA2 = 0x0;
 
+	mPA = 0x0;
+	mPB = 0x0;
+	mCA = 0x0;
+	mCB = 0x0;
+
 	pIFR = 0xff;
 
 	return true;
@@ -58,8 +63,10 @@ bool VIA6522::reset()
 
 bool VIA6522::advance(uint64_t stopCycle)
 {
-	if (!mRESET) {
-		
+	bool reset_transition = (mRESET == 0 && mRESET != pRESET);
+	pRESET = mRESET;
+
+	if (!mRESET && reset_transition) {
 		reset();
 		mCycleCount = stopCycle;
 		return true;
@@ -442,7 +449,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 	}
 
 	case IRA:
-		// Input Register A- if PA is acting as input: if latching is disabled (ACR b0=0) IRB reflects PA; if not (ACR b1=1) the PB value latched by CA1
+		// Input Register A - if PA is acting as input: if latching is disabled (ACR b0=0) IRB reflects PA; if not (ACR b1=1) the PB value latched by CA1
 	{
 		// Get latched or non-latched Port A data
 		if (mACR & 0x1) // PA is latched

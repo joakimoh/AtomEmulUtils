@@ -10,7 +10,8 @@ TT5050::TT5050(
 	if (mDebugInfo->dbgLevel & DBG_VERBOSE)
 		cout << "Teletext Character Generator SA5050 '" << name << "' added\n";
 
-	registerPort("LOSE", IN_PORT, 0x1, LOSE, &mLOSE);
+	registerPort("LOSE",	IN_PORT, 0x1, LOSE, &mLOSE);
+	registerPort("RESET",	IN_PORT, 0x1, RESET, &mRESET);
 
 	createInterpolatedSymbols();
 
@@ -117,12 +118,23 @@ bool TT5050::reset()
 {
 	Device::reset();
 
+	mScanLine = 0;
+	mCharRowPos = 0;
+	mCharRasterLine = 0;
+
 	return true;
 }
 
 // Advance until clock cycle stopcycle has been reached
 bool TT5050::advance(uint64_t stopCycle)
 {
+	bool reset_transition = (mRESET == 0 && mRESET != pRESET);
+	pRESET = mRESET;
+
+	if (reset_transition)
+		reset();
+
+
 	return true;
 }
 

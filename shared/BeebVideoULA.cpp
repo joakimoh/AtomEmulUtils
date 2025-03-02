@@ -12,6 +12,7 @@ BeebVideoULA::BeebVideoULA(
 	registerPort("INV",			IN_PORT,	0x01, INV,			&mINV);
 	registerPort("RA",			IN_PORT,	0x0f, RA,			&mRA);
 	registerPort("CRTC_CLK",	OUT_PORT,	0x01, CRTC_CLK,		&mCRTC_CLK);
+	registerPort("RESET",		IN_PORT,	0x01, RESET,		&mRESET);
 
 
 	// Create 640 x 256 display bitmap and clear it
@@ -41,17 +42,26 @@ bool BeebVideoULA::reset()
 bool BeebVideoULA::advance(uint64_t stopCycle)
 {
 	uint64_t cycle;
+
 	return advanceLine(cycle);
 }
 
 bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 {
+	bool reset_transition = (mRESET != pRESET);
+	pRESET = mRESET;
+
+	if (mRESET == 0 && reset_transition)
+		reset();
 
 	if (!initialised()) { 
 		mCycleCount += max(1, (int)round(getScanLineDuration() * mCPUClock));
 		endCycle = mCycleCount;
 		return true; 
 	}
+
+	if (reset_transition)
+		cout << mScanLine << "\n";
 
 	int scan_lines_per_frame = (int) round(getScanLinesPerFrame());
 	if (scan_lines_per_frame != mScanLines) {
@@ -78,11 +88,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	uint64_t pCycleCount = mCycleCount;
 	mCycleCount += max(1, (int)round(getScanLineDuration() * mCPUClock));
 	endCycle = mCycleCount;
-
-	// Exit if the CRTC device is not initialised (a scan line of '1' will tell this)
-	if (!mCRTC->initialised())
-		return true;
-
 
 	// Check that screen size fits with the current graphics mode
 	updateScreenSz();

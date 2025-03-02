@@ -58,55 +58,65 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 	// ROW output was LOW, then the VIA will not get an update of the ROW unless a port update is made here.
 	// Therefore we start by setting ROW output to '0' (inactive)
 	updatePort(ROW, 0x0);
-	updatePort(BREAK, 0x1);
-	//updatePort(PRESSED, 0x0);
+	//updatePort(BREAK, 0x1);
+	updatePort(PRESSED, 0x0);
 
 	//if (mDebugInfo->dbgLevel & DBG_KEYBOARD)
 	//	cout << "COL_SEL = " << dec << (int)mCOL_SEL << ", ROW_SEL = " << (int)mROW_SEL << "\n";
 
+	bool selected_key_pressed = false;
+	bool column_key_pressed = false;
 
+	// Check for keys only if row and column are valid
 	if (mCOL_SEL <= 9 && mROW_SEL <= 7) {
 
-		// Check for key at COL_SEL,ROW_SEL being pressed as well as DIP switches being ON <=> LOW
+		// Check for key at the selected row and column being pressed as well as DIP switches being ON <=> LOW
 		vector<Key> &key_vec = mKeyboardMatrix[mROW_SEL];
 		Key& key = key_vec[mCOL_SEL];
+		
 		if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode) || (mROW_SEL == 0 && (mSW & (1 << (mCOL_SEL - 2))) == 0x1)) {
 			//cout << "Key '" << key.keyName << "' detected at ROW " << (int)mROW_SEL << ", " << (int)mCOL_SEL << "\n";
-			updatePort(ROW, 0x1);
+			selected_key_pressed = true;
 		}
 
-		// Check for any key in selected column being pressed (row 0 with SHT, CTRL & DIP switches is excluded)
-		bool key_pressed = false;
+		// Check for any key in a selected column being pressed (row 0 with SHIFT, CTRL & DIP switches is excluded)
 		for (int row = 1; row < 8; row++) {
 			Key& key = mKeyboardMatrix[row][mCOL_SEL];
 			if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
-				key_pressed = true;
+				column_key_pressed = true;
 				//cout << "Key " << key.keyName << " pressed!\n";
 				break;
 			}
 				
 		}
-		if (key_pressed)
-			updatePort(PRESSED, 0x1);
-		else
-			updatePort(PRESSED, 0x0);
-
-
-		// Get BREAK key
-		if (al_key_down(&mKeyboardState, mBreakKey.keyCode))
-			updatePort(BREAK, 0x0);
-
-		if (((mDebugInfo->dbgLevel & DBG_KEYBOARD)) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL)) {
-			cout << "COL_SEL = " << dec << (int)mCOL_SEL << ", ROW_SEL = " << (int)mROW_SEL << ", PRESSED = " << (int)mPRESSED << ", ROW = " << (int) mROW << "\n";
-		}
-		pCOL_SEL = mCOL_SEL;
-		pROW_SEL = mROW_SEL;
 
 	}
+
+	// Any key pressed in a selected column
+	if (column_key_pressed)
+		updatePort(PRESSED, 0x1);
 	else
 		updatePort(PRESSED, 0x0);
 
+	// Only the key in a selected row and column pressed
+	if (selected_key_pressed)
+		updatePort(ROW, 0x1);
+	else
+		updatePort(ROW, 0x0);
+
+	// Get BREAK key
+	if (al_key_down(&mKeyboardState, mBreakKey.keyCode))
+		updatePort(BREAK, 0x0);
+	else
+		updatePort(BREAK, 0x1);
+
+	if (((mDebugInfo->dbgLevel & DBG_KEYBOARD)) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL)) {
+		cout << "COL_SEL = " << dec << (int)mCOL_SEL << ", ROW_SEL = " << (int)mROW_SEL << ", PRESSED = " << (int)mPRESSED << ", ROW = " << (int)mROW << "\n";
+	}
+
 	oROW = mROW;
+	pCOL_SEL = mCOL_SEL;
+	pROW_SEL = mROW_SEL;
 
 	return true;
 }
