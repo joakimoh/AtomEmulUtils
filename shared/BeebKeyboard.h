@@ -10,8 +10,6 @@
 
 typedef struct Key_struct {
 	int		keyCode;
-	int		row;	// 8 rows
-	int		col;	// 10 columns
 	string	keyName; // e.g, "COPY", "ESC" and "A"
 }  Key;
 
@@ -23,101 +21,101 @@ private:
 
 	vector<vector<Key>> mKeyboardMatrix = {
 		{
-			{ALLEGRO_KEY_LSHIFT,	0,  0, "SHIFT"},
-			{ALLEGRO_KEY_LCTRL,		0,  1, "CTRL"},
-			{-1,					0,  2, "START UP OPTION 8"},
-			{-1,  					0,  3, "START UP OPTION 7"},
-			{-1,  					0,  4, "START UP OPTION 6"},
-			{-1,  					0,  5, "START UP OPTION 5"},
-			{-1,  					0,  6, "START UP OPTION 4"},
-			{-1,  					0,  7, "START UP OPTION 3"},
-			{-1,  					0,  8, "START UP OPTION 2"},
-			{-1,  					0,  9, "START UP OPTION 1"}
+			{ALLEGRO_KEY_LSHIFT,	"SHIFT"},				// 0,  0
+			{ALLEGRO_KEY_LCTRL,		"CTRL"},				// 0,  1
+			{-1,					"START UP OPTION 8"},	// 0,  2
+			{-1,  					"START UP OPTION 7"},	// 0,  3
+			{-1,  					"START UP OPTION 6"},	// 0,  4
+			{-1,  					"START UP OPTION 5"},	// 0,  5
+			{-1,  					"START UP OPTION 4"},	// 0,  6
+			{-1,  					"START UP OPTION 3"},	// 0,  7
+			{-1,  					"START UP OPTION 2"},	// 0,  8
+			{-1,  					"START UP OPTION 1"}	// 0,  9
 		},
 		{
-			{ALLEGRO_KEY_Q,			1,  0, "Q"},
-			{ALLEGRO_KEY_3,			1,  1, "3"},
-			{ALLEGRO_KEY_4,			1,  2, "4"},
-			{ALLEGRO_KEY_5,			1,  3, "5"},
-			{ALLEGRO_KEY_F4,		1,  4, "F4"},
-			{ALLEGRO_KEY_8,			1,  5, "8"},
-			{ALLEGRO_KEY_F7,		1,  6, "F7"},
-			{ALLEGRO_KEY_MINUS,		1,  7, "=-"},
-			{ALLEGRO_KEY_TILDE,		1,  8, "~^"},
-			{ALLEGRO_KEY_LEFT,		1,  9, "LEFT ARROW"}
+			{ALLEGRO_KEY_Q,			"Q"},					// 1,  0
+			{ALLEGRO_KEY_3,			"3"},					// 1,  1
+			{ALLEGRO_KEY_4,			"4"},					// 1,  2
+			{ALLEGRO_KEY_5,			"5"},					// 1,  3
+			{ALLEGRO_KEY_F4,		"F4"},					// 1,  4
+			{ALLEGRO_KEY_8,			"8"},					// 1,  5
+			{ALLEGRO_KEY_F7,		"F7"},					// 1,  6
+			{ALLEGRO_KEY_MINUS,		"=-"},					// 1,  7
+			{ALLEGRO_KEY_TILDE,		"~^"},					// 1,  8
+			{ALLEGRO_KEY_LEFT,		"LEFT ARROW"}			// 1,  9
 		},
 		{
-			{-1,				    2, 0, "F0"}, // Not supported!
-			{ALLEGRO_KEY_W,			2,  1, "W"},
-			{ALLEGRO_KEY_E,			2,  2, "E"},
-			{ALLEGRO_KEY_T,			2,  3, "T"},
-			{ALLEGRO_KEY_7,			2,  4, "7"},
-			{ALLEGRO_KEY_I,			2,  5, "I"},
-			{ALLEGRO_KEY_9,			2,  6, "9"},
-			{ALLEGRO_KEY_0,			2,  7, "0"},
-			{ALLEGRO_KEY_ALTGR,		2,  8, "POUND"},
-			{ALLEGRO_KEY_DOWN,		2,  9, "DOWN ARROW"}
+			{-1,				    "F0"},					// 2,  0	-  Not supported!
+			{ALLEGRO_KEY_W,			"W"},					// 2,  1
+			{ALLEGRO_KEY_E,			"E"},					// 2,  2
+			{ALLEGRO_KEY_T,			"T"},					// 2,  3
+			{ALLEGRO_KEY_7,			"7"},					// 2,  4
+			{ALLEGRO_KEY_I,			"I"},					// 2,  5
+			{ALLEGRO_KEY_9,			"9"},					// 2,  6
+			{ALLEGRO_KEY_0,			"0"},					// 2,  7
+			{ALLEGRO_KEY_ALTGR,		"POUND"},				// 2,  8
+			{ALLEGRO_KEY_DOWN,		"DOWN ARROW"}			// 2,  9
 		},{
-			{ALLEGRO_KEY_1,			3,  0, "1"},
-			{ALLEGRO_KEY_2,			3,  1, "2"},
-			{ALLEGRO_KEY_D,			3,  2, "D"},
-			{ALLEGRO_KEY_R,			3,  3, "R"},
-			{ALLEGRO_KEY_6,			3,  4, "6"},
-			{ALLEGRO_KEY_U,			3,  5, "U"},
-			{ALLEGRO_KEY_O,			3,  6, "O"},
-			{ALLEGRO_KEY_P,			3,  7, "P"},
-			{ALLEGRO_KEY_PGUP,		3,  7, "{["},
-			{ALLEGRO_KEY_UP,		3,  9, "UP ARROW"}
+			{ALLEGRO_KEY_1,			"1"},					// 3,  0
+			{ALLEGRO_KEY_2,			"2"},					// 3,  1
+			{ALLEGRO_KEY_D,			"D"},					// 3,  2
+			{ALLEGRO_KEY_R,			"R"},					// 3,  3
+			{ALLEGRO_KEY_6,			"6"},					// 3,  4
+			{ALLEGRO_KEY_U,			"U"},					// 3,  5
+			{ALLEGRO_KEY_O,			"O"},					// 3,  6
+			{ALLEGRO_KEY_P,			"P"},					// 3,  7
+			{ALLEGRO_KEY_PGUP,		"{["},					// 3,  8
+			{ALLEGRO_KEY_UP,		"UP ARROW"}				// 3,  9
 		},
 		{
-			{ALLEGRO_KEY_CAPSLOCK,  4,  0, "CAPS LOCK"},
-			{ALLEGRO_KEY_A,			4,  1, "A"},
-			{ALLEGRO_KEY_X,			4,  2, "X"},
-			{ALLEGRO_KEY_F,			4,  3, "F"},
-			{ALLEGRO_KEY_Y,			4,  4, "Y"},
-			{ALLEGRO_KEY_J,			4,  5, "J"},
-			{ALLEGRO_KEY_K,			4,  6, "K"},
-			{ALLEGRO_KEY_RSHIFT,	4,  6, "@"},
-			{ALLEGRO_KEY_DELETE,	4,  8, "*:"},
-			{ALLEGRO_KEY_ENTER,		4,  9, "RETURN"}
+			{ALLEGRO_KEY_CAPSLOCK,  "CAPS LOCK"},			// 4,  0
+			{ALLEGRO_KEY_A,			"A"},					// 4,  1
+			{ALLEGRO_KEY_X,			"X"},					// 4,  2
+			{ALLEGRO_KEY_F,			"F"},					// 4,  3
+			{ALLEGRO_KEY_Y,			"Y"},					// 4,  4
+			{ALLEGRO_KEY_J,			"J"},					// 4,  5
+			{ALLEGRO_KEY_K,			"K"},					// 4,  6
+			{ALLEGRO_KEY_RSHIFT,	"@"},					// 4,  7
+			{ALLEGRO_KEY_DELETE,	"*:"},					// 4,  8
+			{ALLEGRO_KEY_ENTER,		"RETURN"}				// 4,  9
 		},
 		{
-			{ALLEGRO_KEY_ALT,		5,  0, "SHIFT LOCK"},
-			{ALLEGRO_KEY_S,			5,  1, "S"},
-			{ALLEGRO_KEY_C,			5,  2, "C"},
-			{ALLEGRO_KEY_G,			5,  3, "G"},
-			{ALLEGRO_KEY_H,			5,  4, "H"},
-			{ALLEGRO_KEY_N,			5,  5, "N"},
-			{ALLEGRO_KEY_L,			5,  6, "L"},
-			{ALLEGRO_KEY_RCTRL,		5,  7, "+;"},
-			{ALLEGRO_KEY_PGDN,		5,  7, ")}"},
-			{ALLEGRO_KEY_BACKSPACE,	5,  9, "DELETE"}
+			{ALLEGRO_KEY_ALT,		"SHIFT LOCK"},			// 5,  0
+			{ALLEGRO_KEY_S,			"S"},					// 5,  1
+			{ALLEGRO_KEY_C,			"C"},					// 5,  2
+			{ALLEGRO_KEY_G,			"G"},					// 5,  3
+			{ALLEGRO_KEY_H,			"H"},					// 5,  4
+			{ALLEGRO_KEY_N,			"N"},					// 5,  5
+			{ALLEGRO_KEY_L,			"L"},					// 5,  6
+			{ALLEGRO_KEY_RCTRL,		"+;"},					// 5,  7
+			{ALLEGRO_KEY_PGDN,		")}"},					// 5,  8
+			{ALLEGRO_KEY_BACKSPACE,	"DELETE"}				// 5,  9
 		},{
-			{ALLEGRO_KEY_TAB,		6,  0, "TAB"},
-			{ALLEGRO_KEY_Z,			6,  1, "Z"},
-			{ALLEGRO_KEY_SPACE,		6,  2, " "},
-			{ALLEGRO_KEY_V,			6,  3, "V"},
-			{ALLEGRO_KEY_B,			6,  4, "B"},
-			{ALLEGRO_KEY_M,			6,  5, "M"},
-			{ALLEGRO_KEY_COMMA,		6,  6, "<,"},
-			{ALLEGRO_KEY_FULLSTOP,	6,  7, ">."},
-			{ALLEGRO_KEY_END,		6,  8, "?/"},
-			{ALLEGRO_KEY_HOME,		6,  9, "COPY"}
+			{ALLEGRO_KEY_TAB,		"TAB"},					// 6,  0
+			{ALLEGRO_KEY_Z,			"Z"},					// 6,  1
+			{ALLEGRO_KEY_SPACE,		" "},					// 6,  2
+			{ALLEGRO_KEY_V,			"V"},					// 6,  3
+			{ALLEGRO_KEY_B,			"B"},					// 6,  4
+			{ALLEGRO_KEY_M,			"M"},					// 6,  5
+			{ALLEGRO_KEY_COMMA,		"<,"},					// 6,  6
+			{ALLEGRO_KEY_FULLSTOP,	">."},					// 6,  7
+			{ALLEGRO_KEY_END,		"?/"},					// 6,  8
+			{ALLEGRO_KEY_HOME,		"COPY"}					// 6,  9
 		},{
-			{ALLEGRO_KEY_ESCAPE,	7,  0, "ESC"},
-			{ALLEGRO_KEY_F1,		7,  1, "F1"},
-			{ALLEGRO_KEY_F2,		7,  2, "F2"},
-			{ALLEGRO_KEY_F3,		7,  3, "F3"},
-			{ALLEGRO_KEY_F5,		7,  4, "F5"},
-			{ALLEGRO_KEY_F6,		7,  5, "F6"},
-			{ALLEGRO_KEY_F8,		7,  6, "F8"},
-			{ALLEGRO_KEY_F9,		7,  7, "F9"},
-			{ALLEGRO_KEY_BACKSLASH,	7,  8, "\\"},
-			{ALLEGRO_KEY_RIGHT,		7,  9, "RIGHT ARROW"}
+			{ALLEGRO_KEY_ESCAPE,	"ESC"},					// 7,  0
+			{ALLEGRO_KEY_F1,		"F1"},					// 7,  1
+			{ALLEGRO_KEY_F2,		"F2"},					// 7,  2
+			{ALLEGRO_KEY_F3,		"F3"},					// 7,  3
+			{ALLEGRO_KEY_F5,		"F5"},					// 7,  4
+			{ALLEGRO_KEY_F6,		"F6"},					// 7,  5
+			{ALLEGRO_KEY_F8,		"F8"},					// 7,  6
+			{ALLEGRO_KEY_F9,		"F9"},					// 7,  7
+			{ALLEGRO_KEY_BACKSLASH,	"\\"},					// 7,  8
+			{ALLEGRO_KEY_RIGHT,		"RIGHT ARROW"}			// 7,  9
 		}
 	};
 
-	Key mBreakKey = { ALLEGRO_KEY_PAUSE , -1, -1, "BREAK" };
+	Key mBreakKey = { ALLEGRO_KEY_PAUSE, "BREAK" };
 
 	// Ports that can be conALLEGROnected to other devices
 	int  CTRL, COL_SEL, ROW_SEL, ROW, BREAK, PRESSED;

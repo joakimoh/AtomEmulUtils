@@ -105,14 +105,15 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 	}
 	
 	// Check for any key in a selected column (or all columns if KB_ENA is High) being pressed (row 0 with SHIFT, CTRL & DIP switches is excluded)
+	int start_col, end_col;
+	if (mKB_ENA) { // Auto scanning of keyboard - keys in all columns are checked
+		start_col = 0;
+		end_col = 9;
+	}
+	else // No auto scanning - only keys in the currently selected column are checked
+		start_col = end_col = mCOL_SEL;
 	for (int row = 1; row <= 7; row++) {
-		int start_col, end_col;
-		if (mKB_ENA) { // Auto scanning of keyboard - keys in all columns are checked
-			start_col = 0;
-			end_col = 9;
-		} else // No auto scanning - only keys in the currently selected column are checked
-			start_col = end_col = mCOL_SEL;
-		for (int col = start_col; col < end_col+1; col++) {
+		for (int col = start_col; col <= end_col; col++) {
 			Key& key = mKeyboardMatrix[row][col];
 			if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
 				column_key_pressed = true;
