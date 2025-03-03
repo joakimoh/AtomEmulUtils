@@ -202,21 +202,22 @@ bool VIA6522::advance(uint64_t stopCycle)
 		// Check Timer 1
 		mTimer1Counter--;
 		if (mTimer1Counter <= 0) {
+			mTimer1Counter = 0;
 			if (mTimer1Running) {
 				setIFR(IFR_T1_MASK);
 			}
 			switch (ACR_T1_CTRL) {
-			case 0x0:	// One-shot Interrupt, PB7 inactive
+			case 0x0:	// One-shot Interrupt (One-Shot Mode), PB7 inactive
 				mTimer1Running = false;
 				break;
-			case 0x1:	// Continuous interrupts, PB7 inactive
+			case 0x1:	// Continuous interrupts (Fre-Run Mode), PB7 inactive
 				mTimer1Counter = (mTimer1LatchHigh << 8) | mTimer1LatchLow;
 				break;
-			case 0x2:	// One-shot Interrupt, PB7 low when timer starts and back high when timer reaches zero
+			case 0x2:	// One-shot Interrupt (One-Shot Mode), PB7 low when timer starts and back high when timer reaches zero
 				mTimer1Running = false;
 				updatePort(PB, mPB | 0x80);
 				break;
-			case 0x3:	// Continuous interrupts, PB7 toggled
+			case 0x3:	// Continuous interrupts (Fre-Run Mode), PB7 toggled
 				mTimer1Counter = (mTimer1LatchHigh << 8) | mTimer1LatchLow;
 				updatePort(PB, mPB ^ 0x80);
 				break;
@@ -242,7 +243,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 		default:
 			break;
 		}
-		if (mTimer2Counter <= 0) {
+		if (mTimer2Counter <= 0 && mTimer2Running) {
+			mTimer2Counter = 0;
 			if (mTimer2Running) {
 				setIFR(IFR_T2_MASK);
 			}
@@ -393,13 +395,14 @@ void VIA6522::updateIRQ()
 {
 	if ((mIFR & mIER & 0x7f) == 0) { // No pending interrupts
 		updatePort(IRQ, 0x1);
-		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && mIRQ != pIRQ)
+		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) != 0 && mIRQ != pIRQ) {
 			cout << "*** VIA RESET IRQ\n\tIFR = " << IFR2Str() << "\n\tIER = " << IER2Str() << "\n\tACR = " << ACR2Str() << "\n\tPCR = " << PCR2Str() << "\n\n";
+		}
 		pIRQ = mIRQ;
 	}
 	else { // Pending interrupts
 		updatePort(IRQ, 0x0);
-		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && mIRQ != pIRQ) {
+		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) != 0 && mIRQ != pIRQ) {
 			cout << "*** VIA SET IRQ\n\tIFR = " << IFR2Str() << "\n\tIER = " << IER2Str() << "\n\tACR = " << ACR2Str() << "\n\tPCR = " << PCR2Str() << "\n\n";
 		}
 		pIRQ = mIRQ;
