@@ -37,12 +37,12 @@ bool P6502::serveNMI()
 	uint8_t oStatusRegister = mStatusRegister;
 	uint16_t oProgramCounter = mProgramCounter;
 
-	// Disable IRQ interrupts
-	mStatusRegister |= I_set_mask;
-
 	// Save PC & Status to stack
 	pushWord(mProgramCounter);
-	push(mStatusRegister | B_set_mask);
+	push(mStatusRegister);
+
+	// Disable IRQ interrupts
+	mStatusRegister |= I_set_mask;
 
 	// Fetch break vector
 	uint8_t adr_L, adr_H;
@@ -50,9 +50,6 @@ bool P6502::serveNMI()
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
 	mStatusRegister |= I_set_mask;
-
-	if (mProgramCounter == mDebugInfo->interruptLogAdr)
-		mDebugInfo->dbgLevel = DBG_6502;
 
 	if (mDebugInfo->dbgLevel & DBG_INTERRUPTS) {
 		cout << "Serving NMI at PC = 0x" << hex << oProgramCounter << "\n";
@@ -77,21 +74,20 @@ bool P6502::serveIRQ()
 	uint8_t oStatusRegister = mStatusRegister;
 	uint16_t oProgramCounter = mProgramCounter;
 
-	// Disable IRQ interrupts
-	mStatusRegister |= I_set_mask;
 
 	// Save PC & Status to stack
 	pushWord(mProgramCounter);
-	push(mStatusRegister);
+	push(mStatusRegister & ~B_set_mask);
+
+	// Disable IRQ interrupts
+	mStatusRegister |= I_set_mask;
+
 
 	// Fetch break vector
 	uint8_t adr_L, adr_H;
 	if (!readProgramMem(0xfffe, adr_L) || !readProgramMem(0xffff, adr_H))
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
-
-	if (mProgramCounter == mDebugInfo->interruptLogAdr)
-		mDebugInfo->dbgLevel = DBG_6502;
 
 	if (mDebugInfo->dbgLevel & DBG_INTERRUPTS) {
 		cout << "Serving IRQ at PC = 0x" << hex << oProgramCounter << "\n";
@@ -171,6 +167,8 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	else if (!mIRQ)	// IRQ is level-triggered!
 		serveIRQ();
 
+	if ((mIRQ == 0 || mNMI == 0) && mProgramCounter == mDebugInfo->interruptLogAdr)
+		mDebugInfo->dbgLevel = DBG_6502;
 
 
 

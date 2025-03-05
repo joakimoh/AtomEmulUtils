@@ -86,7 +86,7 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 	// ROW output was LOW, then the VIA will not get an update of the ROW unless a port update is made here.
 	// Therefore we start by setting ROW output to '0' (inactive)
 	updatePort(ROW, 0x0);
-	updatePort(PRESSED, 0x0);
+	//updatePort(PRESSED, 0x0);
 
 	bool selected_key_pressed = false;
 	bool column_key_pressed = false;
@@ -142,13 +142,14 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 	else
 		updatePort(BREAK, 0x1);
 
-	if (((mDebugInfo->dbgLevel & DBG_KEYBOARD)) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL)) {
-		cout << "COL_SEL = " << dec << (int)mCOL_SEL << ", ROW_SEL = " << (int)mROW_SEL << ", PRESSED = " << (int)mPRESSED << ", ROW = " << (int)mROW << "\n";
+	if (((mDebugInfo->dbgLevel & DBG_KEYBOARD)) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mKB_ENA != pKB_ENA)) {
+		cout << "KB_ENA = " << (int) mKB_ENA << ",COL_SEL = " << dec << (int)mCOL_SEL << ", ROW_SEL = " << (int)mROW_SEL << ", PRESSED = " << (int)mPRESSED << ", ROW = " << (int)mROW << "\n";
 	}
 
 	oROW = mROW;
 	pCOL_SEL = mCOL_SEL;
 	pROW_SEL = mROW_SEL;
+	pKB_ENA = mKB_ENA;
 
 	return true;
 }

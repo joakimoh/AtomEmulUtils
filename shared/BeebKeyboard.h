@@ -121,6 +121,7 @@ private:
 	int  CTRL, COL_SEL, ROW_SEL, ROW, BREAK, PRESSED;
 	uint8_t mCTRL = 0xf;			// CTRL input; b3: data; b2:b0 selects #3 KB:ENA, #6: LED2_CAPS_LOCK & #7: LED1_SHIFT_LOCK
 	uint8_t mKB_ENA = 0x1;			// Not a port but updated based on the CTRL input
+	uint8_t pKB_ENA = 0x1;
 	uint8_t mLED1_SHIFT_LOCK = 0x0;			//
 	uint8_t mLED2_CAPS_LOCK = 0x0;			//
 	uint8_t mCOL_SEL = 0x0;			// Column Select: 0-9 BCD-coded;								connected to VIA 6522 (IC3) PA0:3 output

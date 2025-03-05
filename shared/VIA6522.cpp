@@ -437,6 +437,9 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 	if (!MemoryMappedDevice::triggerBeforeRead(adr, data))
 		return false;
 
+	// Advance VIA one cycle to check for transitions before read operation
+	advance(mCycleCount + 1);
+
 	uint16_t a = (adr - mMemorySpace.adr) & 0xf;
 	switch (a) {
 
@@ -568,6 +571,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 			data = mIFR & 0x7f; // Clear IRQ bit
 		else
 			data = mIFR | 0x80; // Set IRQ bit
+		cout << "*READ* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
 		break;
 
 	case IER:
@@ -783,7 +787,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Interrupt Flag Register - writing an '1' will clear the corresponding flag!!!
 	{
 		mIFR &= (~data) & 0x7f;
-		//cout << "*WRITE* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
+		cout << "*WRITE* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
 		updateIRQ();
 
 		break;
