@@ -26,7 +26,7 @@ private:
 
 public:
 
-	PIA8255(string name, uint16_t adr, DebugInfo  *debugInfo, ConnectionManager *connectionManager);
+	PIA8255(string name, double cpuclock, uint16_t adr, DebugManager  *debugManager, ConnectionManager *connectionManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

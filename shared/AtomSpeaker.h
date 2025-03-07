@@ -16,8 +16,6 @@ private:
 	int OUT;
 	uint8_t pOUT = 0x0;
 
-	double mSystemClock;
-
 	int mUpdateFreqCount = 0;
 	int mSamplesPerFragment = 512;
 	int mNFragments = 8;
@@ -31,7 +29,7 @@ private:
 	int mSoundCnt = 0;
 public:
 
-	AtomSpeaker(string name, double systemClock, int sampleFreq, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
+	AtomSpeaker(string name, double cpuClock, int sampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager);
 	~AtomSpeaker();
 
 	bool advance(uint64_t stopCycle);

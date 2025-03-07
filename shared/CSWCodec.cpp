@@ -11,7 +11,7 @@
 using namespace std;
 
 
-CSWCodec::CSWCodec(int sampleFreq, DebugInfo  *debugInfo): mDebugInfo(debugInfo),mSampleRate(sampleFreq)
+CSWCodec::CSWCodec(int sampleFreq, DebugManager  *debugManager): mDM(debugManager),mSampleRate(sampleFreq)
 {
 
 }
@@ -19,12 +19,12 @@ CSWCodec::CSWCodec(int sampleFreq, DebugInfo  *debugInfo): mDebugInfo(debugInfo)
 bool CSWCodec::writeSamples(string filePath)
 {
     if (mPulses.size() == 0) {
-        if (mDebugInfo->dbgLevel & DBG_VERBOSE)
+        if (mDM->debug(DBG_VERBOSE))
             cout << "Np pulses to write...\n";
         return false;
     }
 
-    if (mDebugInfo->dbgLevel & DBG_VERBOSE)
+    if (mDM->debug(DBG_VERBOSE))
         cout << "Writing " << mPulses.size() << " samples to file '" << filePath << "...\n";
 
     // Write samples to CSW file
@@ -78,7 +78,7 @@ bool CSWCodec::decode(string& fileName, vector<uint8_t> &pulses, uint8_t &firstH
     fin.seekg(0, ios::end);
     streamsize file_size = fin.tellg();
     
-    if (mDebugInfo->dbgLevel & DBG_VERBOSE)
+    if (mDM->debug(DBG_VERBOSE))
         cout << "CSW file is of size " << dec << file_size << " bytes\n";
    
     // Repositon to start of file
@@ -147,14 +147,14 @@ bool CSWCodec::decode(string& fileName, vector<uint8_t> &pulses, uint8_t &firstH
     // Assign intial level to pulse (High or Low)
     mPulseLevel = firstHalfCycleLevel;
 
-    if (mDebugInfo->dbgLevel & DBG_VERBOSE)
+    if (mDM->debug(DBG_VERBOSE))
         cout << "First pulse is " << (int) firstHalfCycleLevel << "\n";
 
 
     // Get size of pulse data
     streamsize data_sz = file_size - fin.tellg();
 
-    if (mDebugInfo->dbgLevel & DBG_VERBOSE) {
+    if (mDM->debug(DBG_VERBOSE)) {
         cout << "CSW v" << (int)common_hdr.majorVersion << "." << (int)common_hdr.minorVersion << " format with settings:\n";
         cout << "compressed: " << (compressed ? "Z-RLE" : "RLE") << "\n";
         cout << "sample frequency: " << (int)mSampleRate << "\n";
@@ -188,7 +188,7 @@ bool CSWCodec::decode(string& fileName, vector<uint8_t> &pulses, uint8_t &firstH
         fin.close();
     }
 
-    if (mDebugInfo->dbgLevel & DBG_VERBOSE)
+    if (mDM->debug(DBG_VERBOSE))
         cout << "CSW File '" << fileName << " - no of resulting pulses after decompression = " << pulses.size() << "\n";
 
 
@@ -294,7 +294,7 @@ bool CSWCodec::openTapeFileW(string& filePath)
 bool CSWCodec::closeTapeFileW()
 {
     if (mPulses.size() == 0) {
-        if (mDebugInfo->dbgLevel & DBG_VERBOSE)
+        if (mDM->debug(DBG_VERBOSE))
             cout << "No pulses to write when closing file!\n";
         return false;
     }

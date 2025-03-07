@@ -15,8 +15,8 @@ using namespace std;
 //
 
 
-VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
-	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL, adr, 0x10, debugInfo, connectionManager), mClock(clock), mCPUClock(cpuClock)
+VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager) :
+	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL, cpuClock, adr, 0x10, debugManager, connectionManager), mClock(clock)
 {
 
 	// Specify ports that can be connected to other devices
@@ -27,7 +27,7 @@ VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, Debug
 	registerPort("CA", IO_PORT, 0x03, CA, &mCA);
 	registerPort("CB", IO_PORT, 0x03, CB, &mCB);
 
-	if (mDebugInfo->dbgLevel & DBG_VERBOSE)
+	if (mDM->debug(DBG_VERBOSE))
 		cout << "VIA 6522 '" << name << "' at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
 		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
 
@@ -98,7 +98,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 		uint8_t pPB6 = (pPB >> 6) & 0x1;
 
 
-		if ((mDebugInfo->dbgLevel & DBG_IO_PERIPHERAL) && (mCA & 0x2) != (pCA & 0x2)) {
+		if (mDM->debug(DBG_IO_PERIPHERAL) && (mCA & 0x2) != (pCA & 0x2)) {
 			cout << "CA1 = " << (int)(mCA & 0x1) << ", CA2 = " << (int)((mCA >> 1) & 0x1) << "\n";
 		}
 
@@ -395,15 +395,15 @@ void VIA6522::updateIRQ()
 {
 	if ((mIFR & mIER & 0x7f) == 0) { // No pending interrupts
 		updatePort(IRQ, 0x1);
-		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) != 0 && mIRQ != pIRQ) {
-			cout << "*** VIA RESET IRQ\n\tIFR = " << IFR2Str() << "\n\tIER = " << IER2Str() << "\n\tACR = " << ACR2Str() << "\n\tPCR = " << PCR2Str() << "\n\n";
+		if (mDM->debug(DBG_INTERRUPTS) && mIRQ != pIRQ) {
+			mDM->log(this, DBG_INTERRUPTS, "*** VIA RESET IRQ\n\tIFR = " + IFR2Str() + "\n\tIER = " + IER2Str() + "\n\tACR = " + ACR2Str() + "\n\tPCR = " + PCR2Str() + "\n\n");
 		}
 		pIRQ = mIRQ;
 	}
 	else { // Pending interrupts
 		updatePort(IRQ, 0x0);
-		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) != 0 && mIRQ != pIRQ) {
-			cout << "*** VIA SET IRQ\n\tIFR = " << IFR2Str() << "\n\tIER = " << IER2Str() << "\n\tACR = " << ACR2Str() << "\n\tPCR = " << PCR2Str() << "\n\n";
+		if (mDM->debug(DBG_INTERRUPTS) && mIRQ != pIRQ) {
+			mDM->log(this, DBG_INTERRUPTS, "*** VIA SET IRQ\n\tIFR = " + IFR2Str() + "\n\tIER = " + IER2Str() + "\n\tACR = " + ACR2Str() + "\n\tPCR = " + PCR2Str() + "\n\n");
 		}
 		pIRQ = mIRQ;
 	}
@@ -571,7 +571,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 			data = mIFR & 0x7f; // Clear IRQ bit
 		else
 			data = mIFR | 0x80; // Set IRQ bit
-		if ((mDebugInfo->dbgLevel & DBG_IO_PERIPHERAL) != 0)
+		if (mDM->debug(DBG_IO_PERIPHERAL))
 			cout << "*READ* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
 		break;
 
@@ -630,7 +630,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		if (!updatePort(PB, (mPB & ~mDDRB) | (data & mDDRB)))
 			return false;
 
-		if (mDebugInfo->dbgLevel & DBG_IO_PERIPHERAL)
+		if  (mDM->debug(DBG_IO_PERIPHERAL))
 			cout << "WRITE TO PB WITH DDR 0x" << hex << (int)mDDRB << " and PB 0x" << (int)oPB << " => 0x" << (int)mPB << "\n";
 		break;
 	}
@@ -796,7 +796,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Interrupt Flag Register - writing an '1' will clear the corresponding flag!!!
 	{
 		mIFR &= (~data) & 0x7f;
-		if ((mDebugInfo->dbgLevel & DBG_IO_PERIPHERAL) != 0)
+		if (mDM->debug(DBG_IO_PERIPHERAL))
 			cout << "*WRITE* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
 		updateIRQ();
 
@@ -822,7 +822,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		uint8_t oPA = mPA;
 		updatePort(PA, (mPA & ~mDDRA) | (data & mDDRA));
 
-		if (mDebugInfo->dbgLevel & DBG_IO_PERIPHERAL)
+		if  (mDM->debug(DBG_IO_PERIPHERAL))
 			cout << "WRITE TO PA WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)oPA << " => 0x" << (int)mPA << "\n";
 
 

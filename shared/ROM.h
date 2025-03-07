@@ -19,7 +19,7 @@ public:
 public:
 
 
-	ROM(string name, uint16_t adr, uint16_t sz, string binaryContent, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
+	ROM(string name, double clockSpeed, uint16_t adr, uint16_t sz, string binaryContent, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

@@ -3,8 +3,8 @@
 #include <iostream>
 #include <filesystem>
 
-RAM::RAM(string name, bool DRAM, uint16_t adr, uint16_t sz, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
-	MemoryMappedDevice(name, RAM_DEV, MEMORY_DEVICE, adr, sz, debugInfo, connectionManager)
+RAM::RAM(string name, double clockSpeed, bool DRAM, uint16_t adr, uint16_t sz, DebugManager  *debugManager, ConnectionManager* connectionManager) :
+	MemoryMappedDevice(name, RAM_DEV, MEMORY_DEVICE, clockSpeed, adr, sz, debugManager, connectionManager)
 {
 
 	registerPort("CS", IN_PORT, 0x1, CS, &mCS);
@@ -63,7 +63,7 @@ bool RAM::write(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
 			return false;
 	}
 
-	if (mDebugInfo->dbgLevel & DBG_DEVICE)
+	if (mDM->debug( DBG_DEVICE))
 		cout << "Wrote " << dec << sz << " bytes to RAM at location " << hex << setw(4) << setfill('0') << adr << "\n";
 
 	return true;

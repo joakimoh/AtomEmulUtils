@@ -26,7 +26,7 @@ protected:
 
 public:
 
-	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, uint16_t adr, uint16_t sz, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
+	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint16_t adr, uint16_t sz, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
 	virtual bool read(uint16_t adr, uint8_t& data);
 

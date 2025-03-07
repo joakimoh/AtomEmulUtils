@@ -7,8 +7,8 @@
 // 
 //
 CRTC6845::CRTC6845(
-	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo  *debugInfo, ConnectionManager* connectionManager
-) : VideoDisplayUnit(name, CRTC6845_DEV, adr, 0x2, disp, dispW, dispH, 0x0 /* dummy adr as not used by the 6845 */, debugInfo, connectionManager)
+	string name, uint16_t adr, double cpuclock, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
+) : VideoDisplayUnit(name, CRTC6845_DEV, cpuclock, adr, 0x2, disp, dispW, dispH, 0x0 /* dummy adr as not used by the 6845 */, debugManager, connectionManager)
 {
 
 	registerPort("CLK",			IN_PORT,  0x1,	CLK,		&mCLK);
@@ -254,7 +254,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 	updateSettings();
 	
 	if (mRegWrtCnt >= 18 && pRegWrtCnt < 18) {
-		if ((mDebugInfo->dbgLevel & DBG_VERBOSE))
+		if ((mDM->debug(DBG_VERBOSE)))
 			printSettings();
 		mInitialised = true;
 	}

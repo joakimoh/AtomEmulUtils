@@ -142,8 +142,6 @@ public:
 	int mCursSkew = 0;
 	int mFrame = 0;
 
-	double mCPUClock = 2.0;
-
 	int mInitialised = false;
 	int mRegWrtCnt = 0;
 
@@ -160,8 +158,8 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	CRTC6845(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, 
-		DebugInfo  *debugInfo, ConnectionManager* connectionManager);
+	CRTC6845(string name, uint16_t adr, double cpuclock, ALLEGRO_BITMAP* disp, int dispW, int dispH,
+		DebugManager  *debugManager, ConnectionManager* connectionManager);
 	~CRTC6845() {}
 
 	bool read(uint16_t adr, uint8_t& data);

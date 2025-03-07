@@ -16,7 +16,7 @@ bool PIA8255::reset()
 	mPortC = 0xff;
 	mCR = 0x1b; // All ports are set to the input mode
 
-	if (((mDebugInfo->dbgLevel & DBG_VERBOSE) != 0) && mRESET != pRESET) {
+	if (mDM->debug(DBG_VERBOSE) && mRESET != pRESET) {
 		cout << "PIA 8255 RESET\n";
 		pRESET = mRESET;
 	}
@@ -188,8 +188,8 @@ bool PIA8255::advance(uint64_t stopCycle)
 // At reset all ports will be set to input mode (Control Register becomes 10011011 = 0x9b)
 // All output registers will be reset when the mode is changed.
 //
-PIA8255::PIA8255(string name, uint16_t adr, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
-	MemoryMappedDevice(name, PIA8255_DEV, PERIPHERAL, adr, 4, debugInfo, connectionManager)
+PIA8255::PIA8255(string name, double cpuclock, uint16_t adr, DebugManager  *debugManager, ConnectionManager* connectionManager) :
+	MemoryMappedDevice(name, PIA8255_DEV, PERIPHERAL, cpuclock, adr, 4, debugManager, connectionManager)
 {
 	// Specify ports that can be connected to other devices
 	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
@@ -197,7 +197,7 @@ PIA8255::PIA8255(string name, uint16_t adr, DebugInfo  *debugInfo, ConnectionMan
 	registerPort("PortB", IO_PORT, 0xff, PIA_PORT_B, &mPortB);
 	registerPort("PortC", IO_PORT, 0xff, PIA_PORT_C, &mPortC);
 
-	if (mDebugInfo->dbgLevel & DBG_VERBOSE)
+	if (mDM->debug(DBG_VERBOSE))
 		cout << "PIA 8255 at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
 		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
 }
@@ -242,7 +242,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 
 		data = mPortC;
 
-		if (mDebugInfo->dbgLevel & DBG_DEVICE)
+		if (mDM->debug( DBG_DEVICE))
 			cout << "PIA EXECUTED READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
 	}
 
@@ -336,7 +336,7 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 				return false;
 			}
 
-			if (mDebugInfo->dbgLevel & DBG_DEVICE) {
+			if (mDM->debug( DBG_DEVICE)) {
 				cout << "I/O Mode: ";
 				cout << " PortSelection A " << (mCR & 0x40 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2"));
 				cout << " " << (mCR & 0x10 ? "IN" : "OUT");
@@ -359,12 +359,12 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 			port_C_data &= ~(1 << bit);
 			port_C_data |= (val << bit);
 			updatePort(PIA_PORT_C, port_C_data);
-			if (mDebugInfo->dbgLevel & DBG_DEVICE)
+			if (mDM->debug( DBG_DEVICE))
 				cout << "Set PIA PortSelection C b" << (int) bit << " to 0x" << hex << (int) val << " => PortC = 0x" << hex << (int) mPortC << dec << "\n";
 		}
 	}
 
-	if (mDebugInfo->dbgLevel & DBG_DEVICE)
+	if (mDM->debug( DBG_DEVICE))
 		cout << "PIA EXECUTED WRITE OF 0x" << setw(2) << setfill('0') << hex << (int)data << " to 0x" << setw(4) << adr << "\n";
 
 	// Call parent class to trigger scheduling of other devices when applicable

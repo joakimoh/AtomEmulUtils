@@ -18,7 +18,7 @@ private:
 public:
 
 
-	RAM(string name, bool DRAM, uint16_t adr, uint16_t sz, DebugInfo  *debugInfo, ConnectionManager * connectionManager);
+	RAM(string name, double clockSpeed, bool DRAM, uint16_t adr, uint16_t sz, DebugManager  *debugManager, ConnectionManager * connectionManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

@@ -2,7 +2,7 @@
 #include <map>
 #include "Device.h"
 #include <allegro5/allegro5.h>
-#include "DebugInfo.h"
+#include "DebugManager.h"
 #include "BeebKeyboard.h"
 
 //
@@ -27,8 +27,8 @@
 // PL16				IN				LED1	PB2:0 as BDC 7;PB3 has val		Low							SHIFT Lock LED
 // PL17				IN				LED2	PB2:0 as BDC 6;PB3 has val		Low							CAPS Lock LED
 //
-BeebKeyboard::BeebKeyboard(string name, uint8_t startupOptions, DebugInfo  *debugInfo, ConnectionManager* connectionManager):
-	Device(name, BEEB_KEYBOARD_DEV, KEYBOARD_DEVICE, debugInfo, connectionManager)
+BeebKeyboard::BeebKeyboard(string name, double cpuClock, uint8_t startupOptions, DebugManager  *debugManager, ConnectionManager* connectionManager):
+	Device(name, BEEB_KEYBOARD_DEV, KEYBOARD_DEVICE, cpuClock, debugManager, connectionManager)
 {
 	// Specify ports that can be connected to other devices	
 	registerPort("CTRL",		IN_PORT,	0xf, CTRL,		&mCTRL);
@@ -143,7 +143,7 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 	else
 		updatePort(BREAK, 0x1);
 
-	if (((mDebugInfo->dbgLevel & DBG_KEYBOARD)) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mKB_ENA != pKB_ENA)) {
+	if (mDM->debug(DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mKB_ENA != pKB_ENA)) {
 		cout << "KB_ENA = " << (int) mKB_ENA << ",COL_SEL = " << dec << (int)mCOL_SEL << ", ROW_SEL = " << (int)mROW_SEL << ", PRESSED = " << (int)mPRESSED << ", ROW = " << (int)mROW << "\n";
 	}
 

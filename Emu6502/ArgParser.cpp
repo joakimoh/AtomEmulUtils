@@ -37,6 +37,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "\t'v' video display units\n";
 	cout << "\t's' serial/parallel I/O peripherals\n";
 	cout << "\t'd' device execution in general\n";
+	cout << "\t't' triggering on R/W accesses\n";
 	cout << "\t'a' all the above\n\n";
 }
 
@@ -56,42 +57,44 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			a++;
 		}
 		else if (strcmp(argv[a], "-clog") == 0) {
-			debugInfo.cyclicLogAdr = stoi(argv[a + 1], 0, 16);
+			debugManager.enableCyclicLogging(stoi(argv[a + 1], 0, 16));
 			a++;
 		}
 		else if (strcmp(argv[a], "-ilog") == 0) {
-			debugInfo.interruptLogAdr = stoi(argv[a + 1], 0, 16);
+			debugManager.enableInterruptLogging(stoi(argv[a + 1], 0, 16));
 			a++;
 		}
 		else if (strcmp(argv[a], "-stop") == 0) {
-			debugInfo.stopAdr = stoi(argv[a + 1], 0, 16);
+			debugManager.enableExecStop(stoi(argv[a + 1], 0, 16));
 			a++;
 		}
 		else if (strcmp(argv[a], "-trace") == 0) {
-			debugInfo.traceAdr = stoi(argv[a + 1], 0, 16);
+			uint16_t adr = stoi(argv[a + 1], 0, 16);
 			a++;
 			if (a >= argc) {
 				printUsage(argv[0]);
 				return;
 			}
-			debugInfo.preTraceLen = stoi(argv[a + 1]);
+			int pre_trace_len = stoi(argv[a + 1]);
 			a++;
 			if (a >= argc) {
 				printUsage(argv[0]);
 				return;
 			}
-			debugInfo.postTraceLen = stoi(argv[a + 1]);
+			int post_trace_len = stoi(argv[a + 1]);
+			debugManager.enableTracing(adr, pre_trace_len, post_trace_len);
 			a++;
 		}
 		else if(strcmp(argv[a], "-dump") == 0) {
-		debugInfo.dumpAdr = stoi(argv[a + 1], 0, 16);
-		a++;
-		if (a >= argc) {
-			printUsage(argv[0]);
-			return;
-		}
-		debugInfo.dumpSz = stoi(argv[a + 1], 0, 16);
-		a++;
+			uint16_t adr = stoi(argv[a + 1], 0, 16);
+			a++;
+			if (a >= argc) {
+				printUsage(argv[0]);
+				return;
+			}
+			int sz = stoi(argv[a + 1], 0, 16);
+			debugManager.enableMemDump(adr, sz);
+			a++;
 		}
 		else if (strcmp(argv[a], "-pgm") == 0) {
 			program.fileName = argv[a + 1];
@@ -118,7 +121,7 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			a++;
 		}
 		else if (strcmp(argv[a], "-v") == 0) {
-			debugInfo.dbgLevel |= DBG_VERBOSE;
+			debugManager.setDebugLevel(DBG_VERBOSE);
 		}
 		else if (strcmp(argv[a], "-dbg") == 0) {
 			a++;
@@ -127,25 +130,27 @@ ArgParser::ArgParser(int argc, const char* argv[])
 				return;
 			}
 			if (strstr(argv[a ], "e") != NULL)
-				debugInfo.dbgLevel |= DBG_ERROR;
+				debugManager.setDebugLevel(DBG_ERROR);
 			if (strstr(argv[a], "w") != NULL)
-				debugInfo.dbgLevel |= DBG_WARNING;
+				debugManager.setDebugLevel(DBG_WARNING);
 			if (strstr(argv[a], "d") != NULL)
-				debugInfo.dbgLevel |= DBG_DEVICE;
+				debugManager.setDebugLevel(DBG_DEVICE);
 			if (strstr(argv[a], "u") != NULL)
-				debugInfo.dbgLevel |= DBG_6502;
+				debugManager.setDebugLevel(DBG_6502);
 			if (strstr(argv[a], "p") != NULL)
-				debugInfo.dbgLevel |= DBG_PORT;
+				debugManager.setDebugLevel(DBG_PORT);
 			if (strstr(argv[a], "i") != NULL)
-				debugInfo.dbgLevel |= DBG_INTERRUPTS;
+				debugManager.setDebugLevel(DBG_INTERRUPTS);
 			if (strstr(argv[a], "k") != NULL)
-				debugInfo.dbgLevel |= DBG_KEYBOARD;
+				debugManager.setDebugLevel(DBG_KEYBOARD);
 			if (strstr(argv[a], "v") != NULL)
-				debugInfo.dbgLevel |= DBG_VDU;
+				debugManager.setDebugLevel(DBG_VDU);
 			if (strstr(argv[a], "s") != NULL)
-				debugInfo.dbgLevel |= DBG_IO_PERIPHERAL;
+				debugManager.setDebugLevel(DBG_IO_PERIPHERAL);
+			if (strstr(argv[a], "t") != NULL)
+				debugManager.setDebugLevel(DBG_TRGGERING); 
 			if (strstr(argv[a], "a") != NULL)
-				debugInfo.dbgLevel |= DBG_ALL;
+				debugManager.setDebugLevel(DBG_ALL);
 		}
 		else {
 			cout << "Unknown option " << argv[a] << "\n";

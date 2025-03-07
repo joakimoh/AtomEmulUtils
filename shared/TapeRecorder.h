@@ -20,8 +20,6 @@ private:
 
 	int mHalfCycleDuration = 0x0;
 
-	double mSystemClock;
-
 	int mSampleRate = 44100;
 
 	CSWCodec* mCodec = NULL;
@@ -38,7 +36,7 @@ private:
 
 
 public:
-	TapeRecorder(string name, double systemClock, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
+	TapeRecorder(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager);
 	~TapeRecorder();
 
 	bool advance(uint64_t stopCycle);

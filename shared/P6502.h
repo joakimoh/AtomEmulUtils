@@ -5,7 +5,7 @@
 #include "Device.h"
 #include <vector>
 #include <mutex>
-#include "DebugInfo.h"
+#include "DebugManager.h"
 #include <cstdint>
 #include <cmath>
 
@@ -72,11 +72,6 @@ private:
 
 	string getState();
 
-	int mTraceCount = 0;
-	std::vector<string> mBufferedTraceLines;
-	bool mEndOfTracingReached = false;
-	bool mStopDebugBuffering = false;
-
 	// Ports that can be connected to other devices
 	int NMI = 0, IRQ = 0;
 	uint8_t mNMI = 0x1;
@@ -87,7 +82,7 @@ private:
 
 	MemoryMappedDevice* mLastPgmDevice = NULL;
 	
-	bool readDevice(uint16_t adr, uint8_t& data);
+	
 	bool writeDevice(uint16_t adr, uint8_t data);
 
 	bool readProgramMem(uint16_t adr, uint8_t& data);
@@ -105,11 +100,13 @@ private:
 
 public:
 
+	bool readDevice(uint16_t adr, uint8_t& data);
+
 	MemoryMappedDevice* mZPMemDev = NULL;
 	vector<MemoryMappedDevice*> mDevices;
 	vector< MemoryMappedDevice*> mMemories;
 
-	P6502(string name, double clockSpeed, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
+	P6502(string name, double clockSpeed, DebugManager  *debugManager, ConnectionManager* connectionManager);
 	~P6502();
 
 	// Reset device

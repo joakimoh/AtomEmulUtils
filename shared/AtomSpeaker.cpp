@@ -18,12 +18,12 @@
 //
 
 
-AtomSpeaker::AtomSpeaker(string name, double systemClock, int sampleFreq, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
-	SoundDevice(name, ATOM_SPEAKER_DEV, sampleFreq, debugInfo, connectionManager), mSystemClock(systemClock)
+AtomSpeaker::AtomSpeaker(string name, double cpuClock, int sampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager) :
+	SoundDevice(name, ATOM_SPEAKER_DEV, cpuClock, sampleFreq, debugManager, connectionManager)
 {
 	registerPort("OUT", IN_PORT, 0x01, OUT, &mOUT);	// From PIA PC2
 
-	mUpdateFreqCount = (int)round(systemClock *1e6 / sampleFreq); // limit updates to sampleFreq
+	mUpdateFreqCount = (int)round(mCPUClock *1e6 / sampleFreq); // limit updates to sampleFreq
 
 	al_reserve_samples(0);
 

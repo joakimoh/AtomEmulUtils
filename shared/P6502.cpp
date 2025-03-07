@@ -8,11 +8,12 @@
 #include <filesystem>
 #include <bitset>
 #include <cmath>
+#include "Utility.h"
 
 
 
-P6502::P6502(string name, double clockSpeed, DebugInfo  *debugInfo, ConnectionManager *connectionManager):
-	Device(name, P6502_DEV, MICROROCESSOR_DEVICE, debugInfo, connectionManager)
+P6502::P6502(string name, double clockSpeed, DebugManager  *debugManager, ConnectionManager *connectionManager):
+	Device(name, P6502_DEV, MICROROCESSOR_DEVICE, clockSpeed, debugManager, connectionManager)
 {
 	cPeriod = (int) round(1000 / clockSpeed);
 
@@ -51,8 +52,8 @@ bool P6502::serveNMI()
 	mProgramCounter = adr_H * 256 + adr_L;
 	mStatusRegister |= I_set_mask;
 
-	if (mDebugInfo->dbgLevel & DBG_INTERRUPTS) {
-		cout << "Serving NMI at PC = 0x" << hex << oProgramCounter << "\n";
+	if (mDM->debug(DBG_INTERRUPTS) || mDM->tracing()) {
+		mDM->log(this, DBG_INTERRUPTS, "Serving NMI at PC = 0x" + Utility::int2hexStr(oProgramCounter,4) + "\n");
 		if (mIRQ == 0)
 			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
 	}
@@ -64,8 +65,8 @@ bool P6502::serveIRQ()
 {
 	// Exit if IRQ disabled
 	if (mStatusRegister & I_set_mask) {
-		if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && mIRQ != pIRQ)
-			cout << "I flag set => IRQ ignored at 0x" << hex << mProgramCounter << "...\n";
+		if (mIRQ != pIRQ && mDM->debug(DBG_INTERRUPTS))
+			mDM->log(this, DBG_INTERRUPTS, "I flag set => IRQ ignored at 0x" + Utility::int2hexStr(mProgramCounter,4) + "...\n");
 		return false;
 	}
 
@@ -89,8 +90,8 @@ bool P6502::serveIRQ()
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
 
-	if (mDebugInfo->dbgLevel & DBG_INTERRUPTS) {
-		cout << "Serving IRQ at PC = 0x" << hex << oProgramCounter << "\n";
+	if (mDM->debug(DBG_INTERRUPTS) || mDM->tracing()) {
+		mDM->log(this, DBG_INTERRUPTS, "Serving IRQ at PC = 0x" + Utility::int2hexStr(oProgramCounter,4) + "\n");
 		if (mIRQ == 0)
 			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
 	}
@@ -143,17 +144,20 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 {
 	bool success = true;
 
+	// Advance debugging
+	mDM->preBuffer(mProgramCounter);
+
 	bool reset_transition = (mRESET == 0 && mRESET != pRESET);
 	pRESET = mRESET;
 
-	if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && reset_transition)
-		cout << "RESET => " << dec << (int)mNMI << "\n";
+	if (reset_transition && (mDM->debug(DBG_INTERRUPTS) || mDM->tracing()))
+			mDM->log(this, DBG_INTERRUPTS, "RESET => " + to_string(mRESET) + "\n");
 
-	if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && mIRQ != pIRQ)
-		cout << "IRQ => " << dec << (int)mIRQ << "\n";
+	if (mIRQ != pIRQ && (mDM->debug(DBG_INTERRUPTS) || mDM->tracing()))
+			mDM->log(this, DBG_INTERRUPTS, "IRQ => " + to_string(mIRQ) + "\n");
 
-	if ((mDebugInfo->dbgLevel & DBG_INTERRUPTS) && mNMI != pNMI)
-		cout << "NMI => " << dec << (int)mNMI << "\n";
+	if (mNMI != pNMI && (mDM->debug(DBG_INTERRUPTS) || mDM->tracing()))
+			mDM->log(this, DBG_INTERRUPTS, "NMI => " + to_string(mNMI) + "\n");
 
 	// Serve RESET, NMI & IRQ in priority order
 	if (!mRESET && reset_transition) {
@@ -167,55 +171,23 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	else if (!mIRQ)	// IRQ is level-triggered!
 		serveIRQ();
 
-	if ((mIRQ == 0 || mNMI == 0) && mProgramCounter == mDebugInfo->interruptLogAdr)
-		mDebugInfo->dbgLevel = DBG_6502;
+	// Turn on interrupt logging?
+	mDM->triggerInterruptLogging(mProgramCounter, mIRQ == 0 || mNMI == 0);
 
-
-
-	if (mDebugInfo->traceAdr > 0) {
-		if (mProgramCounter == mDebugInfo->traceAdr && !mStopDebugBuffering) {
-			mDebugInfo->dbgLevel |= DBG_6502;
-			mTraceCount = 0;
-			for (int i = 0; i < mBufferedTraceLines.size(); i++)
-				cout << mBufferedTraceLines[i];
-			mBufferedTraceLines.clear();
-			mStopDebugBuffering = true;
-		}
-		if (mStopDebugBuffering && mTraceCount > mDebugInfo->postTraceLen) {
-			mDebugInfo->dbgLevel &= ~DBG_6502;
-			mEndOfTracingReached = true;
-		}
-		mTraceCount++;
-	}
-
-	if (mDebugInfo->stopAdr > 0 && mProgramCounter == mDebugInfo->stopAdr) {
-		//std::cout << "Execution stop triggered!\n";
-		if (mDebugInfo->dumpAdr > 0) {
-			// Output pre post tracing
-			for (int a = mDebugInfo->dumpAdr; a < mDebugInfo->dumpAdr + mDebugInfo->dumpSz; a++) {
-				uint8_t d;
-				readProgramMem(a, d);
-				std::cout << "0x" << hex << setw(4) << setfill('0') << a <<
-					" 0x" << setw(2) << (int) d << "\n";
-			}
-		}
+	// Stop execution?
+	if (mDM->triggerExecutionStop(this, mProgramCounter)) {
 		mCycleCount++;
 		endCycle = mCycleCount;
 		return true;
 	}
-
-	//if (mProgramCounter == mDebugInfo->cyclicLogAdr) {
-	//	printCallStack();
-	//}
-
 
 	// Get opcode of next instruction
 	uint8_t opcode;
 	uint16_t opcode_PC = mProgramCounter;
 	if (!readProgramMem(mProgramCounter++, opcode)) {
 		success = false;
-		if (mDebugInfo->dbgLevel & DBG_ERROR)
-			std::cout << "Failed to read instruction!\n";
+		if (mDM->debug(DBG_ERROR))
+			mDM->log(this, DBG_ERROR, "Failed to read instruction!\n");
 	}
 
 	// Decode the opcode
@@ -223,8 +195,9 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	bool decode_success = true;
 	if (!mCodec.decodeInstruction(opcode, instr)) {
 		decode_success = false;
-		if (mDebugInfo->dbgLevel & DBG_ERROR)
-			std::cout << "Invalid instruction 0x" << hex << (int) opcode << " encountered at address 0x" << hex << opcode_PC << "!\n";
+		if (mDM->debug(DBG_ERROR))
+			mDM->log(this, DBG_ERROR, "Invalid instruction 0x" + Utility::int2hexStr(opcode, 2) + " at address 0x" + Utility::int2hexStr(opcode_PC, 4) + "!\n");
+
 	}
 	success = success && decode_success;
 
@@ -235,8 +208,8 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	bool operand_success = true;
 	if (!getOperand(instr, operand, calc_op_adr, read_val)) {
 		operand_success = false;
-		if (mDebugInfo->dbgLevel & DBG_ERROR)
-			std::cout << "Failed to get operand for instruction " << hex << (int)opcode << " at address 0x" << opcode_PC << "!\n";
+		if (mDM->debug(DBG_ERROR))
+			mDM->log(this, DBG_ERROR, "Failed to get operand for instruction " + Utility::int2hexStr(opcode, 2) + " at address 0x" + Utility::int2hexStr(opcode_PC, 4) + "!\n");
 	}
 	success = success && operand_success;
 	// After reading the operand, the PC points at the next instruction...
@@ -247,14 +220,15 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	uint8_t oI_flag = I_flag;
 	if (!executeInstr(instr, opcode_PC, operand, calc_op_adr, read_val, written_val)) {
 		exec_success = false;
-		if (mDebugInfo->dbgLevel & DBG_ERROR)
-			std::cout << "Failed to execute instruction!\n";
+		if (mDM->debug(DBG_ERROR))
+			mDM->log(this, DBG_ERROR, "Failed to execute instruction!\n");
 	}
 	success = success && exec_success;
-	if (false && I_flag != oI_flag && (mDebugInfo->dbgLevel & DBG_INTERRUPTS) != 0)
-		cout << "I disable flag " << (I_flag?"set":"cleared") << " by instruction " << mCodec.instr2str[instr.instruction] << " at address 0x" << hex << opcode_PC << "\n";
+	if (false && I_flag != oI_flag)
+		if (mDM->debug(DBG_INTERRUPTS))
+			mDM->log(this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[instr.instruction] + " at address 0x" + Utility::int2hexStr(opcode_PC,4) + "\n");
 
-	if ((mDebugInfo->dbgLevel & DBG_6502)  || (opcode_PC == mDebugInfo->cyclicLogAdr) || (mDebugInfo->traceAdr > 0 && !mEndOfTracingReached)) {
+	if (mDM->tracing()) {
 		string instr_s = mCodec.decode(opcode_PC, opcode, operand);
 		stringstream sout;
 		sout << setfill(' ') << setw(30) << left << instr_s << right <<
@@ -277,17 +251,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		if (!mNMI && mNMI != pNMI)
 			sout << " *NMI";
 		sout << "\n";
-		if ((mDebugInfo->dbgLevel & DBG_6502))
-			cout << sout.str();
-		if (opcode_PC == mDebugInfo->cyclicLogAdr) {
-			cout << sout.str();
-		}
-		if (mDebugInfo->traceAdr > 0 && !mEndOfTracingReached && !mStopDebugBuffering) {
-			mBufferedTraceLines.push_back(sout.str());
-			if (mBufferedTraceLines.size() > mDebugInfo->preTraceLen)
-				mBufferedTraceLines.erase(mBufferedTraceLines.begin(), mBufferedTraceLines.end() - mDebugInfo->preTraceLen);
-
-		}
+		mDM->log(this, DBG_6502, sout.str());
 	}
 
 		
@@ -504,8 +468,8 @@ bool P6502::executeInstr(
 			return false;
 		mProgramCounter = adr_H * 256 + adr_L;
 
-		if (mDebugInfo->dbgLevel & DBG_INTERRUPTS) {
-			cout << "BRK executed at PC = 0x" << hex << opcode_PC << "\n";
+		if (mDM->debug(DBG_INTERRUPTS)) {		
+			mDM->log(this, DBG_INTERRUPTS, "BRK executed at PC = 0x" + Utility::int2hexStr(opcode_PC,4) +"\n");
 			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
 		}
 
@@ -722,8 +686,6 @@ bool P6502::executeInstr(
 		pushWord(opcode_PC + 2); // this is the same as PC after the opcode has been read + 2
 
 		mProgramCounter = calc_op_adr;
-	
-		//cout << "JSR at 0x" << hex << opcode_PC << "; "; printCallStack();
 
 		break;
 	}
@@ -918,8 +880,8 @@ bool P6502::executeInstr(
 		uint16_t oPC = mProgramCounter;
 		pullWord(mProgramCounter);
 
-		if (mDebugInfo->dbgLevel & DBG_INTERRUPTS) {
-			cout << "RTI executed at 0x" << hex << oPC << "; execution resumed at 0x" << mProgramCounter << "!\n";
+		if (mDM->debug(DBG_INTERRUPTS)) {
+			mDM->log(this, DBG_INTERRUPTS, "RTI executed at 0x" + Utility::int2hexStr(oPC,4) + "; execution resumed at 0x" + Utility::int2hexStr(mProgramCounter,4) +"!\n");
 			printInterruptStack(mStackPointer - 2, oStackPointer, oProgramCounter, oStatusRegister);
 		}
 
@@ -934,7 +896,7 @@ bool P6502::executeInstr(
 		// -	-	-	-	-	-
 
 	{
-		//cout << "RTS at 0x" << hex << opcode_PC << "; "; printCallStack();
+
 		uint16_t oPC = mProgramCounter;
 		pullWord(mProgramCounter);
 		mProgramCounter++;
@@ -1549,14 +1511,12 @@ bool P6502::readDevice(uint16_t adr, uint8_t& data)
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
 			bool success = dev->read(adr, data);
-			//if (mDebugInfo->dbgLevel & DBG_6502)
-			//	cout << "READ DEVICE AT 0x" << hex << adr << " => " << (int)data << "\n";
 			return success;
 		}
 	}
 
-	if (mDebugInfo->dbgLevel & DBG_WARNING)
-		cout << "*Warning* Read at unmapped address 0x" << hex << adr << ". Returns 0x0 for all unmapped addresses...\n";
+	if (mDM->debug(DBG_WARNING))
+		mDM->log(this, DBG_WARNING, "*Warning* Read at unmapped address 0x" + Utility::int2hexStr(adr,4) + ". Returns 0x0 for all unmapped addresses...\n");
 
 	data = 0x0;// Better to return 0x00 than 0xff for now when not all devices are implemented as peripheral status 0x00 usually means inactive/no event
 	return true;
@@ -1566,8 +1526,6 @@ bool P6502::readZP(uint8_t adr, uint8_t &data)
 {
 	data = 0xff;
 	if (mZPMemDev != NULL && mZPMemDev->read(adr, data)) {
-		//if (mDebugInfo->dbgLevel & DBG_6502)
-		//	cout << "READ ZERO PAGE ADR 0x" << hex << (int) adr << " => " << (int)data << "\n";
 		return true;
 	}
 	return false;
@@ -1583,8 +1541,6 @@ bool P6502::readProgramMem(uint16_t adr, uint8_t& data)
 		MemoryMappedDevice* dev = mMemories[i];
 		if (dev->selected(adr)) {
 			bool success = dev->read(adr, data);
-			//if (mDebugInfo->dbgLevel & DBG_6502)
-			//	cout << "READ PROGRAM MEMORY AT 0x" << hex << adr << " => " << (int)data << " (" << (success ? "OK" : "NOK") << ")\n";
 			mLastPgmDevice = dev;
 			return success;
 		}
@@ -1603,8 +1559,6 @@ bool P6502::writeDevice(uint16_t adr, uint8_t data)
 	for (int i = 0; i < mDevices.size(); i++) {
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
-			//if (mDebugInfo->dbgLevel & DBG_6502)
-			//	cout << "WRITE DEVICE 0x" << hex << (int)data << " to 0x" << adr << "\n";
 			return dev->write(adr, data);
 		}
 	}
@@ -1654,27 +1608,30 @@ string P6502::stack2Str()
 
 void P6502::printInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister)
 {
-	cout << "StackPointer 0x" << hex << 0x100 + oStackPointer << " => 0x" << 0x100 + mStackPointer << "\n";
-	cout << "Statusregister NV--DIZC:" << setw(8) << bitset<8>(oStatusRegister & 0xdf) << " => 0x" << bitset<8>(mStatusRegister & 0xdf) << "\n";
-	cout << "ProgramCounter 0x" << hex << oProgramCounter << " => 0x" << mProgramCounter << "\n";
-	cout << "Interrupt Stack:\n";
+	string s;
+	s += "\n\tStackPointer 0x" + Utility::int2hexStr(0x100 + oStackPointer,4) + " => 0x" + Utility::int2hexStr(0x100 + mStackPointer,4) + "\n";
+	s += "\tStatusregister NV--DIZC:" + Utility::int2binStr(oStatusRegister & 0xdf,8) + " => 0x" + Utility::int2binStr(mStatusRegister & 0xdf,8) + "\n";
+	s += "\tProgramCounter 0x" + Utility::int2hexStr(oProgramCounter,4) + " => 0x" + Utility::int2hexStr(mProgramCounter,4) + "\n";
+	s += "\tInterrupt Stack:\n";
 	for (int a = 0x100 + stackStart; a < 0x100 + stackStart + 3; a++) {
 		uint8_t d;
 		readProgramMem(a, d);
 		if (a == 0x100 + stackStart)
-			cout << "mem[0x" << a << "] = 0x" << hex << (int)d << " <=> NV-(B)DIZC " << setw(8) << bitset<8>(d) << "\n";
+			s += "\tmem[0x" + Utility::int2hexStr(a,4) + "] = 0x"  + Utility::int2hexStr(d,2) + " <=> NV-(B)DIZC " + Utility::int2binStr(d,8) + "\n";
 		else
-			cout << "mem[0x" << a << "] = 0x" << hex << (int)d << "\n";
+			s += "\tmem[0x" + Utility::int2hexStr(a, 4) + "] = 0x" + Utility::int2hexStr(d, 2) + "\n";
 	}
+	mDM->log(this, DBG_INTERRUPTS, s);
 }
 
 void P6502::printCallStack()
 {
-	cout << "Call Stack:\n";
+	string s = "Call Stack:\n";
 	int start_adr = 0x100 + mStackPointer + 1;
 	for (int a = start_adr; a < start_adr + 2; a++) {
 		uint8_t d;
 		readProgramMem(a, d);
-		cout << "mem[0x" << a << "] = 0x" << hex << (int)d << "\n";
+		s += "\tmem[0x" + Utility::int2hexStr(a, 4) + "] = 0x" + Utility::int2hexStr(d, 2) + "\n";
 	}
+	mDM->log(this, DBG_INTERRUPTS, s);
 }

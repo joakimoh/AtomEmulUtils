@@ -5,7 +5,7 @@
 #include <map>
 #include "Device.h"
 #include <allegro5/allegro5.h>
-#include "DebugInfo.h"
+#include "DebugManager.h"
 
 
 typedef struct Key_struct {
@@ -167,7 +167,7 @@ private:
 
 public:
 
-	BeebKeyboard(string name, uint8_t startupOptions, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
+	BeebKeyboard(string name, double cpuClock, uint8_t startupOptions, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
 	// Reset device
 	bool reset();

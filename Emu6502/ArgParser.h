@@ -3,7 +3,7 @@
 #include <string>
 #include <map>
 #include <vector>
-#include "../shared/DebugInfo.h"
+#include "../shared/DebugManager.h"
 #include "../shared/Device.h"
 
 using namespace std;
@@ -15,7 +15,7 @@ public:
 	string mapFileName;
 	Program program, data;
 	
-	DebugInfo  debugInfo;
+	DebugManager  debugManager;
 
 	double emulationSpeed = 100; // %
 

@@ -4,8 +4,8 @@
 #include <iomanip>
 
 BeebVideoULA::BeebVideoULA(
-	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo  *debugInfo, ConnectionManager* connectionManager
-) : VideoDisplayUnit(name, BEEB_VDU_DEV, adr, 0x10, disp, dispW, dispH, 0x0 /* dummy adr */, debugInfo, connectionManager), mCPUClock(clockSpeed)
+	string name, uint16_t adr, double cpuclock, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
+) : VideoDisplayUnit(name, BEEB_VDU_DEV, cpuclock, adr, 0x10, disp, dispW, dispH, 0x0 /* dummy adr */, debugManager, connectionManager)
 {
 	registerPort("DISEN",		IN_PORT,	0x01, DISPTMG,		&mDISPTMG);
 	registerPort("CURSOR",		IN_PORT,	0x01, CURSOR,		&mCURSOR);	
@@ -446,7 +446,7 @@ bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 		mPaletteMem[pa] = data & 0xf;
 	}
 
-	if (mCRTC != NULL && mCRTC->initialised() && (mDebugInfo->dbgLevel & DBG_VERBOSE)) {
+	if (mCRTC != NULL && mCRTC->initialised() && (mDM->debug(DBG_VERBOSE))) {
 		cout << "\n" << dec;
 		cout << "Video ULA PixelRate:       " << mPixelRate << " MHz\n";
 		cout << "Video ULA PixelWidth:      " << (int) mPixelW << "\n";

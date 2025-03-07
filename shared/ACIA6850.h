@@ -13,7 +13,6 @@ class ACIA6850 : public MemoryMappedDevice {
 private:
 
 	double mClock = 1.0;
-	double mCPUClock = 2.0;
 
 	// Ports
 	int RxD, TxD, RTS, CTS, DCD, RxCLK, TxCLK;
@@ -33,7 +32,7 @@ private:
 
 public:
 
-	ACIA6850(string name, uint16_t adr, double clock, double cpuClock, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
+	ACIA6850(string name, uint16_t adr, double clock, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

@@ -4,10 +4,10 @@
 using namespace std;
 
 TT5050::TT5050(
-	string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo  *debugInfo, ConnectionManager* connectionManager
-) : Device(name, TT_5050_DEV, OTHER_DEVICE, debugInfo, connectionManager), mSystemClock(clockSpeed)
+	string name, uint16_t adr, double cpuClock, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager
+) : Device(name, TT_5050_DEV, OTHER_DEVICE, cpuClock, debugManager, connectionManager)
 {
-	if (mDebugInfo->dbgLevel & DBG_VERBOSE)
+	if (mDM->debug(DBG_VERBOSE))
 		cout << "Teletext Character Generator SA5050 '" << name << "' added\n";
 
 	registerPort("LOSE",	IN_PORT, 0x1, LOSE, &mLOSE);
@@ -85,7 +85,7 @@ void TT5050::createInterpolatedSymbols()
 	}
 
 
-	if (false && mDebugInfo->dbgLevel & DBG_VERBOSE) {
+	if (false && mDM->debug(DBG_VERBOSE)) {
 
 		cout << "Non-interpolated and interpolated symbols:\n\n";
 
@@ -155,12 +155,12 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 	const int n_raster_lines = 20;
 
 	if (!initialised()) {
-		mCycleCount += max(1, (int)round(mSystemClock / 1.0));
+		mCycleCount += max(1, (int)round(mCPUClock / 1.0));
 		return true;
 	}
 
 	// Advance time 1 us
-	mCycleCount += max(1, (int) round(mSystemClock / 1.0));
+	mCycleCount += max(1, (int) round(mCPUClock / 1.0));
 	
 	// start of frame => reset scan line, raster line & char row counters
 	if (VS) { 

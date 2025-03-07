@@ -17,8 +17,8 @@
 // CAS_OUT		Cassette output to the Tape Recorder
 //
 
-AtomCUTSInterface::AtomCUTSInterface(string name, double systemClock, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
-	Device(name, ATOM_CUTS_DEV, OTHER_DEVICE, debugInfo, connectionManager)
+AtomCUTSInterface::AtomCUTSInterface(string name, double systemClock, DebugManager  *debugManager, ConnectionManager* connectionManager) :
+	Device(name, ATOM_CUTS_DEV, OTHER_DEVICE, systemClock, debugManager, connectionManager)
 {
 	registerPort("TAPE_OUT",	IN_PORT,	0x01, TAPE_OUT, &mTAPE_OUT);	// From PIA PC0
 	registerPort("ENA_TONE",	IN_PORT,	0x01, ENA_TONE, &mENA_TONE);	// From PIA PC1

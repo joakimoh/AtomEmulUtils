@@ -158,7 +158,6 @@ public:
 	uint8_t mSymbolRasterBits[96][10][6];
 	uint8_t mInterpolatedSymbolRasterBits[96][20][12];
 
-	double mSystemClock = 2.0;
 	int mScanLine = 0;
 	int mCharRowPos = 0;
 	int mCharRasterLine = 0;
@@ -212,7 +211,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	TT5050(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
+	TT5050(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
 	// Reset device
 	bool reset();

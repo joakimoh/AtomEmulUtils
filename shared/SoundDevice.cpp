@@ -1,8 +1,8 @@
 #include "SoundDevice.h"
 
 
-SoundDevice::SoundDevice(string name, DeviceId devId, int SampleFreq, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
-	Device(name, devId, SOUND_DEVICE, debugInfo, connectionManager), mSampleRate(SampleFreq)
+SoundDevice::SoundDevice(string name, DeviceId devId, double cpuClock, int SampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager) :
+	Device(name, devId, SOUND_DEVICE, cpuClock, debugManager, connectionManager), mSampleRate(SampleFreq)
 {
 
 }

@@ -7,8 +7,8 @@
 using namespace std;
 
 
-AtomKeyboardDevice::AtomKeyboardDevice(string name, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
-	Device(name, ATOM_KB_DEV, KEYBOARD_DEVICE, debugInfo, connectionManager)
+AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager) :
+	Device(name, ATOM_KB_DEV, KEYBOARD_DEVICE, cpuClock, debugManager, connectionManager)
 {
 	// Specify ports that can be connected to other devices	
 	registerPort("ROW", IN_PORT, 0x0f, KB_ROW, &mSelectedRow);
@@ -37,7 +37,7 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, DebugInfo  *debugInfo, Conne
 			mBreakKeyCode = key->keyCode;
 	}
 
-	if (mDebugInfo->dbgLevel & DBG_VERBOSE) {
+	if (mDM->debug(DBG_VERBOSE)) {
 		cout << "KeyBoard initialised\n";
 		cout << "SHIFT keys have keycodes 0x" << hex << mShiftKeyCodes[0] << " and 0x" << mShiftKeyCodes[1] << dec << "\n";
 		cout << "CTRL key has keycode 0x" << hex << mCtrlKeyCode << dec << "\n";
@@ -106,7 +106,7 @@ bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 		return false;
 
 
-	if (((mDebugInfo->dbgLevel & DBG_KEYBOARD) != 0) && (column_L != 0xff || column_H != 0x3))
+	if (mDM->debug(DBG_KEYBOARD) && (column_L != 0xff || column_H != 0x3))
 		cout << "column L = 0x" << hex << (int)column_L << ", column H = 0x" << (int)column_H << "\n";
 
 

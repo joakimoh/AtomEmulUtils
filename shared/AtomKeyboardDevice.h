@@ -5,7 +5,7 @@
 #include <map>
 #include "Device.h"
 #include <allegro5/allegro5.h>
-#include "DebugInfo.h"
+#include "DebugManager.h"
 
 
 typedef struct AtomKey_struct {
@@ -135,7 +135,7 @@ private:
 
 public:
 
-	AtomKeyboardDevice(string name, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
+	AtomKeyboardDevice(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
 	// Reset device
 	bool reset() { mCycleCount = 0; return true; }

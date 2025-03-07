@@ -20,7 +20,7 @@ protected:
 
 public:
 
-	SoundDevice(string name, DeviceId devId, int SampleFreq, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
+	SoundDevice(string name, DeviceId devId, double cpuClock, int SampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
 	virtual void setFrameRate(int frameRate);
 

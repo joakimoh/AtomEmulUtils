@@ -1,7 +1,7 @@
 #include "ACIA6850.h"
 
-ACIA6850::ACIA6850(string name, uint16_t adr, double clock, double cpuClock, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
-	MemoryMappedDevice(name, ACIA6850_DEV, PERIPHERAL, adr, 0x08, debugInfo, connectionManager), mClock(clock), mCPUClock(cpuClock)
+ACIA6850::ACIA6850(string name, uint16_t adr, double clock, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager) :
+	MemoryMappedDevice(name, ACIA6850_DEV, PERIPHERAL, cpuClock, adr, 0x08, debugManager, connectionManager), mClock(clock)
 {	registerPort("RxD",		IN_PORT,	0x1,	RxD,	&mRxD);			// Receive Data 	registerPort("CTS",		IN_PORT,	0x1,	CTS,	&mCTS);			// Clear To Send 	registerPort("DCD",		IN_PORT,	0x1,	DCD,	&mDCD);			// Data Carrier Detect 	registerPort("RxCLK",	IN_PORT,	0x1,	RxCLK,	&mRxCLK);		// Receive Clock	registerPort("TxCLK",	IN_PORT,	0x1,	TxCLK,	&mTxCLK);		// Transmit Clock	registerPort("TxD",		OUT_PORT,	0x1,	TxD,	&mTxD);			// Transmit Data	registerPort("RTS",		OUT_PORT,	0x1,	RTS,	&mRTS);			// Request To Send
 }
 

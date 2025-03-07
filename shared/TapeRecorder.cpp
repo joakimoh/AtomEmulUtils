@@ -1,13 +1,13 @@
 #include "TapeRecorder.h"
 #include <cmath>
 
-TapeRecorder::TapeRecorder(string name, double systemClock, DebugInfo  *debugInfo, ConnectionManager* connectionManager) :
-	Device(name, TAPE_RECORDER_DEV, OTHER_DEVICE, debugInfo, connectionManager), mSystemClock(systemClock * 1e6)
+TapeRecorder::TapeRecorder(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager) :
+	Device(name, TAPE_RECORDER_DEV, OTHER_DEVICE, cpuClock, debugManager, connectionManager)
 {
 	registerPort("CAS_IN", OUT_PORT, 0x01, CAS_IN, &mCAS_IN);
 	registerPort("CAS_OUT", IN_PORT, 0x01, CAS_OUT, &mCAS_OUT);
 
-	mCodec = new CSWCodec(44100, mDebugInfo);
+	mCodec = new CSWCodec(44100, mDM);
 
 }
 
@@ -31,7 +31,7 @@ bool TapeRecorder::advance(uint64_t stopCycle)
 
 				// One 1/2 cycle has passed => update tape file
 				if (mRecord) {
-					unsigned int pulse_len = (int)round((double)mHalfCycleDuration / mSystemClock * mSampleRate);
+					unsigned int pulse_len = (int)round((double)mHalfCycleDuration / mCPUClock * 1e6 * mSampleRate);
 					if (!mCodec->writePulse(pulse_len)) {
 						return false;
 					}
@@ -52,7 +52,7 @@ bool TapeRecorder::advance(uint64_t stopCycle)
 					mLoadFromTape = false;
 					updatePort(CAS_IN, 0);
 				}
-				mCasInPulseLen = (int)round(mSystemClock * pulse_len / mSampleRate);
+				mCasInPulseLen = (int)round(mCPUClock * 1e6 * pulse_len / mSampleRate);
 				mCasInPulseStartCount = mCycleCount;
 			}
 		}

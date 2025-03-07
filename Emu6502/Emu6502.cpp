@@ -17,6 +17,7 @@
 #include "../shared/Codec6502.h"
 #include "../shared/VideoDisplayUnit.h"
 #include "../shared/GUI.h"
+#include "../shared/DebugManager.h"
 
 #include <chrono>
 #include <cmath>
@@ -120,7 +121,7 @@ int main(int argc, const char* argv[])
 	//al_register_event_source(queue, al_get_mouse_event_source());
     
 
-    ConnectionManager connection_manager(&arg_parser.debugInfo);
+    ConnectionManager connection_manager(&arg_parser.debugManager);
 
     VideoDisplayUnit* vdu = NULL;
     vector<Device*> frame_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices;
@@ -131,7 +132,7 @@ int main(int argc, const char* argv[])
         CPU_clock,            // CPU Clock frequency in MHz
         32000,                      // audio sample rate corresponding to a rate of at least twice per scan line
         disp_bm, disp_w, disp_h,
-        &arg_parser.debugInfo, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu,
+        &arg_parser.debugManager, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu,
         frame_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices
 
     );
@@ -270,7 +271,7 @@ int main(int argc, const char* argv[])
         }
 
         frame_cnt = (frame_cnt + 1) % frame_rate;
-        if ((arg_parser.debugInfo.dbgLevel == DBG_DEVICE) && frame_cnt == 0) {
+        if (arg_parser.debugManager.debug(DBG_DEVICE) && frame_cnt == 0) {
             cout << "Frame duration: " << frame_dur_cnt / 1000 << " ms per sec\n";
             frame_dur_cnt = 0;
             cout << "VDU ms per sec: " << vdu_cnt / 1000 << "\n";
@@ -327,7 +328,7 @@ int main(int argc, const char* argv[])
         // Turn on microprocessor debugging (tracing) if user presses <CTRL>-D
         al_get_keyboard_state(&keyboard_state);
         if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_D)) {
-            microprocessor->debug(true);
+            arg_parser.debugManager.setDebugLevel(DBG_6502);
         }
 
     }

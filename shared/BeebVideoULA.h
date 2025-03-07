@@ -67,7 +67,6 @@ public:
 	int mScreenW = 640;			// Visible screen area (including borders)
 	int mScreenH = 256;			//
 
-	double mCPUClock = 2.0; // [MHz]
 	uint8_t mPixelW = 1;
 	int mPixelRate = 1;
 	int mPixelsPerByte = 8;	// The no of pixels per byte for modes 0-6 (8 for 2-colour, 4 for 4-colour and 2 for 6-colour)
@@ -107,7 +106,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	BeebVideoULA(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugInfo  *debugInfo, ConnectionManager* connectionManager);
+	BeebVideoULA(string name, uint16_t adr, double cpuclock, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager);
 	~BeebVideoULA();
 
 	bool read(uint16_t adr, uint8_t& data);

@@ -1,18 +1,19 @@
 #include "MemoryMappedDevice.h"
 #include <iostream>
 #include <iomanip>
-#include "DebugInfo.h"
+#include "DebugManager.h"
+#include "Utility.h"
 
 using namespace std;
 
 MemoryMappedDevice::MemoryMappedDevice(
-	string name, DeviceId typ, DeviceCategory cat, uint16_t adr, uint16_t sz, DebugInfo  *debugInfo, ConnectionManager* connectionManager
-): Device(name, typ, cat, debugInfo, connectionManager)
+	string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint16_t adr, uint16_t sz, DebugManager  *debugManager, ConnectionManager* connectionManager
+): Device(name, typ, cat, cpuClock, debugManager, connectionManager)
 {
 	mMemorySpace = { adr, sz };
 	mMemoryMapped = true;
 
-	if (mDebugInfo->dbgLevel & DBG_VERBOSE)
+	if (mDM->debug(DBG_VERBOSE))
 		cout << _DEVICE_ID(this->devType) << " (" << this->name << ") at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
 		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
 }
@@ -36,7 +37,7 @@ void MemoryMappedDevice::addMemoryGap(uint16_t adr, uint16_t sz)
 {
 	MemoryRange gap = { adr, sz };
 	mMemoryGaps.push_back(gap);
-	if (mDebugInfo->dbgLevel & DBG_VERBOSE)
+	if (mDM->debug(DBG_VERBOSE))
 		cout << "Gap in memory space for device '" << this->name << "' between " << hex << setfill('0') << setw(4) << gap.adr <<
 			" and " << gap.adr + gap.sz << "\n";
 }
@@ -54,8 +55,9 @@ bool MemoryMappedDevice::triggerBeforeRead(uint16_t adr, uint8_t data)
 	}
 	for (int i = 0; i < mScheduleOnRead.size(); i++) {
 		if (mScheduleOnRead[i].triggeringAdr == adr) {
-			if (mDebugInfo->dbgLevel & DBG_DEVICE)
-				cout << "READ 0x" << hex << adr << dec << " => triggers " << mScheduleOnRead[i].device->name << " at " << dec << mCycleCount << "\n";
+			if (mDM->debug(DBG_TRGGERING))
+				mDM->log(this, DBG_TRGGERING, "READ 0x" + Utility::int2hexStr(adr, 4) +  " => triggers " +
+					mScheduleOnRead[i].device->name + " at " + to_string(mCycleCount) + "\n");
 			mScheduleOnRead[i].device->advance(mCycleCount); // align the triggered device's time with this device
 		}
 	}
@@ -71,8 +73,9 @@ bool MemoryMappedDevice::triggerAfterWrite(uint16_t adr, uint8_t data)
 	}
 	for (int i = 0; i < mScheduleOnWrite.size(); i++) {
 		if (mScheduleOnWrite[i].triggeringAdr == adr) {
-			if ((mDebugInfo->dbgLevel & DBG_6502))
-				cout << "WRITE 0x" << hex << (int)data << " TO 0x" << adr << " => triggers " << mScheduleOnWrite[i].device->name << " at " << dec << mCycleCount << "\n";
+			if (mDM->debug(DBG_TRGGERING))
+				mDM->log(this, DBG_TRGGERING, "WRITE 0x" + Utility::int2hexStr(data,2) + " TO 0x" + Utility::int2hexStr(adr,4) + " => triggers " +
+					mScheduleOnWrite[i].device->name + " at " + to_string(mCycleCount) + "\n");
 			mScheduleOnWrite[i].device->advance(mCycleCount); // align the triggered device's time with this device
 		}
 	}
@@ -91,7 +94,7 @@ bool MemoryMappedDevice::registerAccess(Device* dev, uint16_t adr, bool writeAcc
 		mScheduleOnWrite.push_back(dev_sch);
 	else
 		mScheduleOnRead.push_back(dev_sch);
-	if (mDebugInfo->dbgLevel & DBG_VERBOSE)
+	if (mDM->debug(DBG_VERBOSE))
 		cout << "TRIGGER " << dev->name << " ON " << this->name << " 0x" << hex << adr << (writeAccess ? " WRITE" : " READ") << " ACCESSES\n";
 	return true;
 }
