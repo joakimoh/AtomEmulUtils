@@ -110,15 +110,16 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 		start_col = 0;
 		end_col = 9;
 	}
-	else // No auto scanning - only keys in the currently selected column are checked
+	else if (mCOL_SEL <= 9) { // No auto scanning - only keys in the currently selected column are checked (column needs to be valid <=> <=9)
 		start_col = end_col = mCOL_SEL;
-	for (int row = 1; row <= 7; row++) {
-		for (int col = start_col; col <= end_col; col++) {
-			Key& key = mKeyboardMatrix[row][col];
-			if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
-				column_key_pressed = true;
-				//cout << "Key " << key.keyName << " pressed!\n";
-				break;
+		for (int row = 1; row <= 7; row++) {
+			for (int col = start_col; col <= end_col; col++) {
+				Key& key = mKeyboardMatrix[row][col];
+				if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
+					column_key_pressed = true;
+					//cout << "Key " << key.keyName << " pressed!\n";
+					break;
+				}
 			}
 		}
 	}

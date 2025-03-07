@@ -98,7 +98,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 		uint8_t pPB6 = (pPB >> 6) & 0x1;
 
 
-		if ((mDebugInfo->dbgLevel & DBG_IO_PERIPHERAL) && mCA != pCA) {
+		if ((mDebugInfo->dbgLevel & DBG_IO_PERIPHERAL) && (mCA & 0x2) != (pCA & 0x2)) {
 			cout << "CA1 = " << (int)(mCA & 0x1) << ", CA2 = " << (int)((mCA >> 1) & 0x1) << "\n";
 		}
 
@@ -447,9 +447,9 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		// Input Register B - if PBi is acting as input: if latching is disabled (ACR b1=0) IRB reflects PB; if not (ACR b1=1) the PB value latched by CB1
 	{
 		if (mACR & 0x2) // PB is latched
-			data = (mIRB & DDRB) | (mPB_latched & ~DDRB);
+			data = (mIRB & mDDRB) | (mPB_latched & ~mDDRB);
 		else
-			data = (mIRB & DDRB) | (mPB & ~DDRB);
+			data = (mIRB & mDDRB) | (mPB & ~mDDRB);
 		break;
 
 	}
@@ -571,7 +571,8 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 			data = mIFR & 0x7f; // Clear IRQ bit
 		else
 			data = mIFR | 0x80; // Set IRQ bit
-		cout << "*READ* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
+		if ((mDebugInfo->dbgLevel & DBG_IO_PERIPHERAL) != 0)
+			cout << "*READ* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
 		break;
 
 	case IER:
@@ -621,8 +622,16 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 			break;
 		}
 
-		if (!updatePort(PB, (mPB & ~DDRB) | (data & DDRB)))
+		uint8_t oPB = mPB;
+		// PB 0x2
+		// data 0x3
+		// DDR 0xf
+		// (0x2 & ~0xf) | (0x3 & 0xf) = (0x2 & 0xf0) | 0x3 = 0x3;
+		if (!updatePort(PB, (mPB & ~mDDRB) | (data & mDDRB)))
 			return false;
+
+		if (mDebugInfo->dbgLevel & DBG_IO_PERIPHERAL)
+			cout << "WRITE TO PB WITH DDR 0x" << hex << (int)mDDRB << " and PB 0x" << (int)oPB << " => 0x" << (int)mPB << "\n";
 		break;
 	}
 	case ORA:
@@ -787,7 +796,8 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Interrupt Flag Register - writing an '1' will clear the corresponding flag!!!
 	{
 		mIFR &= (~data) & 0x7f;
-		cout << "*WRITE* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
+		if ((mDebugInfo->dbgLevel & DBG_IO_PERIPHERAL) != 0)
+			cout << "*WRITE* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
 		updateIRQ();
 
 		break;
