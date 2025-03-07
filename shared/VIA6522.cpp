@@ -165,7 +165,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 					}
 				}
 				if (mShiftGenerateCB1)
-					updatePort(CB, (CB & ~0x1) | mCB1ShiftPulse);
+					updatePort(CB, (mCB & ~0x1) | mCB1ShiftPulse);
 				break;
 			}
 			case 0x4:	// Shift out fre-running at T2 rate
@@ -186,7 +186,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 					}
 				}
 				if (mShiftGenerateCB1)
-					updatePort(CB, (CB & ~0x1) | mCB1ShiftPulse);
+					updatePort(CB, (mCB & ~0x1) | mCB1ShiftPulse);
 				break;
 				break;
 			}
@@ -786,9 +786,9 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Check for explicit CB2 control
 		int CB2_mode = PCR_CB2_CTRL;
 		if (CB2_mode == 0x6) // Low output
-			updatePort(CA, mCB & ~0x2);
+			updatePort(CB, mCB & ~0x2);
 		else if (CB2_mode == 0x7) // High output
-			updatePort(CA, mCB | 0x2);
+			updatePort(CB, mCB | 0x2);
 
 		break;
 	}

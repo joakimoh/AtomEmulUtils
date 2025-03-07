@@ -251,7 +251,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			std::cout << "Failed to execute instruction!\n";
 	}
 	success = success && exec_success;
-	if (I_flag != oI_flag && (mDebugInfo->dbgLevel & DBG_INTERRUPTS) != 0)
+	if (false && I_flag != oI_flag && (mDebugInfo->dbgLevel & DBG_INTERRUPTS) != 0)
 		cout << "I disable flag " << (I_flag?"set":"cleared") << " by instruction " << mCodec.instr2str[instr.instruction] << " at address 0x" << hex << opcode_PC << "\n";
 
 	if ((mDebugInfo->dbgLevel & DBG_6502)  || (opcode_PC == mDebugInfo->cyclicLogAdr) || (mDebugInfo->traceAdr > 0 && !mEndOfTracingReached)) {
