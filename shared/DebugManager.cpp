@@ -88,8 +88,17 @@ bool DebugManager::triggerExecutionStop(P6502 *cpu, uint16_t fetchAdr)
 	return false;
 }
 
-void DebugManager::preBuffer(uint16_t fetchAdr)
+bool DebugManager::mathFetchAddress(uint16_t fetchAdr)
 {
+	return (fetchAdr == mFetchAdr && (mMatchX == -1 || mX == mMatchX) && (mMatchY == -1 || mY == mMatchY) && (mMatchA == -1 || mA == mMatchA));
+}
+
+void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
+{
+	mX = X;
+	mY = Y;
+	mA = A;
+
 	if (mTraceAdr > 0) {
 
 		if (!mEndofPrebufferingReached && !mEndOfTracingReached) {
@@ -102,7 +111,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr)
 			}
 		}
 
-		if (fetchAdr == mTraceAdr && !mEndofPrebufferingReached) {
+		if (mathFetchAddress(mTraceAdr) && !mEndofPrebufferingReached) {
 			mDbgLevel |= DBG_6502;
 			mTraceCount = 0;
 			if (mRecurringTracing)
@@ -127,6 +136,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr)
 	}
 
 	mFetchAdr = fetchAdr;
+
 }
 
 void DebugManager::log(Device * dev, DebugLevel level, string line)

@@ -145,7 +145,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	bool success = true;
 
 	// Advance debugging
-	mDM->preBuffer(mProgramCounter);
+	mDM->preBuffer(mProgramCounter, mRegisterX, mRegisterY, mAcc);
 
 	bool reset_transition = (mRESET == 0 && mRESET != pRESET);
 	pRESET = mRESET;

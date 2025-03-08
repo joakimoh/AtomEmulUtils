@@ -48,6 +48,14 @@ private:
 	int mStopAdr = -1;
 	int mDumpAdr = -1;
 	int mDumpSz = -1;
+
+
+	int mX = -1;
+	int mY = -1;
+	int mA = -1;
+	int mMatchX = -1;
+	int mMatchY = -1;
+	int mMatchA = -1;
 	
 	
 
@@ -57,6 +65,8 @@ private:
 
 	bool mRecurringTracing = false;
 	bool mStopped = false;
+
+	bool mathFetchAddress(uint16_t fetchAdr);
 
 public:
 
@@ -78,7 +88,7 @@ public:
 	void startLogging();
 	void stopLogging();
 
-	void preBuffer(uint16_t adr);
+	void preBuffer(uint16_t adr, uint8_t X, uint8_t Y, uint8_t A);
 
 	void log(Device * dev, DebugLevel level, string line);
 };
