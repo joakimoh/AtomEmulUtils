@@ -112,18 +112,20 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 	}
 	else if (mCOL_SEL <= 9) { // No auto scanning - only keys in the currently selected column are checked (column needs to be valid <=> <=9)
 		start_col = end_col = mCOL_SEL;
+	}
+	if (mKB_ENA || mCOL_SEL <= 9)
+	{
 		for (int row = 1; row <= 7; row++) {
 			for (int col = start_col; col <= end_col; col++) {
 				Key& key = mKeyboardMatrix[row][col];
 				if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
 					column_key_pressed = true;
-					//cout << "Key " << key.keyName << " pressed!\n";
+					mDM->log(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!\n");
 					break;
 				}
 			}
 		}
 	}
-
 
 	// Any key pressed in a selected column
 	if (column_key_pressed)

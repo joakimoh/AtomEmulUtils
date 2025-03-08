@@ -201,29 +201,29 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 
 		// Check Timer 1
-		mTimer1Counter--;
-		if (mTimer1Counter <= 0) {
-			mTimer1Counter = 0;
-			if (mTimer1Running) {
+		if (mTimer1Running) {
+			mTimer1Counter--;
+			if (mTimer1Counter <= 0) {
+				mTimer1Counter = 0;
 				setIFR(IFR_T1_MASK);
-			}
-			switch (ACR_T1_CTRL) {
-			case 0x0:	// One-shot Interrupt (One-Shot Mode), PB7 inactive
-				mTimer1Running = false;
-				break;
-			case 0x1:	// Continuous interrupts (Fre-Run Mode), PB7 inactive
-				mTimer1Counter = (mTimer1LatchHigh << 8) | mTimer1LatchLow;
-				break;
-			case 0x2:	// One-shot Interrupt (One-Shot Mode), PB7 low when timer starts and back high when timer reaches zero
-				mTimer1Running = false;
-				updatePort(PB, mPB | 0x80);
-				break;
-			case 0x3:	// Continuous interrupts (Fre-Run Mode), PB7 toggled
-				mTimer1Counter = (mTimer1LatchHigh << 8) | mTimer1LatchLow;
-				updatePort(PB, mPB ^ 0x80);
-				break;
-			default:
-				break;
+				switch (ACR_T1_CTRL) {
+				case 0x0:	// One-shot Interrupt (One-Shot Mode), PB7 inactive
+					mTimer1Running = false;
+					break;
+				case 0x1:	// Continuous interrupts (Fre-Run Mode), PB7 inactive
+					mTimer1Counter = (mTimer1LatchHigh << 8) | mTimer1LatchLow;
+					break;
+				case 0x2:	// One-shot Interrupt (One-Shot Mode), PB7 low when timer starts and back high when timer reaches zero
+					mTimer1Running = false;
+					updatePort(PB, mPB | 0x80);
+					break;
+				case 0x3:	// Continuous interrupts (Fre-Run Mode), PB7 toggled
+					mTimer1Counter = (mTimer1LatchHigh << 8) | mTimer1LatchLow;
+					updatePort(PB, mPB ^ 0x80);
+					break;
+				default:
+					break;
+				}
 			}
 		}
 
@@ -397,14 +397,14 @@ void VIA6522::updateIRQ()
 	if ((mIFR & mIER & 0x7f) == 0) { // No pending interrupts
 		updatePort(IRQ, 0x1);
 		if (mDM->debug(DBG_INTERRUPTS) && mIRQ != pIRQ) {
-			mDM->log(this, DBG_INTERRUPTS, "*** VIA RESET IRQ\n\tIFR = " + IFR2Str() + "\n\tIER = " + IER2Str() + "\n\tACR = " + ACR2Str() + "\n\tPCR = " + PCR2Str() + "\n\n");
+			mDM->log(this, DBG_INTERRUPTS, "VIA deassert (make HIGH) of IRQ line\n\tIFR = " + IFR2Str() + "\n\tIER = " + IER2Str() + "\n\tACR = " + ACR2Str() + "\n\tPCR = " + PCR2Str() + "\n\n");
 		}
 		pIRQ = mIRQ;
 	}
 	else { // Pending interrupts
 		updatePort(IRQ, 0x0);
 		if (mDM->debug(DBG_INTERRUPTS) && mIRQ != pIRQ) {
-			mDM->log(this, DBG_INTERRUPTS, "*** VIA SET IRQ\n\tIFR = " + IFR2Str() + "\n\tIER = " + IER2Str() + "\n\tACR = " + ACR2Str() + "\n\tPCR = " + PCR2Str() + "\n\n");
+			mDM->log(this, DBG_INTERRUPTS, "Via assert (make LOW) of IRQ line \n\tIFR = " + IFR2Str() + "\n\tIER = " + IER2Str() + "\n\tACR = " + ACR2Str() + "\n\tPCR = " + PCR2Str() + "\n\n");
 		}
 		pIRQ = mIRQ;
 	}
@@ -416,7 +416,7 @@ void VIA6522::clearIFR(uint8_t mask)
 	uint8_t oIFR = mIFR;
 	mIFR &= ~mask;
 	if (mIFR != oIFR) {
-		mDM->log(this, DBG_IO_PERIPHERAL, "CLEAR IFR 0x" + Utility::int2hexStr(oIFR,2) + " => " + IFR2Str() + " for PCR = " + PCR2Str() + " and ACR = " + ACR2Str() + "\n");
+		mDM->log(this, DBG_IO_PERIPHERAL, "VIA clear IFR 0x" + Utility::int2hexStr(oIFR,2) + " => " + IFR2Str() + " for PCR = " + PCR2Str() + ", ACR = " + ACR2Str() + " and IER = " + IER2Str() + "\n");
 	}
 	pIFR = mIFR;
 	updateIRQ();
@@ -427,7 +427,7 @@ void VIA6522::setIFR(uint8_t mask)
 	uint8_t oIFR = mIFR;
 	mIFR |= mask;
 	if (mIFR != oIFR) {
-		mDM->log(this, DBG_IO_PERIPHERAL, "SET IFR 0x" + Utility::int2hexStr(oIFR, 2) + " => " + IFR2Str() + " for PCR = " + PCR2Str() + " and ACR = " + ACR2Str() + "\n");
+		mDM->log(this, DBG_IO_PERIPHERAL, "VIA set IFR 0x" + Utility::int2hexStr(oIFR, 2) + " => " + IFR2Str() + " for PCR = " + PCR2Str() + ", ACR = " + ACR2Str() + " and IER = " + IER2Str() + "\n");
 	}
 	pIFR = mIFR;
 	updateIRQ();
@@ -599,6 +599,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 	return true;
 
 }
+
 bool VIA6522::write(uint16_t adr, uint8_t data)
 {
 
@@ -678,6 +679,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		mTimer1LatchLow = data;
 		mTimer1Counter = (mTimer1Counter & 0xff00) | data;
 		mTimer1XCounterHWrite = true;
+		//cout << "T1 Low Counter/Latch = " << dec << mTimer1LatchLow << "\n";
 		break;
 	}
 	case T1CH:
@@ -690,6 +692,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		}
 		else
 			mTimer1Counter = (mTimer1Counter & 0x00ff) | (data << 8);
+		//cout << "T1 Counter = " << dec << mTimer1Counter << ", T1 Latch High : Low = " << (int)mTimer1LatchHigh << " : " << (int)mTimer1LatchLow << "\n";
 		mTimer1XCounterHWrite = false;
 		mTimer1Running = true;
 		switch (ACR_T1_CTRL) {
@@ -713,6 +716,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	{
 		mTimer1LatchLow = data;
 		mTimer1XCounterHWrite = false;
+		//cout << "T1 Latch Low = " << dec << (int)data << "\n";
 		break;
 	}
 	case T1LH:
@@ -730,7 +734,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	case T2CH:
 		// T2 High-Order Counter
 	{
-		mTimer1LatchHigh = data;
+		mTimer2LatchHigh = data;
 		clearIFR(IFR_T2_MASK); // Clear T2 interrupt flag
 		mTimer2Running = true;
 
@@ -811,6 +815,9 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		else { // disable interrupts		
 			mIER = (mIER & ~data) & 0x7f;
 		}
+		if (mDM->debug(DBG_IO_PERIPHERAL))
+			mDM->log(this, DBG_IO_PERIPHERAL, "Write VIA 6522 at 0x" + Utility::int2hexStr(adr, 4) + " IER = 0x" + Utility::int2hexStr(mIER, 2) + " (" + IER2Str() + ")\n");
+
 
 		break;
 	}
@@ -914,6 +921,7 @@ string VIA6522::IER2Str()
 
 	return sout.str();
 }
+
 string VIA6522::ACR2Str()
 {
 	stringstream sout;
@@ -926,6 +934,7 @@ string VIA6522::ACR2Str()
 
 	return sout.str();
 }
+
 string VIA6522::PCR2Str()
 {
 	stringstream sout;
