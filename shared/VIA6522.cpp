@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <iostream>
 #include <sstream>
+#include "Utility.h"
 
 using namespace std;
 
@@ -28,8 +29,8 @@ VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, Debug
 	registerPort("CB", IO_PORT, 0x03, CB, &mCB);
 
 	if (mDM->debug(DBG_VERBOSE))
-		cout << "VIA 6522 '" << name << "' at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
-		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
+		mDM->log(this, DBG_VERBOSE, "VIA 6522 '" + name + "' at address 0x" + Utility::int2hexStr(mMemorySpace.adr,4) +
+		" to 0x" + Utility::int2hexStr(mMemorySpace.adr + mMemorySpace.sz - 1,4) + " (" + to_string(mMemorySpace.sz) + " bytes)\n");
 
 }
 
@@ -99,7 +100,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 
 		if (mDM->debug(DBG_IO_PERIPHERAL) && (mCA & 0x2) != (pCA & 0x2)) {
-			cout << "CA1 = " << (int)(mCA & 0x1) << ", CA2 = " << (int)((mCA >> 1) & 0x1) << "\n";
+			mDM->log(this, DBG_IO_PERIPHERAL, "CA1 = " + to_string(mCA & 0x1) + ", CA2 = " + to_string((mCA >> 1) & 0x1) + "\n");
 		}
 
 		if (ACR_PA_LATCH && (mCA & 0x1)) // PA shall be latched on a high CA1
@@ -415,7 +416,7 @@ void VIA6522::clearIFR(uint8_t mask)
 	uint8_t oIFR = mIFR;
 	mIFR &= ~mask;
 	if (mIFR != oIFR) {
-		//cout << "CLEAR IFR 0x" << hex << (int)oIFR << " => " << IFR2Str() << " for PCR = " << PCR2Str() << " and ACR = " << ACR2Str() << "\n";
+		mDM->log(this, DBG_IO_PERIPHERAL, "CLEAR IFR 0x" + Utility::int2hexStr(oIFR,2) + " => " + IFR2Str() + " for PCR = " + PCR2Str() + " and ACR = " + ACR2Str() + "\n");
 	}
 	pIFR = mIFR;
 	updateIRQ();
@@ -425,8 +426,9 @@ void VIA6522::setIFR(uint8_t mask)
 {
 	uint8_t oIFR = mIFR;
 	mIFR |= mask;
-	//if (mIFR != oIFR)
-		//cout << "SET IFR 0x" << hex << (int)oIFR << " => " << IFR2Str() << " for PCR = " << PCR2Str() << " and ACR = " << ACR2Str() << "\n";
+	if (mIFR != oIFR) {
+		mDM->log(this, DBG_IO_PERIPHERAL, "SET IFR 0x" + Utility::int2hexStr(oIFR, 2) + " => " + IFR2Str() + " for PCR = " + PCR2Str() + " and ACR = " + ACR2Str() + "\n");
+	}
 	pIFR = mIFR;
 	updateIRQ();
 }
@@ -572,7 +574,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		else
 			data = mIFR | 0x80; // Set IRQ bit
 		if (mDM->debug(DBG_IO_PERIPHERAL))
-			cout << "*READ* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
+			mDM->log(this, DBG_IO_PERIPHERAL, "Read VIA 6522 at 0x" + Utility::int2hexStr(adr,4) + " IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
 		break;
 
 	case IER:
@@ -585,7 +587,6 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		{
 			mIRA2 = (mIRA2 & mDDRA) | (mPA & ~mDDRA);
 		data = mIRA2;
-		//cout << "*READ* IRA2 WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)mPA << " = > 0x" << (int)mIRA2 << "\n";
 		break;
 	}
 
@@ -631,7 +632,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 			return false;
 
 		if  (mDM->debug(DBG_IO_PERIPHERAL))
-			cout << "WRITE TO PB WITH DDR 0x" << hex << (int)mDDRB << " and PB 0x" << (int)oPB << " => 0x" << (int)mPB << "\n";
+			mDM->log(this, DBG_IO_PERIPHERAL, "WRITE TO PB WITH DDR 0x" + Utility::int2hexStr(mDDRB,2) + " and PB 0x" + Utility::int2hexStr(oPB,2) + " => 0x" + Utility::int2hexStr(mPB,2) + "\n");
 		break;
 	}
 	case ORA:
@@ -669,7 +670,6 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Data Direction Register A - '0' means corresponding PA acts as input; otherwise as output
 	{
 		mDDRA = data;
-		//cout << "DDRA = 0x" << hex << (int)mDDRA << "\n";
 		break;
 	}
 	case T1CL:
@@ -797,7 +797,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	{
 		mIFR &= (~data) & 0x7f;
 		if (mDM->debug(DBG_IO_PERIPHERAL))
-			cout << "*WRITE* VIA 6522 at 0x" << hex << adr << " IFR = 0x" << (int)mIFR << " (" << IFR2Str() << ")\n";
+			mDM->log(this, DBG_IO_PERIPHERAL, "Write VIA 6522 at 0x" + Utility::int2hexStr(adr,4) + " IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
 		updateIRQ();
 
 		break;
@@ -811,7 +811,6 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		else { // disable interrupts		
 			mIER = (mIER & ~data) & 0x7f;
 		}
-		//cout << "*WRITE* VIA 6522 at 0x" << hex << adr << " IER = 0x" << (int)mIER << " (" << IER2Str() << ")\n";
 
 		break;
 	}
@@ -823,7 +822,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		updatePort(PA, (mPA & ~mDDRA) | (data & mDDRA));
 
 		if  (mDM->debug(DBG_IO_PERIPHERAL))
-			cout << "WRITE TO PA WITH DDR 0x" << hex << (int)mDDRA << " and PA 0x" << (int)oPA << " => 0x" << (int)mPA << "\n";
+			mDM->log(this, DBG_IO_PERIPHERAL, "Write to PA with DDR 0x" + Utility::int2hexStr(mDDRA,2) + " and PA 0x" + Utility::int2hexStr(oPA,2) + " => 0x" + Utility::int2hexStr(mPA,2) + "\n");
 
 
 		break;

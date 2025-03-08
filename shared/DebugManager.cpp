@@ -31,11 +31,12 @@ void DebugManager::enableInterruptLogging(uint16_t adr)
 {
 	mInterruptLogAdr = adr;
 }
-void DebugManager::enableTracing(uint16_t adr, int preTraceLen, int postTraceLen)
+void DebugManager::enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring)
 {
 	mTraceAdr = adr;
 	mPreTraceLen = preTraceLen;
 	mPostTraceLen = postTraceLen;
+	mRecurringTracing = recurring;
 }
 bool DebugManager::tracing()
 {
@@ -70,8 +71,8 @@ void DebugManager::triggerInterruptLogging(uint16_t fetchAdr, bool condition)
 
 bool DebugManager::triggerExecutionStop(P6502 *cpu, uint16_t fetchAdr)
 {
-	if (mStopAdr > 0 && fetchAdr == mStopAdr) {
-		//std::cout << "Execution stop triggered!\n";
+	if (mStopAdr > 0 && fetchAdr == mStopAdr && !mStopped) {
+		std::cout << "Execution stop triggered!\n";
 		if (mDumpAdr > 0) {
 			// Output pre post tracing
 			for (int a = mDumpAdr; a < mDumpAdr + mDumpSz; a++) {
@@ -81,6 +82,7 @@ bool DebugManager::triggerExecutionStop(P6502 *cpu, uint16_t fetchAdr)
 					" 0x" << setw(2) << (int)d << "\n";
 			}
 		}
+		mStopped = true;
 		return true;
 	}
 	return false;
@@ -103,6 +105,8 @@ void DebugManager::preBuffer(uint16_t fetchAdr)
 		if (fetchAdr == mTraceAdr && !mEndofPrebufferingReached) {
 			mDbgLevel |= DBG_6502;
 			mTraceCount = 0;
+			if (mRecurringTracing)
+				std::cout << "-----------------------------------------------------------------------------------------------------------------------------------\n";
 			for (int i = 0; i < mBufferedTraceLines.size(); i++)
 				std::cout << mBufferedTraceLines[i];
 			mBufferedTraceLines.clear();
@@ -111,7 +115,13 @@ void DebugManager::preBuffer(uint16_t fetchAdr)
 
 		if (mEndofPrebufferingReached && mTraceCount > mPostTraceLen) {
 			mDbgLevel &= ~DBG_6502;
-			mEndOfTracingReached = true;
+			if (mRecurringTracing) {
+				mEndofPrebufferingReached = false;
+			}
+			else {
+				mEndOfTracingReached = true;
+				mEndofPrebufferingReached = true;
+			}
 		}
 
 	}
@@ -123,13 +133,16 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 {
 	double t = dev->getCycleCount() / (dev->mCPUClock * 1e6);
 	string t_s = Utility::encodeCPUTime(t);
+	string prefix = " ";
+	if (level != DBG_6502)
+		prefix = " *** ";
 	if (mTraceAdr > 0 && (level == DBG_6502 || (mDbgLevel & level) != 0)) {
 		if (!mEndOfTracingReached && !mEndofPrebufferingReached)
-			mSout << t_s << " " << line;
+			mSout << t_s << prefix << line;
 	}
 
 	if (mFetchAdr == mCyclicLogAdr || ((mDbgLevel & level) != 0 && (mTraceAdr <= 0 || (mEndofPrebufferingReached && !mEndOfTracingReached)))) {
-		cout << t_s << " " << line;
+		cout << t_s << prefix << line;
 		if (mTraceAdr > 0 && mEndofPrebufferingReached && !mEndOfTracingReached)
 			mTraceCount++;
 	}

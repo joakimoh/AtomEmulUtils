@@ -246,7 +246,10 @@ int main(int argc, const char* argv[])
 
                     // Execute one microprocessor instruction and advance time accordingly (cycle_count updated)
                     auto uc_start = chrono::high_resolution_clock::now();
-                    microprocessor->advanceInstr(cycle_count);
+                    if (!microprocessor->advanceInstr(cycle_count)) {
+                        // Execution stopped - exit
+                        return 0;
+                    }
                     
                     auto uc_stop = chrono::high_resolution_clock::now();
                     auto uc_dur = chrono::duration_cast<chrono::microseconds>(uc_stop - uc_start);

@@ -144,7 +144,8 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 		updatePort(BREAK, 0x1);
 
 	if (mDM->debug(DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mKB_ENA != pKB_ENA)) {
-		cout << "KB_ENA = " << (int) mKB_ENA << ",COL_SEL = " << dec << (int)mCOL_SEL << ", ROW_SEL = " << (int)mROW_SEL << ", PRESSED = " << (int)mPRESSED << ", ROW = " << (int)mROW << "\n";
+		mDM->log(this, DBG_KEYBOARD, "KB_ENA = " + to_string(mKB_ENA) + ",COL_SEL = " + to_string(mCOL_SEL) + 
+			", ROW_SEL = " + to_string(mROW_SEL) + ", PRESSED = " + to_string(mPRESSED) + ", ROW = " + to_string(mROW) + "\n");
 	}
 
 	oROW = mROW;

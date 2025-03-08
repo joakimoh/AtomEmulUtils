@@ -178,7 +178,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	if (mDM->triggerExecutionStop(this, mProgramCounter)) {
 		mCycleCount++;
 		endCycle = mCycleCount;
-		return true;
+		return false;
 	}
 
 	// Get opcode of next instruction
@@ -265,7 +265,9 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	pNMI = mNMI;
 	pIRQ = mIRQ;
 
-	return success;
+	// Always return true even if the instruction execution failed in some way in order
+	// not to terminate the simulation prematurely...
+	return true;
 }
 
 bool P6502::executeInstr(

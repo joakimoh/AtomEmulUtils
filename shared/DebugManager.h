@@ -50,13 +50,16 @@ private:
 	DebugLevel mDbgLevel = DBG_NONE;
 	bool mLogging = false;
 
+	bool mRecurringTracing = false;
+	bool mStopped = false;
+
 public:
 
 	bool debug(DebugLevel level);
 
 	void enableCyclicLogging(uint16_t adr);
 	void enableInterruptLogging(uint16_t adr);
-	void enableTracing(uint16_t adr, int preTraceLen, int postTraceLen);
+	void enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring);
 	void enableMemDump(uint16_t adr, int sz);
 	void enableExecStop(uint16_t adr);
 	bool tracing();
