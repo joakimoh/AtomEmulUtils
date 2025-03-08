@@ -38,14 +38,19 @@ private:
 	uint16_t mFetchAdr = 0x0;
 	stringstream mSout;
 
-	int mStopAdr = -1;
-	int mDumpAdr = -1;
-	int mDumpSz = -1;
+	int mInterruptLogAdr = -1;
+	int mCyclicLogAdr = -1;
+
 	int mTraceAdr = -1;
 	int mPostTraceLen = 0;
 	int mPreTraceLen = 10;
-	int mCyclicLogAdr = -1;
-	int mInterruptLogAdr = -1;
+
+	int mStopAdr = -1;
+	int mDumpAdr = -1;
+	int mDumpSz = -1;
+	
+	
+
 
 	DebugLevel mDbgLevel = DBG_NONE;
 	bool mLogging = false;

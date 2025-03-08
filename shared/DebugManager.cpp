@@ -92,7 +92,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr)
 {
 	if (mTraceAdr > 0) {
 
-		if (fetchAdr != mTraceAdr && !mEndOfTracingReached) {
+		if (!mEndofPrebufferingReached && !mEndOfTracingReached) {
 			string s = mSout.str();
 			if (s != "") {
 				mBufferedTraceLines.push_back(s);
