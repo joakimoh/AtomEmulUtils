@@ -163,7 +163,7 @@ public:
 	int mCharRasterLine = 0;
 
 	// Teletext control
-	bool mGraphics = false;
+	bool mGraphicSymbols = false;
 	bool mFlash = false;
 
 	enum TT_CTRL_CODE {

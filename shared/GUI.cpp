@@ -29,7 +29,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
     case LOAD_INTO_RAM:
     {
         ALLEGRO_FILECHOOSER* filechooser;
-        filechooser = al_create_native_file_dialog("", "Select binary file with data to load into RAM", "*.csw;", ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
+        filechooser = al_create_native_file_dialog("", "Select binary file with data to load into RAM", "*.*;", ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
         al_show_native_file_dialog(mDisplay, filechooser);
         int n = al_get_native_file_dialog_count(filechooser);
         if (n != 1)
