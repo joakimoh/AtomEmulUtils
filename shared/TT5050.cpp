@@ -280,8 +280,20 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 		else {
 
 			// Create 12 pixels of the correct colour
+			int raster_line = mCharRasterLine;
+			if (mDoubleHeight) {
+				if (mDoubleHeightRasterRow == 0) {
+					raster_line = mDoubleHeightRasterRow / 2;
+					mDoubleHeightRasterRow = 1;
+				}
+				else {
+					raster_line = 10 + mDoubleHeightRasterRow / 2;
+					mDoubleHeightRasterRow = 0;
+				}
+			}
+
 			for (int p = 0; p < 12; p++) {
-				if (mInterpolatedSymbolRasterBits[symbol_index][mCharRasterLine][p]) {
+				if (mInterpolatedSymbolRasterBits[symbol_index][raster_line][p]) {
 					screenData.push_back(colour);
 				}
 				else {
