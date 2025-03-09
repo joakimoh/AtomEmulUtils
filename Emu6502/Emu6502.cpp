@@ -28,9 +28,9 @@ using namespace std;
 ALLEGRO_MENU_INFO main_menu[] = {
 
       ALLEGRO_START_OF_MENU("&File", FILE_ID),
-         { "&Open",        FILE_OPEN_ID,                0,                                                      NULL },
+         { "&Load data into RAM",   LOAD_INTO_RAM,  0,  NULL },
          ALLEGRO_MENU_SEPARATOR,
-         { "E&xit",        FILE_EXIT_ID,                0,                                                      NULL },
+         { "E&xit",                 FILE_EXIT_ID,   0,  NULL },
          ALLEGRO_END_OF_MENU,
 
       ALLEGRO_START_OF_MENU("&Tape Recorder", TAPE_RECORDER_ID),
@@ -44,7 +44,7 @@ ALLEGRO_MENU_INFO main_menu[] = {
          ALLEGRO_END_OF_MENU,
 
       ALLEGRO_START_OF_MENU("&Help", 0),
-         { "&About",       HELP_ABOUT_ID,               0,                                                      NULL },
+         { "&About",             HELP_ABOUT_ID,               0,                                                      NULL },
          ALLEGRO_END_OF_MENU,
 
       ALLEGRO_END_OF_MENU

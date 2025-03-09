@@ -780,6 +780,19 @@ bool Devices::getOtherDevices(vector<Device *> &devices)
 	return true;
 }
 
+
+bool Devices::getRAMs(vector<RAM*>& RAMs)
+{
+	for (int i = 0; i < mDevices.size(); i++) {
+		if (mDevices[i]->devType == RAM_DEV) {
+			RAMs.push_back((RAM*)mDevices[i]);
+			if (mDM->debug(DBG_VERBOSE))
+				cout << "Adding RAM '" << mDevices[i]->name << "\n";
+		}
+	}
+	return true;
+}
+
 bool Devices::getMemoryDevices(vector<MemoryMappedDevice*> &devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
@@ -791,6 +804,7 @@ bool Devices::getMemoryDevices(vector<MemoryMappedDevice*> &devices)
 	}
 	return true;
 }
+
 bool Devices::getZPMemDevice(MemoryMappedDevice * &zpMem)
 {
 	for (int i = 0; i < mDevices.size(); i++) {

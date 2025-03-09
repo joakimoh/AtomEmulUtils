@@ -171,6 +171,10 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 	
 	// start of line => reset char pos
 	if (HS) {
+		mGraphics = false;
+		mGraphicsColour = mColours[TT_WHITE];
+		mAlpaNumericColour = mColours[TT_WHITE];
+		mBackgroundColour = mColours[TT_BLACK];
 		mCharRowPos = 0;
 		if (!VS) {
 			mCharRasterLine = (mCharRasterLine + 1) % n_raster_lines;
@@ -178,22 +182,25 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 		}
 	}
 
-	//cout << "#" << dec << mCharRasterLine << "#";
-	
-
+	// Only the lower 7 bits are connected to the TCG
 	uint8_t char_data = pageData & 0x7f;
 
+	bool draw_graphics = (mGraphics != 0);
+
+	// Check for teletext control codes	
 	if (char_data < 0x20) {
 		switch (char_data) {
 		case TT_NULL:
 			break;
-		case TT_ALPHA_RED:			mAlpaNumericColour = mColours[TT_RED];			mHiddenText = false;			break; 		case TT_ALPHA_GREEN:			mAlpaNumericColour = mColours[TT_GREEN];			mHiddenText = false;			break; 		case TT_ALPHA_YELLOW:			mAlpaNumericColour = mColours[TT_YELLOW];			mHiddenText = false;			break; 		case TT_ALPHA_BLUE:
+		case TT_ALPHA_RED:			mAlpaNumericColour = mColours[TT_RED];			mHiddenText = false;			mGraphics = false;			break; 		case TT_ALPHA_GREEN:			mAlpaNumericColour = mColours[TT_GREEN];			mHiddenText = false;			mGraphics = false;			break; 		case TT_ALPHA_YELLOW:			mAlpaNumericColour = mColours[TT_YELLOW];			mHiddenText = false;			mGraphics = false;			break; 		case TT_ALPHA_BLUE:
 			mAlpaNumericColour = mColours[TT_BLUE];
 			mHiddenText = false;
+			mGraphics = false;
 			break;
-		case TT_ALPHA_MAGENTA:			mAlpaNumericColour = mColours[TT_MAGENTA];			mHiddenText = false;			break; 		case TT_ALPHA_CYAN:			mAlpaNumericColour = mColours[TT_CYAN];			mHiddenText = false;			break; 		case TT_ALPHA_WHITE:
+		case TT_ALPHA_MAGENTA:			mAlpaNumericColour = mColours[TT_MAGENTA];			mHiddenText = false;			mGraphics = false;			break; 		case TT_ALPHA_CYAN:			mAlpaNumericColour = mColours[TT_CYAN];			mHiddenText = false;			mGraphics = false;			break; 		case TT_ALPHA_WHITE:
 			mAlpaNumericColour = mColours[TT_WHITE];
 			mHiddenText = false;
+			mGraphics = false;
 			break;
 		case TT_FLASH:			mFlash = true;			break; 		case TT_STEADY:
 			mFlash = false;
@@ -204,8 +211,8 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 			// These codes are not used
 		case TT_S0: 		case TT_S1:	
 		case TT_DLE:			break;
-		case TT_GRAPHICS_RED:			mGraphicsColour = mColours[TT_RED];			mHiddenText = false;			break; 		case TT_GRAPHICS_GREEN:			mGraphicsColour = mColours[TT_GREEN];			mHiddenText = false;			break; 		case TT_GRAPHICS_YELLOW:			mGraphicsColour = mColours[TT_YELLOW];			mHiddenText = false;			break; 		case TT_GRAPHICS_BLUE:			mGraphicsColour = mColours[TT_BLUE];			mHiddenText = false;			break;
-		case TT_GRAPHICS_MAGENTA:			mGraphicsColour = mColours[TT_MAGENTA];			mHiddenText = false;			break; 		case TT_GRAPHICS_CYAN:			mGraphicsColour = mColours[TT_CYAN];			mHiddenText = false;			break; 		case TT_GRAPHICS_WHITE:			mGraphicsColour = mColours[TT_WHITE];			mHiddenText = false;			break;
+		case TT_GRAPHICS_RED:			mGraphicsColour = mColours[TT_RED];			mHiddenText = false;			mGraphics = true;			break; 		case TT_GRAPHICS_GREEN:			mGraphicsColour = mColours[TT_GREEN];			mHiddenText = false;			mGraphics = true;			break; 		case TT_GRAPHICS_YELLOW:			mGraphicsColour = mColours[TT_YELLOW];			mHiddenText = false;			mGraphics = true;			break; 		case TT_GRAPHICS_BLUE:			mGraphicsColour = mColours[TT_BLUE];			mHiddenText = false;			mGraphics = true;			break;
+		case TT_GRAPHICS_MAGENTA:			mGraphicsColour = mColours[TT_MAGENTA];			mHiddenText = false;			mGraphics = true;			break; 		case TT_GRAPHICS_CYAN:			mGraphicsColour = mColours[TT_CYAN];			mHiddenText = false;			mGraphics = true;			break; 		case TT_GRAPHICS_WHITE:			mGraphicsColour = mColours[TT_WHITE];			mHiddenText = false;			mGraphics = true;			break;
 		case TT_CONCEAL:			// Subsequent text in the row will be hidden (displayed as spaces in the current background colour) until			// the next text colour or graphics colour control code is encountered.			mHiddenText = true;			break; 		case TT_CONTIGUOUS_GRAPHICS:			mSeparatedGraphics = false;			break; 		case TT_SEPARATED_GRAPHICS:			mSeparatedGraphics = true;			break;
 		case TT_ESC:			break; 		case TT_BLACK_BACKGROUND:			mBackgroundColour = mColours[TT_BLACK];			break; 		case TT_NEW_BACKGROUND:			break;
 		case TT_HOLD_GRAPHICS:			// In the held graphics mode, control codes are displayed as a copy of the most recently displayed graphics symbol.			mHeldGraphics = true;			break;		case TT_RELEASE_GRAPHICS:
@@ -218,7 +225,6 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 
 	// Generate output
 	if (mLOSE) {
-		bool draw_graphics = mGraphics != 0;
 		uint8_t symbol_index = char_data - 0x20; // should give an index in the range [0,95]
 		TT5050::TTColour colour = mColours[(int)TT_BLACK];
 		if (char_data < 0x20) { // invisible control char - decide how to show it
@@ -241,20 +247,27 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 		}
 
 		if (draw_graphics) {
-			// Create one scan line of two "big" pixels occupying 12 actual pixels
-			uint8_t b1b0;
-			if (mCharRasterLine <= 2)
-				b1b0 = symbol_index & 0x3;
-			else if (mCharRasterLine <= 5)
-				b1b0 = (symbol_index >> 2) & 0x3;
-			else
-				b1b0 = ((symbol_index >> 3) & 0x2) | ((symbol_index >> 6) & 0x1);
-			TT5050::TTColour b1_colour = (b1b0 & 0x2) ? colour : mBackgroundColour;
-			TT5050::TTColour b0_colour = (b1b0 & 0x1) ? colour : mBackgroundColour;
+			// Create one scan line of two "big" pixels (sixels) occupying 12 actual pixels
+			uint8_t left_sixel, right_sixel;
+
+			if (mCharRasterLine <= 2) {
+				left_sixel = (pageData >> 0) & 0x1;
+				right_sixel = (pageData >> 1) & 0x1;
+			}
+			else if (mCharRasterLine <= 5) {
+				left_sixel = (pageData >> 2) & 0x1;
+				right_sixel = (pageData >> 3) & 0x1;
+			}
+			else {
+				left_sixel = (pageData >> 4) & 0x1;
+				right_sixel = (pageData >> 6) & 0x1;
+			}
+			TT5050::TTColour left_sixel_colour = (left_sixel ==1) ? colour : mBackgroundColour;
+			TT5050::TTColour right_sixel_colour = (right_sixel == 1)? colour : mBackgroundColour;
 			for (int p = 0; p < 6; p++)
-				screenData.push_back(b1_colour);
+				screenData.push_back(left_sixel_colour);
 			for (int p = 0; p < 6; p++)
-				screenData.push_back(b0_colour);
+				screenData.push_back(right_sixel_colour);
 		}
 
 		else {

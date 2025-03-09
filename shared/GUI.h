@@ -8,13 +8,14 @@
 #include "allegro5/allegro_native_dialog.h"
 #include "Device.h"
 #include "TapeRecorder.h"
+#include "RAM.h"
 
 using namespace std;
 
 enum {
 
     FILE_ID = 1,
-    FILE_OPEN_ID,
+    LOAD_INTO_RAM,
     FILE_EXIT_ID,
 
     TAPE_RECORDER_ID,

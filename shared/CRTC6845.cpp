@@ -162,8 +162,8 @@ bool CRTC6845::updateOutputs()
 	mCursorLocation = ((mReg[R14_CursorH] & 0x3f) << 8) | mReg[R15_CursorL] + mCursSkew - mCharSkew;
 	bool cursor_on = (
 		cursor_disp_mode == 0x0 ||
-		cursor_disp_mode == 0x2 && mFrame % 16 < 8 ||
-		cursor_disp_mode == 0x3 && mFrame % 32 < 16
+		cursor_disp_mode == 0x2 ||//&& mFrame % 16 < 8 ||
+		cursor_disp_mode == 0x3// && mFrame % 32 < 16
 		) && mRA >= cursor_first_line && mRA <= cursor_last_line;
 	if (cursor_on && mStartAdr + mCharRow * mActiveRowChars + mCharCol == mCursorLocation)
 		updatePort(CUDISP, 0x1);

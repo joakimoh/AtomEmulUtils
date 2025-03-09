@@ -19,6 +19,7 @@ class Devices;
 class MemoryMappedDevice;
 class VideoDisplayUnit;
 class P6502;
+class RAM;
 
 enum Scheduling {FRAME, HLINE, INSTR, NONE};
 #define _SCHEDULING(x) (x==FRAME?"Frame":(x==HLINE?"1/2 line":(x==INSTR?"Instruction":"None")))
@@ -204,6 +205,7 @@ public:
 	bool getOtherDevices(vector<Device*> &devices);
 	bool getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices);
 	bool getMemoryDevices(vector<MemoryMappedDevice*>& devices);
+	bool getRAMs(vector<RAM*>& devices);
 	bool getZPMemDevice(MemoryMappedDevice*& zpMem);
 
 	bool loadData(Program data);

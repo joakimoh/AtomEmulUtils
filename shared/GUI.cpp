@@ -26,6 +26,24 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
 
     switch (event->user.data1) {
 
+    case LOAD_INTO_RAM:
+    {
+        ALLEGRO_FILECHOOSER* filechooser;
+        filechooser = al_create_native_file_dialog("", "Select binary file with data to load into RAM", "*.csw;", ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
+        al_show_native_file_dialog(mDisplay, filechooser);
+        int n = al_get_native_file_dialog_count(filechooser);
+        if (n != 1)
+            return false;
+        string file = al_get_native_file_dialog_path(filechooser, 0);
+        al_destroy_native_file_dialog(filechooser);
+        uint16_t load_adr = 0xe00;
+        Program data = { file, load_adr };
+        if (!mDevices->loadData(data))
+            return false;
+        
+        break;
+    }
+
     case PLAY_ID:
     {    
         if (mTapeRec->playing()) {
