@@ -203,7 +203,7 @@ public:
 	TTColour mAlpaNumericColour = mColours[TT_WHITE];
 	TTColour mBackgroundColour = mColours[TT_BLACK];
 	bool mDoubleHeight = false;
-	int mDoubleHeightRasterRow = 0;
+	int mDoubleHeightHalf = -1;
 	bool mSeparatedGraphics = false;	// If true, the graphic sixels will be made up of smaller blocks
 	bool mHiddenText = false;
 	bool mHeldGraphics = false;			// If true, control codes are displayed as a copy of the most recently displayed graphics symbol (and not  as spacesin the current background colour

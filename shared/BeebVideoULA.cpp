@@ -390,6 +390,9 @@ void BeebVideoULA::updateScreenSz()
 	// For non-teletext mode the visible screen's actual pixels are 640 x 256
 	// For the telelext mode the width is visible horizontal chars * 12.
 	// and the height is (visible vertical chars * scan lines per char) which is normally 27 * 19 = 513 (500 = 25 x 20 is used for the chars)
+	// 
+	// The 40x25 6x10-pixel (12x20 interpolated) teletext characters should be displayed in the same area as 40x25 8x10-pixel characters.
+	// This means 40*12 x 25*20 = 480 x 500 should be scaled as the 40*8 x 25*10 = 320 x 250 pixels (as for mode 6).
 	int pW = mScreenW;
 	int pH = mScreenH;
 	if (getCRField(CR_TELETEXT)) {

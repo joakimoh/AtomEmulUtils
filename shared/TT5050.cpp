@@ -167,6 +167,7 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 		mScanLine = 0;
 		mCharRowPos = 0;
 		mCharRasterLine = 0;
+		mDoubleHeightHalf = -1;
 	}
 	
 	// start of line => reset char pos
@@ -183,10 +184,17 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 		}
 	}
 
+	// start of double-height character half?
+	if (mCharRasterLine == 0) {
+		if (mDoubleHeightHalf == 0) // lower half starts
+			mDoubleHeightHalf = 1;
+		else if (mDoubleHeightHalf == 1) // double-height halfs completed => reset
+			mDoubleHeightHalf = -1;
+	}
+
 	// Only the lower 7 bits are connected to the TCG
 	uint8_t char_data = pageData & 0x7f;
 	bool draw_sixels = mGraphicSymbols && (char_data & 0x20) != 0;
-
 	// Check for teletext control codes	
 	if (char_data < 0x20) {
 		switch (char_data) {
@@ -207,7 +215,8 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 			break;
 			// These codes are not used
 		case TT_END_BOX: 		case TT_START_BOX:			break;
-		case TT_NORMAL_HEIGHT:			mDoubleHeight = false;			break; 		case TT_DOUBLE_HEIGHT:			mDoubleHeight = true;			break;
+		case TT_NORMAL_HEIGHT:			mDoubleHeight = false;			break; 		case TT_DOUBLE_HEIGHT:			//			// Double-height characters are split onto to rows where the first row			// contains the upper half of the double-height character and the second			// row contains the lower half of the double-height character.			// 			// The first row of a pair of double-height characters can mix single and			// the top half of double-height characters.			// Characters on the second line of a row of double-height characters that
+			// are not set as double height are however invisible!			//			mDoubleHeight = true;			if (mDoubleHeightHalf == -1)				mDoubleHeightHalf = 0;			break;
 			// These codes are not used
 		case TT_S0: 		case TT_S1:	
 		case TT_DLE:			break;
@@ -282,15 +291,15 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 			// Create 12 pixels of the correct colour
 			int raster_line = mCharRasterLine;
 			if (mDoubleHeight) {
-				if (mDoubleHeightRasterRow == 0) {
-					raster_line = mDoubleHeightRasterRow / 2;
-					mDoubleHeightRasterRow = 1;
-				}
-				else {
-					raster_line = 10 + mDoubleHeightRasterRow / 2;
-					mDoubleHeightRasterRow = 0;
-				}
+				if (mDoubleHeightHalf == 0)
+					raster_line = mCharRasterLine / 2;
+				else // mDoubleHeightHalf == 1
+					raster_line = 10 + mCharRasterLine / 2;
 			}
+
+			// Normal-height characters on the second half of a double-height pair of rows are invisible
+			if (mDoubleHeightHalf == 1 && !mDoubleHeight)
+				symbol_index = 0; // space <=> invisible character
 
 			for (int p = 0; p < 12; p++) {
 				if (mInterpolatedSymbolRasterBits[symbol_index][raster_line][p]) {
