@@ -314,7 +314,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 
 					// Update display with the R, G & B data
-					uint32_t colour = 0xff000000 | (R ? 0x00ff0000 : 0) | (G ? 0x0000ff00 : 0) | (G ? 0x000000ff : 0);
+					uint32_t colour = 0xff000000 | (R ? 0x00ff0000 : 0) | (G ? 0x0000ff00 : 0) | (B ? 0x000000ff : 0);
 					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL; pw++)
 						*bitmap_data_p++ = colour;
 
