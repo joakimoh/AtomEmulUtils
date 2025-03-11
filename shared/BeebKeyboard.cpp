@@ -66,11 +66,20 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 	case 0:	// Enable sound chip
 	case 1:	// Enable Read Speech
 	case 2:	// Enable Write Speech
-	case 4:	// Hardware scrolling - set C0 = 0 (See below)
-	case 5:	// Hardware scrolling - set C1 = 0 (See below)
+	case 4:	// Hardware scrolling - set C0 (See below)
+	case 5:	// Hardware scrolling - set C1 (See below)
 	default:
 		break;
 	}
+	// The values of C0 and C1 together determine the start scroll address for the screen:
+	//      C0   C1      Screen				Mem
+	//                   Address   Modes	Sz
+	//		------------------------------------
+	//		0    0      $4000      3		16k
+	//		0    1      $5800      4, 5		10k
+	//		1    0      $6000      6		8k
+	//		1    1      $3000      0, 1, 2	20k
+	//
 
 	// Stop keyboard scanning (i.e. keep last value of ROW output) if KB_ENA is High
 	//if (mKB_ENA)

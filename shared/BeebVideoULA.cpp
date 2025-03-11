@@ -7,6 +7,7 @@ BeebVideoULA::BeebVideoULA(
 	string name, uint16_t adr, double cpuclock, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
 ) : VideoDisplayUnit(name, BEEB_VDU_DEV, cpuclock, adr, 0x10, disp, dispW, dispH, 0x0 /* dummy adr */, debugManager, connectionManager)
 {
+	registerPort("SCROLL_CTRL",	IN_PORT,	0x03, SCROLL_CTRL,	&mSCROLL_CTRL);
 	registerPort("DISEN",		IN_PORT,	0x01, DISPTMG,		&mDISPTMG);
 	registerPort("CURSOR",		IN_PORT,	0x01, CURSOR,		&mCURSOR);	
 	registerPort("INV",			IN_PORT,	0x01, INV,			&mINV);
@@ -62,6 +63,50 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	if (reset_transition)
 		cout << mScanLine << "\n";
+
+	//
+	// Hardware scrolling
+	// 
+	// The values of C0 and C1 together determine the start scroll address for the screen:
+	//      C0   C1      Screen				Mem		Hz
+	//                   Address   Modes	Sz		Res
+	//		------------------------------------
+	//		0    -		$7c00	   7		1k		25 chars
+	//		0    0      $4000      3		16k
+	//		0    1      $3000      0, 1, 2	20k		80 bytes
+	//		1    0      $6000      6		8k
+	//		1    1      $5800      4, 5		10k
+	//
+
+	uint8_t ctrl_sel = mSCROLL_CTRL & 0x7;
+	uint8_t ctrl_val = (mSCROLL_CTRL >> 3) & 0x1;
+	switch (ctrl_sel) {
+	case 4:	// Hardware scrolling - set C0 (See below)
+		mC = (mC & 1) | (ctrl_val << 1);
+		break;
+	case 5:	// Hardware scrolling - set C1 (See below)
+		mC = (mC & 2) | ctrl_val;
+		break;
+	default:
+		break;
+	}
+	
+	uint16_t scroll_adr_ofs = 0x0;
+	switch (mC) {
+	case 0:
+		scroll_adr_ofs = 0x4000; break;
+	case 3:
+		scroll_adr_ofs = 0x5800; break;
+	case 2:
+		scroll_adr_ofs = 0x6000; break;
+	case 1:
+		scroll_adr_ofs = 0x3000; break;
+	default:
+		break;
+	}
+	bool teletext = getCRField(CR_TELETEXT) == 1;
+	if (teletext)
+		scroll_adr_ofs = 0xfc00;
 
 	int scan_lines_per_frame = (int) round(getScanLinesPerFrame());
 	if (scan_lines_per_frame != mScanLines) {
@@ -126,7 +171,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	int pixels_per_byte = mPixelsPerByte;
 	int pixel_width = mPixelW;
-	bool teletext = getCRField(CR_TELETEXT) == 1;
+	
 	if (teletext) {
 		pixels_per_byte = 12;
 		pixel_width = 1;// mPixelW;
@@ -169,7 +214,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		//															(468x500) (240x250)
 		//																	  (480x500)
 		// 
-		// Each n x 8(10) pxiel block in modes 0-6 are organised so that each row (0,1,..7(9)) of the n pixel are stored
+		// Each n x 8(10) pixel block in modes 0-6 are organised so that each row (0,1,..7(9)) of the n pixel are stored
 		// in consecutive memory locations (row 0: a, row 1: a+1,... row 7: a+7). For two-colour modes n = 8 pixels,
 		// for 4-colour modes it is 4 pixels and for 16-colour modes it is 2 pixels. That is the reason the screen
 		// address above is divided by 8. The raster address will then select each of the 8(10) rows to cover the complete

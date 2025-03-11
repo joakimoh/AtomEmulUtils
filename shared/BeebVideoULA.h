@@ -23,7 +23,9 @@ public:
 	// 
 
 	// Video ULA Ports
-	int DISPTMG, CURSOR, INV, RA, HS, VS, CRTC_CLK;
+	int DISPTMG, CURSOR, INV, RA, HS, VS, CRTC_CLK, SCROLL_CTRL;
+	uint8_t mSCROLL_CTRL = 0x0;		// INPUT - C0 & C1 selected by VIA PB Port <=> decides hardware scroll address
+	uint8_t mC = 0x0;		// C1:C0 - set based on SCROLL_CTRL input
 	uint8_t mCRTC_CLK = 1;	// OUTPUT - Clock to CRTC M6845 (1 or 2 MHz)
 	uint8_t mDISPTMG = 0x1;	// INPUT -	DISPTMG from the CRTC 6845; actual display enable DISEN is calculated as = ~(~DISPTMG | RA3)
 	uint8_t mCURSOR = 0x0;	// INPUT -	CURSOR from M6845
