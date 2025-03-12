@@ -67,46 +67,47 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	//
 	// Hardware scrolling
 	// 
-	// The values of C0 and C1 together determine the start scroll address for the screen:
-	//      C0   C1      Screen				Mem		Hz
-	//                   Address   Modes	Sz		Res
-	//		------------------------------------
-	//		0    -		$7c00	   7		1k		25 chars
-	//		0    0      $4000      3		16k
-	//		0    1      $3000      0, 1, 2	20k		80 bytes
-	//		1    0      $6000      6		8k
-	//		1    1      $5800      4, 5		10k
+	// The values of C0 and C1 together determine the sub_val to subtract from the current
+	// address when it exceeds 8000
+	//      MA12	C1   C0     Screen				Mem		Hz			subract
+	//		(a15)				Address   Modes		Sz		Res			const
+	//		---------------------------------------------------------------------
+	//		0		x	x		$7c00		7		1k					0400
+	//		1		0   0		$4000		3		16k					4000
+	//		1		0   1		$6000		6		8k					2000
+	//		1		1	0		$3000		0,1,2	20k		80 bytes	5000
+	//		1		1   1		$5800		4,5		10k					2800
 	//
 
 	uint8_t ctrl_sel = mSCROLL_CTRL & 0x7;
 	uint8_t ctrl_val = (mSCROLL_CTRL >> 3) & 0x1;
 	switch (ctrl_sel) {
 	case 4:	// Hardware scrolling - set C0 (See below)
-		mC = (mC & 1) | (ctrl_val << 1);
+		mC = (mC & 2) | ctrl_val;
 		break;
 	case 5:	// Hardware scrolling - set C1 (See below)
-		mC = (mC & 2) | ctrl_val;
+		mC = (mC & 1) | (ctrl_val << 1);
 		break;
 	default:
 		break;
 	}
 	
-	uint16_t scroll_adr_ofs = 0x0;
+	uint16_t hw_scroll_sub = 0x0;
 	switch (mC) {
 	case 0:
-		scroll_adr_ofs = 0x4000; break;
-	case 3:
-		scroll_adr_ofs = 0x5800; break;
-	case 2:
-		scroll_adr_ofs = 0x6000; break;
+		hw_scroll_sub = 0x4000; break;
 	case 1:
-		scroll_adr_ofs = 0x3000; break;
+		hw_scroll_sub = 0x2000; break;
+	case 2:
+		hw_scroll_sub = 0x5000; break;
+	case 3:
+		hw_scroll_sub = 0x2800; break;
 	default:
 		break;
 	}
 	bool teletext = getCRField(CR_TELETEXT) == 1;
 	if (teletext)
-		scroll_adr_ofs = 0xfc00;
+		hw_scroll_sub = 0x0400;
 
 	int scan_lines_per_frame = (int) round(getScanLinesPerFrame());
 	if (scan_lines_per_frame != mScanLines) {
@@ -251,13 +252,15 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		else
 			dis_ena = mDISPTMG; // In teletext mode raster lines are 0-19
 
+		// Calculate screen address
 		if (!teletext) { // Normally modes 0-6 - raster address selected bytes within an 8 row byte block
 			screen_adr = crtc_adr * 8 + (mRA & 0x7);
 		}
 		else { // Normally mode 7
 			screen_adr = crtc_adr + (0x7400 ^ 0x2000); // CRTC MA13 is used to select the SA5050 and is cleared by 0x2000
 		}
-
+		if (screen_adr >= 0x8000)
+			screen_adr -= hw_scroll_sub; // correct for wrap around when hardware scrolling
 		
 
 		if (mScanLine < active_lines)
