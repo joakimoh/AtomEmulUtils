@@ -153,7 +153,7 @@ public:
 		return false;
 	}
 
-	void updateSettings();
+	bool updateSettings();
 	void printSettings();
 
 	ALLEGRO_COLOR green, black;

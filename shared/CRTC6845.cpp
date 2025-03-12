@@ -251,13 +251,14 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 		//cout << "R" << dec << (int)mAddressRegister << " = 0x" << hex << (int)mReg[mAddressRegister] << " for data 0x" << (int) data << "\n";
 	}
 
-	updateSettings();
+	bool changes = updateSettings();
 	
-	if (mRegWrtCnt >= 18 && pRegWrtCnt < 18) {
-		if ((mDM->debug(DBG_VERBOSE)))
-			printSettings();
+	if (mRegWrtCnt >= 18 && pRegWrtCnt < 18)
 		mInitialised = true;
-	}
+
+	if (mRegWrtCnt >= 18 && pRegWrtCnt < 18 && mDM->debug(DBG_VERBOSE))
+			printSettings();
+
 
 
 	// Call parent class to trigger scheduling of other devices when applicable
@@ -307,16 +308,23 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 // 
 // ** Including sync pulse & retrace
 // 
-void CRTC6845::updateSettings()
+bool CRTC6845::updateSettings()
 {
+	bool changes = false;
 
+	int pCharLines = mCharLines;
 	if ((mReg[R8_InterlaceMode] & 0x3) == 0x3)
 		mCharLines = mReg[R9_MaxScanLineAddress] + 2;
 	else
 		mCharLines = mReg[R9_MaxScanLineAddress] + 1;
+	if (mCharLines != pCharLines) {
+		mRegWrtCnt = 0;
+		changes = true;
+	}		
 
 	// Vertical scan lines: top border, active lines, sync pulse, bottom border
 	mCharRows = mReg[R4_VerticalTotal] + 1;
+
 	mScanLines = mCharRows * mCharLines + mReg[R5_VerticalTotalAdjust];
 	mRetraceRows = (int) round(mCharRows * 0.05);
 	mRetraceLines = mRetraceRows * mCharLines;
@@ -352,6 +360,8 @@ void CRTC6845::updateSettings()
 
 	// Current cursor address
 	mCursorLocation = ((mReg[R14_CursorH] & 0x3f)<< 8) | mReg[R15_CursorL];
+
+	return changes;
 
 }
 
