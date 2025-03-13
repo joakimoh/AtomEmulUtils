@@ -40,6 +40,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "\t's' serial/parallel I/O peripherals\n";
 	cout << "\t'd' device execution in general\n";
 	cout << "\t't' triggering on R/W accesses\n";
+	cout << "\t'x' measuring execution time of the different components\n";
 	cout << "\t'a' all the above\n\n";
 }
 
@@ -152,6 +153,8 @@ ArgParser::ArgParser(int argc, const char* argv[])
 				debugManager.setDebugLevel(DBG_IO_PERIPHERAL);
 			if (strstr(argv[a], "t") != NULL)
 				debugManager.setDebugLevel(DBG_TRGGERING); 
+			if (strstr(argv[a], "x") != NULL)
+				debugManager.setDebugLevel(DBG_TIME);
 			if (strstr(argv[a], "a") != NULL)
 				debugManager.setDebugLevel(DBG_ALL);
 		}

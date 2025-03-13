@@ -24,6 +24,7 @@ typedef int DebugLevel;
 #define DBG_IO_PERIPHERAL	0x100
 #define	DBG_DEVICE			0x200
 #define DBG_TRGGERING		0x400	// TRIGGERING
+#define DBG_TIME			0x800
 #define	DBG_ALL				0xfff
 
 

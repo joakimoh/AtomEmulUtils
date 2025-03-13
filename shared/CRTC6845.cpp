@@ -256,7 +256,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 	}
 
 	bool changes = updateSettings();
-
+	
 	if (written_reg < 12) {
 		int n_updated_regs;
 		for (n_updated_regs = 0; n_updated_regs < 12 && mRegWriteCnt[n_updated_regs] > mRegUpdates; n_updated_regs++);
@@ -267,6 +267,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 				printSettings();
 		}
 	}
+	
 	/*
 	//if (mRegWrtCnt >= 13 && pRegWrtCnt < 13)
 	//	mInitialised = true;
