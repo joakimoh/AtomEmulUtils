@@ -296,6 +296,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 				// For teletext modes, decode video memory data as videotext data
 				if (teletext && !mTGC->getScreenData(char_pos == 0, mScanLine == 0 && char_pos == 0, screen_data, tgc_data)) {
+					cout << "Failed to get teletext symbol at address 0x" << hex << screen_adr << "\n";
 					return false;
 				}
 
@@ -378,11 +379,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 					if (!teletext)
 						mem_data = (mem_data << bits_per_pixel) | 1;
-					else {
-						R = R << 1;
-						G = G << 1;
-						B = B << 1;
-					}
 				}
 
 				if (char_pos == active_chars - 1)
