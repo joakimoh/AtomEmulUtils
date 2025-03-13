@@ -34,6 +34,8 @@ public:
 
 	// M6845 Registers
 	uint8_t mReg[18];
+	int mRegWriteCnt[12] = { 0 };
+	int mRegUpdates = 0;
 	typedef struct RegInfo {
 		uint8_t	mask;
 		bool	writable;

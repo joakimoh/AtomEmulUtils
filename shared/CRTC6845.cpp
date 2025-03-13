@@ -51,7 +51,7 @@ bool CRTC6845::reset()
 	// mReg[R0_HorizontalTotal] =		0x3f;	0x3f
 	// mReg[R1_HorizontalDisplayed] =	0x28;	0x28
 	// mReg[R2_HSYncPosition] =			0x33;	0x31
-	// mReg[R3_SyncWidth] =			0x24;	0x4 (0x24 written but truncated to 4 bits)
+	// mReg[R3_SyncWidth] =				0x24;	0x4 (0x24 written but truncated to 4 bits)
 	// mReg[R4_VerticalTotal] =			0x1e;	0x26
 	// mReg[R5_VerticalTotalAdjust] =	0x02;	0x00
 	// mReg[R6_VerticalDisplayed] =		0x19;	0x20
@@ -60,10 +60,10 @@ bool CRTC6845::reset()
 	// mReg[R9_MaxScanLineAddress] =	0x12;	0x07
 	// mReg[R10_CursorStart] =			0x72;	0x67
 	// mReg[R11_CursorEnd] =			0x13;	0x08
-	// mReg[R12_StartAddressH] =		0;		0x0b	0x0b00
-	// mReg[R13_StartAddressL] =		0;		0x00
-	// mReg[R14_CursorH] =				0;		0x0b
-	// mReg[R15_CursorL] =				0;		0x00
+	// mReg[R12_StartAddressH] =		0x0b	0x0b
+	// mReg[R13_StartAddressL] =		0x00
+	// mReg[R14_CursorH] =				0;	
+	// mReg[R15_CursorL] =				0;
 	// mReg[R16_LightPenL] =			0;
 	// mReg[R17_LightPenH] =			0;
 	
@@ -241,24 +241,50 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 		return false;
 
 	int pRegWrtCnt = mRegWrtCnt;
+	int written_reg = 999;
 
 	int16_t a = adr - mMemorySpace.adr;
 	if (a == 0 && (data & 0x1f) < 18)
 		mAddressRegister = data & 0x1f;
 	else if (mAddressRegister >= 0 && mAddressRegister < 18 && mRegInfo[mAddressRegister].writable) {
-		mReg[mAddressRegister] = data & mRegInfo[mAddressRegister].mask;
+		written_reg = mAddressRegister;
+		mReg[written_reg] = data & mRegInfo[written_reg].mask;
 		mRegWrtCnt++;
 		//cout << "R" << dec << (int)mAddressRegister << " = 0x" << hex << (int)mReg[mAddressRegister] << " for data 0x" << (int) data << "\n";
+		if (written_reg < 12)
+			mRegWriteCnt[written_reg]++;
 	}
 
 	bool changes = updateSettings();
-	
-	if (mRegWrtCnt >= 18 && pRegWrtCnt < 18)
+
+	if (written_reg < 12) {
+		int n_updated_regs;
+		for (n_updated_regs = 0; n_updated_regs < 12 && mRegWriteCnt[n_updated_regs] > mRegUpdates; n_updated_regs++);
+		if (n_updated_regs == 12) {
+			mInitialised = true;
+			mRegUpdates++;
+			if (mDM->debug(DBG_VERBOSE))
+				printSettings();
+		}
+	}
+	/*
+	//if (mRegWrtCnt >= 13 && pRegWrtCnt < 13)
+	//	mInitialised = true;
+
+	int cnt = mRegWriteCnt[0];
+	int i;
+	for (i = 0; i < 12 && mRegWriteCnt[i] > mRegUpdates; i++);
+	if (i == 12) {
 		mInitialised = true;
+		for (i = 0; i < 12; mRegWriteCnt[i++] = 0);
+	}
+	else
+		mInitialised = false;
 
-	if (mRegWrtCnt >= 18 && pRegWrtCnt < 18 && mDM->debug(DBG_VERBOSE))
-			printSettings();
-
+	if (mInitialised && written_reg < 12 && mDM->debug(DBG_VERBOSE)) {
+		printSettings();
+	}
+	*/
 
 
 	// Call parent class to trigger scheduling of other devices when applicable

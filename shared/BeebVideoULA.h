@@ -29,7 +29,7 @@ public:
 	uint8_t mCRTC_CLK = 1;	// OUTPUT - Clock to CRTC M6845 (1 or 2 MHz)
 	uint8_t mDISPTMG = 0x1;	// INPUT -	DISPTMG from the CRTC 6845; actual display enable DISEN is calculated as = ~(~DISPTMG | RA3)
 	uint8_t mCURSOR = 0x0;	// INPUT -	CURSOR from M6845
-	uint8_t mINV = 0x0;		// INPUT - invert video
+	uint8_t mINV = 0x1;		// INPUT - invert video (HIGH <=> Not inverted)
 	uint8_t mRA = 0x0;		// INPUT - raster address (4 bits); used for modes 0-6 to select bytes within an 8 row pixel block
 
 	// Video ULA Registers
