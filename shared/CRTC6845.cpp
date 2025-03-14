@@ -51,7 +51,7 @@ bool CRTC6845::reset()
 	// mReg[R0_HorizontalTotal] =		0x3f;	0x3f
 	// mReg[R1_HorizontalDisplayed] =	0x28;	0x28
 	// mReg[R2_HSYncPosition] =			0x33;	0x31
-	// mReg[R3_SyncWidth] =				0x24;	0x4 (0x24 written but truncated to 4 bits)
+	// mReg[R3_SyncWidth] =				0x24;	0x24
 	// mReg[R4_VerticalTotal] =			0x1e;	0x26
 	// mReg[R5_VerticalTotalAdjust] =	0x02;	0x00
 	// mReg[R6_VerticalDisplayed] =		0x19;	0x20
@@ -83,7 +83,7 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 
 	updateOutputs();
 
-	// If in the active display area, update the fetch address abd cursor position
+	// If in the active display area, update the fetch address and cursor position
 	
 	if (mDISPTMG) {;
 		adr = mStartAdr + mCharRow * mActiveRowChars + mCharCol;

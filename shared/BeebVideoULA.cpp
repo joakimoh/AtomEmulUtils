@@ -3,6 +3,46 @@
 #include "TT5050.h"
 #include <iomanip>
 
+// 
+// The Video ULA sets up the 6847 CRTC.
+// 
+// The 6847 R12/R13 value is set as follows:
+// MODE 0 - 6:	screen address / 8 <=> 0,1,2: 0x3000 => 0x600, 3: 0x4000 => 0x800, 4-5: 0xb00, 6: 0x6000 => 0xc00
+// MODE 7:		screen address - (0x7400 ^ 0x2000) => 0x2800 for actual memory address of 0x7c00
+// The same logic applies to setting R14/R15 (cursor position)
+//
+// Mode		CRTC address		Actual Address		Size	Resolution	Big Chars	Colours		Lines		Visible Chars		Pixel W	Pixel R
+// 0		 0x600 -  0xfff		0x3000 - 0x7fff		20k		640x256		80x32		2			312			256		128			1		16 MHz
+// 1		 0x600 -  0xfff		0x3000 - 0x7fff		20k		320x256		40x32		4			312			256		128			2		 8 MHz
+// 2		 0x600 -  0xfff		0x3000 - 0x7fff		20k		160x256		20x32		16			312			256		128			4		 4 MHz
+// 3		 0x800 -  0xfff		0x4000 - 0x7fff		16k		N/A			80x25		2			312			256		64			(1)		16 MHz
+// 4		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		320x256		40x32		2			312			256		64			2		 8 MHz
+// 5		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		160x256		20x32		4			312			256		64			4		 4 MHz
+// 6		 0xc00 -  0xfff		0x6000 - 0x7fff		8k		N/A			40x25		2			312			256		64			(2)		 8 MHz
+// 7		0x2800 - 0x2c00		0x7c00 - 0x7fff		1k		78x75		40x25		8			572			513		64 (768)	(2)		 8 MHz
+//															(468x500) (240x250)
+//																	  (480x500)
+// 
+// Each n x 8(10) pixel block in modes 0-6 are organised so that each row (0,1,..7(9)) of the n pixel are stored
+// in consecutive memory locations (row 0: a, row 1: a+1,... row 7: a+7). For two-colour modes n = 8 pixels,
+// for 4-colour modes it is 4 pixels and for 16-colour modes it is 2 pixels. That is the reason the screen
+// address above is divided by 8. The raster address will then select each of the 8(10) rows to cover the complete
+// block of n x 8(10) pixels. The raster rows are 8 for modes 0-2,4 & 5 (graphics & char modes) and 10 for
+// modes 3 & 6 (char only modes). The lowest memory address (e.g. 0x5800 for mode 4) will correspond to the
+// upper left corner of the screen.
+//
+// For mode 7 (teletext mode) only complete characters (or graphical symbols) are read at a time and the raster
+// address selects the row of each character (the same screen memory data is present for all raster  rows).
+// There are for mode 7, 19 raster rows.
+// The TCG's page memory input comes from the CRTC (0x7c00 to 0x7fff)
+// The TCG then generates either 6 x 10 pixel character colour data (tgc_data)
+// or 12 x 20 pixel character colour data (if characters are interpolated).
+// The graphics data is always 6 x 10 pixels but encoded as a 2 x 3 sixels (one sixel <=> 3 x 3.3 pixels)
+// The visible screen in the should be 480 × 500 pixels <=> 40 × 25 characters <=> 78 x 54 sixels. However,
+// The Beeb seems to setup the CRTC to generate only 19 * 25 = 475 (rather than the expected 20 *25 = 500) visible scan lines.
+// The full frame rate should correspond to 1/2 the interlaced frame rate, i.e. 50 /2 = 25 Hz but here the Beeb uses 27 Hz 
+		// (close enough).
+
 BeebVideoULA::BeebVideoULA(
 	string name, uint16_t adr, double cpuclock, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
 ) : VideoDisplayUnit(name, BEEB_VDU_DEV, cpuclock, adr, 0x10, disp, dispW, dispH, 0x0 /* dummy adr */, debugManager, connectionManager)
@@ -56,8 +96,11 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		reset();
 
 	uint64_t pCycleCount = mCycleCount;
-	mCycleCount += max(1, (int)round(getScanLineDuration() * mCPUClock));
+	double scan_line_duration = getScanLineDuration();
+	int cycle_count = max(1, (int)round(scan_line_duration * mCPUClock));
+	mCycleCount += cycle_count;
 	endCycle = mCycleCount;
+
 
 	mPixelsPerByte = 8 * mNCols / getVisibleCharsPerLine();
 	if (!initialised() || mPixelsPerByte > 8) {
@@ -195,43 +238,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
-		// the TGC character is only 6 pixels wide whereas the CRTC one is 8 pixels wide!
-		// The M6847 R12/R13 value is set as follows:
-		// MODE 0 - 6:	screen address / 8 <=> 0,1,2: 0x3000 => 0x600, 3: 0x4000 => 0x800, 4-5: 0xb00, 6: 0x6000 => 0xc00
-		// MODE 7:		screen address - (0x7400 ^ 0x2000) => 0x2800 for actual memory address of 0x7c00
-		// The same logic applies to setting R14/R15 (cursor position)
-		//
-		// Mode		CRTC address		Actual Address		Size	Resolution	Big Chars	Colours		Lines		Visible Chars		Pixel W	Pixel R
-		// 0		 0x600 -  0xfff		0x3000 - 0x7fff		20k		640x256		80x32		2			312			256		128			1		16 MHz
-		// 1		 0x600 -  0xfff		0x3000 - 0x7fff		20k		320x256		40x32		4			312			256		128			2		 8 MHz
-		// 2		 0x600 -  0xfff		0x3000 - 0x7fff		20k		160x256		20x32		16			312			256		128			4		 4 MHz
-		// 3		 0x800 -  0xfff		0x4000 - 0x7fff		16k		N/A			80x25		2			312			256		64			(1)		16 MHz
-		// 4		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		320x256		40x32		2			312			256		64			2		 8 MHz
-		// 5		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		160x256		20x32		4			312			256		64			4		 4 MHz
-		// 6		 0xc00 -  0xfff		0x6000 - 0x7fff		8k		N/A			40x25		2			312			256		64			(2)		 8 MHz
-		// 7		0x2800 - 0x2c00		0x7c00 - 0x7fff		1k		78x75		40x25		8			572			513		64 (768)	(2)		 8 MHz
-		//															(468x500) (240x250)
-		//																	  (480x500)
-		// 
-		// Each n x 8(10) pixel block in modes 0-6 are organised so that each row (0,1,..7(9)) of the n pixel are stored
-		// in consecutive memory locations (row 0: a, row 1: a+1,... row 7: a+7). For two-colour modes n = 8 pixels,
-		// for 4-colour modes it is 4 pixels and for 16-colour modes it is 2 pixels. That is the reason the screen
-		// address above is divided by 8. The raster address will then select each of the 8(10) rows to cover the complete
-		// block of n x 8(10) pixels. The raster rows are 8 for modes 0-2,4 & 5 (graphics & char modes) and 10 for
-		// modes 3 & 6 (char only modes). The lowest memory address (e.g. 0x5800 for mode 4) will correspond to the
-		// upper left corner of the screen.
-		//
-		// For mode 7 (teletext mode) only complete characters (or graphical symbols) are read at a time and the raster
-		// address selects the row of each character (the same screen memory data is present for all raster  rows).
-		// There are for mode 7, 19 raster rows.
-		// The TCG's page memory input comes from the CRTC (0x7c00 to 0x7fff)
-		// The TCG then generates either 6 x 10 pixel character colour data (tgc_data)
-		// or 12 x 20 pixel character colour data (if characters are interpolated).
-		// The graphics data is always 6 x 10 pixels but encoded as a 2 x 3 sixels (one sixel <=> 3 x 3.3 pixels)
-		// The visible screen in the should be 480 × 500 pixels <=> 40 × 25 characters <=> 78 x 54 sixels. However,
-		// The Beeb seems to setup the CRTC to generate only 19 * 25 = 475 (rather than the expected 20 *25 = 500) visible scan lines.
-		// The full frame rate should correspond to 1/2 the interlaced frame rate, i.e. 50 /2 = 25 Hz but here the Beeb uses 27 Hz 
-		// (close enough).
+		// the TGC character is only 12 pixels wide whereas the CRTC one is 8 pixels wide!
+		
 		vector<TT5050::TTColour> tgc_data;
 
 		// Advance the CRT one character at a time
@@ -328,7 +336,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				// 
 				// Big pixels/byte = 8 * cols / Visible "chars" per line
 				//
-				uint8_t bits_per_pixel = 8 / pixels_per_byte;
 				for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
 
 					if (!teletext) {
@@ -378,7 +385,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 						*bitmap_data_p++ = colour;
 
 					if (!teletext)
-						mem_data = (mem_data << bits_per_pixel) | 1;
+						mem_data = (mem_data << 1) | 1;
 				}
 
 				if (char_pos == active_chars - 1)
@@ -403,7 +410,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		
 	}
 
-
+	
 	if (mScanLine == active_lines - 1)
 		// Add Bottom border
 	{
@@ -421,7 +428,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		mFrame++;
 	}
-
+	
 	mScanLine = (mScanLine + 1) % scan_lines_per_frame;
 
 	return true;
@@ -616,7 +623,7 @@ int BeebVideoULA::getVisibleCharsPerLine()
 
 int BeebVideoULA::getScanLine()
 {
-	return mScanLine;
+	return mCRTC->getScanLine();
 }
 
 int BeebVideoULA::getLeftBorderChars()

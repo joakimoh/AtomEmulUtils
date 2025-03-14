@@ -106,8 +106,7 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 		// Check for key at the selected row and column being pressed as well as DIP switches being ON <=> LOW
 		vector<Key>& key_vec = mKeyboardMatrix[mROW_SEL];
 		Key& key = key_vec[mCOL_SEL];
-
-		if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode) || (mROW_SEL == 0 && (mSW & (1 << (mCOL_SEL - 2))) == 0x1)) {
+		if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode) || (mROW_SEL == 0 && linkSet(mCOL_SEL))) {
 			//cout << "Key '" << key.keyName << "' detected at ROW " << (int)mROW_SEL << ", " << (int)mCOL_SEL << "\n";
 			selected_key_pressed = true;
 		}

@@ -131,39 +131,24 @@ private:
 	uint8_t mROW = 0x0;				// Value of selected row (HIGH if any key on row is pressed);	connected to VIA 6522 (IC3) PA7 input
 	uint8_t mBREAK = 0x1;			// BREAK key (LOW when pressed <=> RESET)
 	uint8_t mPRESSED = 0x0;			// HIGH when any key is pressed;								connected to VIA 6522 (IC3) CA2 input
-	uint8_t mSW = 0x0;				// Start-up options DIL switches (8-bit) - see table below...
-									//	Link	Bit	SET	(OFF)						CLR (ON)
-									//	1		7	Default filing system : DFS		Default filing system : NFS
-									//	2		6	Not used						Not used
-									//	3		5	Disc drive timings				Disc drive timings
-									//	4		4	Disc drive timings				Disc drive timings
-									//	5		3	SHIFT - BREAK to boot			BREAK to boot
-									//	6		2	+ 4 to screen mode				+ 0 to screen mode
-									//	7		1	+ 2 to screen mode				+ 0 to screen mode
-									//	8		0	+ 1 to screen mode				+ 0 to screen mode
+
+	// Keyboard DIP swithes (link 1 to 8)
+	// Mode 7 is set by having Links 6-8 OFF (LOW)
+	//
+	uint8_t mSWlink[8] = {
+		//									column		bit		LOW (OFF)					HIGH (ON)
+		0,	// Link 1 Default filing system		2		b7		DFS							NFS
+		0,	// Link 2 Not used					3		b6
+		0,	// Link 3 Disc drive timings		4		b5
+		0,	// Link 4 Disc drive timings		5		b4
+		0,	// Link 5 Boot						6		b3		SHIFT - BREAK to boot		BREAK to boot
+		0,	// Link 6 Screen mode				7		b2		+4							+0
+		0,	// Link 7 Screen mode				8		b1		+2							+0
+		0	// Link 8 Screen mode				9		b0		+1							+0
+	};
+	inline bool linkSet(uint8_t col) { return col >= 2 && col <= 9 && mSWlink[col-2] != 0; }
 
 	uint8_t mColCounter = 0;
-	enum SwitchEnum { SW_FILING_SYSTEM = 0x80, SW_DISC_SETTINGS = 0x30, SW_BOOT = 0x08, SW_MOD_PL_4 = 0x4, SW_MOD_PL_2 = 0x2, SW_MOD_PL_1 = 0x1};
-	typedef struct SWField_struct {
-		uint8_t mask;
-		uint8_t lowBit;
-		SwitchEnum field;
-	} SWField;
-
-	SWField mSWField[6] = {
-		{0x1, 7, SW_FILING_SYSTEM},
-		{0x3, 4, SW_DISC_SETTINGS},
-		{0x1, 3, SW_BOOT},
-		{0x1, 2, SW_MOD_PL_4},
-		{0xe, 1, SW_MOD_PL_2},
-		{0x0, 0, SW_MOD_PL_1}
-	};
-	inline uint8_t getSWField(SwitchEnum field) {
-		return (mSW >> mSWField[field].lowBit) & mSWField[field].mask;
-	}
-
-
-
 
 public:
 
