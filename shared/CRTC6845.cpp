@@ -67,7 +67,7 @@ bool CRTC6845::reset()
 	// mReg[R16_LightPenL] =			0;
 	// mReg[R17_LightPenH] =			0;
 	
-	updateSettings();
+	updateSettings(0);
 	
 
 	return true;
@@ -255,7 +255,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 			mRegWriteCnt[written_reg]++;
 	}
 
-	bool changes = updateSettings();
+	bool changes = updateSettings(written_reg);
 	
 	if (written_reg < 12) {
 		int n_updated_regs;
@@ -335,7 +335,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 // 
 // ** Including sync pulse & retrace
 // 
-bool CRTC6845::updateSettings()
+bool CRTC6845::updateSettings(uint8_t reg)
 {
 	bool changes = false;
 
@@ -387,6 +387,24 @@ bool CRTC6845::updateSettings()
 
 	// Current cursor address
 	mCursorLocation = ((mReg[R14_CursorH] & 0x3f)<< 8) | mReg[R15_CursorL];
+
+	// Reset counters etc. if signficant changes have been made to timing
+	if (reg == R0_HorizontalTotal || reg == R4_VerticalTotal) {
+		mCharRow = 0;
+		mScanLine = 0;
+		mCharCol = 0;
+		mDISPTMG = 0x0;
+		mRA = 0x0;
+		mCUDISP = 0x2;
+		mHS = 0x0;
+		mVS = 0x0;
+		updatePort(DISPTMG, mDISPTMG);
+		updatePort(RA, mRA);
+		updatePort(CUDISP, mCUDISP);
+		updatePort(HS, mHS);
+		updatePort(VS, mVS);
+	}
+
 
 	return changes;
 

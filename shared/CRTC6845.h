@@ -155,7 +155,7 @@ public:
 		return false;
 	}
 
-	bool updateSettings();
+	bool updateSettings(uint8_t reg);
 	void printSettings();
 
 	ALLEGRO_COLOR green, black;
