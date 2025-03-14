@@ -110,7 +110,7 @@ bool CRTC6845::advanceChar()
 	updateOutputs();
 
 	// Increase char column
-	// The M6845 linear address generator repeats the same sequence of addresses for each scan line of a character row
+	// The 6845 linear address generator repeats the same sequence of addresses for each scan line of a character row
 	mCharCol = (mCharCol + 1) % mCharCols;
 	if (mCharCol == 0) {
 		mScanLine = (mScanLine + 1) % (int)round(mScanLines);

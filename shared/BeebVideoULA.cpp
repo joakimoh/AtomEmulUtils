@@ -254,7 +254,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// Is the screen (display) in the active area?	
 		uint8_t dis_ena;
 		if (!teletext)
-			dis_ena = ~(~mDISPTMG | ((mRA >> 3) & 0x1)); // RA3 shall never be set when not in teletext mode as raster lines are 0-7 only
+			dis_ena = ~(~mDISPTMG | ((mRA >> 3) & 0x1)); // RA3 shall never be set when not in teletext mode as there are only 8 raster lines for modes 0-6
 		else
 			dis_ena = mDISPTMG; // In teletext mode raster lines are 0-19
 
@@ -268,7 +268,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		if (screen_adr >= 0x8000)
 			screen_adr -= hw_scroll_sub; // correct for wrap around when hardware scrolling
 		
-		if (char_pos < active_chars && (screen_adr >= 0x8000 || screen_adr < 0x3000)) { // exit if the CRTC hasn't been properly initialised yet!
+		if (mScanLine < active_lines && char_pos < active_chars && (screen_adr >= 0x8000 || screen_adr < 0x3000)) { // exit if the CRTC hasn't been properly initialised yet!
+			cout << "CRTC not ready - got address " << hex << (crtc_adr * 8 + (mRA & 0x7)) << " for line " << dec << mScanLine << ", pos " << char_pos << " and for #active chars of " << active_chars << "\n";
 			return false;
 		}
 
