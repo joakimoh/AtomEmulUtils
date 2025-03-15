@@ -27,14 +27,14 @@ public:
 	uint8_t mNEXT_CHAR;		// INPUT  - Advance one character
 	uint8_t mDISPTMG = 0x0;	// OUTPUT - DISPlay TiMinG: When high, the display is in the active area (delay specified by R9 skew bits)
 	uint8_t mRA = 0x0;		// OUTPUT - Raster Address for row of a character (5 bits)
-	uint8_t mCUDISP = 0x2;	// OUTPUT - CUrsor DISPlay: High when cursor shall be displayed (delay specified by R9 skew bits)
+	uint8_t mCUDISP = 0x0;	// OUTPUT - CUrsor DISPlay: High when cursor shall be displayed (delay specified by R9 skew bits)
 	uint8_t mHS = 0x0;		// OUTPUT -	Horizontal Sync
 	uint8_t mVS = 0x0;		// OUTPUT -	Vertical Sync
 
 
 	// M6845 Registers
 	uint8_t mReg[18];
-	int mRegWriteCnt[12] = { 0 };
+	int mRegWriteCnt[16] = { 0 };
 	int mRegUpdates = 0;
 	typedef struct RegInfo {
 		uint8_t	mask;
@@ -145,7 +145,6 @@ public:
 	int mFrame = 0;
 
 	int mInitialised = false;
-	int mRegWrtCnt = 0;
 
 public:
 
@@ -155,7 +154,7 @@ public:
 		return false;
 	}
 
-	bool updateSettings(uint8_t reg);
+	void updateSettings(uint8_t reg);
 	void printSettings();
 
 	ALLEGRO_COLOR green, black;

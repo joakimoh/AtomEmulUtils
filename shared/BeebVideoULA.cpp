@@ -11,17 +11,21 @@
 // MODE 7:		screen address - (0x7400 ^ 0x2000) => 0x2800 for actual memory address of 0x7c00
 // The same logic applies to setting R14/R15 (cursor position)
 //
-// Mode		CRTC address		Actual Address		Size	Resolution	Big Chars	Colours		Lines		Visible Chars		Pixel W	Pixel R
-// 0		 0x600 -  0xfff		0x3000 - 0x7fff		20k		640x256		80x32		2			312			256		128			1		16 MHz
-// 1		 0x600 -  0xfff		0x3000 - 0x7fff		20k		320x256		40x32		4			312			256		128			2		 8 MHz
-// 2		 0x600 -  0xfff		0x3000 - 0x7fff		20k		160x256		20x32		16			312			256		128			4		 4 MHz
-// 3		 0x800 -  0xfff		0x4000 - 0x7fff		16k		N/A			80x25		2			312			256		64			(1)		16 MHz
-// 4		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		320x256		40x32		2			312			256		64			2		 8 MHz
-// 5		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		160x256		20x32		4			312			256		64			4		 4 MHz
-// 6		 0xc00 -  0xfff		0x6000 - 0x7fff		8k		N/A			40x25		2			312			256		64			(2)		 8 MHz
-// 7		0x2800 - 0x2c00		0x7c00 - 0x7fff		1k		78x75		40x25		8			572			513		64 (768)	(2)		 8 MHz
+// Mode		CRTC address		Actual Address		Size	Resolution	Visible	Colours		Total		Visible		Total		PixelW*	PixelR	Pixels/byte**
+//																		Chars				Lines		Lines		Chars
+// 0		 0x600 -  0xfff		0x3000 - 0x7fff		20k		640x256		80x32		2		312			256			128			1		16 MHz	8
+// 1		 0x600 -  0xfff		0x3000 - 0x7fff		20k		320x256		40x32		4		312			256			128			2		 8 MHz	4
+// 2		 0x600 -  0xfff		0x3000 - 0x7fff		20k		160x256		20x32		16		312			256			128			4		 4 MHz	2
+// 3		 0x800 -  0xfff		0x4000 - 0x7fff		16k		N/A			80x25		2		312			256			64			1		16 MHz	8
+// 4		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		320x256		40x32		2		312			256			64			2		 8 MHz	8
+// 5		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		160x256		20x32		4		312			256			64			4		 4 MHz	4
+// 6		 0xc00 -  0xfff		0x6000 - 0x7fff		8k		N/A			40x25		2		312			256			64			2		 8 MHz	8
+// 7		0x2800 - 0x2c00		0x7c00 - 0x7fff		1k		78x75		40x25		8		572			513			64 (768)	1		 8 MHz	12
 //															(468x500) (240x250)
 //																	  (480x500)
+// 
+// * W.r.t. scaling to either 640 pixels (Modes 0-6) or 480 pixels (mode 7). For Modes 0-6 PixelW = 16/PixelR; for Mode 7 it is '1'.
+// ** For modes 0-6 it is 8/log2(#colours) or 8 * #columns / visible line chars; for mode 7 it is 12.
 // 
 // Each n x 8(10) pixel block in modes 0-6 are organised so that each row (0,1,..7(9)) of the n pixel are stored
 // in consecutive memory locations (row 0: a, row 1: a+1,... row 7: a+7). For two-colour modes n = 8 pixels,
@@ -112,16 +116,16 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	//
 	// Hardware scrolling
 	// 
-	// The values of C0 and C1 together determine the sub_val to subtract from the current
+	// The values of C0 and C1 together determine the value to subtract from the current
 	// address when it exceeds 8000
-	//      MA12	C1   C0     Screen				Mem		Hz			subract
-	//		(a15)				Address   Modes		Sz		Res			const
-	//		---------------------------------------------------------------------
-	//		0		x	x		7c00		7		1k					0400
-	//		1		0   0		4000		3		16k					4000
-	//		1		0   1		6000		6		8k					2000
-	//		1		1	0		3000		0,1,2	20k		80 bytes	5000
-	//		1		1   1		5800		4,5		10k					2800
+	//      MA12	C1   C0     CRTC address	Screen				Mem		Hz			subract
+	//		(a15)								Address   Modes		Sz		Res			const
+	//		------------------------------------------------------------------------------------
+	//		0		x	x		2800			7c00		7		1k					0400
+	//		1		0   0		800				4000		3		16k					4000
+	//		1		0   1		c00				6000		6		8k					2000
+	//		1		1	0		600				3000		0,1,2	20k		80 bytes	5000
+	//		1		1   1		b00				5800		4,5		10k					2800
 	//
 
 	uint8_t ctrl_sel = mSCROLL_CTRL & 0x7;
@@ -138,14 +142,14 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	}
 	
 	uint16_t hw_scroll_sub = 0x0;
-	switch (mC) {
-	case 0:
+	switch (mC & 0x3) {
+	case 0:// Mode 3 - start address 0x4000
 		hw_scroll_sub = 0x4000; break;
-	case 1:
+	case 1: // Mode 6 - start address 0x6000
 		hw_scroll_sub = 0x2000; break;
-	case 2:
+	case 2:// Modes 0,1,2 - start address 0x3000
 		hw_scroll_sub = 0x5000; break;
-	case 3:
+	case 3:// Modes 4,5 - start address 0x5800
 		hw_scroll_sub = 0x2800; break;
 	default:
 		break;
@@ -201,7 +205,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// on the screen and "Char" is actually one byte fetched from memory that only sometimes corresponds
 	// to the width of a screen char. 
 
-
+	unsigned int* max_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScanLines);
 	unsigned int* bitmap_data_p = NULL;
 	if (mScanLine == 0)
 		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data);
@@ -213,27 +217,26 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	
 	if (teletext) {
 		pixels_per_byte = 12;
-		pixel_width = 1;// mPixelW;
+		pixel_width = 1;
 	}
 
 	if (mScanLine == 0)
 		// Add Top border
 	{
+
+		cout << "Pixels/byte = " << dec << pixels_per_byte << ", Pixel Width = " << pixel_width << "\n";
 		for (int line = 0; line < top_border_lines; line++) {
 			for (int char_pos = 0; char_pos < visible_chars; char_pos++) {
 				uint8_t Rs, Gs, Bs;
 				for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
 					Rs = Gs = Bs = 0;
 					uint32_t colour = 0xff00ff00;
-					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL; pw++)
+					for (int pw = 0; pw < pixel_width && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
 						*bitmap_data_p++ = colour;
 				}
 			}
 		}
 	}
-
-	//if (!teletext && mCRTC != NULL && mCRTC->getVisibleCharsPerLine() == 80 && mScanLine > 0)
-	//	cout << "\nLINE " << dec << mScanLine << "(" << scan_lines_per_frame << ", chars_per_line = " << chars_per_line << ")\n";
 
 	for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {
 
@@ -290,7 +293,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 						for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
 							Rs = Gs = Bs = 0;
 							uint32_t colour = 0xff0ff000;
-							for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL; pw++)
+							for (int pw = 0; pw < pixel_width && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
 								*bitmap_data_p++ = colour;
 						}
 					}
@@ -382,7 +385,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 					// Update display with the R, G & B data
 					uint32_t colour = 0xff000000 | (R ? 0x00ff0000 : 0) | (G ? 0x0000ff00 : 0) | (B ? 0x000000ff : 0);
-					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL; pw++)
+					for (int pw = 0; pw < pixel_width && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
 						*bitmap_data_p++ = colour;
 
 					if (!teletext)
@@ -397,7 +400,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 						for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
 							Rs = Gs = Bs = 0;
 							uint32_t colour = 0xff0ff000;
-							for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL; pw++)
+							for (int pw = 0; pw < pixel_width && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
 								*bitmap_data_p++ = colour;
 						}
 					}
@@ -418,10 +421,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		for (int line = 0; line < bottom_border_lines; line++) {
 			for (int char_pos = 0; char_pos < visible_chars; char_pos++) {
 				uint8_t Rs, Gs, Bs;
-				for (int big_pixel = 0; big_pixel < pixels_per_byte; big_pixel++) {
+				for (int big_pixel = 0; big_pixel < pixels_per_byte ; big_pixel++) {
 					Rs = Gs = Bs = 0;
 					uint32_t colour = 0xff00ff00;
-					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL; pw++)
+					for (int pw = 0; pw < pixel_width && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
 						*bitmap_data_p++ = colour;
 				}
 			}
@@ -490,6 +493,7 @@ bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 	if (!VideoDisplayUnit::selected(adr))
 		return false;
 
+	uint8_t p_ControlRegister = mControlRegister;
 
 	uint16_t a = adr - mMemorySpace.adr;
 
@@ -514,8 +518,9 @@ bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 		mPaletteMem[pa] = data & 0xf;
 	}
 
-	if (mCRTC != NULL && mCRTC->initialised() && (mDM->debug(DBG_VERBOSE))) {
+	if (((mControlRegister ^ p_ControlRegister) & 0xfe) != 0 && (mDM->debug(DBG_VERBOSE))) {
 		cout << "\n" << dec;
+		cout << "Video ULA Control Register: 0x" << hex << (int) mControlRegister << "\n";
 		cout << "Video ULA PixelRate:       " << mPixelRate << " MHz\n";
 		cout << "Video ULA PixelWidth:      " << (int) mPixelW << "\n";
 		cout << "Video ULA Pixels/byte:     " << (int)mPixelsPerByte << "\n";

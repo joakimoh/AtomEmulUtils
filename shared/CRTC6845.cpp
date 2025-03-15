@@ -6,6 +6,32 @@
 // The video memory address provided will not be used as the start address of the memory (and size) is programmed (R12 & R13 for the start address)
 // 
 //
+//
+// Register settings for the BBC Micro Model B (from https://beebwiki.mdfs.net/CRTC):
+// Register  Description                             Default value for MODE
+//                                              0     1     2     3     4     5     6     7
+// ----------------------------------------------------------------------------------------
+// R0        Horizontal total                 127   127   127   127    63    63    63    63
+// R1        Characters per line               80    80    80    80    40    40    40    40
+// R2        Horizontal sync position          98    98    98    98    49    49    49    51
+// R3        Horizontal sync width(bits 0 - 3)  8     8     8     8     4     4     4     4
+//           +Vertical sync width(bits 4 - 7)   2     2     2     2     2     2     2     2
+// R4        Vertical total                    38    38    38    30    38    38    30    30 => (18+2) * (30+1) + 2 = 622 scan lines for mode 7
+// R5        Vertical total adjust              0     0     0     2     0     0     2     2
+// R6        Vertical displayed characters     32    32    32    25    32    32    25    25 => (18+2) * 25 = 500 visible scan lines for mode 7
+// R7        Vertical sync position            34    34    34    27    34    34    27    28 
+// R8        Interlace mode(bits 0, 1)          1     1     1     1     1     1     1     3
+//           +Display delay(bits 4, 5)          0     0     0     0     0     0     0     1
+//           +Cursor delay(bits 6, 7)           0     0     0     0     0     0     0     2
+// R9        Scan lines per character           7     7     7     9     7     7     9    18 => (18+2)  = 20 raster lines for mode 7
+// R10       Cursor start(bits 0 - 4)           7     7     7     7     7     7     7    18
+//           Cursor type(bit 5)                 1     1     1     1     1     1     1     1
+//           Cursor blink(bit 6)                1     1     1     1     1     1     1     1
+// R11       Cursor end                         8     8     8     9     8     8     9    19
+// R12, R13   Screen start address / 8			-     -     -     -     -     -     -     -
+// R14, R15   Cursor position					-     -     -     -     -     -     -     -
+// R16, R17   Light pen position				-     -     -     -     -     -     -     -
+//
 CRTC6845::CRTC6845(
 	string name, uint16_t adr, double cpuclock, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
 ) : VideoDisplayUnit(name, CRTC6845_DEV, cpuclock, adr, 0x2, disp, dispW, dispH, 0x0 /* dummy adr as not used by the 6845 */, debugManager, connectionManager)
@@ -31,12 +57,11 @@ bool CRTC6845::reset()
 	mScanLine = 0;
 	mCharCol = 0;
 	mInitialised = false;
-	mRegWrtCnt = 0;
 
 	// Reset ports
 	mDISPTMG = 0x0;
 	mRA = 0x0;
-	mCUDISP = 0x2;
+	mCUDISP = 0x1;
 	mHS = 0x0;
 	mVS = 0x0;
 	updatePort(DISPTMG, mDISPTMG);
@@ -45,27 +70,8 @@ bool CRTC6845::reset()
 	updatePort(HS, mHS);
 	updatePort(VS, mVS);
 
-	for (int i = 0; i < 18; mReg[i++] = 0);
-
-	// Example: BBC Micro Mode 7 Settings... (see https://beebwiki.mdfs.net/MODE_7) and actual from execution
-	// mReg[R0_HorizontalTotal] =		0x3f;	0x3f
-	// mReg[R1_HorizontalDisplayed] =	0x28;	0x28
-	// mReg[R2_HSYncPosition] =			0x33;	0x31
-	// mReg[R3_SyncWidth] =				0x24;	0x24
-	// mReg[R4_VerticalTotal] =			0x1e;	0x26
-	// mReg[R5_VerticalTotalAdjust] =	0x02;	0x00
-	// mReg[R6_VerticalDisplayed] =		0x19;	0x20
-	// mReg[R7_VSyncPosition] =			0x1b;	0x23
-	// mReg[R8_InterlaceMode] =			0x93;	0x01
-	// mReg[R9_MaxScanLineAddress] =	0x12;	0x07
-	// mReg[R10_CursorStart] =			0x72;	0x67
-	// mReg[R11_CursorEnd] =			0x13;	0x08
-	// mReg[R12_StartAddressH] =		0x0b	0x0b
-	// mReg[R13_StartAddressL] =		0x00
-	// mReg[R14_CursorH] =				0;	
-	// mReg[R15_CursorL] =				0;
-	// mReg[R16_LightPenL] =			0;
-	// mReg[R17_LightPenH] =			0;
+	// Internal registers are not affected by the RESET - only the internal logic is...
+	//for (int i = 0; i < 18; mReg[i++] = 0);
 	
 	updateSettings(0);
 	
@@ -208,31 +214,17 @@ bool CRTC6845::read(uint16_t adr, uint8_t& data)
 	return true;
 }
 
+
 //
-// Register settings for the BBC Micro Model B (from https://beebwiki.mdfs.net/CRTC):
-// Register  Description                             Default value for MODE
-//                                              0     1     2     3     4     5     6     7
-// ----------------------------------------------------------------------------------------
-// R0        Horizontal total                 127   127   127   127    63    63    63    63
-// R1        Characters per line               80    80    80    80    40    40    40    40
-// R2        Horizontal sync position          98    98    98    98    49    49    49    51
-// R3        Horizontal sync width(bits 0 - 3)  8     8     8     8     4     4     4     4
-//           +Vertical sync width(bits 4 - 7)   2     2     2     2     2     2     2     2
-// R4        Vertical total                    38    38    38    30    38    38    30    30 => (18+2) * (30+1) + 2 = 622 scan lines for mode 7
-// R5        Vertical total adjust              0     0     0     2     0     0     2     2
-// R6        Vertical displayed characters     32    32    32    25    32    32    25    25 => (18+2) * 25 = 500 visible scan lines for mode 7
-// R7        Vertical sync position            34    34    34    27    34    34    27    28 
-// R8        Interlace mode(bits 0, 1)          1     1     1     1     1     1     1     3
-//           +Display delay(bits 4, 5)          0     0     0     0     0     0     0     1
-//           +Cursor delay(bits 6, 7)           0     0     0     0     0     0     0     2
-// R9        Scan lines per character           7     7     7     9     7     7     9    18 => (18+2)  = 20 raster lines for mode 7
-// R10       Cursor start(bits 0 - 4)           7     7     7     7     7     7     7    18
-//           Cursor type(bit 5)                 1     1     1     1     1     1     1     1
-//           Cursor blink(bit 6)                1     1     1     1     1     1     1     1
-// R11       Cursor end                         8     8     8     9     8     8     9    19
-// R12, R13   Screen start address / 8			-     -     -     -     -     -     -     -
-// R14, R15   Cursor position					-     -     -     -     -     -     -     -
-// R16, R17   Light pen position				-     -     -     -     -     -     -     -
+// Only the start address (R12/13) and cursor registers (R14/R15) should normally be
+// changed during display operation as an unpredictable behaviour
+// would otherwise be the result.
+// 
+// Writing into the cursor registers should be performed during the horizontal and vertical
+// retrace period.
+// 
+// Writing into the start address registers for scrolling and paging should be
+// performed during the horizontal and vertical display period.
 //
 bool CRTC6845::write(uint16_t adr, uint8_t data)
 {
@@ -240,7 +232,6 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 	if (!selected(adr))
 		return false;
 
-	int pRegWrtCnt = mRegWrtCnt;
 	int written_reg = 999;
 
 	int16_t a = adr - mMemorySpace.adr;
@@ -249,43 +240,12 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 	else if (mAddressRegister >= 0 && mAddressRegister < 18 && mRegInfo[mAddressRegister].writable) {
 		written_reg = mAddressRegister;
 		mReg[written_reg] = data & mRegInfo[written_reg].mask;
-		mRegWrtCnt++;
-		//cout << "R" << dec << (int)mAddressRegister << " = 0x" << hex << (int)mReg[mAddressRegister] << " for data 0x" << (int) data << "\n";
-		if (written_reg < 12)
+		if (written_reg < 16)
 			mRegWriteCnt[written_reg]++;
 	}
 
-	bool changes = updateSettings(written_reg);
-	
-	if (written_reg < 12) {
-		int n_updated_regs;
-		for (n_updated_regs = 0; n_updated_regs < 12 && mRegWriteCnt[n_updated_regs] > mRegUpdates; n_updated_regs++);
-		if (n_updated_regs == 12) {
-			mInitialised = true;
-			mRegUpdates++;
-			if (mDM->debug(DBG_VERBOSE))
-				printSettings();
-		}
-	}
-	
-	/*
-	//if (mRegWrtCnt >= 13 && pRegWrtCnt < 13)
-	//	mInitialised = true;
-
-	int cnt = mRegWriteCnt[0];
-	int i;
-	for (i = 0; i < 12 && mRegWriteCnt[i] > mRegUpdates; i++);
-	if (i == 12) {
-		mInitialised = true;
-		for (i = 0; i < 12; mRegWriteCnt[i++] = 0);
-	}
-	else
-		mInitialised = false;
-
-	if (mInitialised && written_reg < 12 && mDM->debug(DBG_VERBOSE)) {
-		printSettings();
-	}
-	*/
+	// Update internal state based on the register update
+	updateSettings(written_reg);
 
 
 	// Call parent class to trigger scheduling of other devices when applicable
@@ -335,19 +295,14 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 // 
 // ** Including sync pulse & retrace
 // 
-bool CRTC6845::updateSettings(uint8_t reg)
+void CRTC6845::updateSettings(uint8_t reg)
 {
-	bool changes = false;
 
 	int pCharLines = mCharLines;
 	if ((mReg[R8_InterlaceMode] & 0x3) == 0x3)
 		mCharLines = mReg[R9_MaxScanLineAddress] + 2;
 	else
-		mCharLines = mReg[R9_MaxScanLineAddress] + 1;
-	if (mCharLines != pCharLines) {
-		mRegWrtCnt = 0;
-		changes = true;
-	}		
+		mCharLines = mReg[R9_MaxScanLineAddress] + 1;	
 
 	// Vertical scan lines: top border, active lines, sync pulse, bottom border
 	mCharRows = mReg[R4_VerticalTotal] + 1;
@@ -388,14 +343,27 @@ bool CRTC6845::updateSettings(uint8_t reg)
 	// Current cursor address
 	mCursorLocation = ((mReg[R14_CursorH] & 0x3f)<< 8) | mReg[R15_CursorL];
 
-	// Reset counters etc. if signficant changes have been made to timing
-	if (reg == R0_HorizontalTotal || reg == R4_VerticalTotal) {
+	// After power-on each writable register should have been updated to consider the
+	// CRTC as ready for operation
+	if (reg < 16) {
+		int n_updated_regs;
+		for (n_updated_regs = 0; n_updated_regs < 16 && mRegWriteCnt[n_updated_regs] > mRegUpdates; n_updated_regs++);
+		if (n_updated_regs == 16) {
+			mInitialised = true;
+			mRegUpdates++;
+			if (mDM->debug(DBG_VERBOSE))
+				printSettings();
+		}
+	}
+
+	// Reset the internal state if signficant changes have been made to timing
+	if (reg == R0_HorizontalTotal || reg == R4_VerticalTotal || reg < 10) {
 		mCharRow = 0;
 		mScanLine = 0;
 		mCharCol = 0;
 		mDISPTMG = 0x0;
 		mRA = 0x0;
-		mCUDISP = 0x2;
+		mCUDISP = 0x1;
 		mHS = 0x0;
 		mVS = 0x0;
 		updatePort(DISPTMG, mDISPTMG);
@@ -405,8 +373,6 @@ bool CRTC6845::updateSettings(uint8_t reg)
 		updatePort(VS, mVS);
 	}
 
-
-	return changes;
 
 }
 
