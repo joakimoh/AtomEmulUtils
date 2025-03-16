@@ -109,8 +109,8 @@ int main(int argc, const char* argv[])
    al_set_new_display_flags(ALLEGRO_RESIZABLE);
 #endif
 
-    int disp_w = 672;
-    int disp_h = 582;
+    int disp_w = 960;
+    int disp_h = 600;
     ALLEGRO_DISPLAY* disp = al_create_display(disp_w, disp_h); // Just an initial size - will be resized to fit the video display unit's preference later on!
     al_set_window_title(disp, "6502 System Emulator");
     ALLEGRO_BITMAP* disp_bm = al_get_target_bitmap();

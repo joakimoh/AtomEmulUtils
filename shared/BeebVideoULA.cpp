@@ -458,7 +458,8 @@ void BeebVideoULA::updateScreenSz()
 		int n_active_chars = mCRTC->getActiveChars();
 		int n_active_lines = mCRTC->getActiveLines();
 		int n_active_W = n_active_chars * mPixelsPerByte;
-		cout << "create display bitmap " << dec << mScreenW << " x " << mScreenH << " (" << n_active_W << " x " << n_active_lines << ")\n";
+		if (mDM->debug(DBG_VERBOSE))
+			cout << "create display bitmap " << dec << mScreenW << " x " << mScreenH << " (" << n_active_W << " x " << n_active_lines << ")\n";
 		unlockDisplay();
 		al_destroy_bitmap(mDisplayBitmap);	
 		mDisplayBitmap = al_create_bitmap(mScreenW, mScreenH);

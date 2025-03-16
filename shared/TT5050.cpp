@@ -180,6 +180,8 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 		mBackgroundColour = mColours[TT_BLACK];
 		mCharRowPos = 0;
 		mHiddenText = false;
+		mSeparatedGraphics = false;
+		mHeldGraphics = false;
 		if (!VS) {
 			mCharRasterLine = (mCharRasterLine + 1) % n_raster_lines;
 			mScanLine++;
