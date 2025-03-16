@@ -96,6 +96,8 @@ public:
 
 	bool readGraphicsMem(uint16_t adr, uint8_t& data);
 
+	bool validateInternalState(uint8_t newControlRegisterValue);
+
 	void lockDisplay();
 	void unlockDisplay();
 
