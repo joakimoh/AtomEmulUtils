@@ -262,7 +262,10 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 					symbol_index = 0;
 				else
 					symbol_index = char_data - 0x20; // should give an index in the range [0,95]
-				colour = mAlpaNumericColour;
+				if (mGraphicSymbols)
+					colour = mGraphicsColour;
+				else
+					colour = mAlpaNumericColour;
 			}
 		}
 
@@ -293,7 +296,7 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 		else {
 
 			TTColour background_colour = mBackgroundColour;
-			TTColour foreground_colour = mAlpaNumericColour;
+			TTColour foreground_colour = colour;// mAlpaNumericColour;
 			double hz_0_75 = mCPUClock * 1e6 * 0.75;
 			int flash_75 = (int)round(hz_0_75 * 0.75);
 			int flash_100 = (int)round(hz_0_75);
