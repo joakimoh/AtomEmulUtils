@@ -155,21 +155,26 @@ bool CRTC6845::updateOutputs()
 	//
 	// Check for Visible active part of scan line
 	// 
+	// Display skew not considered (yet)!!!
+	//
 
-	if (mCharCol < mActiveRowChars && mCharRow < mActiveRows)
+	if (mCharCol  < mActiveRowChars && mCharRow < mActiveRows)
 		updatePort(DISPTMG, 0x1);
 	else
 		updatePort(DISPTMG, 0x0);
 
 	// Check for cursor being selected
+	// Cursor skew not considered (yet)!!!
+	// Cursor blink not implemented (yet)!!!
+	//
 	int cursor_first_line = mReg[R10_CursorStart] & 0x1f;
 	int cursor_last_line = mReg[R11_CursorEnd] & 0x1f;
 	int cursor_disp_mode = (mReg[R10_CursorStart] >> 5) & 0x3; // 00: Non-blink,  01: non-display, 10: blink 16-field, 11: blink 32-field
-	mCursorLocation = ((mReg[R14_CursorH] & 0x3f) << 8) | mReg[R15_CursorL] + mCursSkew - mCharSkew;
+	mCursorLocation = ((mReg[R14_CursorH] & 0x3f) << 8) | mReg[R15_CursorL];// +mCursSkew - mCharSkew;
 	bool cursor_on = (
 		cursor_disp_mode == 0x0 ||
-		cursor_disp_mode == 0x2 ||//&& mFrame % 16 < 8 ||
-		cursor_disp_mode == 0x3// && mFrame % 32 < 16
+		(cursor_disp_mode == 0x2 /* && mFrame % 16 < 8*/) ||
+		(cursor_disp_mode == 0x3 /* && mFrame % 32 < 16*/)
 		) && mRA >= cursor_first_line && mRA <= cursor_last_line;
 	if (cursor_on && mStartAdr + mCharRow * mActiveRowChars + mCharCol == mCursorLocation)
 		updatePort(CUDISP, 0x1);

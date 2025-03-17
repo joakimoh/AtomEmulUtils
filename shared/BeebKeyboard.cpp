@@ -17,7 +17,7 @@
 // 
 // 
 // Connector pins	Direction		Name	Connected to					Active level				Description
-// PL4				IN				KB_ENA	PB2:0 as BDC 3;PB3 has val		Low (load), High (count)	Enables column scanning counter
+// PL4				IN				KB_ENA	PB2:0 as BCD 3;PB3 has val		Low (load), High (count)	Enables column scanning counter
 //																										Counts upwards from COL_SEL
 // PL5:7			IN				ROW_SEL	PA4:6							BCD							Selected keyboard row (0-7)
 // PL8:11			IN				COL_SEL	PA0:3							BCD							Selected keyboard column (0-9)

@@ -2,6 +2,7 @@
 #include "CRTC6845.h"
 #include "TT5050.h"
 #include <iomanip>
+#include "Utility.h"
 
 // 
 // The Video ULA sets up the 6847 CRTC.
@@ -51,7 +52,7 @@ BeebVideoULA::BeebVideoULA(
 	string name, uint16_t adr, double cpuclock, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
 ) : VideoDisplayUnit(name, BEEB_VDU_DEV, cpuclock, adr, 0x10, disp, dispW, dispH, 0x0 /* dummy adr */, debugManager, connectionManager)
 {
-	registerPort("SCROLL_CTRL",	IN_PORT,	0x03, SCROLL_CTRL,	&mSCROLL_CTRL);
+	registerPort("SCROLL_CTRL",	IN_PORT,	0x0f, SCROLL_CTRL,	&mSCROLL_CTRL);
 	registerPort("DISEN",		IN_PORT,	0x01, DISPTMG,		&mDISPTMG);
 	registerPort("CURSOR",		IN_PORT,	0x01, CURSOR,		&mCURSOR);	
 	registerPort("INV",			IN_PORT,	0x01, INV,			&mINV);
@@ -125,15 +126,25 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	//		1		1	0		600				3000		0,1,2	20k		80 bytes	5000
 	//		1		1   1		b00				5800		4,5		10k					2800
 	//
+	// The System VIA's PB(3:0) are connected to the Video ULA's SCROLL_CTRL(3:0) where
+	// The three least significant bits selects whether to update C0 (4) or C1 (5)
+	// and the most significant bit is the value to assign to C0 or C1.
+	// mC = C(1:0) below with C1 as the most significant bit and C0 as the least significant bit.
+	//
 
 	uint8_t ctrl_sel = mSCROLL_CTRL & 0x7;
 	uint8_t ctrl_val = (mSCROLL_CTRL >> 3) & 0x1;
+	uint8_t p_C = mC;
 	switch (ctrl_sel) {
 	case 4:	// Hardware scrolling - set C0 (See below)
 		mC = (mC & 2) | ctrl_val;
+		//if (mC != p_C)
+		//	cout << "C0 = " << (int)ctrl_val << "\n";
 		break;
 	case 5:	// Hardware scrolling - set C1 (See below)
 		mC = (mC & 1) | (ctrl_val << 1);
+		//if (mC != p_C)
+		//	cout << "C1 = " << (int)ctrl_val << "\n";
 		break;
 	default:
 		break;
@@ -172,7 +183,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		unlockDisplay();
 
 		// Scale the display bitmap including borders to match the size of the display
-		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mScreenW, mScreenH, 0, 0, mDisplayWidth, mDisplayHeight, 0);
+		//al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mScreenW, mScreenH, 0, 0, mDisplayWidth, mDisplayHeight, 0);
+		int width = mScreenW;
+		int height = mScreenH;
+		if (!teletext)
+			height *= 2;
+		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mScreenW, mScreenH, 0, 0, width, height, 0);
 
 		// Make the updates visible on the display
 		al_flip_display();
@@ -244,9 +260,11 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		else { // Normally mode 7
 			screen_adr = crtc_adr + (0x7400 ^ 0x2000); // CRTC MA13 is used to select the SA5050 and is cleared by 0x2000
 		}
-		if (screen_adr >= 0x8000)
-			screen_adr -= hw_scroll_sub; // correct for wrap around when hardware scrolling
-		
+		if (screen_adr >= 0x8000) {
+			//cout << "SCROLLING - subtracting 0x" << hex << screen_adr << " by 0x" << hw_scroll_sub << " for C1:C0 = " << Utility::int2binStr(mC,2) << "\n";
+			screen_adr -= hw_scroll_sub; // correct for wrap around when hardware scrolling		
+		}
+
 		if (mScanLine < active_lines && char_pos < active_chars && (screen_adr >= 0x8000 || screen_adr < 0x3000)) { // exit if the CRTC hasn't been properly initialised yet!
 			cout << "CRTC not ready - got address " << hex << (crtc_adr * 8 + (mRA & 0x7)) << " for line " << dec << mScanLine << ", pos " << char_pos << " and for #active chars of " << active_chars << "\n";
 			return false;
