@@ -211,7 +211,7 @@ string Devices::getFileName(string &path, stringstream& sin)
 }
 
 Devices::Devices(
-	string memMapFile, double &cpuClock, int audioSampleFreq, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugManager  *debugManager,
+	string memMapFile, double &cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager,
 	Program program, Program data, ConnectionManager& connection_manager, P6502* &microprocessor, VideoDisplayUnit * &mainVDU,
 	vector<Device*>& frameScheduledDevices, vector<Device*>& halflineScheduledDevices, vector<Device*>& instrScheduledDevices) :mDM(debugManager)
 {
@@ -409,7 +409,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint16_t video_mem_adr = getHexVal(sin);
-					mainVDU = new VDU6847(dev_name, dev_adr, cpuClock, disp, dispW, dispH, video_mem_adr, mDM, &connection_manager);
+					mainVDU = new VDU6847(dev_name, dev_adr, cpuClock, disp, dispBitmap, dispW, dispH, video_mem_adr, mDM, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 
@@ -419,14 +419,14 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, cpuClock, disp, dispW, dispH, mDM, &connection_manager);
+					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, cpuClock, dispBitmap, dispW, dispH, mDM, &connection_manager);
 					mDevices.push_back(crtc);
 					vdus.push_back(crtc);
 				}
 
 				else if (dev_type == "TT5050") {
 
-					TT5050* tcg = new TT5050(dev_name, 0x0, cpuClock, disp, 0x0, mDM, &connection_manager);
+					TT5050* tcg = new TT5050(dev_name, 0x0, cpuClock, dispBitmap, 0x0, mDM, &connection_manager);
 					mDevices.push_back(tcg);
 				}
 
@@ -434,7 +434,7 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					mainVDU = new BeebVideoULA(dev_name, dev_adr, cpuClock, disp, dispW, dispH, mDM, &connection_manager);
+					mainVDU = new BeebVideoULA(dev_name, dev_adr, cpuClock, disp, dispBitmap, dispW, dispH, mDM, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 				}

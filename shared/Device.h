@@ -194,7 +194,7 @@ private:
 public:
 
 	Devices(
-		string memMapFile, double &cpuClock, int audioSampleFreq, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugManager  *debugManager,
+		string memMapFile, double &cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager,
 		Program program, Program data, ConnectionManager &connectionManager, P6502* &microprocessor, VideoDisplayUnit* &vdu,
 		vector<Device *> &frameScheduledDevices, vector<Device*> &halfLineScheduledDevices, vector<Device*> &instructionScheduledDevices
 	);

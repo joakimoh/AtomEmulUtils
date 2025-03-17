@@ -131,7 +131,7 @@ int main(int argc, const char* argv[])
         arg_parser.mapFileName,
         CPU_clock,            // CPU Clock frequency in MHz
         32000,                      // audio sample rate corresponding to a rate of at least twice per scan line
-        disp_bm, disp_w, disp_h,
+        disp, disp_bm, disp_w, disp_h,
         &arg_parser.debugManager, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu,
         frame_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices
 

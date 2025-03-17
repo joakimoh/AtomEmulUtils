@@ -69,8 +69,8 @@ using namespace std;
 // 1	1	1	1	7		256 x 192	2			6kB					resolution graphics six (RG6)		Yes - Graphics mode 4
 //
 
-VDU6847::VDU6847(string name, uint16_t adr, double cpuClock, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager) :
-	VideoDisplayUnit(name, VDU6847_DEV, cpuClock, adr, 0x100, disp, dispW, dispH, videoMemAdr, debugManager, connectionManager), mN60HzCycles((int)round(cpuClock * 1e6 / 60))
+VDU6847::VDU6847(string name, uint16_t adr, double cpuClock, ALLEGRO_DISPLAY *disp, ALLEGRO_BITMAP* dispBitMap, int dispW, int dispH, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager) :
+	VideoDisplayUnit(name, VDU6847_DEV, cpuClock, adr, 0x100, dispBitMap, dispW, dispH, videoMemAdr, debugManager, connectionManager), mN60HzCycles((int)round(cpuClock * 1e6 / 60))
 {
 	// Specify ports that can be connectde to other devices
 	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
@@ -96,6 +96,8 @@ VDU6847::VDU6847(string name, uint16_t adr, double cpuClock, ALLEGRO_BITMAP* dis
 
 	// Create 256 x 192 display bitmap and clear it
 	mDisplayBitmap = al_create_bitmap(mVisW, mVisH);
+
+	al_resize_display(disp, mScaledW, mScaledH);
 
 	green = al_map_rgb(0, 0xff, 0);
 	black = al_map_rgb(0, 0, 0);

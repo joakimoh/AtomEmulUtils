@@ -56,6 +56,7 @@ public:
 	// SA5050 Teletext Character Generator
 	// 
 
+	ALLEGRO_DISPLAY* mDisplay = NULL;
 	ALLEGRO_BITMAP* mDisplayBitmap = NULL;
 	ALLEGRO_LOCKED_REGION* mLockedDisplayBitMap;
 	ALLEGRO_STATE mAllegroState;
@@ -110,7 +111,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	BeebVideoULA(string name, uint16_t adr, double cpuclock, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	BeebVideoULA(string name, uint16_t adr, double cpuclock, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager);
 	~BeebVideoULA();
 
 	bool read(uint16_t adr, uint8_t& data);

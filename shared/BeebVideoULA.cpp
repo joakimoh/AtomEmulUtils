@@ -49,8 +49,8 @@
 		// (close enough).
 
 BeebVideoULA::BeebVideoULA(
-	string name, uint16_t adr, double cpuclock, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
-) : VideoDisplayUnit(name, BEEB_VDU_DEV, cpuclock, adr, 0x10, disp, dispW, dispH, 0x0 /* dummy adr */, debugManager, connectionManager)
+	string name, uint16_t adr, double cpuclock, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
+) : VideoDisplayUnit(name, BEEB_VDU_DEV, cpuclock, adr, 0x10, dispBitmap, dispW, dispH, 0x0 /* dummy adr */, debugManager, connectionManager), mDisplay(disp)
 {
 	registerPort("SCROLL_CTRL",	IN_PORT,	0x0f, SCROLL_CTRL,	&mSCROLL_CTRL);
 	registerPort("DISEN",		IN_PORT,	0x01, DISPTMG,		&mDISPTMG);
@@ -188,6 +188,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		int height = mScreenH;
 		if (!teletext)
 			height *= 2;
+		else
+			width = mScreenW * 4 / 3;
 		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mScreenW, mScreenH, 0, 0, width, height, 0);
 
 		// Make the updates visible on the display
@@ -478,6 +480,7 @@ void BeebVideoULA::updateScreenSz()
 		int n_active_W = n_active_chars * mPixelsPerByte;
 		if (mDM->debug(DBG_VERBOSE))
 			cout << "create display bitmap " << dec << mScreenW << " x " << mScreenH << " (" << n_active_W << " x " << n_active_lines << ")\n";
+		al_resize_display(mDisplay, mScreenW, mScreenH);
 		unlockDisplay();
 		al_destroy_bitmap(mDisplayBitmap);	
 		mDisplayBitmap = al_create_bitmap(mScreenW, mScreenH);
