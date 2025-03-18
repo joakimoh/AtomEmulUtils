@@ -47,8 +47,7 @@
 // The graphics data is always 6 x 10 pixels but encoded as a 2 x 3 sixels (one sixel <=> 3 x 3.3 pixels)
 // The visible screen in the should be 480 × 500 pixels <=> 40 × 25 characters <=> 78 x 54 sixels. However,
 // The Beeb seems to setup the CRTC to generate only 19 * 25 = 475 (rather than the expected 20 *25 = 500) visible scan lines.
-// The full frame rate should correspond to 1/2 the interlaced frame rate, i.e. 50 /2 = 25 Hz but here the Beeb uses 27 Hz 
-		// (close enough).
+// The full frame rate should correspond to 1/2 the interlaced frame rate, i.e. 50 /2 = 25 Hz
 
 BeebVideoULA::BeebVideoULA(
 	string name, uint16_t adr, double cpuclock, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
@@ -59,7 +58,7 @@ BeebVideoULA::BeebVideoULA(
 	registerPort("CURSOR",		IN_PORT,	0x01, CURSOR,		&mCURSOR);	
 	registerPort("INV",			IN_PORT,	0x01, INV,			&mINV);
 	registerPort("RA",			IN_PORT,	0x0f, RA,			&mRA);
-	registerPort("CRTC_CLK",	OUT_PORT,	0x01, CRTC_CLK,		&mCRTC_CLK);
+	registerPort("CRTC_CLK",	OUT_PORT,	0x3, CRTC_CLK,		&mCRTC_CLK);
 	registerPort("RESET",		IN_PORT,	0x01, RESET,		&mRESET);
 
 
@@ -597,7 +596,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 		&& (mDM->debug(DBG_VERBOSE))
 	) {
 		cout << "\n" << dec;
-		cout << "Video ULA Control Register: 0x" << hex << (int)mControlRegister << "\n";
+		cout << "Video ULA Control Register: 0x" << hex << (int)mControlRegister << dec << "\n";
 		cout << "Video ULA PixelRate:       " << mPixelRate << " MHz\n";
 		cout << "Video ULA PixelWidth:      " << (int)mPixelW << "\n";
 		cout << "Video ULA Pixels/byte:     " << (int)mPixelsPerByte << "\n";

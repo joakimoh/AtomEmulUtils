@@ -37,7 +37,7 @@ CRTC6845::CRTC6845(
 ) : VideoDisplayUnit(name, CRTC6845_DEV, cpuclock, adr, 0x2, disp, dispW, dispH, 0x0 /* dummy adr as not used by the 6845 */, debugManager, connectionManager)
 {
 
-	registerPort("CLK",			IN_PORT,  0x1,	CLK,		&mCLK);
+	registerPort("CLK",			IN_PORT,  0x3,	CLK,		&mCLK);
 	registerPort("RESET",		IN_PORT,  0x1,	RESET,		&mRESET);
 	registerPort("DISPTMG",		OUT_PORT, 0x1,	DISPTMG,	&mDISPTMG);
 	registerPort("RA",			OUT_PORT, 0x1f, RA,			&mRA);

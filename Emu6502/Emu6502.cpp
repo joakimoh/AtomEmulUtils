@@ -182,7 +182,7 @@ int main(int argc, const char* argv[])
         double frame_rate_d = vdu->getFrameRate();
         frame_rate = (int)round(frame_rate_d);
         if (frame_rate != p_frame_rate && frame_rate > 10) {
-            cout << "new frame rate " << dec << frame_rate << "!\n";
+            //cout << "new frame rate " << dec << frame_rate << "!\n";
             if (frame_timer != NULL) {
                 al_stop_timer(frame_timer);
                 al_unregister_event_source(queue, al_get_timer_event_source(frame_timer));
