@@ -3,6 +3,8 @@
 #include "TT5050.h"
 #include <iomanip>
 #include "Utility.h"
+#include <chrono>
+#include <cmath>
 
 // 
 // The Video ULA sets up the 6847 CRTC.
@@ -94,6 +96,10 @@ bool BeebVideoULA::advance(uint64_t stopCycle)
 
 bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 {
+
+	auto pre_start = chrono::high_resolution_clock::now();
+	auto video_start = chrono::high_resolution_clock::now();
+
 	bool reset_transition = (mRESET != pRESET);
 	pRESET = mRESET;
 
@@ -177,6 +183,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int right_border_chars = getRightBorderChars();
 
 
+	
 
 	if (mScanLine == mVerticalSyncPos) {
 	
@@ -190,10 +197,32 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			height *= 2;
 		else
 			width = mScreenW * 4 / 3;
+
 		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mScreenW, mScreenH, 0, 0, width, height, 0);
 
 		// Make the updates visible on the display
+		auto disp_start = chrono::high_resolution_clock::now();
 		al_flip_display();
+		auto disp_stop = chrono::high_resolution_clock::now();
+		auto disp_dur = chrono::duration_cast<chrono::microseconds>(disp_stop - disp_start);
+		mDispUsCnt += disp_dur.count();
+
+		mVideoULAStartus = disp_stop;
+		if (mDM->debug(DBG_TIME) && mFrame == 0) {
+			cout << dec << "\n";
+			cout << "Display update - ms per sec: " << mDispUsCnt / 1000 << "\n";
+			cout << "Video ULA update - ms per sec: " << mVideoULACnt / 1000 << "\n";
+			cout << "CRTC update - ms per sec: " << mCRTCnt / 1000 << "\n";
+			cout << "TT update - ms per sec: " << mTTCnt / 1000 << "\n";
+			cout << "Byte update - ms per sec: " << mByteCnt / 1000 << "\n";
+			cout << "Pre update - ms per sec: " << mPreCnt / 1000 << "\n";
+			mVideoULACnt = 0;
+			mDispUsCnt = 0;
+			mCRTCnt = 0;
+			mTTCnt = 0;
+			mByteCnt = 0;
+			mPreCnt = 0;
+		}
 
 		// Clear the display
 		al_clear_to_color(black);
@@ -232,6 +261,11 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		}
 	}
 
+	auto pre_stop = chrono::high_resolution_clock::now();
+	auto pre_dur = chrono::duration_cast<chrono::microseconds>(pre_stop - pre_start);
+	mPreCnt += pre_dur.count();
+	
+
 	for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
@@ -243,10 +277,14 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// If in the active, area, the video memory address containing 
 		// character/graphics data is also provided.
 		uint16_t crtc_adr, screen_adr;
+		auto crtc_start = chrono::high_resolution_clock::now();
 		if (!mCRTC->getMemFetchAdr(crtc_adr)) {
 			cout << "Failed to get address from the CRTC!\n";
 			return false;
 		}
+		auto crtc_stop = chrono::high_resolution_clock::now();
+		auto crtc_dur = chrono::duration_cast<chrono::microseconds>(crtc_stop - crtc_start);
+		mCRTCnt += crtc_dur.count();
 
 		// Is the screen (display) in the active area?	
 		uint8_t dis_ena;
@@ -303,9 +341,15 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				}
 
 				// For teletext modes, decode video memory data as videotext data
-				if (teletext && !mTGC->getScreenData(char_pos == 0, mScanLine == 0 && char_pos == 0, screen_data, tgc_data)) {
-					cout << "Failed to get teletext symbol at address 0x" << hex << screen_adr << "\n";
-					return false;
+				if (teletext) {
+					auto tt_start = chrono::high_resolution_clock::now();
+					if (!mTGC->getScreenData(char_pos == 0, mScanLine == 0 && char_pos == 0, screen_data, tgc_data)) {
+						cout << "Failed to get teletext symbol at address 0x" << hex << screen_adr << "\n";
+						return false;
+					}
+					auto tt_stop = chrono::high_resolution_clock::now();
+					auto tt_dur = chrono::duration_cast<chrono::microseconds>(tt_stop - tt_start);
+					mTTCnt += tt_dur.count();
 				}
 
 
@@ -336,6 +380,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				// 
 				// Big pixels/byte = 8 * cols / Visible "chars" per line
 				//
+				auto byte_start = chrono::high_resolution_clock::now();
 				for (int big_pixel = 0; big_pixel < mPixelsPerByte; big_pixel++) {
 
 					if (!teletext) {
@@ -387,6 +432,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					if (!teletext)
 						mem_data = (mem_data << 1) | 1;
 				}
+				auto byte_stop = chrono::high_resolution_clock::now();
+				auto byte_dur = chrono::duration_cast<chrono::microseconds>(byte_stop - byte_start);
+				mByteCnt += byte_dur.count();
 
 				if (char_pos == active_chars - 1)
 					// Add right border 
@@ -410,7 +458,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		
 	}
 
-	
+
+
 	if (mScanLine == active_lines - 1)
 		// Add Bottom border
 	{
@@ -425,11 +474,15 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				}
 			}
 		}
-
-		mFrame++;
+		int frame_rate = (int)round(getFrameRate());
+		mFrame = (mFrame + 1) % frame_rate;
 	}
 	
 	mScanLine = (mScanLine + 1) % mScanLines;
+
+	auto video_stop = chrono::high_resolution_clock::now();
+	auto video_dur = chrono::duration_cast<chrono::microseconds>(video_stop - video_start);
+	mVideoULACnt += video_dur.count();
 
 	return true;
 }

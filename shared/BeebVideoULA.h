@@ -7,6 +7,7 @@
 #include "TT5050.h"
 #include "CRTC6845.h"
 #include <cmath>
+#include <chrono>
 
 
 
@@ -15,6 +16,14 @@ class BeebVideoULA : public VideoDisplayUnit {
 private:
 
 	void updateScreenSz();
+
+	int mDispUsCnt = 0;
+	int mVideoULACnt = 0;
+	int mCRTCnt = 0;
+	int mTTCnt = 0;
+	int mByteCnt = 0;
+	int mPreCnt = 0;
+	std::chrono::steady_clock::time_point  mVideoULAStartus = chrono::high_resolution_clock::now();
 
 public:
 

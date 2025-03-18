@@ -439,8 +439,10 @@ inline double CRTC6845::getScanLinesPerFrame()
 
 inline double CRTC6845::getFrameRate()
 {
-
-	return mCLK / (mScanLines * mCharCols);
+	if (mScanLines * mCharCols > 0)
+		return mCLK * 1e6 / (mScanLines * mCharCols);
+	else
+		return 50;
 }
 
 inline int CRTC6845::getCharScanLines()

@@ -93,10 +93,10 @@ int main(int argc, const char* argv[])
     if (arg_parser.failed())
         return -1;
 
-    int frame_rate = 60;
-    double emu_speed = frame_rate * (arg_parser.emulationSpeed / 100);
+    
 
-    ALLEGRO_TIMER* emu_speed_timer = al_create_timer(1.0 / emu_speed); // 60 Hz frequency as default emulation speed
+    ALLEGRO_TIMER* frame_timer = NULL;
+
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
     
     ALLEGRO_EVENT event;
@@ -116,7 +116,7 @@ int main(int argc, const char* argv[])
     ALLEGRO_BITMAP* disp_bm = al_get_target_bitmap();
 
     al_register_event_source(queue, al_get_display_event_source(disp));
-    al_register_event_source(queue, al_get_timer_event_source(emu_speed_timer));
+   
     al_register_event_source(queue, al_get_default_menu_event_source());
 	//al_register_event_source(queue, al_get_mouse_event_source());
     
@@ -164,28 +164,41 @@ int main(int argc, const char* argv[])
         //return -1;
     }
     GUI gui(disp, menu, &devices);
-   
-
-    al_start_timer(emu_speed_timer);
-
      
     uint64_t cycle_count = 0;
-
-
-
 
     al_clear_to_color(al_map_rgb(0, 0, 0));
 
     bool quit = false;
     
     auto frame_start = chrono::high_resolution_clock::now();
+    int frame_rate =  50;
+    frame_timer = al_create_timer(1.0 / frame_rate);
+    al_register_event_source(queue, al_get_timer_event_source(frame_timer));
+    al_start_timer(frame_timer);
     while (!quit)
     {   
+        int p_frame_rate = frame_rate;
+        double frame_rate_d = vdu->getFrameRate();
+        frame_rate = (int)round(frame_rate_d);
+        if (frame_rate != p_frame_rate && frame_rate > 10) {
+            cout << "new frame rate " << dec << frame_rate << "!\n";
+            if (frame_timer != NULL) {
+                al_stop_timer(frame_timer);
+                al_unregister_event_source(queue, al_get_timer_event_source(frame_timer));
+                al_destroy_timer(frame_timer);
+                frame_timer = NULL;
+            }
+            frame_timer = al_create_timer(1.0 / frame_rate);
+            al_register_event_source(queue, al_get_timer_event_source(frame_timer));
+            al_start_timer(frame_timer);
+        }
+       
 
         // Get frame rate and no of scan lines from the VDU itself.
         // required for the cases these parameters re not hard-coded but can be reconfigured by
         // the software.
-        int cycles_per_frame = (int)round(CPU_clock * 1e6 / vdu->getFrameRate());
+        int cycles_per_frame = (int)round(CPU_clock * 1e6 / frame_rate_d);
         int n_scan_lines = vdu->getScanLinesPerFrame();
         if (n_scan_lines < 200)
             n_scan_lines = 312;
@@ -275,6 +288,7 @@ int main(int argc, const char* argv[])
 
         frame_cnt = (frame_cnt + 1) % frame_rate;
         if (arg_parser.debugManager.debug(DBG_TIME) && frame_cnt == 0) {
+            cout << "\nFrame rate: " << dec << frame_rate << " Hz\n";
             cout << "Frame duration: " << frame_dur_cnt / 1000 << " ms per sec\n";
             frame_dur_cnt = 0;
             cout << "VDU ms per sec: " << vdu_cnt / 1000 << "\n";
@@ -338,7 +352,7 @@ int main(int argc, const char* argv[])
 
     delete vdu;
 
-    al_stop_timer(emu_speed_timer);
+    al_stop_timer(frame_timer);
     al_destroy_font(font);
     al_destroy_event_queue(queue);
     al_destroy_menu(menu);
