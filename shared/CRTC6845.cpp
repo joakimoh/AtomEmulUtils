@@ -322,6 +322,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 		mVSyncPulseH = 16;
 	mActiveRows = mReg[R6_VerticalDisplayed];
 	mActiveLines = mActiveRows * mCharLines;
+	mInterlaceMode = mReg[R8_InterlaceMode] & 0x3;
 	mCharSkew = (mReg[R8_InterlaceMode] >> 4) & 0x3;
 	if (mCharSkew == 3)
 		mCharSkew = 0;
@@ -347,6 +348,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 
 	// Current cursor address
 	mCursorLocation = ((mReg[R14_CursorH] & 0x3f)<< 8) | mReg[R15_CursorL];
+	
 
 	// After power-on each writable register should have been updated to consider the
 	// CRTC as ready for operation
@@ -412,7 +414,7 @@ void CRTC6845::printSettings()
 	cout << "Start address:                     0x" << hex << mStartAdr << "\n";
 	cout << "Cursor raster lines:               [" << dec << (int)(mReg[R10_CursorStart] & 0x1f) << ":" << (int)mReg[R11_CursorEnd] << "]\n";
 	cout << "Cursor position:                   0x" << hex << ((mReg[R14_CursorH] << 8) | mReg[R15_CursorL]) << "\n";
-	cout << "Interlace mode:                    " << ((mReg[R8_InterlaceMode]&1)==0?"Non-interlaced":mReg[R8_InterlaceMode]&2?"Interlaced & video":"Interlaced") << "\n";
+	cout << "Interlace mode:                    " << _INTERLACE_MODE(mInterlaceMode) << "\n";
 	cout << "Character skew:                    " << mCharSkew << "\tchars\n";
 	cout << "Cursor skew:                       " << mCursSkew << "\tchars\n";
 	int cursor_disp_mode = (mReg[R10_CursorStart] >> 5) & 0x3; // 00: Non-blink,  01: non-display, 10: blink 16-field, 11: blink 32-field
@@ -439,8 +441,10 @@ inline double CRTC6845::getScanLinesPerFrame()
 
 inline double CRTC6845::getFrameRate()
 {
-	if (mScanLines * mCharCols > 0)
+	if (mScanLines * mCharCols > 0) {
+		
 		return mCLK * 1e6 / (mScanLines * mCharCols);
+	}
 	else
 		return 50;
 }

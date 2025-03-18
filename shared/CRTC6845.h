@@ -143,6 +143,8 @@ public:
 	int mCharSkew = 0;
 	int mCursSkew = 0;
 	int mFrame = 0;
+#define _INTERLACE_MODE(x) ((x&1)==0?"Non - interlaced":((x&3)==3?"Interlaced & Video":"Interlaced"))
+	int mInterlaceMode = 0;
 
 	int mInitialised = false;
 
