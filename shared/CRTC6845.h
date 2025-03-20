@@ -114,6 +114,7 @@ public:
 	int mCursorLocation = 0x0;
 	
 	int mCharLines = 1;
+	int mUniqueCharLines = 1;
 
 
 	// Vertical scan lines: top border, active lines, sync pulse, bottom border (all in unit 'line')
@@ -128,6 +129,7 @@ public:
 	int mVisibleScanLines = 1; // mTopBorderLines + mActiveLines + mBottomBorderLines
 	int mCharRows = 1;
 	double mScanLines = 1;
+	int mUniqueScanLines = 1;
 	int mRetraceRows = 1;
 	int mRetraceLines = 1;
 
@@ -144,6 +146,11 @@ public:
 	int mCursSkew = 0;
 	int mFrame = 0;
 #define _INTERLACE_MODE(x) ((x&1)==0?"Non - interlaced":((x&3)==3?"Interlaced & Video":"Interlaced"))
+	inline bool non_interlaced(int m) { return ((m & 0x1) == 0x0); }
+	inline bool interlaced(int m) { return ((m & 0x3) == 0x1); }
+	inline bool interlaced_video(int m) { return ((m & 0x3) == 0x3); }
+#define INTERLACED			2
+#define INTERLACED_VIDEO	3
 	int mInterlaceMode = 0;
 
 	int mInitialised = false;
@@ -172,6 +179,7 @@ public:
 	inline double getScanLinesPerFrame();
 	inline double getFrameRate();
 	inline int getCharScanLines();
+	inline int getUniqueCharScanLines();
 	inline int getVerticalSyncLine();
 	inline int getHorizontalSyncPos();
 	inline int getCharsPerLine();

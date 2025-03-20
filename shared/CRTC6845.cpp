@@ -307,12 +307,39 @@ void CRTC6845::updateSettings(uint8_t reg)
 	if ((mReg[R8_InterlaceMode] & 0x3) == 0x3)
 		mCharLines = mReg[R9_MaxScanLineAddress] + 2;
 	else
-		mCharLines = mReg[R9_MaxScanLineAddress] + 1;	
+		mCharLines = mReg[R9_MaxScanLineAddress] + 1;
 
-	// Vertical scan lines: top border, active lines, sync pulse, bottom border
+	//
+	// The no of rasters per character tow configured by R9 is to be interpreted as below:
+	// 
+	// Mode						Configured	Unique	Configured		unique rasters			active rasters							active rasters
+	//							char rows	scan	rasters			per pair				in even frame							in odd frame
+	//										lines					of frames
+	//																						row #0				row #1				row #0			row #1
+	// Non-interlaced			l=R4+1		nl		n=R9+1			n						0,1,2,...,n-1		same as row #0		0,1,2,...,n-1	same as v #0
+	// Interlaced				l=R4+1		2nl		n=R9+1			2n						0,2,4,...,2n-2		same as row #0		1,3,5,...,2n-1	same as row #0			
+	// Interlace & video		l=R4+1		nl		n=R9+2			n						0,2,4,...,n-2		same as row #0		1,3,5,...,n-1	same as row #0		n is even
+	//																						0,2,4,...,n-1		1,3,5,...,n-2		1,3,5,...,n-2	0,2,4,...,n-1		n is odd
+	//		
+
 	mCharRows = mReg[R4_VerticalTotal] + 1;
 
 	mScanLines = mCharRows * mCharLines + mReg[R5_VerticalTotalAdjust];
+
+	if (non_interlaced(mInterlaceMode) || interlaced_video(mInterlaceMode)) {
+		mUniqueCharLines = mCharLines;
+		mUniqueScanLines = (int)round(mScanLines);
+	}
+	else {// interlaced(mInterlaceMode)
+		mUniqueCharLines = 2 * mCharLines;
+		mUniqueScanLines = (int) round(2 * mScanLines);
+	}
+
+	// Vertical scan lines: top border, active lines, sync pulse, bottom border
+	
+
+
+
 	mRetraceRows = (int) round(mCharRows * 0.05);
 	mRetraceLines = mRetraceRows * mCharLines;
 	mVSyncRow = mReg[R7_VSyncPosition];
@@ -383,6 +410,12 @@ void CRTC6845::updateSettings(uint8_t reg)
 
 }
 
+
+int CRTC6845::getUniqueCharScanLines()
+{
+	return mUniqueCharLines;
+}
+
 void CRTC6845::printSettings()
 {
 
@@ -394,14 +427,16 @@ void CRTC6845::printSettings()
 		cout << "R" << setw(2) <<  setfill('0') << i << ": 0x" << hex << setfill('0') << setw(2) << (int)mReg[i] << dec << "\n";
 
  	cout << "CLK:                               " << (int) mCLK << "\tMhz\n";
-	cout << "Frame Rate:                        " << round(mCLK * 1e6 / (mScanLines * mCharCols)) << "\tHz\n";
+	cout << "Frame Rate:                        " << getFrameRate() << "\tHz\n";
 	cout << "No of scan lines per frame:        " << round(mScanLines) << "\tlines\n";
+	cout << "No of unique scan lines per frame: " << mUniqueScanLines << "\tlines\n";
 	cout << "Retrace lines:                     " << mRetraceLines << "\tlines\n";
 	cout << "Top border lines:                  " << mTopBorderLines << "\tlines\n";
 	cout << "Active scan lines:                 " << mActiveLines << "\tlines\n";
 	cout << "Bottom border lines:               " << mBottomBorderLines << "\tlines\n";
 	cout << "Scan Line duration:                " << mCharCols * Tc << "\tus\n";
 	cout << "Scan Lines per Character:          " << mCharLines << "\tlines\n";
+	cout << "Unique Scan Lines per Character:   " << mUniqueCharLines << "\tlines\n";
 	cout << "Total no of characters per line:   " << mCharCols << "\tchars\n";
 	cout << "Retrace characters per line:       " << mRetraceChars << "\tchars\n";
 	cout << "Left border chars:                 " << mLeftBorderChars << "\tchars\n";
@@ -443,7 +478,11 @@ inline double CRTC6845::getFrameRate()
 {
 	if (mScanLines * mCharCols > 0) {
 		
-		return mCLK * 1e6 / (mScanLines * mCharCols);
+		if (non_interlaced(mInterlaceMode) || interlaced(mInterlaceMode))
+			return mCLK * 1e6 / (mScanLines * mCharCols);
+		else {// interlaced_video(mInterlaceMode)
+			return 2 * mCLK * 1e6 / (mScanLines * mCharCols);
+		}
 	}
 	else
 		return 50;
