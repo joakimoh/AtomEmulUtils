@@ -21,8 +21,8 @@ class VideoDisplayUnit;
 class P6502;
 class RAM;
 
-enum Scheduling {FRAME, HLINE, INSTR, NONE};
-#define _SCHEDULING(x) (x==FRAME?"Frame":(x==HLINE?"1/2 line":(x==INSTR?"Instruction":"None")))
+enum Scheduling {FIELD, HLINE, INSTR, NONE};
+#define _SCHEDULING(x) (x==FIELD?"Field":(x==HLINE?"1/2 line":(x==INSTR?"Instruction":"None")))
 
 enum DeviceId {
 	ACIA6850_DEV, BEEB_PAGED_ROM_SEL_DEV, CRTC6845_DEV, TT_5050_DEV, BEEB_KEYBOARD_DEV, BEEB_VDU_DEV, TAPE_RECORDER_DEV, ATOM_SPEAKER_DEV, ATOM_CUTS_DEV, ROM_DEV, RAM_DEV, PIA8255_DEV, VDU6847_DEV, VIA6522_DEV, ATOM_KB_DEV, P6502_DEV, UNDEFINED_DEV
@@ -196,7 +196,7 @@ public:
 	Devices(
 		string memMapFile, double &cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager,
 		Program program, Program data, ConnectionManager &connectionManager, P6502* &microprocessor, VideoDisplayUnit* &vdu,
-		vector<Device *> &frameScheduledDevices, vector<Device*> &halfLineScheduledDevices, vector<Device*> &instructionScheduledDevices
+		vector<Device *> &fieldScheduledDevices, vector<Device*> &halfLineScheduledDevices, vector<Device*> &instructionScheduledDevices
 	);
 
 	~Devices();

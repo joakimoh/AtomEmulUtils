@@ -36,11 +36,11 @@ AtomSpeaker::~AtomSpeaker()
 	al_destroy_audio_stream(mAudioStream);
 }
 
-void AtomSpeaker::setFrameRate(int frameRate)
+void AtomSpeaker::setFieldRate(int fieldRate)
 {
-	SoundDevice::setFrameRate(frameRate);
+	SoundDevice::setFieldRate(fieldRate);
 
-	int mSamplesPerFragment = (int) round(1.0 * mSampleRate / mFrameRate); // 2 frames of audio
+	int mSamplesPerFragment = (int) round(1.0 * mSampleRate / mFieldRate); // 2 frames of audio
 	int mNFragments = 8;
 
 	// Create audio stream
@@ -56,7 +56,7 @@ void AtomSpeaker::setFrameRate(int frameRate)
 		cout << "Could not create audio stream\n";
 	}
 
-	// Create and output silence that lasts one frame
+	// Create and output silence that lasts one field
 	void* buf;	
 	while ((buf = al_get_audio_stream_fragment(mAudioStream))) {
 		al_fill_silence(buf, mSamplesPerFragment, ALLEGRO_AUDIO_DEPTH_UINT8, ALLEGRO_CHANNEL_CONF_1);
@@ -68,7 +68,7 @@ void AtomSpeaker::setFrameRate(int frameRate)
 		cout << "Could not attach audio stream to audio mixer\n";
 	}
 
-	// Add one frame of silence
+	// Add one field of silence
 	for (int i = 0; i < mSamplesPerFragment; i++)
 		mSamples.push_back(0x0);
 }

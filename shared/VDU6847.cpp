@@ -10,6 +10,8 @@ using namespace std;
 
 //
 // 
+// Emulation of the M6847 (interlaced version).
+// 
 // Can be in either Alphanumeric/Semigraphics (major mode 1, A/G=0) or Graphics mode (major mode 2, A/G=1)
 // 
 // 
@@ -106,8 +108,8 @@ VDU6847::VDU6847(string name, uint16_t adr, double cpuClock, ALLEGRO_DISPLAY *di
 
 	if (mDM->debug(DBG_VERBOSE)) {
 		cout << dec << "\n\nM6847 Parameters:\n\n";
-		cout << "Frame rate: " << mFrameFreq << " [Hz]\n";
-		cout << "Scane lines per field frame: " << mScanLines << " lines\n";
+		cout << "Field rate: " << mFieldFreq << " [Hz]\n";
+		cout << "Scan lines per field: " << mScanLines << " lines\n";
 		cout << "Line duration: " << mlineDur << " [us] (" << mLineW << " pixels)\n";
 		cout << "Duration of horizontal borders: " << mBrdH << " [us] (" << mLBrdW + mRBrdW << " pixels)\n";
 		cout << "Vertical borders: " << mTBrdH + mBBrdH << " lines\n";
@@ -443,4 +445,26 @@ bool VDU6847::write(uint16_t adr, uint8_t data)
 inline bool VDU6847::readGraphicsMem(uint16_t adr, uint8_t& data)
 {
 	return mVideoMem->read(adr, data) && updatePort(VDU_PORT_DIN, data);
+}
+
+//
+// Interlace-related methods
+//
+
+// Check if interlace is enabled (On)
+inline bool VDU6847::interlaceOn() { return true; }
+
+// Advance 1/2 scan line - required for interlace modes as
+// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines
+// to get 625 (PAL) or 525 (NTSC) scan lines per frame (i.e., a pair of even and odd fields)
+// at 50 Hz (PAL) or 60 Hz (NTSC).
+bool VDU6847::advanceHalfLine(uint64_t& endCycle)
+{
+	float proc_clk_rate_Mhz = mN60HzCycles * 60 / 1e6;
+
+	mCycleCount += (int )round(63.5 / proc_clk_rate_Mhz / 2);
+
+	endCycle = mCycleCount;
+
+	return true;
 }

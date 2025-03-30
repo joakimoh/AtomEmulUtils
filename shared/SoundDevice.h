@@ -14,7 +14,7 @@ class SoundDevice : public Device {
 
 protected:
 
-	int mFrameRate = 60;
+	int mFieldRate = 60;
 	int mSampleRate = 32000;
 
 
@@ -22,7 +22,7 @@ public:
 
 	SoundDevice(string name, DeviceId devId, double cpuClock, int SampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
-	virtual void setFrameRate(int frameRate);
+	virtual void setFieldRate(int fieldRate);
 
 };
 

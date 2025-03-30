@@ -213,7 +213,7 @@ string Devices::getFileName(string &path, stringstream& sin)
 Devices::Devices(
 	string memMapFile, double &cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager,
 	Program program, Program data, ConnectionManager& connection_manager, P6502* &microprocessor, VideoDisplayUnit * &mainVDU,
-	vector<Device*>& frameScheduledDevices, vector<Device*>& halflineScheduledDevices, vector<Device*>& instrScheduledDevices) :mDM(debugManager)
+	vector<Device*>& fieldScheduledDevices, vector<Device*>& halflineScheduledDevices, vector<Device*>& instrScheduledDevices) :mDM(debugManager)
 {
 	vector<VideoDisplayUnit*> vdus;
 
@@ -552,8 +552,8 @@ Devices::Devices(
 					throw runtime_error("Syntax error");
 				}
 				sin >> sch_s;
-				if (sch_s == "FRAME") {
-					sch_dev->scheduling = FRAME;
+				if (sch_s == "FIELD") {
+					sch_dev->scheduling = FIELD;
 				}
 				else if (sch_s == "HLINE") {
 					sch_dev->scheduling = HLINE;
@@ -654,8 +654,8 @@ Devices::Devices(
 			instrScheduledDevices.push_back(d);
 		else if (d->scheduling == HLINE)
 			halflineScheduledDevices.push_back(d);
-		else if (d->scheduling == FRAME)
-			frameScheduledDevices.push_back(d);
+		else if (d->scheduling == FIELD)
+			fieldScheduledDevices.push_back(d);
 		if (mDM->debug(DBG_VERBOSE))
 			cout << d->name << " scheduled on " << _SCHEDULING(d->scheduling) << " basis\n";
 	}
@@ -677,7 +677,7 @@ Devices::Devices(
 		connection_manager.printRouting();
 
 	if (sound_device != NULL)
-		sound_device->setFrameRate(mainVDU->getFrameRate());
+		sound_device->setFieldRate(mainVDU->getFieldRate());
 
 }
 

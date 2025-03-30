@@ -162,7 +162,7 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 	// Advance time 1 us
 	mCycleCount += max(1, (int) round(mCPUClock / 1.0));
 	
-	// start of frame => reset scan line, raster line & char row counters
+	// start of field => reset scan line, raster line & char row counters
 	if (VS) { 
 		mScanLine = 0;
 		mCharRowPos = 0;

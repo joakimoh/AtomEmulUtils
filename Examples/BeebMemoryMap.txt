@@ -51,14 +51,14 @@ CONNECT VDU:CRTC_CLK	CRTC:CLK
 //	Device scheduling
 //
 TRIGGER KB	MEM	OS	READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release)
-//SCHED	KB	FRAME				// Also schedule the keyboard on frame basis (for RESET release)
+//SCHED	KB	FIELD				// Also schedule the keyboard on field basis (for RESET release)
 TRIGGER	KB	MEM	SYS_VIA	WRITE	fe4f	// Beeb selects keyboard row & col by writing to VIA Port A (address fe4f)
 //TRIGGER KB	MEM	OS	READ	f12c	// Trigger keyboard when interrupts have been temporarily enabled
 TRIGGER	CRTC	CALL	VDU			// Trigger the CRTC explictly by VDU function calls
 TRIGGER	TCG	CALL	VDU			// Trigger the TCG explictly by VDU function calls
 SCHED	TCG	NONE
 SCHED	CRTC	NONE
-SCHED	KB	FRAME
+SCHED	KB	FIELD
 TRIGGER CRTC	PORT	RESET			// Also trigger the CRTC on RESET
 TRIGGER TCG	PORT	RESET			// Also trigger the TCG on RESET
 TRIGGER	VDU	PORT	RESET			// Also trigger the VDU on RESET

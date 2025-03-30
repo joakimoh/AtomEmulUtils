@@ -114,13 +114,14 @@ public:
 	int mCursorLocation = 0x0;
 	
 	int mCharLines = 1;
-	int mUniqueCharLines = 1;
+	int mUniqueCharLines = 1; // the no of raster lines per character row that are unique per pair of fields (i.e one frame)
 
 
 	// Vertical scan lines: top border, active lines, sync pulse, bottom border (all in unit 'line')
 	int mTopBorderRows = 0;
 	int mTopBorderLines = 0;
 	int mActiveLines = 1; // A multiple of mCharLines
+	int mFieldActiveLines = 1;
 	int mActiveRows = 1;
 	int mVSyncRow = 1;
 	int mVSyncLine = 1;
@@ -129,7 +130,8 @@ public:
 	int mVisibleScanLines = 1; // mTopBorderLines + mActiveLines + mBottomBorderLines
 	int mCharRows = 1;
 	double mScanLines = 1;
-	int mUniqueScanLines = 1;
+	double mFieldScanLines = 1;
+	int mUniqueScanLines = 1; // the no of scan lines that are unique per pair of field (ie. one frame) (should be ~625 for PAL and ~525 for NTSC)
 	int mRetraceRows = 1;
 	int mRetraceLines = 1;
 
@@ -144,7 +146,7 @@ public:
 	int mRetraceChars = 1;
 	int mCharSkew = 0;
 	int mCursSkew = 0;
-	int mFrame = 0;
+	int mField = 0;
 #define _INTERLACE_MODE(x) ((x&1)==0?"Non - interlaced":((x&3)==3?"Interlaced & Video":"Interlaced"))
 	inline bool non_interlaced(int m) { return ((m & 0x1) == 0x0); }
 	inline bool interlaced(int m) { return ((m & 0x3) == 0x1); }
@@ -176,8 +178,8 @@ public:
 	bool write(uint16_t adr, uint8_t data);
 
 	inline double getScanLineDuration();
-	inline double getScanLinesPerFrame();
-	inline double getFrameRate();
+	inline double getScanLinesPerField();
+	inline double getFieldRate();
 	inline int getCharScanLines();
 	inline int getUniqueCharScanLines();
 	inline int getVerticalSyncLine();
@@ -194,6 +196,19 @@ public:
 	inline int getBottomBorderLines();
 	inline int getRetraceLines();
 	inline int getRetraceChars();
+
+	//
+	// Interlace-related methods
+	//
+
+	// Check if interlace is enabled (On)
+	inline bool interlaceOn();
+
+	// Advance 1/2 scan line - required for interlace modes as
+	// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines
+	// to get 625 (PAL) or 525 (NTSC) scan lines per frame (i.e., a pair of even and odd fields)
+	// at 50 Hz (PAL) or 60 Hz (NTSC).
+	bool advanceHalfLine(uint64_t& endCycle) { return true; }
 
 	// Reset device
 	bool reset();

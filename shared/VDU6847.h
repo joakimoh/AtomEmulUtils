@@ -124,8 +124,8 @@ public:
 	int mFieldCount = 0;
 
 	// Base parameters
-	const int mScanLines = 262;									// No of scan lines per field frame
-	const int mFrameFreq = 60;									// Frame frequency - 60 Hz for NTSC
+	const int mScanLines = 262;									// No of scan lines per field
+	const int mFieldFreq = 60;									// Field frequency - 60 Hz for NTSC
 	const double mClockFreq = 3.58;								// Base frequency (in MHz) fed to the M6847
 	const double mTAVB = 185.5 / mClockFreq;					// Duration of visible horizontal area (including borders) [us]
 	const double mTAV = 128 / mClockFreq;						// Duration of active horizontal area (excluding borders) [us]
@@ -133,7 +133,7 @@ public:
 	const int mBVBlkH = 6;										//
 
 	// Calculated parameters (based on the base parameters)
-	const double mlineDur = (1e6 / mFrameFreq) / mScanLines;	// Line duration - approximately 63.6 us for NTSC
+	const double mlineDur = (1e6 / mFieldFreq) / mScanLines;	// Line duration - approximately 63.6 us for NTSC
 	const double mHalfCycleD = 1 / (mClockFreq * 2);			// Duration (in us) of one 1/2 cycle of the base frequency <=> one horizontal 'pixel'
 	const double mBrdH = mTAVB - mTAV;							// Duration of horizontal borders [us]
 	const double mHBlkDur = mlineDur - mTAVB;					// Horizontal blanking duration [us]
@@ -190,8 +190,8 @@ public:
 	bool write(uint16_t adr, uint8_t data);
 
 	inline double getScanLineDuration() { return (1/60) / 262;  }
-	inline double getScanLinesPerFrame() { return 262; }
-	inline double getFrameRate() { return 60; }
+	inline double getScanLinesPerField() { return 262; }
+	inline double getFieldRate() { return 60; }
 	inline int getCharScanLines() { return 12;}
 	inline int getVerticalSyncLine() { return mTVBlkH;  }
 	inline int getHorizontalSyncPos() { return 0; }
@@ -207,14 +207,29 @@ public:
 	inline int getRetraceLines() { return mTVBlkH + mBVBlkH; }
 	inline int getRetraceChars() { return mLBlkW + mRBlkW; }
 
+	//
+	// Interlace-related methods
+	//
+
+	// Check if interlace is enabled (On)
+	inline bool interlaceOn();
+
+	// Advance 1/2 scan line - required for interlace modes as
+	// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines
+	// to get 625 (PAL) or 525 (NTSC) scan lines per frame (i.e., a pair of even and odd fields)
+	// at 50 Hz (PAL) or 60 Hz (NTSC).
+	bool advanceHalfLine(uint64_t& endCycle);
+
+
+	// Advance a complete scan line
+	bool advanceLine(uint64_t& endCycle);
+
 
 	// Reset device
 	bool reset();
 
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
-
-	bool advanceLine(uint64_t& endCycle);
 
 	void lockDisplay();
 	void unlockDisplay();

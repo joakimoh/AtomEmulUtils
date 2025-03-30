@@ -34,7 +34,7 @@ public:
 
 	bool advance(uint64_t stopCycle);
 
-	void setFrameRate(int frameRate);
+	void setFieldRate(int fieldRate);
 
 };
 

@@ -90,10 +90,10 @@ CONNECT	PIA:PortC;2	SPEAKER:OUT
 // Default (when no triggering is specified) is to schedule each device periodically
 // synchronised with the microcontroller instruction execution (INSTR)
 //
-// SCHEDULING IS ONE OF FRAME, HLINE, INSTR, NONE
+// SCHEDULING IS ONE OF FIELD, HLINE, INSTR, NONE
 //
 // A device scheduled like this will not also be scheduled periodically.
 TRIGGER	ATOMKB	MEM	PIA	READ	b001	// Acorn Atom polls keyboard by reading from PIA Port B
 TRIGGER ATOMKB	MEM	KERNEL	READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release)
-SCHED	ATOMKB	FRAME
+SCHED	ATOMKB	FIELD
 SCHED	SPEAKER	HLINE

@@ -50,16 +50,16 @@ ALLEGRO_MENU_INFO main_menu[] = {
       ALLEGRO_END_OF_MENU
 };
 
-double frame_dur_cnt = 0;
+double field_dur_cnt = 0;
 double vdu_cnt = 0;
 double uc_cnt = 0;
 double sound_device_cnt = 0;
 double keyboard_cnt = 0;
-double frame_scheduled_devices_cnt[128] = { 0 };
+double field_scheduled_devices_cnt[128] = { 0 };
 double half_line_scheduled_devices_cnt[128] = { 0 };
 double instr_scheduled_devices_cnt[128] = { 0 };
 double wait_cnt = 0;
-int frame_cnt = 0;
+int field_cnt = 0;
 
 ALLEGRO_KEYBOARD_STATE keyboard_state;
 
@@ -95,7 +95,7 @@ int main(int argc, const char* argv[])
 
     
 
-    ALLEGRO_TIMER* frame_timer = NULL;
+    ALLEGRO_TIMER* field_timer = NULL;
 
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
     
@@ -124,7 +124,7 @@ int main(int argc, const char* argv[])
     ConnectionManager connection_manager(&arg_parser.debugManager);
 
     VideoDisplayUnit* vdu = NULL;
-    vector<Device*> frame_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices;
+    vector<Device*> field_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices;
     P6502 * microprocessor = NULL;
     double CPU_clock = 1.0; // MHz
     Devices devices(
@@ -133,7 +133,7 @@ int main(int argc, const char* argv[])
         32000,                      // audio sample rate corresponding to a rate of at least twice per scan line
         disp, disp_bm, disp_w, disp_h,
         &arg_parser.debugManager, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu,
-        frame_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices
+        field_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices
 
     );
 
@@ -171,56 +171,65 @@ int main(int argc, const char* argv[])
 
     bool quit = false;
     
-    auto frame_start = chrono::high_resolution_clock::now();
-    int frame_rate =  50;
-    frame_timer = al_create_timer(1.0 / frame_rate);
-    al_register_event_source(queue, al_get_timer_event_source(frame_timer));
-    al_start_timer(frame_timer);
+    auto field_start = chrono::high_resolution_clock::now();
+    int field_rate =  50;
+    field_timer = al_create_timer(1.0 / field_rate);
+    al_register_event_source(queue, al_get_timer_event_source(field_timer));
+    al_start_timer(field_timer);
     while (!quit)
     {   
-        int p_frame_rate = frame_rate;
-        double frame_rate_d = vdu->getFrameRate();
-        frame_rate = (int)round(frame_rate_d);
-        if (frame_rate != p_frame_rate && frame_rate > 10) {
-            //cout << "new frame rate " << dec << frame_rate << "!\n";
-            if (frame_timer != NULL) {
-                al_stop_timer(frame_timer);
-                al_unregister_event_source(queue, al_get_timer_event_source(frame_timer));
-                al_destroy_timer(frame_timer);
-                frame_timer = NULL;
+        int p_field_rate = field_rate;
+        double field_rate_d = vdu->getFieldRate();
+        field_rate = (int)round(field_rate_d);
+        if (field_rate != p_field_rate && field_rate > 10) {
+            //cout << "new field rate " << dec << field_rate << "!\n";
+            if (field_timer != NULL) {
+                al_stop_timer(field_timer);
+                al_unregister_event_source(queue, al_get_timer_event_source(field_timer));
+                al_destroy_timer(field_timer);
+                field_timer = NULL;
             }
-            frame_timer = al_create_timer(1.0 / frame_rate);
-            al_register_event_source(queue, al_get_timer_event_source(frame_timer));
-            al_start_timer(frame_timer);
+            field_timer = al_create_timer(1.0 / field_rate);
+            al_register_event_source(queue, al_get_timer_event_source(field_timer));
+            al_start_timer(field_timer);
         }
        
 
-        // Get frame rate and no of scan lines from the VDU itself.
-        // required for the cases these parameters re not hard-coded but can be reconfigured by
+        // Get field rate and no of scan lines from the VDU itself.
+        // Required for the cases these parameters re not hard-coded but can be reconfigured by
         // the software.
-        int cycles_per_frame = (int)round(CPU_clock * 1e6 / frame_rate_d);
-        int n_scan_lines = vdu->getScanLinesPerFrame();
+        int cycles_per_field = (int)round(CPU_clock * 1e6 / field_rate_d);
+        int n_scan_lines = vdu->getScanLinesPerField();
         if (n_scan_lines < 200)
             n_scan_lines = 312;
 
-        auto frame_stop = chrono::high_resolution_clock::now();
-        auto frame_dur = chrono::duration_cast<chrono::microseconds>(frame_stop - frame_start);
-        frame_start = frame_stop;
-        frame_dur_cnt += frame_dur.count();   
+        auto field_stop = chrono::high_resolution_clock::now();
+        auto field_dur = chrono::duration_cast<chrono::microseconds>(field_stop - field_start);
+        field_start = field_stop;
+        field_dur_cnt += field_dur.count();   
 
-        // Advance time for each devices that is scheduled on frame basis
-        for (int i = 0; i < frame_scheduled_devices.size(); i++) {
+        // Advance time for each devices that is scheduled on field basis
+        for (int i = 0; i < field_scheduled_devices.size(); i++) {
 
             auto dev_start = chrono::high_resolution_clock::now();
-            frame_scheduled_devices[i]->advance(cycle_count + cycles_per_frame);
+            field_scheduled_devices[i]->advance(cycle_count + cycles_per_field);
             auto dev_stop = chrono::high_resolution_clock::now();
             auto dev_dur = chrono::duration_cast<chrono::microseconds>(dev_stop - dev_start);
-            frame_scheduled_devices_cnt[i] += dev_dur.count();
+            field_scheduled_devices_cnt[i] += dev_dur.count();
             
         }
 
+        
+        int scan_line = vdu -> getScanLine(); // synchronise scan line no with the vdu (should be '0' when fully syncnhronised!)
+
+        // Add an extra (1/2) line if the picture is interlaced
+        if (vdu->interlaceOn())
+            n_scan_lines++;
+
+        //
         // Advance time one field scan line at a time until a complete field has been scanned
-        int scan_line = vdu -> getScanLine(); // synchronise scan line no with the vdu 
+        //
+
         for (; scan_line < n_scan_lines; scan_line++) {
 
             // Scan one field scan_line and save time passed in target cycle count to be used as reference
@@ -229,9 +238,12 @@ int main(int argc, const char* argv[])
             uint64_t target_cycle_count;
             uint64_t start_count = cycle_count;
 
-            // Advance time for the VDU that is scheduled on scan line basis
+            // Advance time for the VDU correspodning to one scan line (1/2 scan line if it is the last line and interlace is enabled)
             auto vdu_start = chrono::high_resolution_clock::now();
-            vdu->advanceLine(target_cycle_count);
+            if (vdu->interlaceOn() && scan_line == n_scan_lines - 1)
+                vdu->advanceHalfLine(target_cycle_count);
+            else
+                vdu->advanceLine(target_cycle_count);
             auto vdu_stop = chrono::high_resolution_clock::now();
             auto vdu_dur = chrono::duration_cast<chrono::microseconds>(vdu_stop - vdu_start);
             vdu_cnt += vdu_dur.count();
@@ -286,16 +298,18 @@ int main(int argc, const char* argv[])
 
         }
 
-        frame_cnt = (frame_cnt + 1) % frame_rate;
-        if (arg_parser.debugManager.debug(DBG_TIME) && frame_cnt == 0) {
-            cout << "\nFrame rate: " << dec << frame_rate << " Hz\n";
-            cout << "Frame duration: " << frame_dur_cnt / 1000 << " ms per sec\n";
-            frame_dur_cnt = 0;
+
+
+        field_cnt = (field_cnt + 1) % field_rate;
+        if (arg_parser.debugManager.debug(DBG_TIME) && field_cnt == 0) {
+            cout << "\nField rate: " << dec << field_rate << " Hz\n";
+            cout << "Field duration: " << field_dur_cnt / 1000 << " ms per sec\n";
+            field_dur_cnt = 0;
             cout << "VDU ms per sec: " << vdu_cnt / 1000 << "\n";
             cout << "microcontroller ms per sec: " << uc_cnt / 1000 << "\n";
-            for (int d = 0; d < frame_scheduled_devices.size(); d++) {
-                cout << "FRAME: " << frame_scheduled_devices[d]->name << " ms per per sec: " << frame_scheduled_devices_cnt[d] / 1000 << "\n";
-                frame_scheduled_devices_cnt[d] = 0;
+            for (int d = 0; d < field_scheduled_devices.size(); d++) {
+                cout << "FIELD: " << field_scheduled_devices[d]->name << " ms per per sec: " << field_scheduled_devices_cnt[d] / 1000 << "\n";
+                field_scheduled_devices_cnt[d] = 0;
             }
             for (int d = 0; d < half_line_scheduled_devices.size(); d++) {
                 cout << "1/2 LINE: " << half_line_scheduled_devices[d]->name << " ms per per sec: " << half_line_scheduled_devices_cnt[d] / 1000 << "\n";
@@ -352,7 +366,7 @@ int main(int argc, const char* argv[])
 
     delete vdu;
 
-    al_stop_timer(frame_timer);
+    al_stop_timer(field_timer);
     al_destroy_font(font);
     al_destroy_event_queue(queue);
     al_destroy_menu(menu);

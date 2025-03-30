@@ -71,8 +71,8 @@ public:
 	ALLEGRO_STATE mAllegroState;
 
 	int mScanLine = 0;			// Current scan line
-	int mScanLines = 312;		// Scan lines per frame
-	int mFrame = 0;				// Frame count
+	int mScanLines = 312;		// Scan lines per field
+	int mField = 0;				// Field count
 	int mNCols = 0;				// No of visible columns
 	int mCursorSegment = -1;	// The current cursor segment being drawn (0-2 when active)
 	int mVerticalSyncPos = 0;	// Vertical sync pos (in scan lines)
@@ -83,7 +83,7 @@ public:
 	int mPixelRate = 1;
 	int mPixelsPerByte = 8;	// The no of pixels per byte for modes 0-6 (8 for 2-colour, 4 for 4-colour and 2 for 6-colour)
 
-	bool mNewFrame = false;
+	bool mNewField = false;
 
 	uint32_t mColours[8] = {
 		0xff000000,	// 0	Black
@@ -127,8 +127,8 @@ public:
 	bool write(uint16_t adr, uint8_t data);
 
 	inline double getScanLineDuration();
-	inline double getScanLinesPerFrame();
-	inline double getFrameRate();
+	inline double getScanLinesPerField();
+	inline double getFieldRate();
 	inline int getCharScanLines();
 	inline int getVerticalSyncLine();
 	inline int getHorizontalSyncPos();
@@ -144,6 +144,23 @@ public:
 	inline int getRetraceLines();
 	inline int getRetraceChars();
 
+	//
+	// Interlace-related methods
+	//
+
+	// Check if interlace is enabled (On)
+	inline bool interlaceOn();
+
+	// Advance 1/2 scan line - required for interlace modes as
+	// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines
+	// to get 625 (PAL) or 525 (NTSC) scan lines per frame (i.e., a pair of even and odd fields)
+	// at 50 Hz (PAL) or 60 Hz (NTSC).
+	bool advanceHalfLine(uint64_t& endCycle);
+
+
+	// Advance a complete scan line
+	bool advanceLine(uint64_t& endCycle);
+
 
 	// Reset device
 	bool reset();
@@ -151,7 +168,7 @@ public:
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
 
-	bool advanceLine(uint64_t& endCycle);
+	
 
 	// Get pointer to other device to be able to call its methods
 	bool connectDevice(Device* dev);

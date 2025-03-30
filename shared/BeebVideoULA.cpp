@@ -47,7 +47,7 @@
 // The graphics data is always 6 x 10 pixels but encoded as a 2 x 3 sixels (one sixel <=> 3 x 3.3 pixels)
 // The visible screen in the should be 480 × 500 pixels <=> 40 × 25 characters <=> 78 x 54 sixels. However,
 // The Beeb seems to setup the CRTC to generate only 19 * 25 = 475 (rather than the expected 20 *25 = 500) visible scan lines.
-// The full frame rate should correspond to 1/2 the interlaced frame rate, i.e. 50 /2 = 25 Hz
+// The full frame rate should correspond to 1/2 the interlaced field rate, i.e. 50 /2 = 25 Hz
 
 BeebVideoULA::BeebVideoULA(
 	string name, uint16_t adr, double cpuclock, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
@@ -207,7 +207,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		mDispUsCnt += disp_dur.count();
 
 		mVideoULAStartus = disp_stop;
-		if (mDM->debug(DBG_TIME) && mFrame == 0) {
+		if (mDM->debug(DBG_TIME) && mField == 0) {
 			cout << dec << "\n";
 			cout << "Display update - ms per sec: " << mDispUsCnt / 1000 << "\n";
 			cout << "Video ULA update - ms per sec: " << mVideoULACnt / 1000 << "\n";
@@ -473,8 +473,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				}
 			}
 		}
-		int frame_rate = (int)round(getFrameRate());
-		mFrame = (mFrame + 1) % frame_rate;
+		int field_rate = (int)round(getFieldRate());
+		mField = (mField + 1) % field_rate;
 	}
 	
 	mScanLine = (mScanLine + 1) % mScanLines;
@@ -562,7 +562,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	}
 
 	mScanLine = mCRTC->getScanLine();
-	mScanLines = (int) round(mCRTC->getScanLinesPerFrame());
+	mScanLines = (int) round(mCRTC->getScanLinesPerField());
 	mVerticalSyncPos = mCRTC->getVerticalSyncLine();
 
 	if (getCRField(CR_CLOCK_RATE) == 1)
@@ -675,18 +675,18 @@ double BeebVideoULA::getScanLineDuration()
 		return 64.0;
 }
 
-double BeebVideoULA::getScanLinesPerFrame()
+double BeebVideoULA::getScanLinesPerField()
 {
 	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getScanLinesPerFrame();
+		return mCRTC->getScanLinesPerField();
 	else
 		return 312.0;
 }
 
-double BeebVideoULA::getFrameRate()
+double BeebVideoULA::getFieldRate()
 {
 	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getFrameRate();
+		return mCRTC->getFieldRate();
 	else
 		return 50.0;
 }
@@ -814,6 +814,27 @@ bool BeebVideoULA::connectDevice(Device* dev)
 		mTGC = (TT5050*)dev;
 		//cout << "TGC connected!\n";
 	}
+
+	return true;
+}
+
+// Check if interlace is enabled (On)
+bool BeebVideoULA::interlaceOn()
+{
+	return (mCRTC != NULL && mCRTC->interlaceOn());
+}
+
+// Advance 1/2 scan line - required for interlace modes as
+// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines
+// to get 625 (PAL) or 525 (NTSC) scan lines per frame (i.e., a pair of even and odd fields)
+// at 50 Hz (PAL) or 60 Hz (NTSC).
+bool  BeebVideoULA::advanceHalfLine(uint64_t& endCycle)
+{
+	uint64_t pCycleCount = mCycleCount;
+	double half_scan_line_duration = getScanLineDuration() / 2;
+	int cycle_count = max(1, (int)round(half_scan_line_duration * mCPUClock));
+	mCycleCount += cycle_count;
+	endCycle = mCycleCount;
 
 	return true;
 }
