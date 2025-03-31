@@ -121,6 +121,7 @@ public:
 	int mTopBorderRows = 0;
 	int mTopBorderLines = 0;
 	int mActiveLines = 1; // A multiple of mCharLines
+	int mScreenActiveLines = 1;
 	int mFieldActiveLines = 1;
 	int mActiveRows = 1;
 	int mVSyncRow = 1;
@@ -129,10 +130,18 @@ public:
 	int mBottomBorderLines = 0;
 	int mVisibleScanLines = 1; // mTopBorderLines + mActiveLines + mBottomBorderLines
 	int mCharRows = 1;
+	int mFieldCharRows = 1;
+
+	int mFieldVSyncRow = 1;
+	int mFieldVSyncLine = 1;
+
+	int mFieldActiveRows = 1;
+	int mVFieldSyncPulseH = 1;
+	int mScreenVSyncLine = 1;
+
 	double mScanLines = 1;
 	double mFieldScanLines = 1;
-	int mUniqueScanLines = 1; // the no of scan lines that are unique per pair of field (ie. one frame) (should be ~625 for PAL and ~525 for NTSC)
-	int mRetraceRows = 1;
+	int mScreenScanLines = 1; // the no of scan lines that are unique per pair of field (ie. one frame) (should be ~625 for PAL and ~525 for NTSC)
 	int mRetraceLines = 1;
 
 	// Horizontal line: left border, active chars, sync pulse, right border (all in unit 'char')
@@ -179,6 +188,7 @@ public:
 
 	inline double getScanLineDuration();
 	inline double getScanLinesPerField();
+	inline double getScreenScanLines();
 	inline double getFieldRate();
 	inline int getCharScanLines();
 	inline int getUniqueCharScanLines();

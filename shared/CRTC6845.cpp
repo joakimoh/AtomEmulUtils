@@ -119,17 +119,40 @@ bool CRTC6845::advanceChar()
 	// The 6845 linear address generator repeats the same sequence of addresses for each scan line of a character row
 	mCharCol = (mCharCol + 1) % mCharCols;
 	if (mCharCol == 0) {
-		mScanLine = (mScanLine + 1) % (int)round(mScanLines);
-		if (mScanLine == 0)
-			mField++;
-		updatePort(RA, (mRA + 1) % mCharLines);
-		if (mRA == 0)
-			mCharRow = (mCharRow + 1) % mCharRows;		
-		if (mScanLine == 0) {
-			mCharRow = 0;
-			mCharCol = 0;
-			updatePort(RA, 0);
+		
+		if (interlaceOn()) {
+			mScanLine = (mScanLine + 2) % mScreenScanLines;
+			if ((mField % 2 == 0 && mScanLine == 0) || (mField % 2 == 1 && mScanLine == 1)) {
+				mField++;
+				mCharRow = 0;
+				mCharCol = 0;
+				if (mField % 2 == 0)
+					updatePort(RA, 0); // Even field => start at raster line 0
+				else
+					updatePort(RA, 1); // Odd field => start at raster line 1
+			}
+			else {
+				updatePort(RA, (mRA + 2) % mCharLines);
+				if ((mField % 2 == 0 && mRA == 0) || (mField % 2 == 1 && mRA == 1))
+					mCharRow = (mCharRow + 1) % mCharRows;
+			}
 		}
+
+		else {
+			mScanLine = (mScanLine + 1) % mScreenScanLines;
+			if (mScanLine == 0) {
+				mField++;
+				mCharRow = 0;
+				mCharCol = 0;
+				updatePort(RA, 0);
+			}
+			else {
+				updatePort(RA, (mRA + 1) % mCharLines);
+				if (mRA == 0)
+					mCharRow = (mCharRow + 1) % mCharRows;
+			}
+		}
+		
 	}
 
 	return true;
@@ -303,14 +326,93 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 void CRTC6845::updateSettings(uint8_t reg)
 {
 
+	//
+	// Parameters specified by CRTC registers
+	//
+
+	// Total no of character columns
+	mCharCols = mReg[R0_HorizontalTotal] + 1;
+
+	// No of active (displayed) character columns
+	mActiveRowChars = mReg[R1_HorizontalDisplayed];
+
+	// No of raster lines per character row
 	int pCharLines = mCharLines;
-	if ((mReg[R8_InterlaceMode] & 0x3) == 0x3)
-		mCharLines = mReg[R9_MaxScanLineAddress] + 2;
+	if ((mReg[R8_InterlaceMode] & 0x3) == 0x3) 
+		mCharLines = mReg[R9_MaxScanLineAddress] + 2; // interlace video mode
 	else
-		mCharLines = mReg[R9_MaxScanLineAddress] + 1;
+		mCharLines = mReg[R9_MaxScanLineAddress] + 1; // non-interlace and interlace modes
+
+	// Horizontal Sync
+	mHzSyncPos = mReg[R2_HSYncPosition] + 1;
+	mHzSyncPulseW = mReg[R3_SyncWidth] & 0xf;
+
+	// Total no of active (displatyed) character rows with unique content over a frame (i.e. a pair of fields)
+	mCharRows = mReg[R4_VerticalTotal] + 1;
+
+	// No of active (i.e. displayed) character rows with unique content over a frame (i.e. a pair of fields)
+	mActiveRows = mReg[R6_VerticalDisplayed];
+	
+
+	// Vertical Sync for a unique content over a frame (i.e. a pair of fields)
+	mVSyncRow = mReg[R7_VSyncPosition];
+	mVSyncPulseH = (mReg[R3_SyncWidth] >> 4) & 0xf;
+	if (mVSyncPulseH == 0)
+		mVSyncPulseH = 16;
+	mVSyncLine = mVSyncRow * mCharLines;
+
+	// Interlace mode
+	mInterlaceMode = mReg[R8_InterlaceMode] & 0x3;
+
+	// Character skew
+	mCharSkew = (mReg[R8_InterlaceMode] >> 4) & 0x3;
+	if (mCharSkew == 3)
+		mCharSkew = 0;
+
+	// Cursor skew
+	mCursSkew = (mReg[R8_InterlaceMode] >> 6) & 0x3;
+	if (mCursSkew == 3)
+		mCursSkew = 0;
+
+	// Video memory start address
+	mStartAdr = (mReg[R12_StartAddressH] << 8) | mReg[R13_StartAddressL];
+
+	// Current cursor address
+	mCursorLocation = ((mReg[R14_CursorH] & 0x3f) << 8) | mReg[R15_CursorL];
+
+
+	// Determine field parameters based on the register (frame) parameters
+	mFieldActiveRows = mActiveRows;
+	mVFieldSyncPulseH = mVSyncPulseH;
+	mScanLines = mCharRows * mCharLines + mReg[R5_VerticalTotalAdjust]; // adjust is per field and rows per field => don't multiply R5 value by 2
+	mFieldScanLines = mScanLines;
+	mActiveLines = mActiveRows * mCharLines;
+	mFieldActiveLines = mActiveLines;
+	mFieldVSyncRow = mVSyncRow;
+	mFieldVSyncLine = mVSyncLine;
+	mFieldCharRows = mCharRows;
+	if (interlaced(mInterlaceMode)) {
+		mScreenActiveLines = mActiveLines * 2;
+		mScreenVSyncLine = mVSyncLine * 2;
+	}
+	else {
+		mScreenActiveLines = mActiveLines;
+		mScreenVSyncLine = mVSyncLine;
+	}
+	if (interlaced_video(mInterlaceMode)) { // for video interlace mode, the parameters were per frame => divide by 2 to get field parameter
+		mFieldCharRows = mCharRows / 2;
+		mFieldActiveRows = mActiveRows / 2;
+		mVFieldSyncPulseH = mVSyncPulseH / 2;
+		mScanLines = mCharRows * mCharLines + 2 * mReg[R5_VerticalTotalAdjust]; // adjust is per field but rows per frame => multiply R5 value by 2
+		mFieldScanLines = mScanLines / 2;
+		mFieldActiveLines = mActiveLines / 2;
+		mFieldVSyncRow = mVSyncRow / 2;
+		mFieldVSyncLine = mVSyncLine / 2;	
+	}
+
 
 	//
-	// The no of rasters per character tow configured by R9 is to be interpreted as below:
+	// The scan lines and rasters per character row configured by R9 is to be interpreted as below:
 	// 
 	// Mode						Configured	Unique	Configured		unique rasters			active rasters							active rasters
 	//							scan lines	scan	rasters			per pair				in even field						in odd field
@@ -320,77 +422,34 @@ void CRTC6845::updateSettings(uint8_t reg)
 	// Interlaced				l=n(R4+1)		2l		n=R9+1			2n					0,2,4,...,2n-2		same as row #0		1,3,5,...,2n-1	same as row #0			
 	// Interlace & video		l=n(R4+1)		l		n=R9+2			n					0,2,4,...,n-2		same as row #0		1,3,5,...,n-1	same as row #0		n is even
 	//																						0,2,4,...,n-1		1,3,5,...,n-2		1,3,5,...,n-2	0,2,4,...,n-1		n is odd
-	//		
-
-	mCharRows = mReg[R4_VerticalTotal] + 1;
-
-	if (interlaced_video(mInterlaceMode)) {
-		mScanLines = mCharRows * mCharLines + 2 * mReg[R5_VerticalTotalAdjust]; // adjust is per field but rows per frame => multiply R5 value by 2
-		mFieldScanLines = mScanLines / 2;
-	} 
-	else {
-		mScanLines = mCharRows * mCharLines + mReg[R5_VerticalTotalAdjust]; // adjust is per field and rows per field => don't multiply R5 value by 2
-		mFieldScanLines = mScanLines;
-	}
-
+	//	
 	if (non_interlaced(mInterlaceMode) || interlaced_video(mInterlaceMode)) {
-		mUniqueCharLines = mCharLines;
-		mUniqueScanLines = (int)round(mScanLines);
-		if (interlaced_video(mInterlaceMode))
-			mScanLines /= 2; // The no of scan lines for the interlaced video mode is for two fields together => scan lines / field is half that
+		mUniqueCharLines = mCharLines; // the specified no of unique content character raster lines is the same as the no of character raster lines visible on the screen
+		mScreenScanLines = (int)round(mScanLines);
 	}
-	else {// interlaced(mInterlaceMode)
-		mUniqueCharLines = 2 * mCharLines;
-		mUniqueScanLines = (int) round(2 * mScanLines);
+	else {// interlaced(mInterlaceMode) // the raster and scan lines have the same content for odd and even fields and are just duplicated to make a complete frame
+		mUniqueCharLines = 2 * mCharLines; // screen has twice as many visible character raster lines as the specifed no of unique content character raster lines
+		mScreenScanLines = (int)round(2 * mScanLines); // screen has twice as many visible scan lines as the specifed no of unique content scan lines
 	}
 
-	// Vertical scan lines: top border, active lines, sync pulse, bottom border
-	
+	//
+	// Borders and active area for the scan lines visible on a screen
+	// 
 
-
-
-	mRetraceRows = (int) round(mCharRows * 0.05);
-	mRetraceLines = mRetraceRows * mCharLines;
-	mVSyncRow = mReg[R7_VSyncPosition];
-	mVSyncLine = mVSyncRow * mCharLines;
-	mVSyncPulseH = (mReg[R3_SyncWidth] >> 4) & 0xf;
-	if (mVSyncPulseH == 0)
-		mVSyncPulseH = 16;
-	mActiveRows = mReg[R6_VerticalDisplayed];
-	mActiveLines = mActiveRows * mCharLines;
-	if (interlaced_video(mInterlaceMode)) {
-		mFieldActiveLines = mActiveLines / 2;
-		mVSyncRow /= 2;
-		mVSyncLine /= 2;
-		mRetraceRows /= 2;
-	}
-	mInterlaceMode = mReg[R8_InterlaceMode] & 0x3;
-	mCharSkew = (mReg[R8_InterlaceMode] >> 4) & 0x3;
-	if (mCharSkew == 3)
-		mCharSkew = 0;
-	mCursSkew = (mReg[R8_InterlaceMode] >> 6) & 0x3;
-	if (mCursSkew == 3)
-		mCursSkew = 0;
-	mBottomBorderLines = mVSyncLine - mFieldActiveLines;
-	mTopBorderLines = mFieldScanLines - mBottomBorderLines - mFieldActiveLines - mRetraceLines;
-	mVisibleScanLines = mTopBorderLines + mFieldActiveLines + mBottomBorderLines;
-
-	// Horizontal line: left border, active chars, sync pulse, right border (all in unit 'char')
-	mCharCols = mReg[R0_HorizontalTotal] + 1;
-	mHzSyncPos = mReg[R2_HSYncPosition] + 1;
-	mActiveRowChars = mReg[R1_HorizontalDisplayed];
+	// Make assumptions about retracing (5% vertical and 10% horizontal)
 	mRetraceChars = mActiveRowChars * 0.1;
+	mRetraceLines = (int)round(mScreenScanLines * 0.05);
+	
+	// Vertical scan lines: top border, active lines, sync pulse, bottom border
+	mBottomBorderLines = mScreenVSyncLine - mScreenActiveLines;
+	mTopBorderLines = mScreenScanLines - mBottomBorderLines - mScreenActiveLines - mRetraceLines;
+	mVisibleScanLines = mTopBorderLines + mScreenActiveLines + mBottomBorderLines;
+
+	// Horizontal line: left border, active chars, sync pulse, right border (all in unit 'char')	
 	mRightBorderChars = mHzSyncPos - mActiveRowChars - mCharSkew; // Gap between active area and sync pulse
-	mHzSyncPulseW = mReg[R3_SyncWidth] & 0xf;
 	mLeftBorderChars = mCharCols - mRightBorderChars - mActiveRowChars - mRetraceChars;
 	mVisibleChars = mLeftBorderChars + mActiveRowChars + mRightBorderChars;
 
-	// Video memory start address
-	mStartAdr = (mReg[R12_StartAddressH] << 8) | mReg[R13_StartAddressL];
-
-	// Current cursor address
-	mCursorLocation = ((mReg[R14_CursorH] & 0x3f)<< 8) | mReg[R15_CursorL];
-	
 
 	// After power-on each writable register should have been updated to consider the
 	// CRTC as ready for operation
@@ -443,22 +502,24 @@ void CRTC6845::printSettings()
 
  	cout << "CLK:                                                " << (int) mCLK << "\tMhz\n";
 	cout << "Field Rate:                                         " << getFieldRate() << "\tHz\n";
+	cout << "No of character rows per field:                     " << mFieldCharRows << "\tRows\n";
+	cout << "No of character rows per frame:                     " << mCharRows << "\tRows\n";
+	cout << "Scan Lines per Character:                           " << mCharLines << "\tlines\n";
+	cout << "Unique Content Scan Lines per Character:            " << mUniqueCharLines << "\tlines\n";
 	cout << "No of scan lines per field:                         " << round(mFieldScanLines) << "\tlines\n";
-	cout << "No of unique scan lines per frame (pair of fields): " << mUniqueScanLines << "\tlines\n";
+	cout << "No of unique scan lines per frame:                  " << mScreenScanLines << "\tlines\n";
 	cout << "Retrace lines:                                      " << mRetraceLines << "\tlines\n";
 	cout << "Top border lines:                                   " << mTopBorderLines << "\tlines\n";
-	cout << "Active scan lines per field                         " << mFieldActiveLines << "\tlines\n";
-	cout << "Active scan lines per frame (pair of fields)        " << mActiveLines << "\tlines\n";
+	cout << "Active scan lines per field:                        " << mFieldActiveLines << "\tlines\n";
+	cout << "Active scan lines per screen:                       " << mScreenActiveLines << "\tlines\n";
 	cout << "Bottom border lines:                                " << mBottomBorderLines << "\tlines\n";
 	cout << "Scan Line duration:                                 " << mCharCols * Tc << "\tus\n";
-	cout << "Scan Lines per Character:                           " << mCharLines << "\tlines\n";
-	cout << "Unique Scan Lines per Character/frame (pair of fields):" << mUniqueCharLines << "\tlines\n";
 	cout << "Total no of characters per line:                    " << mCharCols << "\tchars\n";
 	cout << "Retrace characters per line:                        " << mRetraceChars << "\tchars\n";
 	cout << "Left border chars:                                  " << mLeftBorderChars << "\tchars\n";
 	cout << "Active characters per line:                         " << mActiveRowChars << "\tchars\n";
 	cout << "Right border chars:                                 " << mRightBorderChars << "\tchars\n";
-	cout << "Vertical sync position:                             " << mVSyncLine << " lines (" << round(mVSyncLine * mCharCols * Tc / 1000) << " ms)\n";
+	cout << "Vertical sync position:                             " << mFieldVSyncLine << " lines (" << round(mFieldVSyncLine * mCharCols * Tc / 1000) << " ms)\n";
 	cout << "Horizontal sync position:                           " << mHzSyncPos << " chars (" << round(mHzSyncPos*Tc) << " us)\n";
 	cout << "Horizontal sync pulse width:                        " << mHzSyncPulseW << " chars (" << round(mHzSyncPulseW*Tc) << " us)\n";
 	cout << "Vertical sync pulse width:                          " << mVSyncPulseH << " lines (" << round(mVSyncPulseH*mCharCols*Tc) << " us)\n";
@@ -487,23 +548,19 @@ inline double CRTC6845::getScanLineDuration()
 
 inline double CRTC6845::getScanLinesPerField()
 {
-	return mScanLines;
-	if (mScanLines * mCharCols > 0) {
+	return mFieldScanLines;
 
-		if (non_interlaced(mInterlaceMode) || interlaced(mInterlaceMode))
-			return mScanLines;
-		else {// interlaced_video(mInterlaceMode)
-			return mScanLines / 2;
-		}
-	}
-	else
-		return 50;
+}
+
+inline double CRTC6845::getScreenScanLines()
+{
+	return mScreenScanLines;
 }
 
 inline double CRTC6845::getFieldRate()
 {
 	if (mScanLines * mCharCols > 0)	
-		return mCLK * 1e6 / ((getScanLinesPerField() + 0.5) * mCharCols);
+		return mCLK * 1e6 / ((mFieldScanLines + 0.5) * mCharCols);
 	else
 		return 50;
 }
@@ -515,7 +572,7 @@ inline int CRTC6845::getCharScanLines()
 
 inline int CRTC6845::getVerticalSyncLine()
 {
-	return mVSyncLine;
+	return mFieldVSyncLine;
 }
 
 inline int CRTC6845::getHorizontalSyncPos()
@@ -550,7 +607,7 @@ inline int CRTC6845::getActiveChars()
 
 inline int CRTC6845::getActiveLines()
 {
-	return mActiveLines;
+	return mFieldActiveLines;
 }
 
 inline int CRTC6845::getRightBorderChars()

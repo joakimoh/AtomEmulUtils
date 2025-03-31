@@ -189,7 +189,7 @@ public:
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);
 
-	inline double getScanLineDuration() { return (1/60) / 262;  }
+	inline double getScanLineDuration() { return (1.0/60) / 262;  }
 	inline double getScanLinesPerField() { return 262; }
 	inline double getFieldRate() { return 60; }
 	inline int getCharScanLines() { return 12;}
@@ -206,6 +206,7 @@ public:
 	inline int getBottomBorderLines() { return mBBrdH; }
 	inline int getRetraceLines() { return mTVBlkH + mBVBlkH; }
 	inline int getRetraceChars() { return mLBlkW + mRBlkW; }
+	inline double getScreenScanLines() { return 524;  }
 
 	//
 	// Interlace-related methods

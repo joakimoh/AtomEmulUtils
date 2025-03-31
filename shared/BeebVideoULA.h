@@ -143,6 +143,7 @@ public:
 	inline int getBottomBorderLines();
 	inline int getRetraceLines();
 	inline int getRetraceChars();
+	inline double getScreenScanLines();
 
 	//
 	// Interlace-related methods

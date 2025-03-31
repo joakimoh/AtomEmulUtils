@@ -78,6 +78,7 @@ public:
 	virtual inline int getActiveLines() = 0;
 	virtual inline int getRetraceLines() = 0;
 	virtual inline int getRetraceChars() = 0;
+	virtual inline double getScreenScanLines() = 0;
 
 	//
 	// Interlace-related methods

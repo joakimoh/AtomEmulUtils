@@ -181,10 +181,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int left_border_chars = getLeftBorderChars();
 	int right_border_chars = getRightBorderChars();
 
-
+	cout << "FIELD #" << (mField % 2) << ", SCAN LINE " << dec << mScanLine << "\n";
 	
 
-	if (mScanLine == mVerticalSyncPos) {
+	if (mScanLine / 2 == mVerticalSyncPos) {
 	
 		unlockDisplay();
 
@@ -192,9 +192,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		//al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mScreenW, mScreenH, 0, 0, mDisplayWidth, mDisplayHeight, 0);
 		int width = mScreenW;
 		int height = mScreenH;
-		if (!teletext)
-			height *= 2;
-		else
+		if (teletext)
 			width = mScreenW * 4 / 3;
 
 		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mScreenW, mScreenH, 0, 0, width, height, 0);
@@ -562,7 +560,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	}
 
 	mScanLine = mCRTC->getScanLine();
-	mScanLines = (int) round(mCRTC->getScanLinesPerField());
+	mScanLines = (int) round(mCRTC->getScreenScanLines());
 	mVerticalSyncPos = mCRTC->getVerticalSyncLine();
 
 	if (getCRField(CR_CLOCK_RATE) == 1)
@@ -613,6 +611,8 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	}
 
 	updateScreenSz();
+
+	return true;
 }
 
 bool BeebVideoULA::write(uint16_t adr, uint8_t data)
@@ -681,6 +681,14 @@ double BeebVideoULA::getScanLinesPerField()
 		return mCRTC->getScanLinesPerField();
 	else
 		return 312.0;
+}
+
+double BeebVideoULA::getScreenScanLines()
+{
+	if (mCRTC != NULL && mCRTC->initialised())
+		return mCRTC->getScreenScanLines();
+	else
+		return 624;
 }
 
 double BeebVideoULA::getFieldRate()
