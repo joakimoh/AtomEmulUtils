@@ -79,6 +79,7 @@ public:
 	virtual inline int getRetraceLines() = 0;
 	virtual inline int getRetraceChars() = 0;
 	virtual inline double getScreenScanLines() = 0;
+	virtual inline int fieldScanLineOffset() = 0;
 
 	//
 	// Interlace-related methods

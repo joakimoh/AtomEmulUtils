@@ -468,3 +468,9 @@ bool VDU6847::advanceHalfLine(uint64_t& endCycle)
 
 	return true;
 }
+
+// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
+int VDU6847::fieldScanLineOffset()
+{
+	return (mFieldCount % 2);
+}

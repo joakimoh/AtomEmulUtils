@@ -138,6 +138,7 @@ public:
 	int mFieldActiveRows = 1;
 	int mVFieldSyncPulseH = 1;
 	int mScreenVSyncLine = 1;
+	int mScreenVSyncPulseH = 1;
 
 	double mScanLines = 1;
 	double mFieldScanLines = 1;
@@ -213,6 +214,9 @@ public:
 
 	// Check if interlace is enabled (On)
 	inline bool interlaceOn();
+
+	// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
+	inline int fieldScanLineOffset();
 
 	// Advance 1/2 scan line - required for interlace modes as
 	// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines

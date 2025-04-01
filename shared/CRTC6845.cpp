@@ -122,19 +122,28 @@ bool CRTC6845::advanceChar()
 		
 		if (interlaceOn()) {
 			mScanLine = (mScanLine + 2) % mScreenScanLines;
-			if ((mField % 2 == 0 && mScanLine == 0) || (mField % 2 == 1 && mScanLine == 1)) {
+			if ((mField % 2 == 0 && mScanLine == 0) || (mField % 2 == 1 && mScanLine == 1)) { // start of new field
 				mField++;
 				mCharRow = 0;
 				mCharCol = 0;
-				if (mField % 2 == 0)
+				if (mField % 2 == 0) {
 					updatePort(RA, 0); // Even field => start at raster line 0
-				else
+					mScanLine = 0; // next field is even => first scan line is 0
+				}
+				else {
 					updatePort(RA, 1); // Odd field => start at raster line 1
+					mScanLine = 1; // next field is odd => first scan line is 1
+				}
 			}
 			else {
 				updatePort(RA, (mRA + 2) % mCharLines);
-				if ((mField % 2 == 0 && mRA == 0) || (mField % 2 == 1 && mRA == 1))
+				if ((mField % 2 == 0 && mRA == 0) || (mField % 2 == 1 && mRA == 1)) { // new character row
 					mCharRow = (mCharRow + 1) % mCharRows;
+					if (mField % 2 == 0)
+						updatePort(RA, 0); // Even field and new character row => start raster line at 0
+					else
+						updatePort(RA, 1); // Odd field and new character row => start raster line at 1
+				}
 			}
 		}
 
@@ -394,10 +403,12 @@ void CRTC6845::updateSettings(uint8_t reg)
 	if (interlaced(mInterlaceMode)) {
 		mScreenActiveLines = mActiveLines * 2;
 		mScreenVSyncLine = mVSyncLine * 2;
+		mScreenVSyncPulseH = mVSyncPulseH * 2;
 	}
 	else {
 		mScreenActiveLines = mActiveLines;
 		mScreenVSyncLine = mVSyncLine;
+		mScreenVSyncPulseH = mVSyncPulseH;
 	}
 	if (interlaced_video(mInterlaceMode)) { // for video interlace mode, the parameters were per frame => divide by 2 to get field parameter
 		mFieldCharRows = mCharRows / 2;
@@ -519,10 +530,10 @@ void CRTC6845::printSettings()
 	cout << "Left border chars:                                  " << mLeftBorderChars << "\tchars\n";
 	cout << "Active characters per line:                         " << mActiveRowChars << "\tchars\n";
 	cout << "Right border chars:                                 " << mRightBorderChars << "\tchars\n";
-	cout << "Vertical sync position:                             " << mFieldVSyncLine << " lines (" << round(mFieldVSyncLine * mCharCols * Tc / 1000) << " ms)\n";
+	cout << "Vertical sync position:                             " << mScreenVSyncLine << " lines (" << round(mScreenVSyncLine * mCharCols * Tc / 1000) << " ms)\n";
 	cout << "Horizontal sync position:                           " << mHzSyncPos << " chars (" << round(mHzSyncPos*Tc) << " us)\n";
 	cout << "Horizontal sync pulse width:                        " << mHzSyncPulseW << " chars (" << round(mHzSyncPulseW*Tc) << " us)\n";
-	cout << "Vertical sync pulse width:                          " << mVSyncPulseH << " lines (" << round(mVSyncPulseH*mCharCols*Tc) << " us)\n";
+	cout << "Vertical sync pulse width:                          " << mScreenVSyncPulseH << " lines (" << round(mScreenVSyncPulseH *mCharCols*Tc) << " us)\n";
 	cout << "Start address:                                      0x" << hex << mStartAdr << "\n";
 	cout << "Cursor raster lines:                                [" << dec << (int)(mReg[R10_CursorStart] & 0x1f) << ":" << (int)mReg[R11_CursorEnd] << "]\n";
 	cout << "Cursor position:                                    0x" << hex << ((mReg[R14_CursorH] << 8) | mReg[R15_CursorL]) << "\n";
@@ -559,8 +570,12 @@ inline double CRTC6845::getScreenScanLines()
 
 inline double CRTC6845::getFieldRate()
 {
-	if (mScanLines * mCharCols > 0)	
-		return mCLK * 1e6 / ((mFieldScanLines + 0.5) * mCharCols);
+	if (mScanLines * mCharCols > 0) {
+		if (interlaceOn())
+			return mCLK * 1e6 / ((mFieldScanLines + 0.5) * mCharCols);
+		else
+			return mCLK * 1e6 / (mFieldScanLines * mCharCols);
+	}
 	else
 		return 50;
 }
@@ -572,7 +587,7 @@ inline int CRTC6845::getCharScanLines()
 
 inline int CRTC6845::getVerticalSyncLine()
 {
-	return mFieldVSyncLine;
+	return mScreenVSyncLine;
 }
 
 inline int CRTC6845::getHorizontalSyncPos()
@@ -607,7 +622,7 @@ inline int CRTC6845::getActiveChars()
 
 inline int CRTC6845::getActiveLines()
 {
-	return mFieldActiveLines;
+	return mScreenActiveLines;
 }
 
 inline int CRTC6845::getRightBorderChars()
@@ -634,4 +649,10 @@ inline int CRTC6845::getRetraceChars()
 inline bool CRTC6845::interlaceOn()
 {
 	return (!non_interlaced(mInterlaceMode));
+}
+
+// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
+int CRTC6845::fieldScanLineOffset()
+{
+	return (mField % 2);
 }

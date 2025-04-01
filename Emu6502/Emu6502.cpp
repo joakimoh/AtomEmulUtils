@@ -199,7 +199,7 @@ int main(int argc, const char* argv[])
         // Required for the cases these parameters re not hard-coded but can be reconfigured by
         // the software.
         int cycles_per_field = (int)round(CPU_clock * 1e6 / field_rate_d);
-        int n_scan_lines = vdu->getScanLinesPerField();
+        int n_scan_lines = vdu->getScreenScanLines();
         if (n_scan_lines < 200)
             n_scan_lines = 312;
 

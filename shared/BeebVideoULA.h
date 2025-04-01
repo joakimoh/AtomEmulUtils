@@ -162,6 +162,8 @@ public:
 	// Advance a complete scan line
 	bool advanceLine(uint64_t& endCycle);
 
+	// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
+	inline int fieldScanLineOffset();
 
 	// Reset device
 	bool reset();

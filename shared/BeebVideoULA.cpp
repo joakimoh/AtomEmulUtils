@@ -63,7 +63,7 @@ BeebVideoULA::BeebVideoULA(
 
 
 	// Create 640 x 256 display bitmap and clear it
-	mDisplayBitmap = al_create_bitmap(640, 256);
+	mDisplayBitmap = al_create_bitmap(640, 512);
 
 	lockDisplay();
 
@@ -114,6 +114,13 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// Make sure internal state is up-to-date and synchonised with that of the CRTC
 	if (!validateInternalState(mControlRegister))
 		return true;
+
+	int field = fieldScanLineOffset();
+	int adjusted_scanline = mScanLine - field;
+	
+
+	cout << "\nFIELD #" << field << ", SCAN LINE " << dec << mScanLine << " (adjusted to " << adjusted_scanline << ")\n";
+
 
 	bool teletext = getCRField(CR_TELETEXT) == 1;
 
@@ -181,11 +188,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int left_border_chars = getLeftBorderChars();
 	int right_border_chars = getRightBorderChars();
 
-	cout << "FIELD #" << (mField % 2) << ", SCAN LINE " << dec << mScanLine << "\n";
 	
 
-	if (mScanLine / 2 == mVerticalSyncPos) {
+	if (adjusted_scanline == mVerticalSyncPos) {
 	
+		cout << "UPDATE SCREEN\n";
+
 		unlockDisplay();
 
 		// Scale the display bitmap including borders to match the size of the display
@@ -220,6 +228,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			mByteCnt = 0;
 			mPreCnt = 0;
 		}
+		int field_rate = (int) round(mCRTC->getFieldRate());
+		mField = (mField + 1) % field_rate;
 
 		// Clear the display
 		al_clear_to_color(black);
@@ -235,14 +245,15 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	unsigned int* max_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScanLines);
 	unsigned int* bitmap_data_p = NULL;
-	if (mScanLine == 0)
+	if (adjusted_scanline == 0)
 		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data);
 	else
 		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * (mScanLine + top_border_lines));
 
-	if (mScanLine == 0)
+	if (adjusted_scanline == 0)
 		// Add Top border
 	{
+		cout << "DRAW TOP BORDER\n";
 
 		//cout << "Pixels/byte = " << dec << mPixelsPerByte << ", Pixel Width = " << mPixelW << "\n";
 		for (int line = 0; line < top_border_lines; line++) {
@@ -302,12 +313,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			screen_adr -= hw_scroll_sub; // correct for wrap around when hardware scrolling		
 		}
 
-		if (mScanLine < active_lines && char_pos < active_chars && (screen_adr >= 0x8000 || screen_adr < 0x3000)) { // exit if the CRTC hasn't been properly initialised yet!
+		if (adjusted_scanline < active_lines && char_pos < active_chars && (screen_adr >= 0x8000 || screen_adr < 0x3000)) { // exit if the CRTC hasn't been properly initialised yet!
 			cout << "CRTC not ready - got address " << hex << (crtc_adr * 8 + (mRA & 0x7)) << " for line " << dec << mScanLine << ", pos " << char_pos << " and for #active chars of " << active_chars << "\n";
 			return false;
 		}
 
-		if (mScanLine < active_lines)
+		if (adjusted_scanline < active_lines)
 			// Visible active line
 		{
 			
@@ -315,10 +326,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			if (dis_ena)
 				// Active area of an active line
 			{
-
+				
 				if (char_pos == 0)
 					// Add left border
 				{
+					cout << "DRAW LEFT BORDER\n";
+
 					uint8_t Rs, Gs, Bs;
 					for (int c = 0; c < left_border_chars; c++) {
 						for (int big_pixel = 0; big_pixel < mPixelsPerByte; big_pixel++) {
@@ -340,7 +353,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				// For teletext modes, decode video memory data as videotext data
 				if (teletext) {
 					auto tt_start = chrono::high_resolution_clock::now();
-					if (!mTGC->getScreenData(char_pos == 0, mScanLine == 0 && char_pos == 0, screen_data, tgc_data)) {
+					if (!mTGC->getScreenData(char_pos == 0, adjusted_scanline == 0 && char_pos == 0, screen_data, tgc_data)) {
 						cout << "Failed to get teletext symbol at address 0x" << hex << screen_adr << "\n";
 						return false;
 					}
@@ -436,6 +449,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				if (char_pos == active_chars - 1)
 					// Add right border 
 				{
+
+					cout << "DRAW RIGHT BORDER\n";
+
 					for (int c = 0; c < right_border_chars; c++) {
 						uint8_t Rs, Gs, Bs;
 						for (int big_pixel = 0; big_pixel < mPixelsPerByte; big_pixel++) {
@@ -457,9 +473,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 
 
-	if (mScanLine == active_lines - 1)
+	if (adjusted_scanline == active_lines - field)
 		// Add Bottom border
 	{
+		cout << "DRAW BOTTOM BORDER\n";
 		for (int line = 0; line < bottom_border_lines; line++) {
 			for (int char_pos = 0; char_pos < visible_chars; char_pos++) {
 				uint8_t Rs, Gs, Bs;
@@ -471,11 +488,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				}
 			}
 		}
-		int field_rate = (int)round(getFieldRate());
-		mField = (mField + 1) % field_rate;
+
 	}
-	
-	mScanLine = (mScanLine + 1) % mScanLines;
 
 	auto video_stop = chrono::high_resolution_clock::now();
 	auto video_dur = chrono::duration_cast<chrono::microseconds>(video_stop - video_start);
@@ -836,7 +850,7 @@ bool BeebVideoULA::interlaceOn()
 // each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines
 // to get 625 (PAL) or 525 (NTSC) scan lines per frame (i.e., a pair of even and odd fields)
 // at 50 Hz (PAL) or 60 Hz (NTSC).
-bool  BeebVideoULA::advanceHalfLine(uint64_t& endCycle)
+bool BeebVideoULA::advanceHalfLine(uint64_t& endCycle)
 {
 	uint64_t pCycleCount = mCycleCount;
 	double half_scan_line_duration = getScanLineDuration() / 2;
@@ -845,4 +859,13 @@ bool  BeebVideoULA::advanceHalfLine(uint64_t& endCycle)
 	endCycle = mCycleCount;
 
 	return true;
+}
+
+// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
+int BeebVideoULA::fieldScanLineOffset()
+{
+	if (mCRTC != NULL && mCRTC->initialised())
+		return mCRTC->fieldScanLineOffset();
+	else
+		return 0;
 }
