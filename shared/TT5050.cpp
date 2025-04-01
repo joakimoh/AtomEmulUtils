@@ -12,6 +12,7 @@ TT5050::TT5050(
 
 	registerPort("LOSE",	IN_PORT, 0x1, LOSE, &mLOSE);
 	registerPort("RESET",	IN_PORT, 0x1, RESET, &mRESET);
+	registerPort("CRS",		IN_PORT, 0x1, CRS, &mCRS);
 
 	createInterpolatedSymbols();
 
@@ -161,12 +162,20 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 
 	// Advance time 1 us
 	mCycleCount += max(1, (int) round(mCPUClock / 1.0));
+
+	bool even_field = (mCRS == 1);
 	
 	// start of field => reset scan line, raster line & char row counters
 	if (VS) { 
-		mScanLine = 0;
-		mCharRowPos = 0;
-		mCharRasterLine = 0;
+		if (even_field) {
+			mScanLine = 0;
+			mCharRasterLine = 0;
+		}
+		else { // odd field
+			mScanLine = 1;
+			mCharRasterLine = 1;
+		}
+		mCharRowPos = 0;	
 		mDoubleHeightHalf = -1;
 	}
 	
@@ -183,11 +192,11 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 		mSeparatedGraphics = false;
 		mHeldGraphics = false;
 		if (!VS) {
-			mCharRasterLine = (mCharRasterLine + 1) % n_raster_lines;
-			mScanLine++;
+			mCharRasterLine = (mCharRasterLine + 2) % n_raster_lines;
+			mScanLine += 2;
 		}
 		// start of double-height character half?
-		if (mCharRasterLine == 0) {
+		if (even_field && mCharRasterLine == 0 || !even_field && mCharRasterLine == 1) {
 			if (mDoubleHeightHalf == 0) // lower half starts
 				mDoubleHeightHalf = 1;
 			else if (mDoubleHeightHalf == 1) // double-height halfs completed => reset

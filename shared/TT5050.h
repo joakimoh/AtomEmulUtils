@@ -41,8 +41,9 @@ public:
 
 
 	// SA5050 Ports
-	int LOSE;
+	int LOSE, CRS;
 	uint8_t mLOSE = 0x0;	// INPUT - Load Output Shift register: Start of visible part of line (i.e., the display line)
+	uint8_t mCRS = 0x0;		// INPUT - Indicated whether current field is even (CRS=1) or odd (CRS=0)
 
 
 	typedef struct TTSymbol_struct {
