@@ -115,6 +115,15 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	if (!validateInternalState(mControlRegister))
 		return true;
 
+	int chars_per_line = getCharsPerLine();
+	int visible_chars = getLeftBorderChars() + getActiveChars() + getRightBorderChars();
+	int active_chars = getActiveChars();
+	int top_border_lines = getTopBorderLines();
+	int active_lines = getActiveLines();
+	int bottom_border_lines = getBottomBorderLines();
+	int left_border_chars = getLeftBorderChars();
+	int right_border_chars = getRightBorderChars();
+
 	int field = fieldScanLineOffset();
 	int adjusted_scanline = mScanLine - field;
 	
@@ -178,15 +187,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	if (teletext)
 		hw_scroll_sub = 0x0400;
-
-	int chars_per_line = getCharsPerLine();
-	int visible_chars = getLeftBorderChars() + getActiveChars() + getRightBorderChars();
-	int active_chars = getActiveChars();
-	int top_border_lines = getTopBorderLines();
-	int active_lines = getActiveLines();
-	int bottom_border_lines = getBottomBorderLines();
-	int left_border_chars = getLeftBorderChars();
-	int right_border_chars = getRightBorderChars();
 
 	
 
@@ -268,6 +268,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			}
 		}
 	}
+
+	bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * (mScanLine + top_border_lines));
 
 	auto pre_stop = chrono::high_resolution_clock::now();
 	auto pre_dur = chrono::duration_cast<chrono::microseconds>(pre_stop - pre_start);
@@ -471,9 +473,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		
 	}
 
-	if (adjusted_scanline == active_lines - field)
+	if (adjusted_scanline == active_lines)
 		// Add Bottom border
 	{
+		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * (adjusted_scanline + top_border_lines));
 		cout << "DRAW BOTTOM BORDER\n";
 		for (int line = 0; line < bottom_border_lines; line++) {
 			for (int char_pos = 0; char_pos < visible_chars; char_pos++) {
