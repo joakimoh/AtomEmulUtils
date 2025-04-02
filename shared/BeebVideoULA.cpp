@@ -471,8 +471,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		
 	}
 
-
-
 	if (adjusted_scanline == active_lines - field)
 		// Add Bottom border
 	{

@@ -95,6 +95,11 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 	for (int i = 0; i < connectedPorts.size(); i++) {
 		InputReference input = connectedPorts[i];
 		uint8_t pval = *(input.port->val);
+		if (input.invert) {
+			uint8_t pval = val;
+			val = ~val;
+			//cout << "INVERT " << input.port->dev->name << ":" << input.port->name << ": " << hex << (int) pval << " => " << (int)val << "\n";
+		}
 		if (input.shifts >= 0)
 			*(input.port->val) = ((pval & ~input.mask) | ((val >> input.shifts) & input.mask)) & input.port->mask;
 		else
@@ -473,7 +478,23 @@ Devices::Devices(
 				string src_port, dst_port;
 				sin >> src_port;
 				sin >> dst_port;
-				connection_manager.connect(src_port, dst_port);
+				connection_manager.connect(src_port, dst_port, false);
+
+			}
+
+			else if (cmd == "ICONNECT") {
+
+				//
+				// Connect Device ports - invert the source port value value before feeding it to the destination port
+				// 
+				// Syntax;
+				//	ICONNECT <src device>:<src port>[;<high bit>[;<low bit>]]	<dst device>:<dst port>[;<high bit>[;<low bit>]]
+				//
+
+				string src_port, dst_port;
+				sin >> src_port;
+				sin >> dst_port;
+				connection_manager.connect(src_port, dst_port, true);
 
 			}
 

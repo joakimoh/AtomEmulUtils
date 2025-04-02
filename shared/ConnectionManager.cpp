@@ -113,7 +113,7 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 }
 
 //
-bool ConnectionManager::connect(string srcName, string dstName)
+bool ConnectionManager::connect(string srcName, string dstName, bool invert)
 {
 
 	PortSelection src_port;
@@ -137,6 +137,7 @@ bool ConnectionManager::connect(string srcName, string dstName)
 	input_ref.port = dst_port.port;
 	input_ref.mask = dst_port.bits.mask;
 	input_ref.shifts = src_port.bits.lowBit - dst_port.bits.lowBit;
+	input_ref.invert = invert;
 	if (dst_port.port->dir == PortDirection::IO_PORT)
 		src_port.port->bidirectionalInputs.push_back(input_ref);
 	else

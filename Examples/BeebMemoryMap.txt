@@ -28,6 +28,7 @@ ADD	UC6502		UC						// Microcontroller 6502
 //	to be connected shall be specified unless all bits shall be
 //	connected.
 //
+ICONNECT	CRTC:RA;0	TCG:CRS
 CONNECT	CRTC:DISPTMG	TCG:LOSE
 CONNECT	CRTC:DISPTMG	VDU:DISEN
 CONNECT	CRTC:CUDISP	VDU:CURSOR

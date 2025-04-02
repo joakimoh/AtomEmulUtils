@@ -53,6 +53,7 @@ typedef struct InputReference_struct {
 	DevicePort *	port;
 	int				shifts = 0;				// no of steps to downshift src value to fit dst start bit
 	uint8_t			mask = 0xff;			// mask specifiyng the bits of the dst to be updated (set bit <= update)
+	bool			invert = false;			// If true, the source port value will be inverted before fed to the destination port
 } InputReference;
 
 enum PortDirection {IN_PORT, OUT_PORT, IO_PORT};
@@ -279,7 +280,7 @@ public:
 	//bool receiveUpdate(Device *dev, int index, uint8_t val);
 
 	// Connect one device's output with the input of another device
-	bool connect(string srcName, string dstName);
+	bool connect(string srcName, string dstName, bool invert);
 
 };
 
