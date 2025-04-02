@@ -52,6 +52,8 @@ bool CRTC6845::reset()
 {
 	Device::reset();
 
+	mField = 0;
+
 	mCycleCount = 0;
 	mCharRow = 0;
 	mScanLine = 0;
@@ -450,6 +452,8 @@ void CRTC6845::updateSettings(uint8_t reg)
 	// Make assumptions about retracing (5% vertical and 10% horizontal)
 	mRetraceChars = mActiveRowChars * 0.1;
 	mRetraceLines = (int)round(mScreenScanLines * 0.05);
+	if (mRetraceLines % 2 == 1) // Make sure no of retrace lines is even
+		mRetraceLines++;
 	
 	// Vertical scan lines: top border, active lines, sync pulse, bottom border
 	mBottomBorderLines = mScreenVSyncLine - mScreenActiveLines;
@@ -490,6 +494,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 		updatePort(CUDISP, mCUDISP);
 		updatePort(HS, mHS);
 		updatePort(VS, mVS);
+		mField = 0;
 	}
 
 

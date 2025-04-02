@@ -127,8 +127,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int field = fieldScanLineOffset();
 	int adjusted_scanline = mScanLine - field;
 	
-
-	cout << "\nFIELD #" << field << ", SCAN LINE " << dec << mScanLine << " (adjusted to " << adjusted_scanline << ")\n";
+	stringstream sout;
+	sout << "\nFIELD #" << field << ", SCAN LINE " << dec << mScanLine << " (adjusted to " << adjusted_scanline << ")\n";
+	mDM->log(this, DBG_VDU, sout.str());
 
 
 	bool teletext = getCRField(CR_TELETEXT) == 1;
@@ -192,7 +193,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	if (adjusted_scanline == mVerticalSyncPos) {
 	
-		cout << "UPDATE SCREEN\n";
+		mDM->log(this, DBG_VDU, "UPDATE SCREEN\n");
 
 		unlockDisplay();
 
@@ -243,27 +244,31 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// on the screen and "Char" is actually one byte fetched from memory that only sometimes corresponds
 	// to the width of a screen char. 
 
-	unsigned int* max_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScanLines);
+	unsigned int* max_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenScanLines);
 	unsigned int* bitmap_data_p = NULL;
-	if (adjusted_scanline == 0)
-		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data);
-	else
-		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * (mScanLine + top_border_lines));
 
 	if (adjusted_scanline == 0)
 		// Add Top border
 	{
-		cout << "DRAW TOP BORDER\n";
+		mDM->log(this, DBG_VDU, "DRAW TOP BORDER\n");
+
+		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data);
 
 		//cout << "Pixels/byte = " << dec << mPixelsPerByte << ", Pixel Width = " << mPixelW << "\n";
+		uint32_t colour = 0xff0ff000;
+		if (field == 1)
+			colour = 0xffff0000;
 		for (int line = 0; line < top_border_lines; line++) {
 			for (int char_pos = 0; char_pos < visible_chars; char_pos++) {
 				uint8_t Rs, Gs, Bs;
 				for (int big_pixel = 0; big_pixel < mPixelsPerByte; big_pixel++) {
 					Rs = Gs = Bs = 0;
-					uint32_t colour = 0xff00ff00;
-					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
-						*bitmap_data_p++ = colour;
+					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++) {
+						if (field == 1 && line % 2 == 0 || field == 0 && line % 2 == 1)
+							*bitmap_data_p++;
+						else
+							*bitmap_data_p++ = colour;
+					}
 				}
 			}
 		}
@@ -332,13 +337,16 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				if (char_pos == 0)
 					// Add left border
 				{
-					cout << "DRAW LEFT BORDER\n";
+					mDM->log(this, DBG_VDU, "DRAW LEFT BORDER\n");
 
+					uint32_t colour = 0xff0ff000;
+					if (field == 1)
+						colour = 0xffff0000;
 					uint8_t Rs, Gs, Bs;
 					for (int c = 0; c < left_border_chars; c++) {
 						for (int big_pixel = 0; big_pixel < mPixelsPerByte; big_pixel++) {
 							Rs = Gs = Bs = 0;
-							uint32_t colour = 0xff0ff000;
+
 							for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
 								*bitmap_data_p++ = colour;
 						}
@@ -412,7 +420,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 						Gs = 1-((Gi ^ Fi) & dis_ena);
 						Bs = 1-((Bi ^ Fi) & dis_ena);
 
-						// Invert the video if INV is LOW (only for modes 0 to 6 and not fot the teletext mode 7)
+						// Invert the video if INV is LOW (only for modes 0 to 6 and not for the teletext mode 7)
 						Rs = Rs ^ mINV;
 						Gs = Gs ^ mINV;
 						Bs = Bs ^ mINV;
@@ -451,14 +459,14 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				if (char_pos == active_chars - 1)
 					// Add right border 
 				{
-
-					cout << "DRAW RIGHT BORDER\n";
-
+					mDM->log(this, DBG_VDU,"DRAW RIGHT BORDER\n");
+					uint32_t colour = 0xff0ff000;
+					if (field == 1)
+						colour = 0xffff0000;
 					for (int c = 0; c < right_border_chars; c++) {
 						uint8_t Rs, Gs, Bs;
 						for (int big_pixel = 0; big_pixel < mPixelsPerByte; big_pixel++) {
-							Rs = Gs = Bs = 0;
-							uint32_t colour = 0xff0ff000;
+							Rs = Gs = Bs = 0;						
 							for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
 								*bitmap_data_p++ = colour;
 						}
@@ -476,16 +484,26 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	if (adjusted_scanline == active_lines)
 		// Add Bottom border
 	{
+		mDM->log(this, DBG_VDU, "DRAW BOTTOM BORDER\n");
+
 		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * (adjusted_scanline + top_border_lines));
-		cout << "DRAW BOTTOM BORDER\n";
+
+		uint32_t colour = 0xff00ff00;
+		if (field == 1)
+			colour = 0xffff0000;
+		
 		for (int line = 0; line < bottom_border_lines; line++) {
 			for (int char_pos = 0; char_pos < visible_chars; char_pos++) {
 				uint8_t Rs, Gs, Bs;
 				for (int big_pixel = 0; big_pixel < mPixelsPerByte ; big_pixel++) {
 					Rs = Gs = Bs = 0;
-					uint32_t colour = 0xff00ff00;
-					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
-						*bitmap_data_p++ = colour;
+
+					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++) {
+						if (field == 1 && line % 2 == 0 || field == 0 && line % 2 == 1)
+							*bitmap_data_p++;
+						else
+							*bitmap_data_p++ = colour;
+					}
 				}
 			}
 		}
@@ -563,19 +581,19 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 {
 
 	int p_scan_line = mScanLine;
-	int p_scan_lines = mScanLines;
+	int p_scan_lines = mScreenScanLines;
 	int p_vertical_syn_pos = mVerticalSyncPos;
 	int p_pixels_per_byte = mPixelsPerByte;
 
 	if (!initialised()) {
 		mScanLine = 0;
-		mScanLines = 312;
+		mScreenScanLines = 312;
 		mVerticalSyncPos = 280;
 		return false;
 	}
 
 	mScanLine = mCRTC->getScanLine();
-	mScanLines = (int) round(mCRTC->getScreenScanLines());
+	mScreenScanLines = (int) round(mCRTC->getScreenScanLines());
 	mVerticalSyncPos = mCRTC->getVerticalSyncLine();
 
 	if (getCRField(CR_CLOCK_RATE) == 1)
@@ -603,7 +621,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 		((mControlRegister ^ newControlRegisterValue) & 0xfe) != 0 ||
 		mPixelsPerByte != p_pixels_per_byte ||
 		mScanLine != p_scan_line ||
-		mScanLines != p_scan_lines ||
+		mScreenScanLines != p_scan_lines ||
 		mVerticalSyncPos != p_vertical_syn_pos
 		)
 		&& (mDM->debug(DBG_VERBOSE))
@@ -620,7 +638,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 		cout << "Video ULA Pixel Width:     " << dec << (int)mPixelW << "\n";
 		cout << "Video ULA Pixels/byte:     " << dec << mPixelsPerByte << "\n";
 		cout << "Video ULA Scan Line:       " << dec << mScanLine << "\n";
-		cout << "Video ULA Scan Lines:      " << dec << mScanLines << "\n";
+		cout << "Video ULA Scan Lines:      " << dec << mScreenScanLines << "\n";
 		cout << "Video ULA Vertical Sync:   " << dec << mVerticalSyncPos << "\n";
 		cout << "\n";
 	}
