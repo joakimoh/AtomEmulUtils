@@ -195,13 +195,10 @@ int main(int argc, const char* argv[])
         }
        
 
-        // Get field rate and no of scan lines from the VDU itself.
+        // Get field duration (in CPU cycles).
         // Required for the cases these parameters re not hard-coded but can be reconfigured by
         // the software.
         int cycles_per_field = (int)round(CPU_clock * 1e6 / field_rate_d);
-        int n_scan_lines = vdu->getScreenScanLines();
-        if (n_scan_lines < 200)
-            n_scan_lines = 312;
 
         auto field_stop = chrono::high_resolution_clock::now();
         auto field_dur = chrono::duration_cast<chrono::microseconds>(field_stop - field_start);
@@ -219,18 +216,24 @@ int main(int argc, const char* argv[])
             
         }
 
-        
-        int scan_line = vdu -> getScanLine(); // synchronise scan line no with the vdu (should be '0' when fully syncnhronised!)
-
-        // Add an extra (1/2) line if the picture is interlaced
-        if (vdu->interlaceOn())
-            n_scan_lines++;
-
         //
         // Advance time one field scan line at a time until a complete field has been scanned
+        // 
+        // For interlaced modes, only every second scan line will be processed...
         //
 
-        for (; scan_line < n_scan_lines; scan_line++) {
+        bool end_of_field = false;
+        bool add_half_line = false;
+        //cout << "\n\n*** START OF FIELD\n";
+        while (!end_of_field) {
+
+            int scan_line = vdu->getScanLine();
+            int field = vdu->fieldScanLineOffset();
+            int active_lines = vdu->getActiveLines();
+            int bottom_border_lines = vdu->getBottomBorderLines();
+            int adjusted_scanline = scan_line - field;
+            int n_scan_lines = vdu->getScreenScanLines();
+            bool interlaced_mode = vdu->interlaceOn();
 
             // Scan one field scan_line and save time passed in target cycle count to be used as reference
             // target time for the 6502 and the other devices (PIA, VIA, Sound, Tape Recorder, RAM & ROM). This
@@ -238,12 +241,18 @@ int main(int argc, const char* argv[])
             uint64_t target_cycle_count;
             uint64_t start_count = cycle_count;
 
-            // Advance time for the VDU correspodning to one scan line (1/2 scan line if it is the last line and interlace is enabled)
+            // Advance time for the VDU corresponding to one scan line (1/2 scan line if it is the last line and interlace is enabled)
             auto vdu_start = chrono::high_resolution_clock::now();
-            if (vdu->interlaceOn() && scan_line == n_scan_lines - 1)
+            if (interlaced_mode && add_half_line) {
                 vdu->advanceHalfLine(target_cycle_count);
-            else
+                //cout << "1/2 LINE\n";
+                end_of_field = true;
+            }
+            else {
                 vdu->advanceLine(target_cycle_count);
+                //cout << "LINE " << dec << scan_line << " (" << n_scan_lines << ") - " << (interlaced_mode ? "Interlaced" : "Non-interlaced") << "\n";
+            }
+
             auto vdu_stop = chrono::high_resolution_clock::now();
             auto vdu_dur = chrono::duration_cast<chrono::microseconds>(vdu_stop - vdu_start);
             vdu_cnt += vdu_dur.count();
@@ -296,8 +305,16 @@ int main(int argc, const char* argv[])
                 }
             }
 
-        }
+            // Check for end of field
+            if (interlaced_mode && adjusted_scanline == n_scan_lines - 2) {
+                add_half_line = true;
+            }
+            else if (!interlaced_mode && adjusted_scanline == n_scan_lines - 1) {
+                end_of_field = true;           
+            }
 
+        }
+        //cout << "*** END OF FIELD\n";
 
 
         field_cnt = (field_cnt + 1) % field_rate;

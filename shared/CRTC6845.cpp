@@ -476,22 +476,29 @@ void CRTC6845::updateSettings(uint8_t reg)
 	// Borders and active area for the scan lines visible on a screen
 	// 
 
-	// Make assumptions about retracing (5% vertical and 5% horizontal)
-	mRetraceChars = mActiveRowChars * 0.05;
+	// Make assumptions about retracing (10% vertical and 30% horizontal)
+	mRetraceChars = mActiveRowChars * 0.3;
 	if (mRetraceChars % 2 == 1)
 		mRetraceChars++;
-	mRetraceLines = (int)round(mScreenScanLines * 0.05);
+	mRetraceLines = (int)round(mScreenScanLines * 0.1);
 	if (mRetraceLines % 2 == 1) // Make sure no of retrace lines is even
 		mRetraceLines++;
 	
 	// Vertical scan lines: top border, active lines, sync pulse, bottom border
-	mBottomBorderLines = mScreenVSyncLine - mScreenActiveLines;
-	mTopBorderLines = mScreenScanLines - mBottomBorderLines - mScreenActiveLines - mRetraceLines;
+	mVisibleScanLines = mScreenScanLines - mRetraceLines;
+	int vt_borders = mVisibleScanLines - mScreenActiveLines;
+	vt_borders -= vt_borders % 4; // make sure vt_borders / 2 becomes even
+	mTopBorderLines = mBottomBorderLines = vt_borders / 2;
 	mVisibleScanLines = mTopBorderLines + mScreenActiveLines + mBottomBorderLines;
 
 	// Horizontal line: left border, active chars, sync pulse, right border (all in unit 'char')
-	mRightBorderChars = mHzSyncPos - mActiveRowChars - mCharSkew; // Gap between active area and sync pulse
-	mLeftBorderChars = mCharCols - mRightBorderChars - mActiveRowChars - mRetraceChars;
+	mVisibleChars = mCharCols - mRetraceChars;
+	int hz_borders = mVisibleChars - mActiveRowChars;
+	if (hz_borders % 2 == 1)
+		hz_borders++;
+	mLeftBorderChars = mRightBorderChars = hz_borders / 2;
+	mLeftBorderChars += mCharSkew; // adjust for character skewing
+	mRightBorderChars = hz_borders - mLeftBorderChars;
 	mVisibleChars = mLeftBorderChars + mActiveRowChars + mRightBorderChars;
 
 
