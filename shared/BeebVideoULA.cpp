@@ -127,9 +127,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int field = fieldScanLineOffset();
 	int adjusted_scanline = mScanLine - field;
 	
-	stringstream sout;
-	sout << "\nFIELD #" << field << ", SCAN LINE " << dec << mScanLine << " (adjusted to " << adjusted_scanline << ")\n";
-	mDM->log(this, DBG_VDU, sout.str());
+	if (mDM->debug(DBG_VDU))
+		cout << "\n\nFIELD #" << field << ", SCAN LINE " << dec << mScanLine << " (adjusted to " << adjusted_scanline << ")\n";
 
 
 	bool teletext = getCRField(CR_TELETEXT) == 1;
@@ -250,7 +249,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	if (adjusted_scanline == 0)
 		// Add Top border
 	{
-		mDM->log(this, DBG_VDU, "DRAW TOP BORDER\n");
+		if (mDM->debug(DBG_VDU))
+			cout << "DRAW TOP BORDER\n";
 
 		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data);
 
@@ -287,6 +287,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// the TGC character is only 12 pixels wide whereas the CRTC one is 8 pixels wide!
 		
 		vector<TT5050::TTColour> tgc_data;
+
+		if (char_pos == 0 && mDM->debug(DBG_VDU))
+			cout << "VDU RA = " << dec << (int)mRA << "\n";
 
 		// Advance the CRT one character at a time
 		// If in the active, area, the video memory address containing 
@@ -328,8 +331,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		if (adjusted_scanline < active_lines)
 			// Visible active line
 		{
-			
-			
+						
 			if (dis_ena)
 				// Active area of an active line
 			{
@@ -484,7 +486,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	if (adjusted_scanline == active_lines)
 		// Add Bottom border
 	{
-		mDM->log(this, DBG_VDU, "DRAW BOTTOM BORDER\n");
+		if (mDM->debug(DBG_VDU))
+			cout << "DRAW BOTTOM BORDER\n";
 
 		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * (adjusted_scanline + top_border_lines));
 

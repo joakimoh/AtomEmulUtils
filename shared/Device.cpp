@@ -95,15 +95,16 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 	for (int i = 0; i < connectedPorts.size(); i++) {
 		InputReference input = connectedPorts[i];
 		uint8_t pval = *(input.port->val);
+		uint8_t nval = val;
 		if (input.invert) {
-			uint8_t pval = val;
-			val = ~val;
-			//cout << "INVERT " << input.port->dev->name << ":" << input.port->name << ": " << hex << (int) pval << " => " << (int)val << "\n";
+			uint8_t oval = val;
+			nval = ~val;
+			//cout << "INVERT " << input.port->dev->name << ":" << input.port->name << ": " << hex << (int) oval << " => " << (int)val << "\n";
 		}
 		if (input.shifts >= 0)
-			*(input.port->val) = ((pval & ~input.mask) | ((val >> input.shifts) & input.mask)) & input.port->mask;
+			*(input.port->val) = ((pval & ~input.mask) | ((nval >> input.shifts) & input.mask)) & input.port->mask;
 		else
-			*(input.port->val) = ((pval & ~input.mask) | ((val << (-input.shifts)) & input.mask)) & input.port->mask;
+			*(input.port->val) = ((pval & ~input.mask) | ((nval << (-input.shifts)) & input.mask)) & input.port->mask;
 
 		if (
 			(
@@ -118,7 +119,7 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 			cout << this->name << ":" << port->name << " = 0x" << (int)val << " => " <<
 				input.port->dev->name << ":" << input.port->name << " = " <<
 				input.port->name << " &  ~mask | " << shift_s << " = 0x" << hex <<
-				(int)pval << " & 0x" << hex << setfill('0') << setw(2) << (int)(uint8_t)(~input.mask) << " | ((0x" << hex << (int)val <<
+				(int)pval << " & 0x" << hex << setfill('0') << setw(2) << (int)(uint8_t)(~input.mask) << " | ((0x" << hex << (int)nval <<
 				(input.shifts >= 0 ? " >> " : " << ") << setfill(' ') << dec << (input.shifts >= 0 ? input.shifts : -input.shifts) <<
 				") & 0x" << hex << (int)input.mask << ")" << setfill('0') << setw(2) <<
 				" = 0x" << hex << (int)*(input.port->val) << dec << "\n";

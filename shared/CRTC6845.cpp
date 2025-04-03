@@ -44,7 +44,6 @@ CRTC6845::CRTC6845(
 	registerPort("CUDISP",		OUT_PORT, 0x1,	CUDISP,		&mCUDISP);
 	registerPort("HS",			OUT_PORT, 0x1,	HS,			&mHS);
 	registerPort("VS",			OUT_PORT, 0x1,	VS,			&mVS);
-	registerPort("RESET",		IN_PORT,  0x1, RESET,		&mRESET);
 
 }
 
@@ -108,43 +107,70 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 bool CRTC6845::advanceChar()
 {
 
-
 	int nextCycleCount = (int)round(mCycleCount + mCPUClock / mCLK);
 	if (nextCycleCount == mCycleCount)
 		nextCycleCount++;
 
 	mCycleCount = nextCycleCount;
 
+	if (mDM->debug(DBG_VERBOSE) && mCLK != pCLK)
+		printSettings();
+	pCLK = mCLK;
+
 	updateOutputs();
+
 
 	// Increase char column
 	// The 6845 linear address generator repeats the same sequence of addresses for each scan line of a character row
 	mCharCol = (mCharCol + 1) % mCharCols;
+
+	// Check for new character row
 	if (mCharCol == 0) {
+
+		if (mDM->debug(DBG_VDU))
+			cout << "CRTC SCAN LINE = " << dec << mScanLine << ", RASTER LINE = " << (int) mRA << ", CHAR ROW = " << mCharRow << 
+			" (" << mActiveRows << ")\n";
 		
 		if (interlaceOn()) {
 			mScanLine = (mScanLine + 2) % mScreenScanLines;
 			if ((mField % 2 == 0 && mScanLine == 0) || (mField % 2 == 1 && mScanLine == 1)) { // start of new field
+				
 				mField++;
 				mCharRow = 0;
 				mCharCol = 0;
-				if (mField % 2 == 0) {
-					updatePort(RA, 0); // Even field => start at raster line 0
-					mScanLine = 0; // next field is even => first scan line is 0
+				if (interlaced(mInterlaceMode)) {
+					updatePort(RA, 0);
+					if (mField % 2 == 0)
+						mScanLine = 0; // Even field => start at scan line 0
+					else
+						mScanLine = 1; // Odd field => start at scan line 1
 				}
-				else {
-					updatePort(RA, 1); // Odd field => start at raster line 1
-					mScanLine = 1; // next field is odd => first scan line is 1
+				else { // interlaced_video(mInterlaceMode)
+					if (mField % 2 == 0) {
+						updatePort(RA, 0); // Even field => start at raster line 0
+						mScanLine = 0; // next field is even => first scan line is 0
+					}
+					else {
+						updatePort(RA, 1); // Odd field => start at raster line 1
+						mScanLine = 1; // next field is odd => first scan line is 1
+					}
 				}
 			}
 			else {
-				updatePort(RA, (mRA + 2) % mCharLines);
-				if ((mField % 2 == 0 && mRA == 0) || (mField % 2 == 1 && mRA == 1)) { // new character row
-					mCharRow = (mCharRow + 1) % mCharRows;
-					if (mField % 2 == 0)
-						updatePort(RA, 0); // Even field and new character row => start raster line at 0
-					else
-						updatePort(RA, 1); // Odd field and new character row => start raster line at 1
+				if (interlaced(mInterlaceMode)) {
+					updatePort(RA, (mRA + 1) % mCharLines);
+					if (mRA == 0)
+						mCharRow = (mCharRow + 1) % mCharRows;
+				}
+				else { // interlaced_video(mInterlaceMode)
+					updatePort(RA, (mRA + 2) % mCharLines);
+					if ((mField % 2 == 0 && mRA == 0) || (mField % 2 == 1 && mRA == 1)) { // new character row
+						mCharRow = (mCharRow + 1) % mCharRows;
+						if (mField % 2 == 0)
+							updatePort(RA, 0); // Even field and new character row => start raster line at 0
+						else
+							updatePort(RA, 1); // Odd field and new character row => start raster line at 1
+					}
 				}
 			}
 		}
@@ -165,6 +191,7 @@ bool CRTC6845::advanceChar()
 		}
 		
 	}
+	
 
 	return true;
 }
@@ -553,7 +580,7 @@ void CRTC6845::printSettings()
 bool CRTC6845::getVisibleCharArea(int &charsPerLine, int &lines)
 {
 	charsPerLine = mLeftBorderChars + mActiveRowChars + mRightBorderChars;
-	lines = mTopBorderLines + mActiveLines + mBottomBorderLines;
+	lines = mTopBorderLines + mScreenActiveLines + mBottomBorderLines;
 	return true;
 }
 
