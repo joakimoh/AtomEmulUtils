@@ -142,9 +142,9 @@ private:
 		0,	// Link 3 Disc drive timings		4		b5
 		0,	// Link 4 Disc drive timings		5		b4
 		0,	// Link 5 Boot						6		b3		SHIFT - BREAK to boot		BREAK to boot
-		1,	// Link 6 Screen mode				7		b2		+4							+0
-		1,	// Link 7 Screen mode				8		b1		+2							+0
-		1	// Link 8 Screen mode				9		b0		+1							+0
+		0,	// Link 6 Screen mode				7		b2		+4							+0
+		0,	// Link 7 Screen mode				8		b1		+2							+0
+		0	// Link 8 Screen mode				9		b0		+1							+0
 	};
 	inline bool linkSet(uint8_t col) { return col >= 2 && col <= 9 && mSWlink[col-2] != 0; }
 

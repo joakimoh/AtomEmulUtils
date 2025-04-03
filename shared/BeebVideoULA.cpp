@@ -568,9 +568,7 @@ void BeebVideoULA::updateScreenSz()
 			cout << "create display bitmap " << dec << mScreenW << " x " << mScreenH << " (" << n_active_W << " x " << n_active_lines << ")\n";
 		int width = mScreenW;
 		int height = mScreenH;
-		if (!getCRField(CR_TELETEXT))
-			height *= 2;
-		else
+		if (getCRField(CR_TELETEXT))
 			width = mScreenW * 4 / 3;
 		al_resize_display(mDisplay, width, height);
 		unlockDisplay();
@@ -623,7 +621,6 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	if ((
 		((mControlRegister ^ newControlRegisterValue) & 0xfe) != 0 ||
 		mPixelsPerByte != p_pixels_per_byte ||
-		mScanLine != p_scan_line ||
 		mScreenScanLines != p_scan_lines ||
 		mVerticalSyncPos != p_vertical_syn_pos
 		)

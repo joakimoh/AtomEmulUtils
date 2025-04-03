@@ -476,8 +476,10 @@ void CRTC6845::updateSettings(uint8_t reg)
 	// Borders and active area for the scan lines visible on a screen
 	// 
 
-	// Make assumptions about retracing (5% vertical and 10% horizontal)
-	mRetraceChars = mActiveRowChars * 0.1;
+	// Make assumptions about retracing (5% vertical and 5% horizontal)
+	mRetraceChars = mActiveRowChars * 0.05;
+	if (mRetraceChars % 2 == 1)
+		mRetraceChars++;
 	mRetraceLines = (int)round(mScreenScanLines * 0.05);
 	if (mRetraceLines % 2 == 1) // Make sure no of retrace lines is even
 		mRetraceLines++;
@@ -487,7 +489,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 	mTopBorderLines = mScreenScanLines - mBottomBorderLines - mScreenActiveLines - mRetraceLines;
 	mVisibleScanLines = mTopBorderLines + mScreenActiveLines + mBottomBorderLines;
 
-	// Horizontal line: left border, active chars, sync pulse, right border (all in unit 'char')	
+	// Horizontal line: left border, active chars, sync pulse, right border (all in unit 'char')
 	mRightBorderChars = mHzSyncPos - mActiveRowChars - mCharSkew; // Gap between active area and sync pulse
 	mLeftBorderChars = mCharCols - mRightBorderChars - mActiveRowChars - mRetraceChars;
 	mVisibleChars = mLeftBorderChars + mActiveRowChars + mRightBorderChars;
@@ -580,7 +582,7 @@ void CRTC6845::printSettings()
 bool CRTC6845::getVisibleCharArea(int &charsPerLine, int &lines)
 {
 	charsPerLine = mLeftBorderChars + mActiveRowChars + mRightBorderChars;
-	lines = mTopBorderLines + mScreenActiveLines + mBottomBorderLines;
+	lines = mVisibleScanLines;
 	return true;
 }
 
