@@ -159,6 +159,16 @@ public:
 	uint8_t mSymbolRasterBits[96][10][6];
 	uint8_t mInterpolatedSymbolRasterBits[96][20][12];
 
+	typedef struct struct_stretch12 {
+		int srcLeftPixel;
+		int srcRightPixel;
+		uint8_t leftFactor;
+		uint8_t rightFactor;
+	} Stretch12;
+
+	Stretch12 mStretchMatrix[16];
+
+
 	int mScanLine = 0;
 	int mCharRowPos = 0;
 	int mCharRasterLine = 0;

@@ -200,10 +200,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		//al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mScreenW, mScreenH, 0, 0, mDisplayWidth, mDisplayHeight, 0);
 		int width = mScreenW;
 		int height = mScreenH;
-		if (teletext)
-			width = mScreenW * 4 / 3;
 
-		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mScreenW, mScreenH, 0, 0, width, height, 0);
+		al_draw_bitmap(mDisplayBitmap, 0, 0, 0);
 
 		// Make the updates visible on the display
 		auto disp_start = chrono::high_resolution_clock::now();
@@ -254,14 +252,14 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data);
 
-		//cout << "Pixels/byte = " << dec << mPixelsPerByte << ", Pixel Width = " << mPixelW << "\n";
+		//cout << "Pixels/byte = " << dec << mPixelsPerCharacter << ", Pixel Width = " << mPixelW << "\n";
 		uint32_t colour = 0xff0ff000;
 		if (field == 1)
 			colour = 0xffff0000;
 		for (int line = 0; line < top_border_lines; line++) {
 			for (int char_pos = 0; char_pos < visible_chars; char_pos++) {
 				uint8_t Rs, Gs, Bs;
-				for (int big_pixel = 0; big_pixel < mPixelsPerByte; big_pixel++) {
+				for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++) {
 					Rs = Gs = Bs = 0;
 					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++) {
 						if (field == 1 && line % 2 == 0 || field == 0 && line % 2 == 1)
@@ -346,7 +344,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 						colour = 0xffff0000;
 					uint8_t Rs, Gs, Bs;
 					for (int c = 0; c < left_border_chars; c++) {
-						for (int big_pixel = 0; big_pixel < mPixelsPerByte; big_pixel++) {
+						for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++) {
 							Rs = Gs = Bs = 0;
 
 							for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
@@ -403,7 +401,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				// Big pixels/byte = 8 * cols / Visible "chars" per line
 				//
 				auto byte_start = chrono::high_resolution_clock::now();
-				for (int big_pixel = 0; big_pixel < mPixelsPerByte; big_pixel++) {
+				for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++) {
 
 					if (!teletext) {
 
@@ -467,7 +465,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 						colour = 0xffff0000;
 					for (int c = 0; c < right_border_chars; c++) {
 						uint8_t Rs, Gs, Bs;
-						for (int big_pixel = 0; big_pixel < mPixelsPerByte; big_pixel++) {
+						for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++) {
 							Rs = Gs = Bs = 0;						
 							for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
 								*bitmap_data_p++ = colour;
@@ -498,7 +496,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		for (int line = 0; line < bottom_border_lines; line++) {
 			for (int char_pos = 0; char_pos < visible_chars; char_pos++) {
 				uint8_t Rs, Gs, Bs;
-				for (int big_pixel = 0; big_pixel < mPixelsPerByte ; big_pixel++) {
+				for (int big_pixel = 0; big_pixel < mPixelsPerCharacter ; big_pixel++) {
 					Rs = Gs = Bs = 0;
 
 					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++) {
@@ -543,33 +541,24 @@ void BeebVideoULA::updateScreenSz()
 	// This means 40*12 x 25*20 = 480 x 500 should be scaled as the 40*8 x 25*10 = 320 x 250 pixels (as for mode 6).
 	int pW = mScreenW;
 	int pH = mScreenH;
-	if (getCRField(CR_TELETEXT)) {
-		if (mCRTC->initialised()) {
-			int visible_chars_per_line, visible_lines;
-			mCRTC->getVisibleCharArea(visible_chars_per_line, visible_lines);
-			mScreenW = visible_chars_per_line * 12;
-			mScreenH = visible_lines;
-			mPixelW = 1;
-		}
-	}
-	else {
+
+	if (mCRTC->initialised()) {
 		int visible_chars_per_line, visible_lines;
 		mCRTC->getVisibleCharArea(visible_chars_per_line, visible_lines);
-		mScreenW = visible_chars_per_line * mPixelsPerByte * mPixelW;
-		mScreenH = visible_lines;
+		mScreenW = visible_chars_per_line * mPixelsPerCharacter * mPixelW;
+		mScreenH = visible_lines;		
 	}
+	
 
 	// resize screen when switching between teletext mode (500 x 480 + borders)  and non-telext modes (640 x 256)
 	if (pW != mScreenW || pH != mScreenH) {
 		int n_active_chars = mCRTC->getActiveChars();
 		int n_active_lines = mCRTC->getActiveLines();
-		int n_active_W = n_active_chars * mPixelsPerByte;
+		int n_active_W = n_active_chars * mPixelsPerCharacter;
 		if (mDM->debug(DBG_VERBOSE))
 			cout << "create display bitmap " << dec << mScreenW << " x " << mScreenH << " (" << n_active_W << " x " << n_active_lines << ")\n";
 		int width = mScreenW;
 		int height = mScreenH;
-		if (getCRField(CR_TELETEXT))
-			width = mScreenW * 4 / 3;
 		al_resize_display(mDisplay, width, height);
 		unlockDisplay();
 		al_destroy_bitmap(mDisplayBitmap);	
@@ -584,7 +573,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	int p_scan_line = mScanLine;
 	int p_scan_lines = mScreenScanLines;
 	int p_vertical_syn_pos = mVerticalSyncPos;
-	int p_pixels_per_byte = mPixelsPerByte;
+	int p_pixels_per_byte = mPixelsPerCharacter;
 
 	if (!initialised()) {
 		mScanLine = 0;
@@ -611,16 +600,16 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	if (teletext)
 		mPixelW = 1;
 
-	mPixelsPerByte = 8 * mNCols / getVisibleCharsPerLine();
-	if (mPixelsPerByte > 8) {
+	mPixelsPerCharacter = 8 * mNCols / getVisibleCharsPerLine();
+	if (mPixelsPerCharacter > 8) {
 		return false;
 	}
 	if (teletext)
-		mPixelsPerByte = 12;
+		mPixelsPerCharacter = 16; // as 12 pixels have been stretched to 16 by the TCG
 
 	if ((
 		((mControlRegister ^ newControlRegisterValue) & 0xfe) != 0 ||
-		mPixelsPerByte != p_pixels_per_byte ||
+		mPixelsPerCharacter != p_pixels_per_byte ||
 		mScreenScanLines != p_scan_lines ||
 		mVerticalSyncPos != p_vertical_syn_pos
 		)
@@ -630,13 +619,13 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 		cout << "Video ULA Control Register: 0x" << hex << (int)mControlRegister << dec << "\n";
 		cout << "Video ULA PixelRate:       " << mPixelRate << " MHz\n";
 		cout << "Video ULA PixelWidth:      " << (int)mPixelW << "\n";
-		cout << "Video ULA Pixels/byte:     " << (int)mPixelsPerByte << "\n";
+		cout << "Video ULA Pixels/byte:     " << (int)mPixelsPerCharacter << "\n";
 		cout << "Video ULA CRTC Clock:      " << (int)mCRTC_CLK << " MHz\n";
 		cout << "Video ULA No of cols:      " << dec << mNCols << "\n";
 		cout << "Video ULA Teletext:        " << (getCRField(CR_TELETEXT) ? "ON" : "OFF") << "\n";
 		cout << "Video ULA Cursor Segments: " << hex << (int)getCRField(CR_CURSOR_SEGMENT) << "\n";
 		cout << "Video ULA Pixel Width:     " << dec << (int)mPixelW << "\n";
-		cout << "Video ULA Pixels/byte:     " << dec << mPixelsPerByte << "\n";
+		cout << "Video ULA Pixels/byte:     " << dec << mPixelsPerCharacter << "\n";
 		cout << "Video ULA Scan Line:       " << dec << mScanLine << "\n";
 		cout << "Video ULA Scan Lines:      " << dec << mScreenScanLines << "\n";
 		cout << "Video ULA Vertical Sync:   " << dec << mVerticalSyncPos << "\n";

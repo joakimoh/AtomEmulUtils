@@ -1,5 +1,6 @@
 #include "TT5050.h"
 #include <iostream>
+#include <iomanip>
 
 using namespace std;
 
@@ -85,6 +86,30 @@ void TT5050::createInterpolatedSymbols()
 
 	}
 
+	// Generate table to stretch 12-pixel-wide raster line into 16 pixels
+	for (int i = 0; i < 16; i++) {
+		int left_pixel_12 = i * 3 / 4;
+		int right_pixel_12 = (i + 1) * 3 / 4;
+		double left_pixel_12_fraction = (1.0 - ((double)(i * 3.0 / 4.0) - (int)(i * 3 / 4))) * 4 / 3;
+		double right_pixel_12_fraction = ((double)((i + 1) * 3.0 / 4.0) - (int)((i + 1) * 3 / 4)) * 4 / 3;
+		if (left_pixel_12_fraction > 1.0)
+			left_pixel_12_fraction = 1.0;
+		if (right_pixel_12_fraction > 1.0)
+			right_pixel_12_fraction = 1.0;
+		if (right_pixel_12 == left_pixel_12)
+			right_pixel_12_fraction = 0.0;
+		uint8_t leftFactor = (uint8_t)round(255 * left_pixel_12_fraction);
+		uint8_t rightFactor = (uint8_t)round(255 * right_pixel_12_fraction);
+		mStretchMatrix[i] = { left_pixel_12, right_pixel_12, leftFactor, rightFactor };
+
+	}
+
+	if (true && mDM->debug(DBG_VERBOSE)) {
+		cout << "Teletext stretch Matrix:\n\n";
+		for (int i = 0; i < 16; i++)
+			cout << i << ", " << mStretchMatrix[i].srcLeftPixel << ", " << (int)mStretchMatrix[i].leftFactor << ", " <<
+			i << ", " << mStretchMatrix[i].srcRightPixel << ", " << (int)mStretchMatrix[i].rightFactor << "\n";
+	}
 
 	if (false && mDM->debug(DBG_VERBOSE)) {
 
@@ -154,6 +179,7 @@ bool TT5050::advance(uint64_t stopCycle)
 bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour> &screenData)
 {
 	const int n_raster_lines = 20;
+	vector <uint8_t> screenData12;
 
 	if (!initialised()) {
 		mCycleCount += max(1, (int)round(mCPUClock / 1.0));
@@ -248,14 +274,17 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 	// Generate output
 	if (mLOSE) {
 		uint8_t symbol_index = 0x0;
-		TT5050::TTColour colour = mColours[(int)TT_BLACK];
+
+		TTColour background_colour = mBackgroundColour;
+		TTColour foreground_colour = mColours[(int)TT_BLACK];
+
 		if (char_data < 0x20) { // invisible control char - decide how to show it
 			if (!mHeldGraphics) { // draw hidden text and control char as space as default
-				colour = mAlpaNumericColour;
+				foreground_colour = mAlpaNumericColour;
 				symbol_index = 0; // SPACE symbol
 			}
 			else { // draw control char as last graphics symbol
-				colour = mGraphicsColour;
+				foreground_colour = mGraphicsColour;
 				symbol_index = mLastGraphicsSymbolIndex;
 				mGraphicSymbols = true;
 			}
@@ -265,18 +294,28 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 		else {
 			
 			if (draw_sixels)
-				colour = mGraphicsColour;
+				foreground_colour = mGraphicsColour;
 			else {
 				if (mHiddenText)
 					symbol_index = 0;
 				else
 					symbol_index = char_data - 0x20; // should give an index in the range [0,95]
 				if (mGraphicSymbols)
-					colour = mGraphicsColour;
+					foreground_colour = mGraphicsColour;
 				else
-					colour = mAlpaNumericColour;
+					foreground_colour = mAlpaNumericColour;
+
+				double hz_0_75 = mCPUClock * 1e6 * 0.75;
+				int flash_75 = (int)round(hz_0_75 * 0.75);
+				int flash_100 = (int)round(hz_0_75);
+				if (mFlash && mCycleCount % flash_100 >= flash_75) {
+					background_colour = mBackgroundColour;
+					foreground_colour = mBackgroundColour;
+				}
 			}
 		}
+
+
 
 		if (draw_sixels) {
 			// Create one scan line of two "big" pixels (sixels) occupying 2 x 6 actual pixels
@@ -294,25 +333,14 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 				left_sixel = (char_data >> 4) & 0x1;
 				right_sixel = (char_data >> 6) & 0x1;
 			}
-			TT5050::TTColour left_sixel_colour = (left_sixel == 1) ? colour : mBackgroundColour;
-			TT5050::TTColour right_sixel_colour = (right_sixel == 1)? colour : mBackgroundColour;
 			for (int p = 0; p < 6; p++)
-				screenData.push_back(left_sixel_colour);
+				screenData12.push_back(left_sixel);
 			for (int p = 0; p < 6; p++)
-				screenData.push_back(right_sixel_colour);
+				screenData12.push_back(right_sixel);
 		}
 
 		else {
-
-			TTColour background_colour = mBackgroundColour;
-			TTColour foreground_colour = colour;// mAlpaNumericColour;
-			double hz_0_75 = mCPUClock * 1e6 * 0.75;
-			int flash_75 = (int)round(hz_0_75 * 0.75);
-			int flash_100 = (int)round(hz_0_75);
-			if (mFlash && mCycleCount % flash_100 >= flash_75) {
-				background_colour = mBackgroundColour;
-				foreground_colour = mBackgroundColour;
-			}
+			
 			// Create 12 pixels of the correct colour
 			int raster_line = mCharRasterLine;
 			if (mDoubleHeight) {
@@ -328,14 +356,24 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 
 			for (int p = 0; p < 12; p++) {
 				if (mInterpolatedSymbolRasterBits[symbol_index][raster_line][p]) {
-					screenData.push_back(foreground_colour);
+					screenData12.push_back(1);
 				}
 				else {
-					screenData.push_back(background_colour);
+					screenData12.push_back(0);
 				}
 			}
 		}
 
+
+		// Stretch 12-pixel wide sixel/character raster line into 16 pixels
+		for (int i = 0; i < 16; i++) {
+			uint8_t val = screenData12[mStretchMatrix[i].srcLeftPixel] * mStretchMatrix[i].leftFactor +
+				screenData12[mStretchMatrix[i].srcRightPixel] * mStretchMatrix[i].rightFactor;
+			if (val > 127)
+				screenData.push_back(foreground_colour);
+			else
+				screenData.push_back(background_colour);
+		}
 	}
 
 	mCharRowPos++; // if it was the last char pos, this will be corrected at the next call of getScreenData() based on the HS input

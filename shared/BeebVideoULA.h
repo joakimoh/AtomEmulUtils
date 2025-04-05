@@ -81,7 +81,7 @@ public:
 
 	uint8_t mPixelW = 1;
 	int mPixelRate = 1;
-	int mPixelsPerByte = 8;	// The no of pixels per byte for modes 0-6 (8 for 2-colour, 4 for 4-colour and 2 for 6-colour)
+	int mPixelsPerCharacter = 8;	// The no of pixels per byte for modes 0-6 (8 for 2-colour, 4 for 4-colour and 2 for 6-colour)
 
 	bool mNewField = false;
 
