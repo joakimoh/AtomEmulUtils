@@ -421,9 +421,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 						Bs = 1-((Bi ^ Fi) & dis_ena);
 
 						// Invert the video if INV is LOW (only for modes 0 to 6 and not for the teletext mode 7)
-						Rs = Rs ^ mINV;
-						Gs = Gs ^ mINV;
-						Bs = Bs ^ mINV;
+						// Also scale up from 0:1 to 0:255 for the intensity
+						Rs = ((Rs ^ mINV)?255:0);
+						Gs = ((Gs ^ mINV)?255:0);
+						Bs = ((Bs ^ mINV)?255:0);
 						
 					}
 					else {
@@ -439,13 +440,15 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					}
 
 					// Super-impose the cursor
-					R = Rs ^ cursor_seg_ena;
-					G = Gs ^ cursor_seg_ena;
-					B = Bs ^ cursor_seg_ena;
+					uint8_t cursor = (cursor_seg_ena ? 255 : 0);
+					R = Rs ^ cursor;
+					G = Gs ^ cursor;
+					B = Bs ^ cursor;
 
 
 					// Update display with the R, G & B data
-					uint32_t colour = 0xff000000 | (R ? 0x00ff0000 : 0) | (G ? 0x0000ff00 : 0) | (B ? 0x000000ff : 0);
+					//uint32_t colour = 0xff000000 | (R ? 0x00ff0000 : 0) | (G ? 0x0000ff00 : 0) | (B ? 0x000000ff : 0);
+					uint32_t colour = 0xff000000 | (R << 16) | (G << 8) | B;
 					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
 						*bitmap_data_p++ = colour;
 

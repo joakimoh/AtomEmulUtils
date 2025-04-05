@@ -292,7 +292,7 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 			
 		// Character or graphical symbol to be displayed
 		else {
-			
+
 			if (draw_sixels)
 				foreground_colour = mGraphicsColour;
 			else {
@@ -369,10 +369,18 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 		for (int i = 0; i < 16; i++) {
 			uint8_t val = screenData12[mStretchMatrix[i].srcLeftPixel] * mStretchMatrix[i].leftFactor +
 				screenData12[mStretchMatrix[i].srcRightPixel] * mStretchMatrix[i].rightFactor;
-			if (val > 127)
-				screenData.push_back(foreground_colour);
-			else
-				screenData.push_back(background_colour);
+			TTColour pixel_colour = background_colour;
+			if (val > 0) {
+				pixel_colour.B = val * foreground_colour.B;
+				pixel_colour.G = val * foreground_colour.G;
+				pixel_colour.R = val * foreground_colour.R;
+			}
+			else {
+				pixel_colour.B = 255 * background_colour.B;
+				pixel_colour.G = 255 * background_colour.G;
+				pixel_colour.R = 255 * background_colour.R;
+			}
+			screenData.push_back(pixel_colour);
 		}
 	}
 
