@@ -27,7 +27,7 @@ protected:
 
 public:
 
-	VideoDisplayUnit(string name, DeviceId devId, double cpuClock, uint16_t adr, uint16_t sz, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	VideoDisplayUnit(string name, DeviceId devId, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
 	virtual ~VideoDisplayUnit() {};
 

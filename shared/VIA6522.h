@@ -163,7 +163,7 @@ private:
 
 public:
 
-	VIA6522(string name, uint16_t adr, double clock, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

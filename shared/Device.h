@@ -196,6 +196,7 @@ private:
 	string getFileName(string& path, stringstream& sin);
 	uint16_t getHexVal(stringstream& sin);
 	double getDoubleVal(stringstream& sin);
+	int getIntVal(stringstream& sin);
 
 public:
 

@@ -159,6 +159,8 @@ public:
 
 	//  Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
+
+	void processPortUpdate(int index);
 };
 
 #endif

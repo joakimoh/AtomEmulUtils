@@ -24,9 +24,11 @@ protected:
 	vector<DeviceAccessScheduling> mScheduleOnRead;
 	vector<DeviceAccessScheduling> mScheduleOnWrite;
 
+	uint8_t mWaitStates = 0; // access speed in relation to CPU speed
+
 public:
 
-	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint16_t adr, uint16_t sz, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
 	virtual bool read(uint16_t adr, uint8_t& data);
 
@@ -39,6 +41,8 @@ public:
 
 	bool registerAccess(Device* dev, uint16_t adr, bool writeAccess);
 	void addMemoryGap(uint16_t adr, uint16_t sz);
+
+	uint8_t getWaitStates() { return mWaitStates; }
 
 };
 

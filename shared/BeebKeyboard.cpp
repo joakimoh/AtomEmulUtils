@@ -39,20 +39,11 @@ BeebKeyboard::BeebKeyboard(string name, double cpuClock, uint8_t startupOptions,
 	registerPort("PRESSED",		OUT_PORT,	0x1, PRESSED,	&mPRESSED);
 }
 
-// Reset device
-bool BeebKeyboard::reset()
+
+void BeebKeyboard::processPortUpdate(int index)
 {
-	Device::reset();
-
-	mCycleCount = 0;
-
-	return true;
-}
-
-//  Advance until clock cycle stopcycle has been reached
-bool BeebKeyboard::advance(uint64_t stopCycle)
-{
-	mCycleCount = stopCycle;
+	if (index != CTRL)
+		return;
 
 	uint8_t ctrl_sel = mCTRL & 0x7;
 	uint8_t ctrl_val = (mCTRL >> 3) & 0x1;
@@ -71,19 +62,23 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 	default:
 		break;
 	}
-	// The values of C0 and C1 together determine the start scroll address for the screen:
-	//      C0   C1      Screen				Mem
-	//                   Address   Modes	Sz
-	//		------------------------------------
-	//		0    0      $4000      3		16k
-	//		0    1      $5800      4, 5		10k
-	//		1    0      $6000      6		8k
-	//		1    1      $3000      0, 1, 2	20k
-	//
 
-	// Stop keyboard scanning (i.e. keep last value of ROW output) if KB_ENA is High
-	//if (mKB_ENA)
-	//	return true;
+}
+
+// Reset device
+bool BeebKeyboard::reset()
+{
+	Device::reset();
+
+	mCycleCount = 0;
+
+	return true;
+}
+
+//  Advance until clock cycle stopcycle has been reached
+bool BeebKeyboard::advance(uint64_t stopCycle)
+{
+	mCycleCount = stopCycle;
 
 	al_get_keyboard_state(&mKeyboardState);
 

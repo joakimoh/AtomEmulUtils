@@ -26,7 +26,7 @@ private:
 public:
 
 
-	BeebROMSel(string name, double cpuClock, uint16_t adr, DebugManager  *debugManager, ConnectionManager * connectionManager);
+	BeebROMSel(string name, double cpuClock, uint8_t waitStates, uint16_t adr, DebugManager  *debugManager, ConnectionManager * connectionManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool write(uint16_t adr, uint8_t data);

@@ -1505,14 +1505,27 @@ void P6502::setNZCVflags(uint8_t N, uint8_t Z, uint8_t C, uint8_t V)
 		mStatusRegister |= V_set_mask;
 }
 
+
+void  P6502::adjustForWaitStates(MemoryMappedDevice* dev)
+{
+	// Add wait states if applicable
+	int wait_states = dev->getWaitStates();
+	if (wait_states > 0) {
+		mCycleCount += mCycleCount % 2; // synchronise with CPU Clock phase
+		mCycleCount += wait_states; // add extra memory access cycles
+	}
+}
 //
 //
 bool P6502::readDevice(uint16_t adr, uint8_t& data)
 {
+	
+
 	for (int i = 0; i < mDevices.size(); i++) {
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
-			bool success = dev->read(adr, data);
+			adjustForWaitStates(dev);// Add wait states if applicable
+			bool success = dev->read(adr, data);		
 			return success;
 		}
 	}
@@ -1527,7 +1540,9 @@ bool P6502::readDevice(uint16_t adr, uint8_t& data)
 bool P6502::readZP(uint8_t adr, uint8_t &data)
 {
 	data = 0xff;
-	if (mZPMemDev != NULL && mZPMemDev->read(adr, data)) {
+	if (mZPMemDev != NULL && mZPMemDev->selected(adr)) {
+		adjustForWaitStates(mZPMemDev);// Add wait states if applicable
+		mZPMemDev->read(adr, data);
 		return true;
 	}
 	return false;
@@ -1542,8 +1557,9 @@ bool P6502::readProgramMem(uint16_t adr, uint8_t& data)
 	for (int i = 0; i < mMemories.size(); i++) {
 		MemoryMappedDevice* dev = mMemories[i];
 		if (dev->selected(adr)) {
+			adjustForWaitStates(dev);// Add wait states if applicable
 			bool success = dev->read(adr, data);
-			mLastPgmDevice = dev;
+			mLastPgmDevice = dev;			
 			return success;
 		}
 	}
@@ -1561,6 +1577,7 @@ bool P6502::writeDevice(uint16_t adr, uint8_t data)
 	for (int i = 0; i < mDevices.size(); i++) {
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
+			adjustForWaitStates(dev);// Add wait states if applicable
 			return dev->write(adr, data);
 		}
 	}

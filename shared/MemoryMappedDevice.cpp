@@ -7,8 +7,8 @@
 using namespace std;
 
 MemoryMappedDevice::MemoryMappedDevice(
-	string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint16_t adr, uint16_t sz, DebugManager  *debugManager, ConnectionManager* connectionManager
-): Device(name, typ, cat, cpuClock, debugManager, connectionManager)
+	string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz, DebugManager  *debugManager, ConnectionManager* connectionManager
+): Device(name, typ, cat, cpuClock, debugManager, connectionManager), mWaitStates(waitStates)
 {
 	mMemorySpace = { adr, sz };
 	mMemoryMapped = true;

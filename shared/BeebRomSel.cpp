@@ -3,8 +3,8 @@
 #include <iostream>
 #include <filesystem>
 
-BeebROMSel::BeebROMSel(string name, double cpuClock, uint16_t adr, DebugManager  *debugManager, ConnectionManager * connectionManager) :
-	MemoryMappedDevice(name, BEEB_PAGED_ROM_SEL_DEV, MEMORY_DEVICE, cpuClock, adr, 1, debugManager, connectionManager)
+BeebROMSel::BeebROMSel(string name, double cpuClock, uint8_t waitStates, uint16_t adr, DebugManager  *debugManager, ConnectionManager * connectionManager) :
+	MemoryMappedDevice(name, BEEB_PAGED_ROM_SEL_DEV, MEMORY_DEVICE, cpuClock, waitStates, adr, 1, debugManager, connectionManager)
 {
 	registerPort("NW", OUT_PORT, 0x1, NW, &mNW);
 	registerPort("NE", OUT_PORT, 0x1, NE, &mNE);

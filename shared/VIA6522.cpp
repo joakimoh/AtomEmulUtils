@@ -16,8 +16,8 @@ using namespace std;
 //
 
 
-VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager) :
-	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL, cpuClock, adr, 0x10, debugManager, connectionManager), mClock(clock)
+VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugManager  *debugManager, ConnectionManager* connectionManager) :
+	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL, cpuClock, waitStates, adr, 0x10, debugManager, connectionManager), mClock(clock)
 {
 
 	// Specify ports that can be connected to other devices

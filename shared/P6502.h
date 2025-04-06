@@ -97,6 +97,7 @@ private:
 	void pullWord(uint16_t& word);
 	string stack2Str();
 	
+	void  adjustForWaitStates(MemoryMappedDevice* dev);
 
 public:
 

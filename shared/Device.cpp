@@ -206,6 +206,13 @@ double Devices::getDoubleVal(stringstream& sin)
 	return stod(v_s);
 }
 
+int Devices::getIntVal(stringstream& sin)
+{
+	string v_s;
+	sin >> v_s;
+	return stoi(v_s, 0, 10);
+}
+
 string Devices::getFileName(string &path, stringstream& sin)
 {
 
@@ -342,7 +349,8 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					RAM* ram = new RAM(dev_name, cpuClock, false, dev_adr, dev_sz, mDM, &connection_manager);
+					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					RAM* ram = new RAM(dev_name, cpuClock, wait_states, false, dev_adr, dev_sz, mDM, &connection_manager);
 					mDevices.push_back(ram);
 
 				}
@@ -351,7 +359,8 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					RAM* ram = new RAM(dev_name, cpuClock, true, dev_adr, dev_sz, mDM, &connection_manager);
+					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					RAM* ram = new RAM(dev_name, cpuClock, wait_states, true, dev_adr, dev_sz, mDM, &connection_manager);
 					mDevices.push_back(ram);
 
 				}
@@ -360,8 +369,9 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
+					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					string ROM_file_path = getFileName(memMapFile, sin);
-					ROM* rom = new ROM(dev_name, cpuClock, dev_adr, dev_sz, ROM_file_path, mDM, &connection_manager);
+					ROM* rom = new ROM(dev_name, cpuClock, wait_states, dev_adr, dev_sz, ROM_file_path, mDM, &connection_manager);
 					mDevices.push_back(rom);
 
 				}
@@ -370,7 +380,8 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					paged_rom_sel = new BeebROMSel(dev_name, cpuClock, dev_adr, mDM, &connection_manager);
+					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					paged_rom_sel = new BeebROMSel(dev_name, cpuClock, wait_states, dev_adr, mDM, &connection_manager);
 					mDevices.push_back(paged_rom_sel);
 
 				}
@@ -383,7 +394,8 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					PIA8255* pia = new PIA8255(dev_name, cpuClock, dev_adr, mDM, &connection_manager);
+					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					PIA8255* pia = new PIA8255(dev_name, cpuClock, wait_states, dev_adr, mDM, &connection_manager);
 					mDevices.push_back(pia);
 
 				}
@@ -392,8 +404,9 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
+					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					double clk = getDoubleVal(sin);
-					VIA6522* via = new VIA6522(dev_name, dev_adr, clk, cpuClock, mDM, &connection_manager);
+					VIA6522* via = new VIA6522(dev_name, dev_adr, clk, cpuClock, wait_states, mDM, &connection_manager);
 					mDevices.push_back(via);
 
 				}
@@ -402,8 +415,9 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
+					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					double clk = getDoubleVal(sin);
-					ACIA6850* acia = new ACIA6850(dev_name, cpuClock, dev_adr, clk, mDM, &connection_manager);
+					ACIA6850* acia = new ACIA6850(dev_name, cpuClock, wait_states, dev_adr, clk, mDM, &connection_manager);
 					mDevices.push_back(acia);
 
 					}
@@ -417,7 +431,8 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint16_t video_mem_adr = getHexVal(sin);
-					mainVDU = new VDU6847(dev_name, dev_adr, cpuClock, disp, dispBitmap, dispW, dispH, video_mem_adr, mDM, &connection_manager);
+					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					mainVDU = new VDU6847(dev_name, dev_adr, cpuClock, wait_states, disp, dispBitmap, dispW, dispH, video_mem_adr, mDM, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 
@@ -427,7 +442,8 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, cpuClock, dispBitmap, dispW, dispH, mDM, &connection_manager);
+					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, cpuClock, wait_states, dispBitmap, dispW, dispH, mDM, &connection_manager);
 					mDevices.push_back(crtc);
 					vdus.push_back(crtc);
 				}
@@ -442,7 +458,8 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					mainVDU = new BeebVideoULA(dev_name, dev_adr, cpuClock, disp, dispBitmap, dispW, dispH, mDM, &connection_manager);
+					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					mainVDU = new BeebVideoULA(dev_name, dev_adr, cpuClock, wait_states, disp, dispBitmap, dispW, dispH, mDM, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 				}

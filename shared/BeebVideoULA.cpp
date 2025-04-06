@@ -50,8 +50,8 @@
 // The full frame rate should correspond to 1/2 the interlaced field rate, i.e. 50 /2 = 25 Hz
 
 BeebVideoULA::BeebVideoULA(
-	string name, uint16_t adr, double cpuclock, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
-) : VideoDisplayUnit(name, BEEB_VDU_DEV, cpuclock, adr, 0x10, dispBitmap, dispW, dispH, 0x0 /* dummy adr */, debugManager, connectionManager), mDisplay(disp)
+	string name, uint16_t adr, double cpuclock, uint8_t waitStates, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
+) : VideoDisplayUnit(name, BEEB_VDU_DEV, cpuclock, waitStates, adr, 0x10, dispBitmap, dispW, dispH, 0x0 /* dummy adr */, debugManager, connectionManager), mDisplay(disp)
 {
 	registerPort("SCROLL_CTRL",	IN_PORT,	0x0f, SCROLL_CTRL,	&mSCROLL_CTRL);
 	registerPort("DISEN",		IN_PORT,	0x01, DISPTMG,		&mDISPTMG);
