@@ -121,44 +121,43 @@ public:
 	ALLEGRO_STATE mAllegroState;
 
 	
-	int mFieldCount = 0;
+	int mField = 0;
 
 	// Base parameters
-	const int mScanLines = 262;									// No of scan lines per field
+	const int mFieldScanLines = 262;							// No of scan lines per field
+	const int mScreenScanLines = 524;							// No of scan lines per frame
 	const int mFieldFreq = 60;									// Field frequency - 60 Hz for NTSC
 	const double mClockFreq = 3.58;								// Base frequency (in MHz) fed to the M6847
 	const double mTAVB = 185.5 / mClockFreq;					// Duration of visible horizontal area (including borders) [us]
 	const double mTAV = 128 / mClockFreq;						// Duration of active horizontal area (excluding borders) [us]
-	const int mTVBlkH = 13;										// Vertical blanking [in scan lines]
-	const int mBVBlkH = 6;										//
+	const int mTVBlkH = 13 * 2;									// Vertical blanking [in scan lines]
+	const int mBVBlkH = 6 * 2;									//
 
 	// Calculated parameters (based on the base parameters)
-	const double mlineDur = (1e6 / mFieldFreq) / mScanLines;	// Line duration - approximately 63.6 us for NTSC
+	const double mlineDur = (1e6 / mFieldFreq) / mFieldScanLines;	// Line duration - approximately 63.6 us for NTSC
 	const double mHalfCycleD = 1 / (mClockFreq * 2);			// Duration (in us) of one 1/2 cycle of the base frequency <=> one horizontal 'pixel'
 	const double mBrdH = mTAVB - mTAV;							// Duration of horizontal borders [us]
 	const double mHBlkDur = mlineDur - mTAVB;					// Horizontal blanking duration [us]
 
 	// Display regions
-	const int mActAreaW = 256;									// Active visible area 256 x 192
-	const int mActAreaH = 192;
-	const int mTBrdH = 25;										// Top & Bottom (inactive but still) visible borders
-	const int mBBrdH = 26; 
-	const double mLBrdW = mBrdH / (2 * mHalfCycleD);			// Left & Right (inactive but still) visible horizontal borders
-	const double mRBrdW = mBrdH / (2 * mHalfCycleD);			// #pixels = duration / 1/2 cycle duration
+	const int mPixelW = 2;										// Horizontal pixel width
+	const int mActScreenAreaW = 256 * mPixelW;					// Active visible screen area 256 x (192 * 2)
+	const int mActScreenAreaH = 192 * 2;
+	const int mTBrdH = 25 * 2;									// Top & Bottom (inactive but still) visible borders
+	const int mBBrdH = 26 * 2; 
+	const double mLBrdW = mBrdH / (2 * mHalfCycleD) * mPixelW;		// Left & Right (inactive but still) visible horizontal borders
+	const double mRBrdW = mBrdH / (2 * mHalfCycleD) * mPixelW;		// #pixels = duration / 1/2 cycle duration
 
-	const int mVisW = (int)round(mLBrdW + mActAreaW + mRBrdW);	// Visible area
-	const int mVisH = (int)round(mTBrdH + mActAreaH + mBBrdH);	//
+	const int mScreenW = (int)round(mLBrdW + mActScreenAreaW + mRBrdW);	// Visible area
+	const int mScreenH = (int)round(mTBrdH + mActScreenAreaH + mBBrdH);	//
 	
-	const double mLineW = mlineDur / (mHalfCycleD);				// Total line width in 'pixels'
-	const double mLBlkW = (mLineW - mVisW) / 2;					// Left invisible part of a line in 'pixels'
-	const double mRBlkW = (mLineW - mVisW) / 2;					// Right invisible part of a line in 'pixels'
+	const double mLineW = mlineDur / (mHalfCycleD) *mPixelW;	// Total line width in 'pixels'
+	const double mLBlkW = (mLineW - mScreenW) / 2;			// Left invisible part of a line in 'pixels'
+	const double mRBlkW = (mLineW - mScreenW) / 2;			// Right invisible part of a line in 'pixels'
 										
-	const int mTotalH = mTVBlkH + mVisH + mBVBlkH;				// Total dislay height (in scan lines) including invisble vertical  blanking
-																// - should equal mScanLines
-	const int mTotalW = (int)round(mLBlkW + mVisW + mRBlkW);	// Total display width including invisible horizontal blanking
-	const double scale_factor = 720 / (double)mVisW;			// Scale to 720 lines height
-	const int mScaledW = (int) round (scale_factor * mVisW);	//
-	const int mScaledH = (int) round(scale_factor * mVisH);		//
+	const int mTotalH = mTVBlkH + mScreenH + mBVBlkH;		// Total display height (in scan lines) including invisible vertical blanking
+																// - should equal mScreenScanLines
+	const int mTotalW = (int)round(mLBlkW + mScreenW + mRBlkW);	// Total display width including invisible horizontal blanking
 
 	uint32_t mColours[2][4] = {
 						{
@@ -179,7 +178,7 @@ public:
 
 public:
 
-	bool getVisibleArea(int& w, int& h) { w = mScaledW; h = mScaledH; return true; }
+	bool getVisibleArea(int& w, int& h) { w = mScreenW; h = mScreenH; return true; }
 
 	ALLEGRO_COLOR green, black;
 
@@ -200,8 +199,8 @@ public:
 	inline int getScanLine() { return mScanLine; }
 	inline int getLeftBorderChars() { return mLBrdW / 8; }
 	inline int getTopBorderLines() { return mTBrdH; }
-	inline int getActiveChars() { return mActAreaW/8; }
-	inline int getActiveLines() { return mActAreaH; }
+	inline int getActiveChars() { return mActScreenAreaW/8; }
+	inline int getActiveLines() { return mActScreenAreaH; }
 	inline int getRightBorderChars() { return mRBrdW / 8; }
 	inline int getBottomBorderLines() { return mBBrdH; }
 	inline int getRetraceLines() { return mTVBlkH + mBVBlkH; }

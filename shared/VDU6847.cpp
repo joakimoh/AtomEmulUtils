@@ -96,10 +96,10 @@ VDU6847::VDU6847(string name, uint16_t adr, double cpuClock, uint8_t waitStates,
 		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
 		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
 
-	// Create 256 x 192 display bitmap and clear it
-	mDisplayBitmap = al_create_bitmap(mVisW, mVisH);
+	// Createdisplay bitmap and clear it
+	mDisplayBitmap = al_create_bitmap(mScreenW, mScreenH);
 
-	al_resize_display(disp, mScaledW, mScaledH);
+	al_resize_display(disp, mScreenW, mScreenH);
 
 	green = al_map_rgb(0, 0xff, 0);
 	black = al_map_rgb(0, 0, 0);
@@ -109,16 +109,17 @@ VDU6847::VDU6847(string name, uint16_t adr, double cpuClock, uint8_t waitStates,
 	if (mDM->debug(DBG_VERBOSE)) {
 		cout << dec << "\n\nM6847 Parameters:\n\n";
 		cout << "Field rate: " << mFieldFreq << " [Hz]\n";
-		cout << "Scan lines per field: " << mScanLines << " lines\n";
+		cout << "Scan lines per field: " << mFieldScanLines << " lines\n";
+		cout << "Scan lines per frame: " << mScreenScanLines << " lines\n";
 		cout << "Line duration: " << mlineDur << " [us] (" << mLineW << " pixels)\n";
 		cout << "Duration of horizontal borders: " << mBrdH << " [us] (" << mLBrdW + mRBrdW << " pixels)\n";
 		cout << "Vertical borders: " << mTBrdH + mBBrdH << " lines\n";
 		cout << "Vertical blanking: " << mTVBlkH + mBVBlkH << " lines\n";
 		cout << "Horizontal blanking: " << mHBlkDur << " [us] (" << mLBlkW + mRBlkW << " pixels)\n";
-		cout << "Visible Active Display Area: " << mActAreaW << " x " << mActAreaH << " pixels\n";
-		cout << "Total Visible Display Area: " << mVisW << " x " << mVisH << " pixels\n";
+		cout << "Visible Active Display Area: " << mActScreenAreaW << " x " << mActScreenAreaH << " pixels\n";
+		cout << "Total Visible Display Area: " << mScreenW << " x " << mScreenH << " pixels\n";
 		cout << "Total Display Area (including invisible parts): " << mTotalW << " x " << mTotalH << " pixels\n";
-		cout << "Scaled Visible Display Area: " << mScaledW << " x " << mScaledH << "\n";
+		cout << "Visible Display Area: " << mScreenW << " x " << mScreenH << "\n";
 		cout << "\n\n";
 	}
 
@@ -136,7 +137,7 @@ bool VDU6847::reset()
 	Device::reset();
 
 	mScanLine = 0;
-	mFieldCount = 0;
+	mField = 0;
 
 
 	return true;
@@ -176,10 +177,12 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 
 	float proc_clk_rate_Mhz = mN60HzCycles * 60 / 1e6;
 
-
+	int field = fieldScanLineOffset();
+	int adjusted_scan_line = mScanLine - field;
 	int pixel_line = mScanLine - (mTVBlkH + mTBrdH);
 	int visible_line = mScanLine - mTVBlkH;
-
+	int adjusted_pixel_line = pixel_line - field;
+	
 	if (!mRESET) {
 		reset();
 		mCycleCount += (int)round(63.5 / proc_clk_rate_Mhz);
@@ -187,16 +190,22 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 		return true;
 	}
 
+	//cout << "FIELD " << dec << (mField % 2) << ", SCAN LINE " << mScanLine << ", adj pixel line " << adjusted_pixel_line << 
+	//	", SCREEN H " << mActScreenAreaH << ", TOP BLANKING " << mTVBlkH << ", BOTTOM BLANKING " << mBVBlkH << "\n";
+
 	
-	if (pixel_line == mActAreaH) {
+	
+	if (adjusted_pixel_line == mActScreenAreaH) {
+
+		//cout << "*** UPDATE SCREEN! ***\n";
 
 		// The Field Sync (FS) signal goes High to Low at the end of the active display area
 		updatePort(VDU_PORT_FS, 0);  // for Acorn atom this will set PIA port C:b7 to '0'
 
 		unlockDisplay();
 
-		// Scale the display bitmap including borders to match the size of the display
-		al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mVisW, mVisH, 0, 0, mScaledW, mScaledH, 0);
+		// Draw the bitmap on the display
+		al_draw_bitmap(mDisplayBitmap, 0, 0, 0);
 
 		// Make the updates visible on the display
 		al_flip_display();
@@ -205,15 +214,14 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 		// Clear the display
 		al_clear_to_color(black);
 
-		mFieldCount++;
-
 		lockDisplay();
 
 	}
 
-	if (pixel_line >= 0 && pixel_line < mActAreaH)
+	if (adjusted_pixel_line >= 0 && adjusted_pixel_line < mActScreenAreaH)
 		// Draw a visible active line
 	{		
+		//cout << "*** ACTIVE LINE! ***\n";
 
 		// Get pointer to bitmap data for the concerned scan line.
 		// pitch <=> bytes/line; data <=> pixel bytes with left-most pixel first
@@ -237,17 +245,17 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 			case 6: // CG6: 128 x 192, 4 colours, 6   kB, 32 bytes/line <=> Acorn Atom mode 4a
 			{
 				int bytes_per_line = 32;
-				int pixel_width = 2;
+				int pixel_width = 2 * mPixelW;
 				int pixel_height = 4;
 				if (mGM == 0) {
 					bytes_per_line = 16;
-					pixel_width = 4;
+					pixel_width = 4 * mPixelW;
 				}
 				else if (mGM == 4)
 					pixel_height = 2;
 				else if (mGM == 6)
 					pixel_height = 1;
-				int big_pixel_line = pixel_line / pixel_height;
+				int big_pixel_line = adjusted_pixel_line / pixel_height / 2;
 				int base_mem_adr = mVideoMemAdr + big_pixel_line * bytes_per_line;
 				// byte c1 c0 c1 c0 c1 c0 c1 c0 c1 c0 => pixels e3 e2 e1 e0
 				for (int pixel_byte = 0; pixel_byte < bytes_per_line; pixel_byte++) {
@@ -269,17 +277,17 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 			case 7: // CG7: 256 x 192, 2 colours, 6   kB, 32 bytes/line <=> Acorn Atom mode 4
 			{
 				int bytes_per_line = 16;
-				int pixel_width = 2;
+				int pixel_width = 2 * mPixelW;
 				int pixel_height = 1;			
 				if (mGM == 7) {
 					bytes_per_line = 32;
-					pixel_width = 1;
+					pixel_width = 1 * mPixelW;
 				}
 				else if (mGM == 1)
 					pixel_height = 3;
 				else if (mGM == 3)
 					pixel_height = 2;
-				int big_pixel_line = pixel_line / pixel_height;
+				int big_pixel_line = adjusted_pixel_line / pixel_height / 2;
 				int base_mem_adr = mVideoMemAdr + big_pixel_line * bytes_per_line;
 				for (int pixel_byte = 0; pixel_byte < bytes_per_line; pixel_byte++) {					
 					int mem_adr = base_mem_adr + pixel_byte;
@@ -306,10 +314,11 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 		else 
 				// Alphanumeric or semigraphic mode
 			{
-				int pixel_row = (pixel_line % 12) / 4;
-				int mem_row = pixel_line / 12;
+				int field_pixel_line = adjusted_pixel_line / 2;
+				int pixel_row = (field_pixel_line % 12) / 4;
+				int mem_row = field_pixel_line / 12;
 				int base_mem_adr = mVideoMemAdr + mem_row * 32;
-				int y = pixel_line % 12;
+				int y = field_pixel_line % 12;
 				for (int char_col = 0; char_col < 32; char_col++) {
 					int mem_adr = base_mem_adr + char_col;
 					if (!readGraphicsMem(mem_adr, mem_data))
@@ -323,13 +332,15 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 						uint8_t colour = (mem_data >> 6) & 0x3;					
 						uint8_t pixel_data = ((mem_data & 0x3f) >> 2 * (2 - pixel_row)) & 0x3;
 						for (int pixel = 0; pixel < 2; pixel++) {
-							if (pixel_data & (1 << (1 - pixel))) {
-								*bitmap_data_p = *(bitmap_data_p + 1) = *(bitmap_data_p + 2) = *(bitmap_data_p + 3) = mColours[mCSS][colour];
+							for (int w = 0; w < mPixelW; w++) {
+								if (pixel_data & (1 << (1 - pixel))) {
+									*bitmap_data_p = *(bitmap_data_p + 1) = *(bitmap_data_p + 2) = *(bitmap_data_p + 3) = mColours[mCSS][colour];
+								}
+								else {
+									*bitmap_data_p = *(bitmap_data_p + 1) = *(bitmap_data_p + 2) = *(bitmap_data_p + 3) = 0xff000000; // opaque black ARGB 8888;
+								}
+								bitmap_data_p += 4;
 							}
-							else {
-								*bitmap_data_p = *(bitmap_data_p + 1) = *(bitmap_data_p + 2) = *(bitmap_data_p + 3) = 0xff000000; // opaque black ARGB 8888;
-							}
-							bitmap_data_p += 4;
 						}
 					}
 					else
@@ -356,10 +367,12 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 						// Windows seems to prefer to use ALLEGRO_PIXEL_FORMAT_ARGB_8888 (0x9)
 						// The bitmap pointer has been advanced 8 pixels (one character) when completed.
 						for (int x = 0; x < 8; x++) {
-							if (symbol_mask & 0x80)
-								*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
-							else
-								*bitmap_data_p++ = 0xff000000; // opaque black ARGB 8888
+							for (int w = 0; w < mPixelW; w++) {
+								if (symbol_mask & 0x80)
+									*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
+								else
+									*bitmap_data_p++ = 0xff000000; // opaque black ARGB 8888								
+							}
 							symbol_mask = symbol_mask << 1;
 						}
 					}
@@ -377,12 +390,18 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	}
 	
 
-	else if (mScanLine >= mTVBlkH && mScanLine < mScanLines - mBVBlkH)
+	else if (adjusted_scan_line >= mTVBlkH && adjusted_scan_line < mScreenScanLines - mBVBlkH)
 		// Draw top or bottom border
 	{	
-		
+		/*
+		if (adjusted_scan_line < mTVBlkH + mTBrdH)
+			cout << "*** DRAW TOP BORDER LINE! ***\n";
+		else
+			cout << "*** DRAW BOTTOM BORDER LINE! ***\n";
+		*/
+
 		unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_line);
-		for (int p = 0; p < mVisW; p++) {
+		for (int p = 0; p < mScreenW; p++) {
 			*bitmap_data_p++ = 0xff00ff00; // opaque green ARGB 8888
 		}
 		
@@ -392,11 +411,16 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	mCycleCount += (int) round(63.5/ proc_clk_rate_Mhz);
 
 	// Next scan line if a complete line has been scanned
-	mScanLine = (mScanLine + 1) % 262;
-
-	if (mScanLine == 0) {
+	mScanLine = (mScanLine + 2) % mScreenScanLines;
+	if ((mField % 2 == 0 && mScanLine == 0) || (mField % 2 == 1 && mScanLine == 1)) { // start of new field
+		mField++;
+		if (mField % 2 == 0)
+			mScanLine = 0; // Even field => start at scan line 0
+		else
+			mScanLine = 1; // Odd field => start at scan line 1
 		// The Field Sync (FS) signal goes High at the end of the vertical synchronisation pulse
 		updatePort(VDU_PORT_FS, 1); // For Acorn Atom this will set PIA port C:b7 to '1'
+		
 	}
 
 	endCycle = mCycleCount;
@@ -472,5 +496,5 @@ bool VDU6847::advanceHalfLine(uint64_t& endCycle)
 // Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
 int VDU6847::fieldScanLineOffset()
 {
-	return (mFieldCount % 2);
+	return (mField % 2);
 }
