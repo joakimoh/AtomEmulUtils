@@ -113,7 +113,7 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 }
 
 //
-bool ConnectionManager::connect(string srcName, string dstName, bool invert)
+bool ConnectionManager::connect(string srcName, string dstName, bool invert, bool process)
 {
 
 	PortSelection src_port;
@@ -138,12 +138,15 @@ bool ConnectionManager::connect(string srcName, string dstName, bool invert)
 	input_ref.mask = dst_port.bits.mask;
 	input_ref.shifts = src_port.bits.lowBit - dst_port.bits.lowBit;
 	input_ref.invert = invert;
+	input_ref.process = process;
 	if (dst_port.port->dir == PortDirection::IO_PORT)
 		src_port.port->bidirectionalInputs.push_back(input_ref);
 	else
 		src_port.port->inputs.push_back(input_ref);
-	if (mDM->debug( DBG_DEVICE))
-		cout << "CONNECT " << srcName << " AND " << dstName << " => shifts = " << dec << input_ref.shifts  << " & mask = 0x" << hex << (int) input_ref.mask  << dec << "\n";
+	if (mDM->debug(DBG_VERBOSE))
+		cout << "CONNECT " << srcName << " AND " << dstName << " => shifts = " << dec << input_ref.shifts  << ", mask = 0x" << 
+		hex << (int) input_ref.mask  << dec << ", invert = " << (invert?"true":"false") << ", process = " << (process?"true":"false") <<
+		"\n";
 
 	return true;
 }

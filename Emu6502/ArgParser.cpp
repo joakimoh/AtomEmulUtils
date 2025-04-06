@@ -158,6 +158,14 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			if (strstr(argv[a], "a") != NULL)
 				debugManager.setDebugLevel(DBG_ALL);
 		}
+		else if (strcmp(argv[a], "-port") == 0) {
+			a += 2;;
+			if (a >= argc) {
+				printUsage(argv[0]);
+				return;
+			}
+			debugManager.setDebugPort(argv[a - 1], argv[a]);
+		}
 		else {
 			cout << "Unknown option " << argv[a] << "\n";
 			printUsage(argv[0]);

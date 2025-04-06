@@ -261,7 +261,7 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 		case TT_DLE:			break;
 		case TT_GRAPHICS_RED:			mGraphicsColour = mColours[TT_RED];			mHiddenText = false;			mGraphicSymbols = true;			break; 		case TT_GRAPHICS_GREEN:			mGraphicsColour = mColours[TT_GREEN];			mHiddenText = false;			mGraphicSymbols = true;			break; 		case TT_GRAPHICS_YELLOW:			mGraphicsColour = mColours[TT_YELLOW];			mHiddenText = false;			mGraphicSymbols = true;			break; 		case TT_GRAPHICS_BLUE:			mGraphicsColour = mColours[TT_BLUE];			mHiddenText = false;			mGraphicSymbols = true;			break;
 		case TT_GRAPHICS_MAGENTA:			mGraphicsColour = mColours[TT_MAGENTA];			mHiddenText = false;			mGraphicSymbols = true;			break; 		case TT_GRAPHICS_CYAN:			mGraphicsColour = mColours[TT_CYAN];			mHiddenText = false;			mGraphicSymbols = true;			break; 		case TT_GRAPHICS_WHITE:			mGraphicsColour = mColours[TT_WHITE];			mHiddenText = false;			mGraphicSymbols = true;			break;
-		case TT_CONCEAL:			// Subsequent text in the row will be hidden (displayed as spaces in the current background colour) until			// the next text colour or graphics colour control code is encountered.			mHiddenText = true;			break; 		case TT_CONTIGUOUS_GRAPHICS:			mSeparatedGraphics = false;			break; 		case TT_SEPARATED_GRAPHICS:			mSeparatedGraphics = true;			break;
+		case TT_CONCEAL:			/*			// Subsequent text in the row will be hidden (displayed as spaces in the current background colour) until			// the next text colour or graphics colour control code is encountered.			*/			mHiddenText = true;			break; 		case TT_CONTIGUOUS_GRAPHICS:			mSeparatedGraphics = false;			break; 		case TT_SEPARATED_GRAPHICS:			mSeparatedGraphics = true;			break;
 		case TT_ESC:			break; 		case TT_BLACK_BACKGROUND:			mBackgroundColour = mColours[TT_BLACK];			break; 		case TT_NEW_BACKGROUND:			mBackgroundColour = mAlpaNumericColour;			break;
 		case TT_HOLD_GRAPHICS:			// In the held graphics mode, control codes are displayed as a copy of the most recently displayed graphics symbol.			mHeldGraphics = true;			break;		case TT_RELEASE_GRAPHICS:
 			mHeldGraphics = false;
@@ -318,25 +318,53 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 
 
 		if (draw_sixels) {
+
 			// Create one scan line of two "big" pixels (sixels) occupying 2 x 6 actual pixels
 			uint8_t left_sixel, right_sixel;
 
-			if (mCharRasterLine <= 4) {
-				left_sixel = (char_data >> 0) & 0x1;
-				right_sixel = (char_data >> 1) & 0x1;
+			if (mCharRasterLine < 6) { // 6 raster lines for top sixels
+				if (mSeparatedGraphics && (mCharRasterLine == 0 || mCharRasterLine == 5)) {
+					left_sixel = right_sixel = 0;
+				}
+				else {
+					left_sixel = (char_data >> 0) & 0x1;
+					right_sixel = (char_data >> 1) & 0x1;
+				}
 			}
-			else if (mCharRasterLine <= 12) {
-				left_sixel = (char_data >> 2) & 0x1;
-				right_sixel = (char_data >> 3) & 0x1;
+			else if (mCharRasterLine < 14) { // 8 raster lines for middle sixels
+				if (mSeparatedGraphics && (mCharRasterLine == 6 || mCharRasterLine == 13)) {
+					left_sixel = right_sixel = 0;
+				}
+				else { 
+					left_sixel = (char_data >> 2) & 0x1;
+					right_sixel = (char_data >> 3) & 0x1;
+				}
+			}
+			else { // 6 raster lines for bottom sixels
+				if (mSeparatedGraphics && (mCharRasterLine == 14 || mCharRasterLine == 19)) {
+					left_sixel = right_sixel = 0;
+				}
+				else {
+					left_sixel = (char_data >> 4) & 0x1;
+					right_sixel = (char_data >> 6) & 0x1;
+				}
+			}
+			if (mSeparatedGraphics) {
+				screenData12.push_back(0);
+				for (int p = 1; p < 5; p++)
+					screenData12.push_back(left_sixel);
+				screenData12.push_back(0);
+				screenData12.push_back(0);
+				for (int p = 1; p < 5; p++)
+					screenData12.push_back(right_sixel);
+				screenData12.push_back(0);
 			}
 			else {
-				left_sixel = (char_data >> 4) & 0x1;
-				right_sixel = (char_data >> 6) & 0x1;
+				for (int p = 0; p < 6; p++)
+					screenData12.push_back(left_sixel);
+				for (int p = 0; p < 6; p++)
+					screenData12.push_back(right_sixel);
 			}
-			for (int p = 0; p < 6; p++)
-				screenData12.push_back(left_sixel);
-			for (int p = 0; p < 6; p++)
-				screenData12.push_back(right_sixel);
 		}
 
 		else {

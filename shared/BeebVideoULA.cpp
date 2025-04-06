@@ -133,62 +133,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	bool teletext = getCRField(CR_TELETEXT) == 1;
 
-	//
-	// Hardware scrolling
-	// 
-	// The values of C0 and C1 together determine the value to subtract from the current
-	// address when it exceeds 8000
-	//      MA12	C1   C0     CRTC address	Screen				Mem		Hz			subract
-	//		(a15)								Address   Modes		Sz		Res			const
-	//		------------------------------------------------------------------------------------
-	//		0		x	x		2800			7c00		7		1k					0400
-	//		1		0   0		800				4000		3		16k					4000
-	//		1		0   1		c00				6000		6		8k					2000
-	//		1		1	0		600				3000		0,1,2	20k		80 bytes	5000
-	//		1		1   1		b00				5800		4,5		10k					2800
-	//
-	// The System VIA's PB(3:0) are connected to the Video ULA's SCROLL_CTRL(3:0) where
-	// The three least significant bits selects whether to update C0 (4) or C1 (5)
-	// and the most significant bit is the value to assign to C0 or C1.
-	// mC = C(1:0) below with C1 as the most significant bit and C0 as the least significant bit.
-	//
-
-	uint8_t ctrl_sel = mSCROLL_CTRL & 0x7;
-	uint8_t ctrl_val = (mSCROLL_CTRL >> 3) & 0x1;
-	uint8_t p_C = mC;
-	switch (ctrl_sel) {
-	case 4:	// Hardware scrolling - set C0 (See below)
-		mC = (mC & 2) | ctrl_val;
-		//if (mC != p_C)
-		//	cout << "C0 = " << (int)ctrl_val << "\n";
-		break;
-	case 5:	// Hardware scrolling - set C1 (See below)
-		mC = (mC & 1) | (ctrl_val << 1);
-		//if (mC != p_C)
-		//	cout << "C1 = " << (int)ctrl_val << "\n";
-		break;
-	default:
-		break;
-	}
-	
-	uint16_t hw_scroll_sub = 0x0;
-	switch (mC & 0x3) {
-	case 0:// Mode 3 - start address 0x4000
-		hw_scroll_sub = 0x4000; break;
-	case 1: // Mode 6 - start address 0x6000
-		hw_scroll_sub = 0x2000; break;
-	case 2:// Modes 0,1,2 - start address 0x3000
-		hw_scroll_sub = 0x5000; break;
-	case 3:// Modes 4,5 - start address 0x5800
-		hw_scroll_sub = 0x2800; break;
-	default:
-		break;
-	}
-
-	if (teletext)
-		hw_scroll_sub = 0x0400;
-
-	
 
 	if (adjusted_scanline == mVerticalSyncPos) {
 	
@@ -317,8 +261,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			screen_adr = crtc_adr + (0x7400 ^ 0x2000); // CRTC MA13 is used to select the SA5050 and is cleared by 0x2000
 		}
 		if (screen_adr >= 0x8000) {
-			//cout << "SCROLLING - subtracting 0x" << hex << screen_adr << " by 0x" << hw_scroll_sub << " for C1:C0 = " << Utility::int2binStr(mC,2) << "\n";
-			screen_adr -= hw_scroll_sub; // correct for wrap around when hardware scrolling		
+			//cout << "SCROLLING - subtracting 0x" << hex << screen_adr << " by 0x" << mHwScrollSub << " for C1:C0 = " << Utility::int2binStr(mC,2) << "\n";
+			screen_adr -= mHwScrollSub; // correct for wrap around when hardware scrolling		
 		}
 
 		if (adjusted_scanline < active_lines && char_pos < active_chars && (screen_adr >= 0x8000 || screen_adr < 0x3000)) { // exit if the CRTC hasn't been properly initialised yet!
@@ -879,4 +823,81 @@ int BeebVideoULA::fieldScanLineOffset()
 		return mCRTC->fieldScanLineOffset();
 	else
 		return 0;
+}
+
+void BeebVideoULA::processPortUpdate(int port)
+{
+
+	if (port != SCROLL_CTRL)
+		return;
+
+
+	//
+	// Hardware scrolling
+	// 
+	// The values of C0 and C1 together determine the value to subtract from the current
+	// address when it exceeds 8000
+	//      MA12	C1   C0     CRTC address	Screen				Mem		Hz			subract
+	//		(a15)								Address   Modes		Sz		Res			const
+	//		------------------------------------------------------------------------------------
+	//		0		x	x		2800			7c00		7		1k					0400
+	//		1		0   0		800				4000		3		16k					4000
+	//		1		0   1		c00				6000		6		8k					2000
+	//		1		1	0		600				3000		0,1,2	20k		80 bytes	5000
+	//		1		1   1		b00				5800		4,5		10k					2800
+	//
+	// The System VIA's PB(3:0) are connected to the Video ULA's SCROLL_CTRL(3:0) where
+	// The three least significant bits selects whether to update C0 (4) or C1 (5)
+	// and the most significant bit is the value to assign to C0 or C1.
+	// mC = C(1:0) below with C1 as the most significant bit and C0 as the least significant bit.
+	//
+
+	uint8_t ctrl_sel = mSCROLL_CTRL & 0x7;
+	uint8_t ctrl_val = (mSCROLL_CTRL >> 3) & 0x1;
+	uint8_t p_C = mC;
+	switch (ctrl_sel) {
+	case 4:	// Hardware scrolling - set C0 (See below)
+		mC = (mC & 2) | ctrl_val;
+		break;
+	case 5:	// Hardware scrolling - set C1 (See below)
+		mC = (mC & 1) | (ctrl_val << 1);
+		break;
+	default:
+		break;
+	}
+
+	uint16_t p_HW_scroll_sub = mHwScrollSub;
+	int mode = 0;
+	mHwScrollSub = 0x0;
+	switch (mC & 0x3) {
+	case 0:// Mode 3 - start address 0x4000
+		mode = 3;
+		mHwScrollSub = 0x4000;
+		break;
+	case 1: // Mode 6 - start address 0x6000
+		mode = 6;
+		mHwScrollSub = 0x2000;
+		break;
+	case 2:// Modes 0,1,2 - start address 0x3000
+		mode = 12;
+		mHwScrollSub = 0x5000;
+		break;
+	case 3:// Modes 4,5 - start address 0x5800
+		mode = 45;
+		mHwScrollSub = 0x2800;
+		break;
+	default:
+		mode = -1;
+		break;
+	}
+
+	bool teletext = getCRField(CR_TELETEXT) == 1;
+	if (teletext) {
+		mHwScrollSub = 0x0400;
+		mode = 7;
+	}
+
+	if (mDM->debug(DBG_VDU) && mHwScrollSub != p_HW_scroll_sub)
+		cout << "New HW Scroll constant 0x" << hex << mHwScrollSub << " (0x" << p_HW_scroll_sub << ") for mode " << dec << mode << "\n";
+
 }

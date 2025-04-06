@@ -85,6 +85,8 @@ public:
 
 	bool mNewField = false;
 
+	uint16_t mHwScrollSub = 0x0;
+
 	uint32_t mColours[8] = {
 		0xff000000,	// 0	Black
 		0xffff0000,	// 1	Red
@@ -181,6 +183,7 @@ public:
 		return mCRTC != NULL && mTGC != NULL && mCRTC->initialised();
 	}
 
+	void processPortUpdate(int port) override;
 };
 
 #endif

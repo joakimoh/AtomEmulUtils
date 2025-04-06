@@ -48,6 +48,18 @@ void DebugManager::setDebugLevel(DebugLevel level)
 	mDbgLevel |= level;
 }
 
+void DebugManager::setDebugPort(string portDevice, string port)
+{
+	mDbgLevel |= DBG_PORT;
+	mPortDevice = portDevice;
+	mPort = port;
+}
+
+bool DebugManager::matchPort(DevicePort* port)
+{
+	return (mPortDevice == "" || (port != NULL && port->dev != NULL && port->dev->name == mPortDevice && port->name == mPort));
+}
+
 void DebugManager::clearDebugLevel(DebugLevel level)
 {
 	mDbgLevel &= ~level;

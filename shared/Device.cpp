@@ -106,11 +106,13 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 		else
 			*(input.port->val) = ((pval & ~input.mask) | ((nval << (-input.shifts)) & input.mask)) & input.port->mask;
 
+		if (input.process)
+			input.port->dev->processPortUpdate(input.port->localIndex);
+
 		if (
-			(
-				(port->firstUpdate && mDM->debug(DBG_PORT)) || (mDM->debug(DBG_PORT) && *(input.port->val) != pval)
-				)
-			) {
+			mDM->matchPort(input.port) && 
+			((port->firstUpdate && mDM->debug(DBG_PORT)) || (mDM->debug(DBG_PORT) && *(input.port->val) != pval))
+		) {
 			string shift_s, c_dir;
 			if (input.shifts >= 0)
 				shift_s = "((src >> shifts) & mask)";
@@ -467,35 +469,41 @@ Devices::Devices(
 
 			}
 
-			else if (cmd == "CONNECT") {
+			else if (cmd.length() >= 7 && cmd.substr(0, 7) == "CONNECT") {
 
 				//
 				// Connect Device ports
 				// 
 				// Syntax;
-				//	CONNECT <src device>:<src port>[;<high bit>[;<low bit>]]	<dst device>:<dst port>[;<high bit>[;<low bit>]]
-				//
-
-				string src_port, dst_port;
-				sin >> src_port;
-				sin >> dst_port;
-				connection_manager.connect(src_port, dst_port, false);
-
-			}
-
-			else if (cmd == "ICONNECT") {
-
-				//
-				// Connect Device ports - invert the source port value value before feeding it to the destination port
+				//	CONNECT[:{<qualifer>}+] <src device>:<src port>[;<high bit>[;<low bit>]]	<dst device>:<dst port>[;<high bit>[;<low bit>]]
 				// 
-				// Syntax;
-				//	ICONNECT <src device>:<src port>[;<high bit>[;<low bit>]]	<dst device>:<dst port>[;<high bit>[;<low bit>]]
+				// qualifer ::= 'I' | 'P'
 				//
+
+				bool invert = false;
+				bool process = false;
+				if (cmd.length() == 7) {
+				}
+				else if (cmd.length() >= 9 && cmd.length() <= 10 && cmd.substr(7, 1) == ":") {
+					for (int i = 0; i < cmd.length() - 8; i++) {
+						if (cmd.substr(8 + i) == "I")
+							invert = true;
+						else if (cmd.substr(8 + i) == "P")
+							process = true;
+					}
+				}
+				else {
+					cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
+					throw runtime_error("Syntax error");
+				}
+					
 
 				string src_port, dst_port;
 				sin >> src_port;
 				sin >> dst_port;
-				connection_manager.connect(src_port, dst_port, true);
+				connection_manager.connect(src_port, dst_port, invert, process);
+
+				
 
 			}
 

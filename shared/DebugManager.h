@@ -8,6 +8,7 @@
 
 class P6502;
 class Device;
+class DevicePort;
 
 using namespace std;
 
@@ -58,7 +59,8 @@ private:
 	int mMatchY = -1;
 	int mMatchA = -1;
 	
-	
+	string mPortDevice = "";
+	string mPort = "";
 
 
 	DebugLevel mDbgLevel = DBG_NONE;
@@ -73,6 +75,7 @@ public:
 
 	bool debug(DebugLevel level);
 
+
 	void enableCyclicLogging(uint16_t adr);
 	void enableInterruptLogging(uint16_t adr);
 	void enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring);
@@ -81,6 +84,7 @@ public:
 	bool tracing();
 
 	void setDebugLevel(DebugLevel level);
+	void setDebugPort(string portDevice, string port);
 	void clearDebugLevel(DebugLevel level);
 
 	void triggerInterruptLogging(uint16_t adr, bool condition);
@@ -92,6 +96,8 @@ public:
 	void preBuffer(uint16_t adr, uint8_t X, uint8_t Y, uint8_t A);
 
 	void log(Device * dev, DebugLevel level, string line);
+
+	bool matchPort(DevicePort* port);
 };
 
 

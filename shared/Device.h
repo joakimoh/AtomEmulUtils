@@ -54,6 +54,7 @@ typedef struct InputReference_struct {
 	int				shifts = 0;				// no of steps to downshift src value to fit dst start bit
 	uint8_t			mask = 0xff;			// mask specifiyng the bits of the dst to be updated (set bit <= update)
 	bool			invert = false;			// If true, the source port value will be inverted before fed to the destination port
+	bool			process = false;		// If true, the receiving device's process method will be called in addition to updating the port value
 } InputReference;
 
 enum PortDirection {IN_PORT, OUT_PORT, IO_PORT};
@@ -152,6 +153,10 @@ public:
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 	bool updatePort(int index, uint8_t val);
+
+	// In the case the port value need to be processed immediately (if the qualifier 'P' was added to 'CONNECT')
+	// then this method will be called for the device receiving the port update
+	virtual void processPortUpdate(int index) {};
 
 	// Force an update of a device's all ports to secure that all connected devices have the correct port value
 	// Should be made after all device's have been connected. No triggering of connected devices are made.
@@ -280,7 +285,7 @@ public:
 	//bool receiveUpdate(Device *dev, int index, uint8_t val);
 
 	// Connect one device's output with the input of another device
-	bool connect(string srcName, string dstName, bool invert);
+	bool connect(string srcName, string dstName, bool invert, bool process);
 
 };
 
