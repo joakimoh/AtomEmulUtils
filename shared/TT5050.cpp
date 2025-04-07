@@ -179,7 +179,7 @@ bool TT5050::advance(uint64_t stopCycle)
 bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour> &screenData)
 {
 	const int n_raster_lines = 20;
-	vector <uint8_t> screenData12;
+	vector <uint8_t> screenData12(16);
 
 	if (!initialised()) {
 		mCycleCount += max(1, (int)round(mCPUClock / 1.0));
@@ -350,20 +350,19 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 				}
 			}
 			if (mSeparatedGraphics) {
-				screenData12.push_back(0);
+				screenData12[0] = 0;
 				for (int p = 1; p < 5; p++)
-					screenData12.push_back(left_sixel);
-				screenData12.push_back(0);
-				screenData12.push_back(0);
+					screenData12[p]= left_sixel;
+				screenData12[6] = screenData12[7] = 0;
 				for (int p = 1; p < 5; p++)
-					screenData12.push_back(right_sixel);
-				screenData12.push_back(0);
+					screenData12[p+6]= right_sixel;
+				screenData12[11] = 0;
 			}
 			else {
 				for (int p = 0; p < 6; p++)
-					screenData12.push_back(left_sixel);
+					screenData12[p] = left_sixel;
 				for (int p = 0; p < 6; p++)
-					screenData12.push_back(right_sixel);
+					screenData12[p+6] = right_sixel;
 			}
 		}
 
@@ -384,10 +383,10 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 
 			for (int p = 0; p < 12; p++) {
 				if (mInterpolatedSymbolRasterBits[symbol_index][raster_line][p]) {
-					screenData12.push_back(1);
+					screenData12[p] = 1;
 				}
 				else {
-					screenData12.push_back(0);
+					screenData12[p] = 0;
 				}
 			}
 		}
@@ -408,7 +407,7 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 				pixel_colour.G = 255 * background_colour.G;
 				pixel_colour.R = 255 * background_colour.R;
 			}
-			screenData.push_back(pixel_colour);
+			screenData[i] = pixel_colour;
 		}
 	}
 

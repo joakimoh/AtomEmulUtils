@@ -228,7 +228,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
 		// the TGC character is only 12 pixels wide whereas the CRTC one is 8 pixels wide!
 		
-		vector<TT5050::TTColour> tgc_data;
+		vector<TT5050::TTColour> tgc_data(20);
 
 		if (char_pos == 0 && mDM->debug(DBG_VDU))
 			cout << "VDU RA = " << dec << (int)mRA << "\n";
