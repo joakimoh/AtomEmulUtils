@@ -112,16 +112,17 @@ private:
 #define IFR_CLR_IRQ	((mIFR >> 7) & 1)
 
 // Timers
-	uint16_t mTimer1Counter = 0x0;
+	int mTimer1Counter = 0x0;
 	uint8_t mTimer1LatchHigh = 0x0;
 	uint8_t mTimer1LatchLow = 0x0;
-	uint16_t mTimer2Counter = 0x0;
+	int mTimer2Counter = 0x0;
 	uint8_t mTimer2LatchHigh = 0x0;
 	uint8_t mTimer2LatchLow = 0x0;
 	bool mTimer1XCounterHWrite = false;
 	bool mTimer2XCounterHWrite = false;
 	bool mTimer1Running = false;
 	bool mTimer2Running = false;
+	bool mTimer1FirstRun = false;
 
 	uint16_t pTimer1Counter = 0x0;
 	uint16_t pTimer2Counter = 0x0;

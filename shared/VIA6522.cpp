@@ -200,10 +200,22 @@ bool VIA6522::advance(uint64_t stopCycle)
 		}
 
 
+		//
 		// Check Timer 1
+		// 
+		// Timing is different for different modes:
+		// 
+		// Mode			#cycles from write to				Remark
+		//				T1C-H to IRQ low
+		//				(and PB7 toggled)
+		// One-shot		n + 1.5								same applies to timer 2
+		// Free-run		n + 1.5 for first countdown
+		//				n + 2 for subsequent countdowns
+		// 
 		if (mTimer1Running) {
 			mTimer1Counter--;
-			if (mTimer1Counter <= 0) {
+			if (mTimer1FirstRun && mTimer1Counter <= -1 || !mTimer1FirstRun && mTimer1Counter <= -2) {
+				mTimer1FirstRun = false;
 				mTimer1Counter = 0;
 				setIFR(IFR_T1_MASK);
 				switch (ACR_T1_CTRL) {
@@ -244,7 +256,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 		default:
 			break;
 		}
-		if (mTimer2Counter <= 0 && mTimer2Running) {
+		if (mTimer2Counter <= -1 && mTimer2Running) {
 			mTimer2Counter = 0;
 			if (mTimer2Running) {
 				setIFR(IFR_T2_MASK);
@@ -695,6 +707,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		//cout << "T1 Counter = " << dec << mTimer1Counter << ", T1 Latch High : Low = " << (int)mTimer1LatchHigh << " : " << (int)mTimer1LatchLow << "\n";
 		mTimer1XCounterHWrite = false;
 		mTimer1Running = true;
+		mTimer1FirstRun = true;
 		switch (ACR_T1_CTRL) {
 		case 0x0:	// One-shot Interrupt, PB7 inactive
 			break;
