@@ -176,6 +176,11 @@ int main(int argc, const char* argv[])
     field_timer = al_create_timer(1.0 / field_rate);
     al_register_event_source(queue, al_get_timer_event_source(field_timer));
     al_start_timer(field_timer);
+    int field_cycle_count = 0;
+    int p_cycle_count = 0;
+    double line_count = 0;
+    double p_line_count = 0;
+    double lines_per_field = 0;
     while (!quit)
     {   
         int p_field_rate = field_rate;
@@ -200,8 +205,12 @@ int main(int argc, const char* argv[])
         // the software.
         int cycles_per_field = (int)round(CPU_clock * 1e6 / field_rate_d);
 
-        auto field_stop = chrono::high_resolution_clock::now();
-        auto field_dur = chrono::duration_cast<chrono::microseconds>(field_stop - field_start);
+        auto field_stop = chrono::high_resolution_clock::now();      
+        field_cycle_count = cycle_count - p_cycle_count;
+        lines_per_field = line_count - p_line_count;
+        p_line_count = line_count;
+        p_cycle_count = cycle_count;
+        auto field_dur = chrono::duration_cast<chrono::nanoseconds>(field_stop - field_start);
         field_start = field_stop;
         field_dur_cnt += field_dur.count();   
 
@@ -211,7 +220,7 @@ int main(int argc, const char* argv[])
             auto dev_start = chrono::high_resolution_clock::now();
             field_scheduled_devices[i]->advance(cycle_count + cycles_per_field);
             auto dev_stop = chrono::high_resolution_clock::now();
-            auto dev_dur = chrono::duration_cast<chrono::microseconds>(dev_stop - dev_start);
+            auto dev_dur = chrono::duration_cast<chrono::nanoseconds>(dev_stop - dev_start);
             field_scheduled_devices_cnt[i] += dev_dur.count();
             
         }
@@ -245,16 +254,18 @@ int main(int argc, const char* argv[])
             auto vdu_start = chrono::high_resolution_clock::now();
             if (interlaced_mode && add_half_line) {
                 vdu->advanceHalfLine(target_cycle_count);
+                line_count += 0.5;
                 //cout << "1/2 LINE\n";
                 end_of_field = true;
             }
             else {
                 vdu->advanceLine(target_cycle_count);
+                line_count++;
                 //cout << "LINE " << dec << scan_line << " (" << n_scan_lines << ") - " << (interlaced_mode ? "Interlaced" : "Non-interlaced") << "\n";
             }
 
             auto vdu_stop = chrono::high_resolution_clock::now();
-            auto vdu_dur = chrono::duration_cast<chrono::microseconds>(vdu_stop - vdu_start);
+            auto vdu_dur = chrono::duration_cast<chrono::nanoseconds>(vdu_stop - vdu_start);
             vdu_cnt += vdu_dur.count();
 
             uint64_t half_line_step = (target_cycle_count - start_count)  / 2;
@@ -269,7 +280,7 @@ int main(int argc, const char* argv[])
                     auto dev_start = chrono::high_resolution_clock::now();
                     half_line_scheduled_devices[i]->advance(half_line_target);
                     auto dev_stop = chrono::high_resolution_clock::now();
-                    auto dev_dur = chrono::duration_cast<chrono::microseconds>(dev_stop - dev_start);
+                    auto dev_dur = chrono::duration_cast<chrono::nanoseconds>(dev_stop - dev_start);
                     half_line_scheduled_devices_cnt[i] += dev_dur.count();
                 }            
 
@@ -286,7 +297,7 @@ int main(int argc, const char* argv[])
                     }
                     
                     auto uc_stop = chrono::high_resolution_clock::now();
-                    auto uc_dur = chrono::duration_cast<chrono::microseconds>(uc_stop - uc_start);
+                    auto uc_dur = chrono::duration_cast<chrono::nanoseconds>(uc_stop - uc_start);
                     uc_cnt += uc_dur.count();
 
                     // Advance time for each device scheduled on instruction basis so that it matches the time
@@ -296,7 +307,7 @@ int main(int argc, const char* argv[])
                         auto other_dev_start = chrono::high_resolution_clock::now();
                         instr_scheduled_devices[d]->advance(cycle_count);
                         auto other_dev_stop = chrono::high_resolution_clock::now();
-                        auto other_dev_dur = chrono::duration_cast<chrono::microseconds>(other_dev_stop - other_dev_start);
+                        auto other_dev_dur = chrono::duration_cast<chrono::nanoseconds>(other_dev_stop - other_dev_start);
                         instr_scheduled_devices_cnt[d] += other_dev_dur.count();
                       
                     }
@@ -319,24 +330,27 @@ int main(int argc, const char* argv[])
 
         field_cnt = (field_cnt + 1) % field_rate;
         if (arg_parser.debugManager.debug(DBG_TIME) && field_cnt == 0) {
-            cout << "\nField rate: " << dec << field_rate << " Hz\n";
-            cout << "Field duration: " << field_dur_cnt / 1000 << " ms per sec\n";
+            cout << "\nScan lines per field " << dec << lines_per_field << " (" << vdu->getScanLinesPerField() << ")\n";
+            cout << "Cycles passed per Field: " << dec << field_cycle_count << " (" << cycles_per_field << ") <=> " <<
+                (1000 * field_cycle_count / (CPU_clock * 1e6)) << " ms (" << (1000 / field_rate_d) << " ms) <=> " <<
+                (CPU_clock * 1e6 / field_cycle_count) << " MHz (" << field_rate_d << ")\n";
+            cout << "Field duration per sec: " << field_dur_cnt / 1e6 << " ms\n";
             field_dur_cnt = 0;
-            cout << "VDU ms per sec: " << vdu_cnt / 1000 << "\n";
-            cout << "microcontroller ms per sec: " << uc_cnt / 1000 << "\n";
+            cout << "VDU ms per sec: " << vdu_cnt / 1e6 << "\n";
+            cout << "microcontroller ms per sec: " << uc_cnt / 1e6 << "\n";
             for (int d = 0; d < field_scheduled_devices.size(); d++) {
-                cout << "FIELD: " << field_scheduled_devices[d]->name << " ms per per sec: " << field_scheduled_devices_cnt[d] / 1000 << "\n";
+                cout << "FIELD: " << field_scheduled_devices[d]->name << " ms per per sec: " << field_scheduled_devices_cnt[d] / 1e6 << "\n";
                 field_scheduled_devices_cnt[d] = 0;
             }
             for (int d = 0; d < half_line_scheduled_devices.size(); d++) {
-                cout << "1/2 LINE: " << half_line_scheduled_devices[d]->name << " ms per per sec: " << half_line_scheduled_devices_cnt[d] / 1000 << "\n";
+                cout << "1/2 LINE: " << half_line_scheduled_devices[d]->name << " ms per per sec: " << half_line_scheduled_devices_cnt[d] / 1e6 << "\n";
                 half_line_scheduled_devices_cnt[d] = 0;
             }
             for (int d = 0; d < instr_scheduled_devices.size(); d++) {
-                cout << "INSTR: " << instr_scheduled_devices[d]->name << " ms per per sec: " << instr_scheduled_devices_cnt[d] / 1000 << "\n";
+                cout << "INSTR: " << instr_scheduled_devices[d]->name << " ms per per sec: " << instr_scheduled_devices_cnt[d] / 1e6 << "\n";
                 instr_scheduled_devices_cnt[d] = 0;
             }
-            cout << "WAIT ms per sec: " << wait_cnt / 1000 << "\n";
+            cout << "WAIT ms per sec: " << wait_cnt / 1e6 << "\n";
             vdu_cnt = 0;
             sound_device_cnt = 0;
             uc_cnt = 0;
@@ -351,7 +365,7 @@ int main(int argc, const char* argv[])
         al_wait_for_event(queue, &event);
 
         auto wait_stop = chrono::high_resolution_clock::now();
-        auto wait_dur = chrono::duration_cast<chrono::microseconds>(wait_stop - wait_start);
+        auto wait_dur = chrono::duration_cast<chrono::nanoseconds>(wait_stop - wait_start);
         wait_cnt += wait_dur.count();
 
         // act on event

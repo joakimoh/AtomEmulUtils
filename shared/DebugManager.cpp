@@ -100,7 +100,7 @@ bool DebugManager::triggerExecutionStop(P6502 *cpu, uint16_t fetchAdr)
 	return false;
 }
 
-bool DebugManager::mathFetchAddress(uint16_t fetchAdr)
+bool DebugManager::matchFetchAddress(uint16_t fetchAdr)
 {
 	return (fetchAdr == mFetchAdr && (mMatchX == -1 || mX == mMatchX) && (mMatchY == -1 || mY == mMatchY) && (mMatchA == -1 || mA == mMatchA));
 }
@@ -123,7 +123,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 			}
 		}
 
-		if (mathFetchAddress(mTraceAdr) && !mEndofPrebufferingReached) {
+		if (matchFetchAddress(mTraceAdr) && !mEndofPrebufferingReached) {
 			mDbgLevel |= DBG_6502;
 			mTraceCount = 0;
 			if (mRecurringTracing)
@@ -153,6 +153,9 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 
 void DebugManager::log(Device * dev, DebugLevel level, string line)
 {
+	if ((mDbgLevel & level) == 0)
+		return;
+
 	double t = dev->getCycleCount() / (dev->mCPUClock * 1e6);
 	string t_s = Utility::encodeCPUTime(t);
 	string prefix = " ";

@@ -111,7 +111,7 @@ bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 
 
 	auto kb_stop = chrono::high_resolution_clock::now();
-	auto vdu_dur = chrono::duration_cast<chrono::microseconds>(kb_stop - kb_start);
+	auto vdu_dur = chrono::duration_cast<chrono::nanoseconds>(kb_stop - kb_start);
 	mKBCnt += vdu_dur.count();
 
 	if (false && mCnt >= 1000000) {

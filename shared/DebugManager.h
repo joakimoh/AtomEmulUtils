@@ -69,7 +69,7 @@ private:
 	bool mRecurringTracing = false;
 	bool mStopped = false;
 
-	bool mathFetchAddress(uint16_t fetchAdr);
+	bool matchFetchAddress(uint16_t fetchAdr);
 
 public:
 

@@ -179,7 +179,7 @@ bool TT5050::advance(uint64_t stopCycle)
 bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour> &screenData)
 {
 	const int n_raster_lines = 20;
-	vector <uint8_t> screenData12(16);
+	vector <uint8_t> screenData12(12);
 
 	if (!initialised()) {
 		mCycleCount += max(1, (int)round(mCPUClock / 1.0));

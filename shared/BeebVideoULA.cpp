@@ -96,7 +96,8 @@ bool BeebVideoULA::advance(uint64_t stopCycle)
 bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 {
 
-	auto pre_start = chrono::high_resolution_clock::now();
+
+
 	auto video_start = chrono::high_resolution_clock::now();
 
 	bool reset_transition = (mRESET != pRESET);
@@ -126,6 +127,40 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	int field = fieldScanLineOffset();
 	int adjusted_scanline = mScanLine - field;
+
+	int field_rate = (int)round(mCRTC->getFieldRate());
+	if (adjusted_scanline == 0) {
+
+		if (mDM->debug(DBG_TIME) && mField == 0) {
+			cout << dec << "\n";
+			cout << "Field Rate: " << dec << field_rate << "\n";
+			cout << "Video ULA total (including CRTC & TCG) - ms per sec: " << mVideoULACnt / 1e6 << "\n";
+			cout << "Display update - ms per sec: " << mDispUsCnt / 1e6 << "\n";
+			cout << "Memory read - ms per sec: " << mReadCnt / 1e6 << "\n";
+			cout << "CRTC update - ms per sec: " << mCRTCnt / 1e6 << "\n";
+			cout << "TT update - ms per sec: " << mTTCnt / 1e6 << "\n";
+			cout << "Line update - ms per sec: " << mLineCnt / 1e6 << "\n";
+			cout << "Left border update - ms per sec: " << mLeftBorderCnt / 1e6 << "\n";
+			cout << "Character pixels update - ms per sec: " << mCharPixelCnt / 1e6 << "\n";
+			cout << "Right border update - ms per sec: " << mRightBorderCnt / 1e6 << "\n";
+			cout << "Top border update - ms per sec: " << mTopBorderCnt / 1e6 << "\n";
+			cout << "Bottom border update - ms per sec: " << mBottomBorderCnt / 1e6 << "\n";
+			mVideoULACnt = 0;
+			mDispUsCnt = 0;
+			mCRTCnt = 0;
+			mTTCnt = 0;
+			mCharPixelCnt = 0;
+			mTopBorderCnt = 0;
+			mLeftBorderCnt = 0;
+			mRightBorderCnt = 0;
+			mBottomBorderCnt = 0;
+			mReadCnt = 0;
+			mLineCnt = 0;
+		}
+
+		mField = (mField + 1) % field_rate;
+	}
+
 	
 	if (mDM->debug(DBG_VDU))
 		cout << "\n\nFIELD #" << field << ", SCAN LINE " << dec << mScanLine << " (adjusted to " << adjusted_scanline << ")\n";
@@ -136,6 +171,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	if (adjusted_scanline == mVerticalSyncPos) {
 	
+		auto disp_start = chrono::high_resolution_clock::now();
+
 		mDM->log(this, DBG_VDU, "UPDATE SCREEN\n");
 
 		unlockDisplay();
@@ -147,38 +184,21 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		al_draw_bitmap(mDisplayBitmap, 0, 0, 0);
 
-		// Make the updates visible on the display
-		auto disp_start = chrono::high_resolution_clock::now();
+		// Make the updates visible on the display	
 		al_flip_display();
-		auto disp_stop = chrono::high_resolution_clock::now();
-		auto disp_dur = chrono::duration_cast<chrono::microseconds>(disp_stop - disp_start);
-		mDispUsCnt += disp_dur.count();
-
-		mVideoULAStartus = disp_stop;
-		if (mDM->debug(DBG_TIME) && mField == 0) {
-			cout << dec << "\n";
-			cout << "Display update - ms per sec: " << mDispUsCnt / 1000 << "\n";
-			cout << "Video ULA update - ms per sec: " << mVideoULACnt / 1000 << "\n";
-			cout << "CRTC update - ms per sec: " << mCRTCnt / 1000 << "\n";
-			cout << "TT update - ms per sec: " << mTTCnt / 1000 << "\n";
-			cout << "Byte update - ms per sec: " << mByteCnt / 1000 << "\n";
-			cout << "Pre update - ms per sec: " << mPreCnt / 1000 << "\n";
-			mVideoULACnt = 0;
-			mDispUsCnt = 0;
-			mCRTCnt = 0;
-			mTTCnt = 0;
-			mByteCnt = 0;
-			mPreCnt = 0;
-		}
-		int field_rate = (int) round(mCRTC->getFieldRate());
-		mField = (mField + 1) % field_rate;
 
 		// Clear the display
 		al_clear_to_color(black);
 
 		lockDisplay();
 
+		auto disp_stop = chrono::high_resolution_clock::now();
+		auto disp_dur = chrono::duration_cast<chrono::nanoseconds>(disp_stop - disp_start);
+		mDispUsCnt += disp_dur.count();
+
 	}
+
+	
 
 	// Process one scan line (should be 64/128 chars per scan line and the visible part being 20, 40 or 80 chars)
 	// Each char is not necessarily the same as character on the screen. "Big Char" is the char visible
@@ -191,6 +211,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	if (adjusted_scanline == 0)
 		// Add Top border
 	{
+		auto top_border_start = chrono::high_resolution_clock::now();
+
 		if (mDM->debug(DBG_VDU))
 			cout << "DRAW TOP BORDER\n";
 
@@ -214,21 +236,22 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				}
 			}
 		}
+
+		auto top_border_stop = chrono::high_resolution_clock::now();
+		auto top_border_dur = chrono::duration_cast<chrono::nanoseconds>(top_border_stop - top_border_start);
+		mTopBorderCnt += top_border_dur.count();
 	}
 
 	bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * (mScanLine + top_border_lines));
 
-	auto pre_stop = chrono::high_resolution_clock::now();
-	auto pre_dur = chrono::duration_cast<chrono::microseconds>(pre_stop - pre_start);
-	mPreCnt += pre_dur.count();
-	
+	auto line_start = chrono::high_resolution_clock::now();
 
-	for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {
+	for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {	
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
 		// the TGC character is only 12 pixels wide whereas the CRTC one is 8 pixels wide!
 		
-		vector<TT5050::TTColour> tgc_data(20);
+		vector<TT5050::TTColour> tgc_data(16);
 
 		if (char_pos == 0 && mDM->debug(DBG_VDU))
 			cout << "VDU RA = " << dec << (int)mRA << "\n";
@@ -243,7 +266,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			return false;
 		}
 		auto crtc_stop = chrono::high_resolution_clock::now();
-		auto crtc_dur = chrono::duration_cast<chrono::microseconds>(crtc_stop - crtc_start);
+		auto crtc_dur = chrono::duration_cast<chrono::nanoseconds>(crtc_stop - crtc_start);
 		mCRTCnt += crtc_dur.count();
 
 		// Is the screen (display) in the active area?	
@@ -281,28 +304,36 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				if (char_pos == 0)
 					// Add left border
 				{
-					mDM->log(this, DBG_VDU, "DRAW LEFT BORDER\n");
+
+					auto left_border_start = chrono::high_resolution_clock::now();
+
+					mDM->log(this, DBG_VDU, "DRAW LEFT BORDER\n");		
 
 					uint32_t colour = 0xff0ff000;
 					if (field == 1)
 						colour = 0xffff0000;
-					uint8_t Rs, Gs, Bs;
 					for (int c = 0; c < left_border_chars; c++) {
 						for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++) {
-							Rs = Gs = Bs = 0;
-
 							for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
 								*bitmap_data_p++ = colour;
 						}
 					}
+
+					auto left_border_stop = chrono::high_resolution_clock::now();
+					auto left_border_dur = chrono::duration_cast<chrono::nanoseconds>(left_border_stop - left_border_start);
+					mLeftBorderCnt += left_border_dur.count();
 				}
 
 				// Read video memory data
+				auto mem_read_start = chrono::high_resolution_clock::now();
 				uint8_t screen_data;
 				if (!mVideoMem->read(screen_adr, screen_data)) {
 					cout << "Failed to read video memory at address 0x" << hex << screen_adr << "\n";
 					return false;
 				}
+				auto mem_read_stop = chrono::high_resolution_clock::now();
+				auto mem_read_dur = chrono::duration_cast<chrono::nanoseconds>(mem_read_stop - mem_read_start);
+				mReadCnt += mem_read_dur.count();
 
 				// For teletext modes, decode video memory data as videotext data
 				if (teletext) {
@@ -312,7 +343,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 						return false;
 					}
 					auto tt_stop = chrono::high_resolution_clock::now();
-					auto tt_dur = chrono::duration_cast<chrono::microseconds>(tt_stop - tt_start);
+					auto tt_dur = chrono::duration_cast<chrono::nanoseconds>(tt_stop - tt_start);
 					mTTCnt += tt_dur.count();
 				}
 
@@ -344,7 +375,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				// 
 				// Big pixels/byte = 8 * cols / Visible "chars" per line
 				//
-				auto byte_start = chrono::high_resolution_clock::now();
+				auto char_pixel_start = chrono::high_resolution_clock::now();
 				for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++) {
 
 					if (!teletext) {
@@ -399,38 +430,48 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					if (!teletext)
 						mem_data = (mem_data << 1) | 1;
 				}
-				auto byte_stop = chrono::high_resolution_clock::now();
-				auto byte_dur = chrono::duration_cast<chrono::microseconds>(byte_stop - byte_start);
-				mByteCnt += byte_dur.count();
+				auto char_pixel_stop = chrono::high_resolution_clock::now();
+				auto char_pixel_dur = chrono::duration_cast<chrono::nanoseconds>(char_pixel_stop - char_pixel_start);
+				mCharPixelCnt += char_pixel_dur.count();
 
 				if (char_pos == active_chars - 1)
 					// Add right border 
 				{
+					auto right_border_start = chrono::high_resolution_clock::now();
 					mDM->log(this, DBG_VDU,"DRAW RIGHT BORDER\n");
 					uint32_t colour = 0xff0ff000;
 					if (field == 1)
 						colour = 0xffff0000;
 					for (int c = 0; c < right_border_chars; c++) {
-						uint8_t Rs, Gs, Bs;
-						for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++) {
-							Rs = Gs = Bs = 0;						
+						for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++) {					
 							for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++)
 								*bitmap_data_p++ = colour;
 						}
 					}
+					auto right_border_stop = chrono::high_resolution_clock::now();
+					auto right_border_dur = chrono::duration_cast<chrono::nanoseconds>(right_border_stop - right_border_start);
+					mRightBorderCnt += right_border_dur.count();
 				}
 			}
 
 			
-		}
+		}	
 
 		
 		
 	}
 
+	auto line_stop = chrono::high_resolution_clock::now();
+	auto line_dur = chrono::duration_cast<chrono::nanoseconds>(line_stop - line_start);
+	mLineCnt += line_dur.count();
+	
+
 	if (adjusted_scanline == active_lines)
 		// Add Bottom border
 	{
+
+		auto bottom_border_start = chrono::high_resolution_clock::now();
+
 		if (mDM->debug(DBG_VDU))
 			cout << "DRAW BOTTOM BORDER\n";
 
@@ -456,10 +497,14 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			}
 		}
 
+		auto bottom_border_stop = chrono::high_resolution_clock::now();
+		auto bottom_border_dur = chrono::duration_cast<chrono::nanoseconds>(bottom_border_stop - bottom_border_start);
+		mBottomBorderCnt += bottom_border_dur.count();
+
 	}
 
 	auto video_stop = chrono::high_resolution_clock::now();
-	auto video_dur = chrono::duration_cast<chrono::microseconds>(video_stop - video_start);
+	auto video_dur = chrono::duration_cast<chrono::nanoseconds>(video_stop - video_start);
 	mVideoULACnt += video_dur.count();
 
 	return true;

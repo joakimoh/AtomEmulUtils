@@ -21,9 +21,13 @@ private:
 	int mVideoULACnt = 0;
 	int mCRTCnt = 0;
 	int mTTCnt = 0;
-	int mByteCnt = 0;
-	int mPreCnt = 0;
-	std::chrono::steady_clock::time_point  mVideoULAStartus = chrono::high_resolution_clock::now();
+	int mCharPixelCnt = 0;
+	int mTopBorderCnt = 0;
+	int mBottomBorderCnt = 0;
+	int mLeftBorderCnt = 0;
+	int mRightBorderCnt = 0;
+	int mReadCnt = 0;
+	int mLineCnt = 0;
 
 public:
 
