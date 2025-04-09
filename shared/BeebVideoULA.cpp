@@ -218,15 +218,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data);
 
-		//cout << "Pixels/byte = " << dec << mPixelsPerCharacter << ", Pixel Width = " << mPixelW << "\n";
 		uint32_t colour = 0xff0ff000;
 		if (field == 1)
 			colour = 0xffff0000;
 		for (int line = 0; line < top_border_lines; line++) {
 			for (int char_pos = 0; char_pos < visible_chars; char_pos++) {
-				uint8_t Rs, Gs, Bs;
 				for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++) {
-					Rs = Gs = Bs = 0;
 					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < max_bitmap_data_p; pw++) {
 						if (field == 1 && line % 2 == 0 || field == 0 && line % 2 == 1)
 							*bitmap_data_p++;
@@ -244,9 +241,11 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * (mScanLine + top_border_lines));
 
-	auto line_start = chrono::high_resolution_clock::now();
+	
 
 	for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {	
+
+		auto line_start = chrono::high_resolution_clock::now();
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
 		// the TGC character is only 12 pixels wide whereas the CRTC one is 8 pixels wide!
@@ -457,13 +456,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			
 		}	
 
-		
+		auto line_stop = chrono::high_resolution_clock::now();
+		auto line_dur = chrono::duration_cast<chrono::nanoseconds>(line_stop - line_start);
+		mLineCnt += line_dur.count();
 		
 	}
-
-	auto line_stop = chrono::high_resolution_clock::now();
-	auto line_dur = chrono::duration_cast<chrono::nanoseconds>(line_stop - line_start);
-	mLineCnt += line_dur.count();
+	
 	
 
 	if (adjusted_scanline == active_lines)

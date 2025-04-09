@@ -13,11 +13,11 @@ bool ACIA6850::read(uint16_t adr, uint8_t& data)
 
 	if ((adr & 0x1) == 0) {
 		// Status Register
-		data = 0x00;
+		data = mSR;
 	}
 	else {
 		// Receive Data Register
-		data = 0x00;
+		data = mRDR;
 	}
 	
 
@@ -33,11 +33,100 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 
 	if ((adr & 0x1) == 0) {
 		// Control Register
+		mCR = data;
 
+		// Rx & Tx clock divide
+		switch (mCR & 0x3) {
+		case 0x0:
+			mClkDiv = 1;
+			break;
+		case 0x1:
+			mClkDiv = 16;
+			break;
+		case 0x2:
+			mClkDiv = 64;
+			break;
+		case 0x3:
+			// master reset
+			reset();
+			return true;
+		default:
+			break;
+		}
+
+		// Rx & Tx data bits
+		switch ((mCR >> 2) & 0x7) {
+		case 0x0:
+			mNDataBits = 7;
+			mParity = 0;
+			mStopBits = 2;
+			break;
+		case 0x1:
+			mNDataBits = 7;
+			mParity = 1;
+			mStopBits = 2;
+			break;
+		case 0x2:
+			mNDataBits = 7;
+			mParity = 0;
+			mStopBits = 1;
+			break;
+		case 0x3:
+			mNDataBits = 7;
+			mParity = 1;
+			mStopBits = 1;
+			break;
+		case 0x4:
+			mNDataBits = 8;
+			mParity = -1;
+			mStopBits = 2;
+			break;
+		case 0x5:
+			mNDataBits = 8;
+			mParity = -1;
+			mStopBits = 1;
+			break;
+		case 0x6:
+			mNDataBits = 8;
+			mParity = 0;
+			mStopBits = 1;
+			break;
+		case 0x7:
+			mNDataBits = 8;
+			mParity = 1;
+			mStopBits = 1;
+			break;
+		default:
+			break;
+		}
+
+		// Tx control
+		switch ((mCR >> 5) & 0x3) {
+		case 0x0:
+			updatePort(RTS, 0);
+			mEnaTxIRQ = false;
+			break;
+		case 0x1:
+			updatePort(RTS, 0);
+			mEnaTxIRQ = true;
+			break;
+		case 0x2:
+			updatePort(RTS, 1);
+			mEnaTxIRQ = false;
+			break;
+		case 0x3:
+			updatePort(RTS, 0);
+			updatePort(TxD, 0); // break level (space) on data out
+			mEnaTxIRQ = false;
+			break;
+		default:
+			break;
+		}
+		mEnaRxIRQ = (mCR & 0x80) != 0;
 	}
 	else {
 		// Transmit Data Register
-
+		mTDR = data;
 	}
 
 	return true;

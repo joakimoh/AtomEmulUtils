@@ -30,6 +30,14 @@ private:
 	uint8_t mTDR = 0x0;	// base address + 1 - Write-only
 	uint8_t mRDR = 0x0;	// base address + 1 - Read-only
 
+	uint8_t mClkDiv = 1;	// Rx/Tx clock divide (from mCR b1b0)
+	uint8_t mNDataBits = 7;		// no of data bits (from mCR b4b3b2)
+	int8_t mParity = -1;	// parity: -1 <=> none, 0 <=> even, 1 <=> odd (from mCR b4b3b2)
+	int8_t mStopBits = 1;	// no of stop bits (from mCR b4b3b2)
+
+	bool mEnaTxIRQ = false;
+	bool mEnaRxIRQ = false;
+
 public:
 
 	ACIA6850(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugManager  *debugManager, ConnectionManager* connectionManager);
