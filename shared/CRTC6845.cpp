@@ -94,7 +94,6 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 	
 	if (mDISPTMG) {;
 		adr = mStartAdr + mCharRow * mActiveRowChars + mCharCol;
-		//cout << dec << "#" << mCharCol << "#";
 	}
 	
 	// Advance time corresponding to one character and check for HS, VS & DISPTMG
@@ -116,9 +115,6 @@ bool CRTC6845::advanceChar()
 	if (mDM->debug(DBG_VERBOSE) && mCLK != pCLK)
 		printSettings();
 	pCLK = mCLK;
-
-	updateOutputs();
-
 
 	// Increase char column
 	// The 6845 linear address generator repeats the same sequence of addresses for each scan line of a character row
@@ -258,8 +254,10 @@ bool CRTC6845::advance(uint64_t stopCycle)
 		return true;
 	}
 
-	while (mCycleCount < stopCycle)
+	while (mCycleCount < stopCycle) {
+		updateOutputs();
 		advanceChar();
+	}
 	
 	return true;
 

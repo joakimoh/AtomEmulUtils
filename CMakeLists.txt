@@ -19,6 +19,12 @@ endif(COMPILER_MSVC)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${WFLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WFLAGS}")
 
+set(CMAKE_CXX_STANDARD 17)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+
+set(CMAKE_BUILD_TYPE Release)
+
 FetchContent_Declare(
   allegro5
   GIT_REPOSITORY https://github.com/liballeg/allegro5.git
@@ -42,11 +48,7 @@ endif()
 # Locate zlib
 find_package(ZLIB REQUIRED)
 
-set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
-
-set(CMAKE_BUILD_TYPE Release)
 
 set (MY_ALLEGRO_SOURCE_DIR ${allegro5_SOURCE_DIR})
 set (MY_ALLEGRO_BINARY_DIR ${allegro5_BINARY_DIR})
