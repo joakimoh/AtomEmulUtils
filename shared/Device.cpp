@@ -23,6 +23,7 @@
 #include "MemoryMappedDevice.h"
 #include "BeebRomSel.h"
 #include "ACIA6850.h"
+#include "BeebSerialULA.h"
 
 using namespace std;
 
@@ -390,6 +391,16 @@ Devices::Devices(
 				// Serial & Parallel I/O Devices
 				//
 
+				else if (dev_type == "BeebSerULA") {
+
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
+					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					BeebSerialULA* serial_ULA = new BeebSerialULA(dev_name, dev_adr, cpuClock, wait_states, mDM, &connection_manager);
+					mDevices.push_back(serial_ULA);
+
+				}
+				
 				else if (dev_type == "PIA8255") {
 
 					uint16_t dev_adr = getHexVal(sin);
