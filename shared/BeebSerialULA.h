@@ -50,27 +50,19 @@ private:
 	long mRxClkRate = 4800; // with ÷ 64 by the ACIA this results in a baud rate of 75 for the serial communication
 	long mTxClkRate = 4800; // with ÷ 64 by the ACIA this results in a baud rate of 75 for the serial communication
 
-	/*
-	* https://beebwiki.mdfs.net/Serial_ULA with remarks added in []
-	* 
-	* The 19200 baud rate setting is not guaranteed. These are nominal values — actual rates
-	* are 0.16 percent higher as they are derived from a (16/13) MHz clock.
-	* 
-	* In serial mode, the MOS fixes the clock divider of the ACIA at '÷ 64'. The default value
-	* of the control register is &64 (motor off, serial port enabled, 9600 baud receive and transmit.
-	* [16/13 Mhz / 64 = 19231]
-	* 
-	* In cassette mode the MOS writes the hard-coded value &85 to the control register (motor on,
-	* cassette enabled, 19200 baud receive, 300 baud transmit) and sets the ACIA clock divider to
-	* '÷ 16' for the 1200 baud Acorn format, or '÷ 64' for the 300 baud CUTS format.
-	* 
-	* The ULA itself ignores bits 5 to 3 and generates a receive clock of 19.2 kHz when bit 6 is clear.
-	* (The SERPROC also disregards bits 5 and 4 but reassigns bit 3 for another purpose, see below.)
-	*  When saving, bits 2 to 0 as well as the ACIA clock divider govern the baud rate, as in serial mode,
-	* but again the MOS only adjusts the divider.
-	*/
 
 	ACIA6850 *mACIA = NULL;
+
+	int mLevelCnt = 0;
+	uint8_t mLevel = 0;
+	uint8_t pLevel = 0;
+	int mToneHalfCycles = 0;
+	int mLongHalfCycles = 0;
+
+	enum CassetteState {NO_CARRIER, CARRIER, START_BIT, DATA_BIT, PARITY_BIT, STOP_BIT};
+	CassetteState mCassetteState = NO_CARRIER;
+
+	bool isNewHalfCycle(int& nCpuCycles);
 
 public:
 

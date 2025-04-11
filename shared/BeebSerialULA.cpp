@@ -25,24 +25,50 @@ BeebSerialULA::BeebSerialULA(
 
 bool BeebSerialULA::read(uint16_t adr, uint8_t& data)
 {
+	data = 0xff; // Control Register is write-only!
 	return true;
 }
 
 /*
+*
+* https://beebwiki.mdfs.net/Serial_ULA with remarks added in []
 * 
-* b5 b4	b3		Rx clock		ACIA Rx baud rate (16/13 MHz ÷ 64)
-* b2 b1	b0		Tx clock		ACIA Tx baud rate (16/13 MHz ÷  64)
-* ========		==========		===================
-*  0  0	 0		1228.8 kHz		19200 baud
-*  1  0  0		614.4 kHz		9600 baud
-*  0  1	 0		307.2 kHz		4800 baud
-*  1  1	 0		153.6 kHz		2400 baud
-*  0  0	 1		76.8 kHz		1200 baud
-*  1  0	 1		19.2 kHz		300 baud
-*  0  1	 1		9.6 kHz			150 baud
-*  1  1	 1		4.8 kHz			75 baud
+* The 19200 baud rate setting is not guaranteed. These are nominal values — actual rates
+* are 0.16 percent higher as they are derived from a (16/13) MHz clock.
+* 
+* In serial mode, the MOS fixes the clock divider of the ACIA at '÷ 64'. The default value
+* of the control register is &64 (motor off, serial port enabled, 9600 baud receive and transmit.
+* [16/13 Mhz / 64 = 19231]
+* 
+* In cassette mode the MOS writes the hard-coded value &85 to the control register (motor on,
+* cassette enabled, 19200 baud receive, 300 baud transmit) and sets the ACIA clock divider to
+* '÷ 16' for the 1200 baud Acorn format, or '÷ 64' for the 300 baud CUTS format.
+* ACIA Baud Rate	ACIA Clk Divide		ULA Tx div	ULA Tx clock	ULA Rx div	ULA Rx clock	ACIA Clk periods per
+*																				(ignores DIV)	(2400 Hz) tone 1/2 cycle
+* ==============	===============		==========	============	==========	============	===================================
+* 300				64					64			19200			1*			19200			4
+* 1200				16					64			19200			1*			19200			4
+* 
+* *The ULA itself ignores bits 5 to 3 and generates a receive clock of 19.2 kHz when bit 6 is clear.
+* (The SERPROC also disregards bits 5 and 4 but reassigns bit 3 for another purpose, see below.)
+* When saving, bits 2 to 0 as well as the ACIA clock divider govern the baud rate, as in serial mode,
+* but again the MOS only adjusts the divider.
+*
 
-
+* 
+* b5 b4	b3		ULA Divider		Rx clock to ACIA		ACIA Rx baud rate (Rx clock ÷ 64)
+* b2 b1	b0		for 16/13 MHz	Tx clock to ACIA		ACIA Tx baud rate (Tx clock÷  64)
+*				ULA Clock
+* ========		============	==========				=================================
+*  0  0	 0		1				1228.8 kHz				19200 baud
+*  1  0  0		2				614.4 kHz				9600 baud
+*  0  1	 0		4				307.2 kHz				4800 baud
+*  1  1	 0		8				153.6 kHz				2400 baud
+*  0  0	 1		16				76.8 kHz				1200 baud
+*  1  0	 1		64				19.2 kHz				300 baud
+*  0  1	 1		128				9.6 kHz					150 baud
+*  1  1	 1		256				4.8 kHz					75 baud
+* 
 */
 bool BeebSerialULA::write(uint16_t adr, uint8_t data)
 {
@@ -51,22 +77,22 @@ bool BeebSerialULA::write(uint16_t adr, uint8_t data)
 	case 0x0:
 		mRxClkRate = 1228800; // Gives 19200 with ÷ 64 made by the ACIA
 		break;
-	case 0x1:
+	case 0x4:
 		mRxClkRate = 614400; // Gives 9600 with ÷ 64 made by the ACIA
 		break;
 	case 0x2:
 		mRxClkRate = 307200; // Gives 4800 with ÷ 64 made by the ACIA
 		break;
-	case 0x3:
+	case 0x6:
 		mRxClkRate = 153600; // Gives 2400 with ÷ 64 made by the ACIA
 		break;
-	case 0x4:
+	case 0x1:
 		mRxClkRate = 76800; // Gives 1200 with ÷ 64 made by the ACIA
 		break;
 	case 0x5:
 		mRxClkRate = 19200; // Gives 300 with ÷ 64 made by the ACIA
 		break;
-	case 0x6:
+	case 0x3:
 		mRxClkRate = 9600; // Gives 150 with ÷ 64 made by the ACIA
 		break;
 	case 0x7:
@@ -75,6 +101,8 @@ bool BeebSerialULA::write(uint16_t adr, uint8_t data)
 	default:
 		break;
 	}
+	if (!SER_ULA_CR_ENA_SER)
+		mRxClkRate = 19200;
 
 	switch (SER_ULA_CR_TxRate) {
 	case 0x0:
@@ -123,10 +151,81 @@ bool BeebSerialULA::reset()
 	return true;
 }
 
+bool BeebSerialULA::isNewHalfCycle(int &nCpuCycles)
+{
+	if (mLevel != pLevel) {
+		nCpuCycles = mLevelCnt;
+		mLevelCnt = 0;
+		return true;
+	}
+	else
+		mLevelCnt++;
+	return false;
+}
+
 
 // Advance until clock cycle stopcycle has been reached
 bool BeebSerialULA::advance(uint64_t stopCycle)
 {
+	int tone_half_cycles_dur_low = (int)round(0.8 * mCPUClock * 1e6 / 2400 / 2);
+	int tone_half_cycles_dur_high = (int)round(1.2 * mCPUClock * 1e6 / 2400 / 2);
+	int long_half_cycles_dur_low = (int)round(0.8 * mCPUClock * 1e6 / 1200 / 2);
+	int long_half_cycles_dur_high = (int)round(1.2 * mCPUClock * 1e6 / 1200 / 2);
+	int tone_half_cycles_1s = (int)round(2.0 / 2400);
+	while (mCycleCount < stopCycle) {
+
+		if (!SER_ULA_CR_ENA_SER) { // Cassette Interface
+
+			int half_cycle_cnt;
+			if (isNewHalfCycle(half_cycle_cnt)) {
+
+				//
+				// Check for cassette input
+				// 
+
+				// Check for carrier of at least 1s
+				if (half_cycle_cnt >= tone_half_cycles_dur_low && half_cycle_cnt <= tone_half_cycles_dur_high)
+					mToneHalfCycles++;
+				else
+					mToneHalfCycles--;
+				if (mToneHalfCycles > tone_half_cycles_1s)
+					updatePort(DCD, 1);
+				else
+					updatePort(DCD, 0);
+
+				//  If there was a carrier, detect whether the 1/2 cycle was part of a '0' (1200 Hz) or a '1' (2400 Hz) set of 1/2 cycles
+				if (mDCD == 1) {
+					if (half_cycle_cnt >= long_half_cycles_dur_low && half_cycle_cnt <= long_half_cycles_dur_high)
+						updatePort(RxD, 0);
+					else
+						updatePort(RxD, 1);
+				}
+				else
+					updatePort(RxD, 1);
+
+				//
+				// Generate cassette output if Request To Send is High
+				//
+
+				// Time to sample bit?
+				if (mCycleCount % TBD == 0) {
+					if (mTxD == 0) {
+						mLowTxBit = true;
+						mTxBitCnt = 0;
+					}
+					else {
+						mLowTxBit = false;
+						mTxBitCnt = 1;
+					}
+				}
+				
+
+			}
+		}
+
+		mCycleCount++;
+	}
+
 	return true;
 }
 

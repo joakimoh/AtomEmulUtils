@@ -45,7 +45,7 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		mCR = data;
 
 		// Rx & Tx clock divide
-		switch (mCR & 0x3) {
+		switch (ACIA_CR_DIV) {
 		case 0x0:
 			mClkDiv = 1;		
 			break;
@@ -72,7 +72,7 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		mTxDivCycles = mTxClkRate * mClkDiv;
 
 		// Rx & Tx data bits
-		switch ((mCR >> 2) & 0x7) {
+		switch (ACIA_CR_WORD) {
 		case 0x0:
 			mNDataBits = 7;
 			mParity = 0;
@@ -126,7 +126,7 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		}
 
 		// Tx control
-		switch ((mCR >> 5) & 0x3) {
+		switch (ACIA_CR_Tx) {
 		case 0x0:
 			updatePort(RTS, 0);
 			mEnaTxIRQ = false;
@@ -237,6 +237,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				break;
 			}
 		}
+
 		if (mCycleCount % mTxDivCycles == mTxDivCycles) { // Internal TxClk transition
 			if (mTxPending && mTxState == NO_BIT) {
 				mTxState = START_BIT;
