@@ -7,6 +7,7 @@
 
 using namespace std;
 
+class ACIA6850;
 
 class BeebSerialULA : public MemoryMappedDevice {
 
@@ -17,10 +18,17 @@ private:
 
 	// Ports
 	int RxD, TxD, RTS, CTS, DCD, RxCLK, TxCLK;
+	int CASMO, CAS_IN, CAS_OUT, DIn, DOut, RTSO;
+	uint8_t mCASMO = 0;
+	uint8_t mCAS_IN = 0;
+	uint8_t mCAS_OUT = 0;
+	uint8_t mDIn = 0;
+	uint8_t mDOut = 0;
+	uint8_t mRTSO = 0;
 	uint8_t mRxD = 0x0;
 	uint8_t mTxD = 0x0;
 	uint8_t mRTS = 0x1;
-	uint8_t mCTS = 0x1;
+	uint8_t mCTS = 0x0;	// hard-wired to LOW
 	uint8_t mDCD = 0x1;
 	uint8_t mRxCLK = 1;
 	uint8_t mTxCLK = 1;
@@ -62,6 +70,8 @@ private:
 	* but again the MOS only adjusts the divider.
 	*/
 
+	ACIA6850 *mACIA = NULL;
+
 public:
 
 	BeebSerialULA(string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugManager* debugManager, ConnectionManager* connectionManager);
@@ -77,6 +87,9 @@ public:
 
 	// Process clock updates to drive shifting on changes
 	void processPortUpdate(int index);
+
+	// Get pointer to the ACIA device to be able to call its methods
+	bool connectDevice(Device* dev);
 
 };
 

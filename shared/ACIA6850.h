@@ -17,17 +17,13 @@ private:
 	bool mPowerOn = true;
 
 	// Ports
-	int RxD, TxD, RTS, CTS, DCD, RxCLK, TxCLK, IRQ;
+	int RxD, TxD, RTS, CTS, DCD, IRQ;
 	uint8_t mRxD = 0x0;
 	uint8_t mTxD = 0x0;
 	uint8_t mRTS = 0x1;
 	uint8_t mCTS = 0x1;
 	uint8_t mDCD = 0x1;
-	uint8_t mRxCLK = 1;
-	uint8_t mTxCLK = 1;
 	uint8_t mIRQ = 1;
-	uint8_t pRxCLK = 1;
-	uint8_t pTxCLK = 1;
 	uint8_t pDCD = 1;
 	uint8_t pCTS = 1;
 
@@ -95,6 +91,15 @@ private:
 
 	uint8_t mRxBuffer = 0;
 
+	long mRxClkRate;
+	long mTxClkRate;
+
+	int mRxClkCycles = 1;
+	int mTxClkCycles = 1;
+
+	int mRxDivCycles = 1;
+	int mTxDivCycles = 1;
+
 
 public:
 
@@ -111,6 +116,9 @@ public:
 
 	// Process clock updates to drive shifting on changes
 	void processPortUpdate(int index);
+
+	void setRxClkRate(long clkRate) { mRxClkRate = clkRate; mRxClkCycles = (int) round(mCPUClock * 1e6 / clkRate); }
+	void setTxClkRate(long clkRate) { mTxClkRate = clkRate; mTxClkCycles = (int)round(mCPUClock * 1e6 / clkRate); }
 
 };
 

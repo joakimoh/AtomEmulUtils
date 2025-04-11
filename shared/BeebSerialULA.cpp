@@ -1,9 +1,25 @@
 #include "BeebSerialULA.h"
+#include "ACIA6850.h"
+#include "Device.h"
 
 BeebSerialULA::BeebSerialULA(
-	string name, uint16_t adr,double cpuClock, uint8_t waitStates, DebugManager* debugManager, ConnectionManager* connectionManager):
+	string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugManager* debugManager, ConnectionManager* connectionManager) :
 	MemoryMappedDevice(name, BEEB_SERIAL_ULA_DEV, PERIPHERAL, cpuClock, waitStates, adr, 1, debugManager, connectionManager)
 {
+	registerPort("RxD", OUT_PORT, 0x1, RxD, &mRxD);			// Receive Data to ACIA
+	registerPort("CTS", OUT_PORT, 0x1, CTS, &mCTS);			// Clear To Send to ACIA
+	registerPort("DCD", OUT_PORT, 0x1, DCD, &mDCD);			// Data Carrier Detect to ACIA
+	registerPort("TxD", IN_PORT, 0x1, TxD, &mTxD);			// Transmit Data from ACIA
+	registerPort("RTS", IN_PORT, 0x1, RTS, &mRTS);			// Request To Send from ACIA
+
+	registerPort("CASMO", OUT_PORT, 0x1, CASMO, &mCASMO);	// Cassette Motor control
+	registerPort("CAS_IN", IN_PORT, 0x1, CAS_IN, &mCAS_IN);	// Cassette In
+	registerPort("CAS_OUT", OUT_PORT, 0x1, CAS_OUT, &mCAS_OUT);	// Cassette Out
+
+	registerPort("DIn", IN_PORT, 0x1, DIn, &mDIn);			// Serial In
+	registerPort("DOut", OUT_PORT, 0x1, DOut, &mDOut);		// Serial Out
+	registerPort("RTSO", OUT_PORT, 0x1, RTSO, &mRTSO);		// Request To Send Out
+
 
 }
 
@@ -14,8 +30,8 @@ bool BeebSerialULA::read(uint16_t adr, uint8_t& data)
 
 /*
 * 
-* b5 b4	b3		Rx clock		Rx baud rate (16/13 MHz ÷ 64)
-* b2 b1	b0		Tx clock		Tx baud rate (16/13 MHz ÷  64)
+* b5 b4	b3		Rx clock		ACIA Rx baud rate (16/13 MHz ÷ 64)
+* b2 b1	b0		Tx clock		ACIA Tx baud rate (16/13 MHz ÷  64)
 * ========		==========		===================
 *  0  0	 0		1228.8 kHz		19200 baud
 *  1  0  0		614.4 kHz		9600 baud
@@ -90,6 +106,11 @@ bool BeebSerialULA::write(uint16_t adr, uint8_t data)
 
 	}
 
+	if (mACIA != NULL) {
+		mACIA->setRxClkRate(mTxClkRate);
+		mACIA->setTxClkRate(mTxClkRate);
+	}
+
 	return true;
 }
 
@@ -113,5 +134,33 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 // Process clock updates to drive shifting on changes
 void BeebSerialULA::processPortUpdate(int index)
 {
+	if (SER_ULA_CR_ENA_SER) { // Serial Communication
+		if (index == DIn) {
+			updatePort(RxD, mDIn); // forward received external data to the ACIA
+		}
+		else if (index == TxD) {
+			updatePort(DOut, mTxD);	// forward ACIA Tx data externally
+		}
+		else if (index == RTS) {
+			updatePort(RTSO, mRTS);// forward ACIA RTS externally
+		}
+	}
 
+	else { // Cassette Interface
+
+	}
+
+}
+
+// Get pointer to other device to be able to call its methods
+bool BeebSerialULA::connectDevice(Device* dev)
+{
+	Device::connectDevice(dev);
+
+	if (dev != NULL && dev->devType == ACIA6850_DEV) {
+		mACIA = (ACIA6850 *) dev;
+		//cout << "ACIA6850 connected!\n";
+	}
+
+	return true;
 }

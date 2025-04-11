@@ -2,7 +2,7 @@
 
 ACIA6850::ACIA6850(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugManager  *debugManager, ConnectionManager* connectionManager) :
 	MemoryMappedDevice(name, ACIA6850_DEV, PERIPHERAL, cpuClock, waitStates, adr, 0x08, debugManager, connectionManager), mClock(clock)
-{	registerPort("RxD",		IN_PORT,	0x1,	RxD,	&mRxD);			// Receive Data 	registerPort("CTS",		IN_PORT,	0x1,	CTS,	&mCTS);			// Clear To Send 	registerPort("DCD",		IN_PORT,	0x1,	DCD,	&mDCD);			// Data Carrier Detect 	registerPort("RxCLK",	IN_PORT,	0x1,	RxCLK,	&mRxCLK);		// Receive Clock	registerPort("TxCLK",	IN_PORT,	0x1,	TxCLK,	&mTxCLK);		// Transmit Clock	registerPort("TxD",		OUT_PORT,	0x1,	TxD,	&mTxD);			// Transmit Data	registerPort("RTS",		OUT_PORT,	0x1,	RTS,	&mRTS);			// Request To Send	registerPort("IRQ",		OUT_PORT,	0x1,	IRQ,	&mIRQ);			// Interrupt Request
+{	registerPort("RxD",		IN_PORT,	0x1,	RxD,	&mRxD);			// Receive Data 	registerPort("CTS",		IN_PORT,	0x1,	CTS,	&mCTS);			// Clear To Send 	registerPort("DCD",		IN_PORT,	0x1,	DCD,	&mDCD);			// Data Carrier Detect	registerPort("TxD",		OUT_PORT,	0x1,	TxD,	&mTxD);			// Transmit Data	registerPort("RTS",		OUT_PORT,	0x1,	RTS,	&mRTS);			// Request To Send	registerPort("IRQ",		OUT_PORT,	0x1,	IRQ,	&mIRQ);			// Interrupt Request
 }
 
 bool ACIA6850::read(uint16_t adr, uint8_t& data)
@@ -47,7 +47,7 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		// Rx & Tx clock divide
 		switch (mCR & 0x3) {
 		case 0x0:
-			mClkDiv = 1;
+			mClkDiv = 1;		
 			break;
 		case 0x1:
 			mClkDiv = 16;
@@ -68,6 +68,8 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		default:
 			break;
 		}
+		mRxDivCycles = mRxClkRate * mClkDiv;
+		mTxDivCycles = mTxClkRate * mClkDiv;
 
 		// Rx & Tx data bits
 		switch ((mCR >> 2) & 0x7) {
@@ -171,24 +173,19 @@ bool ACIA6850::reset()
 // Advance until clock cycle stopcycle has been reached
 bool ACIA6850::advance(uint64_t stopCycle)
 {
-	mCycleCount = stopCycle;
 
-	return true;
-}
+	while (mCycleCount < stopCycle) {
 
-// Process clock updates to drive shifting on changes
-void ACIA6850::processPortUpdate(int index)
-{
-	if (index == RxCLK) {
-		if (mRxCLK != pRxCLK) { // RxClk transition
-			switch (mRxState) {
-			case START_BIT: // Synchronize to mid start bit
-			{
+		// Special treatment of start bit sampling as it needs to be made
+		// with higher frequency (the RxClk frequency)
+		if (mCycleCount % mRxClkCycles == 0) { // External RxClk transition
+			mRxCLKCnt++;
+			if (mRxState == START_BIT) {
 				if (mRxD == 0)
 					mRxLowSamples++;
 				else
 					mRxLowSamples = 0;
-				if (mClkDiv == 1 && mRxLowSamples == 1 || mRxLowSamples == mClkDiv / 2) {
+				if (mRxLowSamples >= mClkDiv / 2 && mCycleCount % mRxDivCycles == mRxDivCycles / 2) {
 					mRxState = DATA_BIT;
 					mRxBits = 0;
 					mRxBuffer = 0;
@@ -199,57 +196,48 @@ void ACIA6850::processPortUpdate(int index)
 					else
 						mRxPar = 1;
 				}
-				break;
 			}
+		}
+
+
+		if (mCycleCount % mRxDivCycles == mRxDivCycles) { // Internal RxClk transition
+			switch (mRxState) {
 			case DATA_BIT:
 			{
-				if (mRxCLKCnt % mClkDiv == 0 && RxCLK == 1) { // Shift in on high Rx Clock considering divide ratio
-					mRxBuffer = ((mRxBuffer << 1) | mRxBuffer) & 0xff;
-					mRxPar ^= mRxD;
-					mRxBits++;
-					if (mRxBits == mNDataBits) {
-						if (mParity == -1)
-							mRxState = STOP_BIT;
-						else
-							mRxState = PARITY_BIT;
-					}
+				mRxBuffer = ((mRxBuffer << 1) | mRxD) & 0xff;
+				mRxPar ^= mRxD;
+				mRxBits++;
+				if (mRxBits == mNDataBits) {
+					if (mParity == -1)
+						mRxState = STOP_BIT;
+					else
+						mRxState = PARITY_BIT;
 				}
 				break;
 			}
 			case PARITY_BIT:
 			{
-				if (mRxCLKCnt % mClkDiv == 0 && RxCLK == 1) { // Shift in on high Rx Clock considering divide ratio
-					mRxPar ^= mRxD;
-					if (mRxD != mRxPar)
-						mSR |= ACIA_SR_PE_MASK; // Parity Error
-					mRxState = STOP_BIT;
-				}
+				mRxPar ^= mRxD;
+				if (mRxD != mRxPar)
+					mSR |= ACIA_SR_PE_MASK; // Parity Error
+				mRxState = STOP_BIT;
 				break;
 			}
 			case STOP_BIT:
 			{
-				if (mRxCLKCnt % mClkDiv == 0 && RxCLK == 1) { // Shift in on high Rx Clock considering divide ratio
-					if (mRxD != 1)
-						mSR |= ACIA_SR_PE_MASK; // Set Framing Error bit
-					if (!ACIA_SR_RDRF) // Only transfer received data if the RDR is not already Full
-						mRDR = mRxBuffer;
-					mSR |= ACIA_SR_RDRF_MASK; // Set Receive Data Register Full bit
-					mRxState = NO_BIT;
-				}
+				if (mRxD != 1)
+					mSR |= ACIA_SR_PE_MASK; // Set Framing Error bit
+				if (!ACIA_SR_RDRF) // Only transfer received data if the RDR is not already Full
+					mRDR = mRxBuffer;
+				mSR |= ACIA_SR_RDRF_MASK; // Set Receive Data Register Full bit
+				mRxState = NO_BIT;
 				break;
 			}
 			default: // NO_BIT
 				break;
 			}
-
-			if (mRxCLK == 0) // Count Rx clock cycles
-				mRxCLKCnt++;
 		}
-		pRxCLK = mRxCLK;
-	}
-
-	else if (index == TxCLK) {
-		if (mTxCLK != pTxCLK) {
+		if (mCycleCount % mTxDivCycles == mTxDivCycles) { // Internal TxClk transition
 			if (mTxPending && mTxState == NO_BIT) {
 				mTxState = START_BIT;
 				mTxPending = false;
@@ -257,24 +245,20 @@ void ACIA6850::processPortUpdate(int index)
 			switch (mTxState) {
 			case START_BIT:
 			{
-				if (mTxCLKCnt % mClkDiv == 0 && TxCLK == 0) {
-					mTxD = 0;
-					mTxState = DATA_BIT;
-					mTxBits = 0;
-					if (mParity == 0)
-						mTxPar = 0;
-					else
-						mTxPar = 1;
-				}
+				mTxD = 0;
+				mTxState = DATA_BIT;
+				mTxBits = 0;
+				if (mParity == 0)
+					mTxPar = 0;
+				else
+					mTxPar = 1;
 				break;
 			}
 			case DATA_BIT:
 			{
-				if (mTxCLKCnt % mClkDiv == 0 && TxCLK == 0) { // Shift out on low Tx Clock considering divide ratio
-					mTxD = mTDR & 0x1;
-					mTDR = (mTDR >> 1) & 0x7f;
-					mTxPar ^= mTxD;
-				}
+				mTxD = mTDR & 0x1;
+				mTDR = (mTDR >> 1) & 0x7f;
+				mTxPar ^= mTxD;
 				mTxBits++;
 				if (mTxBits == mNDataBits) {
 					if (mParity == -1)
@@ -286,22 +270,18 @@ void ACIA6850::processPortUpdate(int index)
 			}
 			case PARITY_BIT:
 			{
-				if (mTxCLKCnt % mClkDiv == 0 && TxCLK == 0) { // Shift out on low Tx Clock considering divide ratio
-					mTxD = mTxPar;
-					mTxState = STOP_BIT;
-				}
+				mTxD = mTxPar;
+				mTxState = STOP_BIT;
 				break;
 			}
 			case STOP_BIT:
 			{
-				if (mTxCLKCnt % mClkDiv == 0 && TxCLK == 0) { // Shift out on low Tx Clock considering divide ratio
-					mTxD = 1;
-					mSentStopBits++;
-					if (mSentStopBits == mStopBits) {
-						mTxState = NO_BIT;
-						if (!ACIA_SR_CTS)
-							mSR |= ACIA_SR_TDRE_MASK; // Set the Transmit Data Register Empty bit (if not inhibited by the CTS)
-					}
+				mTxD = 1;
+				mSentStopBits++;
+				if (mSentStopBits == mStopBits) {
+					mTxState = NO_BIT;
+					if (!ACIA_SR_CTS)
+						mSR |= ACIA_SR_TDRE_MASK; // Set the Transmit Data Register Empty bit (if not inhibited by the CTS)
 				}
 				break;
 			}
@@ -309,13 +289,18 @@ void ACIA6850::processPortUpdate(int index)
 				break;
 			}
 
-			if (TxCLK == 0) // Count Tx clock cycles
-				mTxCLKCnt++;
 		}
-		pTxCLK = mTxCLK;
-	}
 
-	else if (index = DCD) {
+		mCycleCount++;
+	}
+	return true;
+}
+
+// Process clock updates to drive shifting on changes
+void ACIA6850::processPortUpdate(int index)
+{
+	
+	if (index = DCD) {
 		if (mDCD != pDCD) {
 			if (mDCD == 1) {
 				mSR |= ACIA_SR_DCD_MASK; // Set Data Carrier Detect bit (cleared by reading of SR + RDR or master RESET)
