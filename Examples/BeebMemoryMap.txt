@@ -50,9 +50,15 @@ CONNECT 	KB:BREAK	CRTC:RESET
 CONNECT 	KB:BREAK	TCG:RESET
 CONNECT 	KB:BREAK	VDU:RESET
 CONNECT 	VDU:CRTC_CLK	CRTC:CLK
+
 // CUTS <=> Tape Recorder Connections
 CONNECT 	TAPREC:CAS_IN		SerialULA:CAS_IN	// connect Serial ULA (CUTS) and tape recorder - CAS IN
 CONNECT 	SerialULA:CAS_OUT	TAPREC:CAS_OUT		// connect Serial ULA (CUTS)and tape recorder - CAS OUT
+CONNECT		ACIA:TxD		SerialULA:TxD		// connect the  ACIA Tx data to the Serial ULA
+CONNECT		ACIA:RTS		SerialULA:RTSI		// connect the  ACIA RTS to the Serial ULA
+CONNECT		SerialULA:RxD		ACIA:RxD		// connect the Serial ULA Rx data to the ACIA
+CONNECT		SerialULA:CTSO		ACIA:CTS		// connect the Serial ULA CTS to the ACIA
+CONNECT		SerialULA:DCD		ACIA:DCD		// connect the Serial ULA DCD to the ACIA
 
 //
 //	Device scheduling
