@@ -6,21 +6,29 @@ BeebSerialULA::BeebSerialULA(
 	string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugManager* debugManager, ConnectionManager* connectionManager) :
 	MemoryMappedDevice(name, BEEB_SERIAL_ULA_DEV, PERIPHERAL, cpuClock, waitStates, adr, 1, debugManager, connectionManager)
 {
-	registerPort("RxD", OUT_PORT, 0x1, RxD, &mRxD);			// Receive Data to ACIA
-	registerPort("CTS", OUT_PORT, 0x1, CTS, &mCTS);			// Clear To Send to ACIA
-	registerPort("DCD", OUT_PORT, 0x1, DCD, &mDCD);			// Data Carrier Detect to ACIA
-	registerPort("TxD", IN_PORT, 0x1, TxD, &mTxD);			// Transmit Data from ACIA
-	registerPort("RTS", IN_PORT, 0x1, RTS, &mRTS);			// Request To Send from ACIA
+	registerPort("RxD",		OUT_PORT,	0x1,	RxD,		&mRxD);		// Receive Data					to ACIA
+	registerPort("CTSO",	OUT_PORT,	0x1,	CTSO,		&mCTSO);	// Clear To Send				to ACIA
+	registerPort("DCD",		OUT_PORT,	0x1,	DCD,		&mDCD);		// Data Carrier Detect			to ACIA
+	registerPort("TxD",		IN_PORT,	0x1,	TxD,		&mTxD);		// Transmit Data				from ACIA
+	registerPort("RTSI",	IN_PORT,	0x1,	RTSI,		&mRTSI);	// Request To Send				from ACIA
+	registerPort("CASMO",	OUT_PORT,	0x1,	CASMO,		&mCASMO);	// Cassette Motor control		to relay
+	registerPort("CAS_IN",	IN_PORT,	0x1,	CAS_IN,		&mCAS_IN);	// Cassette In					from Tape Recorder
+	registerPort("CAS_OUT",	OUT_PORT,	0x1,	CAS_OUT,	&mCAS_OUT);	// Cassette Out					to Tape Recorder
+	registerPort("DIn",		IN_PORT,	0x1,	DIn,		&mDIn);		// Serial In					from RS423 Interface
+	registerPort("DOut",	OUT_PORT,	0x1,	DOut,		&mDOut);	// Serial Out					to RS423 Interface
+	registerPort("RTSO",	OUT_PORT,	0x1,	RTSO,		&mRTSO);	// Request To Send Out			to RS423 Interface
 
-	registerPort("CASMO", OUT_PORT, 0x1, CASMO, &mCASMO);	// Cassette Motor control
-	registerPort("CAS_IN", IN_PORT, 0x1, CAS_IN, &mCAS_IN);	// Cassette In
-	registerPort("CAS_OUT", OUT_PORT, 0x1, CAS_OUT, &mCAS_OUT);	// Cassette Out
+	double tolerance = 0.2;
+	double t_low = 1 - tolerance;
+	double t_high = 1 + tolerance;
+	mLowToneHalfCycleDuration = (int)round(cpuClock * 1e6 / 1200 / 2);
+	mLowToneHalfCycleDurationMin = (int)round(t_low * cpuClock * 1e6 / 1200 / 2);
+	mLowToneHalfCycleDurationMax = (int)round(t_high * cpuClock * 1e6 / 1200 / 2);
+	mHighToneHalfCycleDuration = (int)round(cpuClock * 1e6 / 2400 / 2);
+	mHighToneHalfCycleDurationMin = (int)round(t_low * cpuClock * 1e6 / 2400 / 2);
+	mHighToneHalfCycleDurationMax = (int)round(t_high * cpuClock * 1e6 / 2400 / 2);
 
-	registerPort("DIn", IN_PORT, 0x1, DIn, &mDIn);			// Serial In
-	registerPort("DOut", OUT_PORT, 0x1, DOut, &mDOut);		// Serial Out
-	registerPort("RTSO", OUT_PORT, 0x1, RTSO, &mRTSO);		// Request To Send Out
-
-
+	mMinCarrierCycles = (int)round(2.0 / 2400);
 }
 
 bool BeebSerialULA::read(uint16_t adr, uint8_t& data)
@@ -101,8 +109,6 @@ bool BeebSerialULA::write(uint16_t adr, uint8_t data)
 	default:
 		break;
 	}
-	if (!SER_ULA_CR_ENA_SER)
-		mRxClkRate = 19200;
 
 	switch (SER_ULA_CR_TxRate) {
 	case 0x0:
@@ -139,6 +145,17 @@ bool BeebSerialULA::write(uint16_t adr, uint8_t data)
 		mACIA->setTxClkRate(mTxClkRate);
 	}
 
+	//
+	// In Cassette Mode, RTSO (to the RS423 Interface) is hard-wired as High (i.e., inactive) and CTSO (to the ACIA) as Low (i.e. active)
+	// Receive clock rate is also set to 19 200 independently of CR's bits b3 to b5
+	//
+	if (!SER_ULA_CR_ENA_SER) {
+		mRxClkRate = 19200;
+		updatePort(RTSO, 1);
+		updatePort(CTSO, 0);
+	}
+
+
 	return true;
 }
 
@@ -167,15 +184,13 @@ bool BeebSerialULA::isNewHalfCycle(int &nCpuCycles)
 // Advance until clock cycle stopcycle has been reached
 bool BeebSerialULA::advance(uint64_t stopCycle)
 {
-	int tone_half_cycles_dur_low = (int)round(0.8 * mCPUClock * 1e6 / 2400 / 2);
-	int tone_half_cycles_dur_high = (int)round(1.2 * mCPUClock * 1e6 / 2400 / 2);
-	int long_half_cycles_dur_low = (int)round(0.8 * mCPUClock * 1e6 / 1200 / 2);
-	int long_half_cycles_dur_high = (int)round(1.2 * mCPUClock * 1e6 / 1200 / 2);
-	int tone_half_cycles_1s = (int)round(2.0 / 2400);
+
+	
 	while (mCycleCount < stopCycle) {
 
 		if (!SER_ULA_CR_ENA_SER) { // Cassette Interface
 
+			// Check for a complete 1/2 Cycle
 			int half_cycle_cnt;
 			if (isNewHalfCycle(half_cycle_cnt)) {
 
@@ -183,19 +198,12 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 				// Check for cassette input
 				// 
 
-				// Check for carrier of at least 1s
-				if (half_cycle_cnt >= tone_half_cycles_dur_low && half_cycle_cnt <= tone_half_cycles_dur_high)
-					mToneHalfCycles++;
-				else
-					mToneHalfCycles--;
-				if (mToneHalfCycles > tone_half_cycles_1s)
-					updatePort(DCD, 1);
-				else
-					updatePort(DCD, 0);
+				bool high_tone = (half_cycle_cnt >= mHighToneHalfCycleDurationMin && half_cycle_cnt <= mHighToneHalfCycleDurationMax);
+				bool low_tone = (half_cycle_cnt >= mLowToneHalfCycleDurationMin && half_cycle_cnt <= mLowToneHalfCycleDurationMax);
 
-				//  If there was a carrier, detect whether the 1/2 cycle was part of a '0' (1200 Hz) or a '1' (2400 Hz) set of 1/2 cycles
+				//  If there is a carrier, detect whether the 1/2 cycle was part of a '0' (1200 Hz) or a '1' (2400 Hz) set of 1/2 cycles
 				if (mDCD == 1) {
-					if (half_cycle_cnt >= long_half_cycles_dur_low && half_cycle_cnt <= long_half_cycles_dur_high)
+					if (high_tone)
 						updatePort(RxD, 0);
 					else
 						updatePort(RxD, 1);
@@ -203,20 +211,40 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 				else
 					updatePort(RxD, 1);
 
+				// Check for carrier of at least 1s; assert Data Carrier Detect (DCD) to the ACIA when detected
+				if (high_tone)
+					mToneHalfCycles++;
+				else
+					mToneHalfCycles--;
+				if (mToneHalfCycles > mMinCarrierCycles)
+					updatePort(DCD, 1);
+				else
+					updatePort(DCD, 0);
+
+
+
 				//
-				// Generate cassette output if Request To Send is High
+				// Generate cassette output when Request To Send (RTS) is active (i.e., Low)
 				//
 
-				// Time to sample bit?
-				if (mCycleCount % TBD == 0) {
-					if (mTxD == 0) {
-						mLowTxBit = true;
-						mTxBitCnt = 0;
+				if (mRTSI == 0) {
+
+					//
+					// Change tone frequency when Tx data from the ACIA changes
+					//
+					if (mTxD != pTxD) {
+						if (mTxD == 0)
+							mToneHalfCycleDuration = mLowToneHalfCycleDuration;
+						else
+							mToneHalfCycleDuration = mHighToneHalfCycleDuration;
+						mToneCnt = 0;
 					}
 					else {
-						mLowTxBit = false;
-						mTxBitCnt = 1;
+						mToneCnt++;
+						if (mToneCnt == mToneHalfCycleDuration)
+							updatePort(CAS_OUT, 1 - mCAS_OUT);
 					}
+
 				}
 				
 
@@ -225,6 +253,8 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 
 		mCycleCount++;
 	}
+
+	pTxD = mTxD;
 
 	return true;
 }
@@ -235,18 +265,17 @@ void BeebSerialULA::processPortUpdate(int index)
 {
 	if (SER_ULA_CR_ENA_SER) { // Serial Communication
 		if (index == DIn) {
-			updatePort(RxD, mDIn); // forward received external data to the ACIA
+			updatePort(RxD, mDIn); // forward the RS423 Rx data to the ACIA
 		}
 		else if (index == TxD) {
-			updatePort(DOut, mTxD);	// forward ACIA Tx data externally
+			updatePort(DOut, mTxD);	// forward the ACIA Tx data to the RS423 Interface
 		}
-		else if (index == RTS) {
-			updatePort(RTSO, mRTS);// forward ACIA RTS externally
+		else if (index == RTSI) {
+			updatePort(RTSO, mRTSI);// forward the ACIA RTS to the RS423 Interface
 		}
-	}
-
-	else { // Cassette Interface
-
+		else if (index == CTSI) {
+			updatePort(CTSO, mCTSI);// forward the RS423 CTS to the ACIA
+		}
 	}
 
 }

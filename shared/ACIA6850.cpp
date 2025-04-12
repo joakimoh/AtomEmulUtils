@@ -2,7 +2,7 @@
 
 ACIA6850::ACIA6850(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugManager  *debugManager, ConnectionManager* connectionManager) :
 	MemoryMappedDevice(name, ACIA6850_DEV, PERIPHERAL, cpuClock, waitStates, adr, 0x08, debugManager, connectionManager), mClock(clock)
-{	registerPort("RxD",		IN_PORT,	0x1,	RxD,	&mRxD);			// Receive Data 	registerPort("CTS",		IN_PORT,	0x1,	CTS,	&mCTS);			// Clear To Send 	registerPort("DCD",		IN_PORT,	0x1,	DCD,	&mDCD);			// Data Carrier Detect	registerPort("TxD",		OUT_PORT,	0x1,	TxD,	&mTxD);			// Transmit Data	registerPort("RTS",		OUT_PORT,	0x1,	RTS,	&mRTS);			// Request To Send	registerPort("IRQ",		OUT_PORT,	0x1,	IRQ,	&mIRQ);			// Interrupt Request
+{	registerPort("RxD",		IN_PORT,	0x1,	RxD,	&mRxD); 	registerPort("CTS",		IN_PORT,	0x1,	CTS,	&mCTS); 	registerPort("DCD",		IN_PORT,	0x1,	DCD,	&mDCD);	registerPort("TxD",		OUT_PORT,	0x1,	TxD,	&mTxD);	registerPort("RTS",		OUT_PORT,	0x1,	RTS,	&mRTS);	registerPort("IRQ",		OUT_PORT,	0x1,	IRQ,	&mIRQ);
 }
 
 bool ACIA6850::read(uint16_t adr, uint8_t& data)

@@ -3,7 +3,7 @@ CLOCK	2.0	// CPU clock in MHz
 //	Device	Unique name		Addr	Size	Wait		Misc
 //							States		
 //							[CPU Cycles]
-ADD	DRAM		RAM32K		0000	8000	1				// 32kB RAM	0000 -	7fff
+ADD	DRAM		RAM32K		0000	8000	0				// 32kB RAM	0000 -	7fff
 ADD	ROM 		BASIC		8000	4000	0		BASIC2.rom	// Paged ROM #15 (IC52 NW)	8000 - bfff
 ADD	ROM		OS		c000	4000	0		OS12.rom	// OS		 		c000 -	ffff
 GAP			OS		fc00	0300					// Gap in OS ROM space between fc00-ff00	
@@ -11,7 +11,7 @@ GAP			OS		fc00	0300					// Gap in OS ROM space between fc00-ff00
 ADD	CRTC6845	CRTC		fe00	0008	1				// H6845SP CRTC
 ADD	TT5050		TCG				1				// Teletext Character Generator			
 ADD	ACIA6850	ACIA		fe08	0008	1		1.0		// ACIA 6850
-//ADD	BeebSerULA	SerialULA	fe10	0010
+ADD	BeebSerULA	SerialULA	fe10	0010	1				// Beeb Serial ULA
 ADD	BeebVideoULA	VDU		fe20	0010	1				// Beeb Video ULA
 ADD	BeebRomSel	ROMSel		fe30	0010	0
 ADD	VIA6522		SYS_VIA		fe40	0020	1		1.0		// IC3	fe40 -	fe4f; 1 Mhz Clock
@@ -19,6 +19,7 @@ ADD	VIA6522		SYS_VIA		fe40	0020	1		1.0		// IC3	fe40 -	fe4f; 1 Mhz Clock
 //ADD	ADC7002		ADC		fec0	0003	1				// ADC Converter
 ADD	BEEBKB		KB		00						// startup options (DIP switches)
 ADD	UC6502		UC								// Microcontroller 6502
+ADD	TAPREC	TAPREC									// Standard Tape Recorder
 
 //
 //	Device connections
@@ -36,7 +37,7 @@ CONNECT		CRTC:CUDISP	VDU:CURSOR
 CONNECT		CRTC:RA;3;0	VDU:RA
 CONNECT		CRTC:VS		SYS_VIA:CA;0	// VS => CA1
 CONNECT 	ROMSel:NW	BASIC:CS
-CONNECT 	SYS_VIA:PB;3;0	KB:CTRL		// PB3:0 => CTRL
+CONNECT:P 	SYS_VIA:PB;3;0	KB:CTRL		// PB3:0 => CTRL
 CONNECT:P 	SYS_VIA:PB;3;0	VDU:SCROLL_CTRL	// PB3:0 => SCROLL_CTRL
 CONNECT 	SYS_VIA:PA;3;0	KB:COL_SEL	// PA3:0 => COL_SEL
 CONNECT 	SYS_VIA:PA;6;4	KB:ROW_SEL	// PA6:4 => ROW_SEL
@@ -49,6 +50,10 @@ CONNECT 	KB:BREAK	CRTC:RESET
 CONNECT 	KB:BREAK	TCG:RESET
 CONNECT 	KB:BREAK	VDU:RESET
 CONNECT 	VDU:CRTC_CLK	CRTC:CLK
+// CUTS <=> Tape Recorder Connections
+CONNECT 	TAPREC:CAS_IN		SerialULA:CAS_IN	// connect Serial ULA (CUTS) and tape recorder - CAS IN
+CONNECT 	SerialULA:CAS_OUT	TAPREC:CAS_OUT		// connect Serial ULA (CUTS)and tape recorder - CAS OUT
+
 //
 //	Device scheduling
 //
@@ -58,9 +63,12 @@ TRIGGER	KB	MEM	SYS_VIA	WRITE	fe4f	// Beeb selects keyboard row & col by writing 
 //TRIGGER KB	MEM	OS	READ	f12c	// Trigger keyboard when interrupts have been temporarily enabled
 TRIGGER	CRTC	CALL	VDU			// Trigger the CRTC explictly by VDU function calls
 TRIGGER	TCG	CALL	VDU			// Trigger the TCG explictly by VDU function calls
-SCHED	TCG	NONE
-SCHED	CRTC	NONE
-SCHED	KB	FIELD
+TRIGGER ACIA	CALL	SerialULA		// Trigger the ACIA explictly by Serial ULA function calls
+SCHED	TCG		NONE
+SCHED	CRTC		NONE
+SCHED	ACIA		INSTR
+SCHED	KB		FIELD
+SCHED	SerialULA	INSTR
 TRIGGER CRTC	PORT	RESET			// Also trigger the CRTC on RESET
 TRIGGER TCG	PORT	RESET			// Also trigger the TCG on RESET
 TRIGGER	VDU	PORT	RESET			// Also trigger the VDU on RESET

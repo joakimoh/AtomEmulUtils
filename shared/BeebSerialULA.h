@@ -17,7 +17,7 @@ private:
 
 
 	// Ports
-	int RxD, TxD, RTS, CTS, DCD, RxCLK, TxCLK;
+	int RxD, TxD, RTSI, CTSO, CTSI, DCD, RxCLK, TxCLK;
 	int CASMO, CAS_IN, CAS_OUT, DIn, DOut, RTSO;
 	uint8_t mCASMO = 0;
 	uint8_t mCAS_IN = 0;
@@ -27,8 +27,9 @@ private:
 	uint8_t mRTSO = 0;
 	uint8_t mRxD = 0x0;
 	uint8_t mTxD = 0x0;
-	uint8_t mRTS = 0x1;
-	uint8_t mCTS = 0x0;	// hard-wired to LOW
+	uint8_t mRTSI = 0x1;
+	uint8_t mCTSI = 0x0;
+	uint8_t mCTSO = 0x0;
 	uint8_t mDCD = 0x1;
 	uint8_t mRxCLK = 1;
 	uint8_t mTxCLK = 1;
@@ -58,6 +59,22 @@ private:
 	uint8_t pLevel = 0;
 	int mToneHalfCycles = 0;
 	int mLongHalfCycles = 0;
+
+	// Tone synthesis
+	uint8_t mTone = 0;
+	int mToneCnt = 0;
+	uint8_t pTxD = 1;
+
+	int mToneHalfCycleDuration = 0;
+	int mHighToneHalfCycleDuration = 0;
+	int mHighToneHalfCycleDurationMin = 0;
+	int mHighToneHalfCycleDurationMax = 0;
+	int mLowToneHalfCycleDuration = 0;
+	int mLowToneHalfCycleDurationMin = 0;
+	int mLowToneHalfCycleDurationMax = 0;
+	int mMinCarrierCycles = 0;
+
+
 
 	enum CassetteState {NO_CARRIER, CARRIER, START_BIT, DATA_BIT, PARITY_BIT, STOP_BIT};
 	CassetteState mCassetteState = NO_CARRIER;
