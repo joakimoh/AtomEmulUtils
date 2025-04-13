@@ -369,23 +369,24 @@ int main(int argc, const char* argv[])
         wait_cnt += wait_dur.count();
 
         // act on event
-        if (event.type == ALLEGRO_EVENT_TIMER) {
-            // The timer event comes from the emulation speed timer (defaults to 60 Hz)
-            // This will synchronise the execution on 60 Hz basis (via the wait event above)
-        } 
+        if (event.type == ALLEGRO_EVENT_MENU_CLICK) {
+            gui.itemSelected(&event);
+        }
+        else if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN && event.mouse.display == disp && event.mouse.button == ALLEGRO_MOUSE_BUTTON_RIGHT) {
+            if (pmenu) {
+                if (!al_popup_menu(menu, disp))
+                    cout << "Failed to launch popup menu!\n";
+            }
+        }
         else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
             quit = true;
             al_flush_event_queue(queue);
         }
-        else if (event.type == ALLEGRO_EVENT_MENU_CLICK) {
-            gui.itemSelected(&event);
-        }
-		else if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN && event.mouse.display == disp && event.mouse.button == ALLEGRO_MOUSE_BUTTON_RIGHT) {
-            if (pmenu) {
-                if (!al_popup_menu(menu, disp))
-                    cout << "Failed to launch popup menu!\n";
-			}
-		}
+        else if (event.type == ALLEGRO_EVENT_TIMER) {
+            // The timer event comes from the emulation speed timer (defaults to 60 Hz)
+            // This will synchronise the execution on 60 Hz basis (via the wait event above)
+        } 
+        
 
         // Turn on microprocessor debugging (tracing) if user presses <CTRL>-D
         al_get_keyboard_state(&keyboard_state);

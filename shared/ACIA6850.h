@@ -117,8 +117,8 @@ public:
 	// Process clock updates to drive shifting on changes
 	void processPortUpdate(int index);
 
-	void setRxClkRate(long clkRate) { mRxClkRate = clkRate; mRxClkCycles = (int) round(mCPUClock * 1e6 / clkRate); }
-	void setTxClkRate(long clkRate) { mTxClkRate = clkRate; mTxClkCycles = (int)round(mCPUClock * 1e6 / clkRate); }
+	void setRxClkRate(long clkRate);
+	void setTxClkRate(long clkRate);
 
 };
 

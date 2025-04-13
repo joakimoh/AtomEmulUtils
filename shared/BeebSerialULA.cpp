@@ -1,6 +1,7 @@
 #include "BeebSerialULA.h"
 #include "ACIA6850.h"
 #include "Device.h"
+#include "Utility.h"
 
 BeebSerialULA::BeebSerialULA(
 	string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugManager* debugManager, ConnectionManager* connectionManager) :
@@ -17,6 +18,7 @@ BeebSerialULA::BeebSerialULA(
 	registerPort("DIn",		IN_PORT,	0x1,	DIn,		&mDIn);		// Serial In					from RS423 Interface
 	registerPort("DOut",	OUT_PORT,	0x1,	DOut,		&mDOut);	// Serial Out					to RS423 Interface
 	registerPort("RTSO",	OUT_PORT,	0x1,	RTSO,		&mRTSO);	// Request To Send Out			to RS423 Interface
+	registerPort("CTSI",	IN_PORT,	0x1,	CTSI,		&mCTSI);	// Clear To Send				from RS423 Interface
 
 	double tolerance = 0.2;
 	double t_low = 1 - tolerance;
@@ -28,7 +30,7 @@ BeebSerialULA::BeebSerialULA(
 	mHighToneHalfCycleDurationMin = (int)round(t_low * cpuClock * 1e6 / 2400 / 2);
 	mHighToneHalfCycleDurationMax = (int)round(t_high * cpuClock * 1e6 / 2400 / 2);
 
-	mMinCarrierCycles = (int)round(2.0 / 2400);
+	mMinCarrierCycles = (int)round(2.0 * 2400);
 }
 
 bool BeebSerialULA::read(uint16_t adr, uint8_t& data)
@@ -140,11 +142,6 @@ bool BeebSerialULA::write(uint16_t adr, uint8_t data)
 
 	}
 
-	if (mACIA != NULL) {
-		mACIA->setRxClkRate(mTxClkRate);
-		mACIA->setTxClkRate(mTxClkRate);
-	}
-
 	//
 	// In Cassette Mode, RTSO (to the RS423 Interface) is hard-wired as High (i.e., inactive) and CTSO (to the ACIA) as Low (i.e. active)
 	// Receive clock rate is also set to 19 200 independently of CR's bits b3 to b5
@@ -154,6 +151,13 @@ bool BeebSerialULA::write(uint16_t adr, uint8_t data)
 		updatePort(RTSO, 1);
 		updatePort(CTSO, 0);
 	}
+
+	// "Tell" the ACIA about the updated Rx & Tx clock rates
+	if (mACIA != NULL) {
+		mACIA->setRxClkRate(mRxClkRate);
+		mACIA->setTxClkRate(mTxClkRate);
+	}
+
 
 
 	return true;
@@ -170,13 +174,18 @@ bool BeebSerialULA::reset()
 
 bool BeebSerialULA::isNewHalfCycle(int &nCpuCycles)
 {
-	if (mLevel != pLevel) {
+	uint8_t old_level = mLevel;
+	mLevel = mCAS_IN;
+
+	if (mCAS_IN != old_level) {
 		nCpuCycles = mLevelCnt;
 		mLevelCnt = 0;
 		return true;
 	}
-	else
+	else {
 		mLevelCnt++;
+	}
+	
 	return false;
 }
 
@@ -202,11 +211,32 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 				bool low_tone = (half_cycle_cnt >= mLowToneHalfCycleDurationMin && half_cycle_cnt <= mLowToneHalfCycleDurationMax);
 
 				//  If there is a carrier, detect whether the 1/2 cycle was part of a '0' (1200 Hz) or a '1' (2400 Hz) set of 1/2 cycles
-				if (mDCD == 1) {
-					if (high_tone)
-						updatePort(RxD, 0);
-					else
+				if (mDCD == 0) {
+					mSameToneHalfCycles++;
+					if (high_tone) {
+						if (mLastTone != 1) {
+							//cout << "#" << dec << mSameToneHalfCycles << ":0# ";
+							mSameToneHalfCycles = 0;
+						}						
 						updatePort(RxD, 1);
+						mLastTone = 1;
+					}
+					else if (low_tone) {
+						if (mLastTone != 0) {
+							//cout << "#" << dec << mSameToneHalfCycles << ":1# ";
+							mSameToneHalfCycles = 0;
+						}
+						updatePort(RxD, 0);
+						mLastTone = 0;
+					}
+					else { // neither a high tone (a 2400 1/2 cycle) nor a low tone (a 1200 1/2 cycle)
+						if (mLastTone != -1) {
+							//cout << "#" << dec << mSameToneHalfCycles << ":?# ";
+							mSameToneHalfCycles = 0;
+						}
+						updatePort(RxD, 0);
+						mLastTone = -1;
+					}
 				}
 				else
 					updatePort(RxD, 1);
@@ -216,10 +246,19 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					mToneHalfCycles++;
 				else
 					mToneHalfCycles--;
-				if (mToneHalfCycles > mMinCarrierCycles)
+				if (mToneHalfCycles > mMinCarrierCycles) {
+					if (mDCD == 1) {
+						cout << "\n" << dec << mToneHalfCycles << " 1/2 cycles (" << (mToneHalfCycles / 2400 / 2) << "s) of Carrier detected at " <<
+							(mCycleCount / mCPUClock * 1e-6) << "s\n";
+						updatePort(DCD, 0);
+						mSameToneHalfCycles = 0;
+					}
+				}
+				else {
+					if (mDCD == 0)
+						cout << "Carried lost  at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
 					updatePort(DCD, 1);
-				else
-					updatePort(DCD, 0);
+				}
 
 
 

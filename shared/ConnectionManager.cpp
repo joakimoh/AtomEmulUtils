@@ -144,9 +144,9 @@ bool ConnectionManager::connect(string srcName, string dstName, bool invert, boo
 	else
 		src_port.port->inputs.push_back(input_ref);
 	if (mDM->debug(DBG_VERBOSE))
-		cout << "CONNECT " << srcName << " AND " << dstName << " => shifts = " << dec << input_ref.shifts  << ", mask = 0x" << 
-		hex << (int) input_ref.mask  << dec << ", invert = " << (invert?"true":"false") << ", process = " << (process?"true":"false") <<
-		"\n";
+		cout << "CONNECT " << srcName << " AND " << dstName << " => shifts = " << dec << input_ref.shifts << ", mask = 0x" <<
+		hex << (int)input_ref.mask << dec << ", invert = " << (invert ? "true" : "false") << ", process = " << (process ? "true" : "false") << "\n";
+
 
 	return true;
 }

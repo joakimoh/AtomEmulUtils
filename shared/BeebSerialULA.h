@@ -56,7 +56,6 @@ private:
 
 	int mLevelCnt = 0;
 	uint8_t mLevel = 0;
-	uint8_t pLevel = 0;
 	int mToneHalfCycles = 0;
 	int mLongHalfCycles = 0;
 
@@ -74,6 +73,8 @@ private:
 	int mLowToneHalfCycleDurationMax = 0;
 	int mMinCarrierCycles = 0;
 
+	int mSameToneHalfCycles = 0; // For debugging only
+	int mLastTone = -1;
 
 
 	enum CassetteState {NO_CARRIER, CARRIER, START_BIT, DATA_BIT, PARITY_BIT, STOP_BIT};

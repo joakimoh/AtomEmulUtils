@@ -2,7 +2,7 @@
 
 ACIA6850::ACIA6850(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugManager  *debugManager, ConnectionManager* connectionManager) :
 	MemoryMappedDevice(name, ACIA6850_DEV, PERIPHERAL, cpuClock, waitStates, adr, 0x08, debugManager, connectionManager), mClock(clock)
-{	registerPort("RxD",		IN_PORT,	0x1,	RxD,	&mRxD); 	registerPort("CTS",		IN_PORT,	0x1,	CTS,	&mCTS); 	registerPort("DCD",		IN_PORT,	0x1,	DCD,	&mDCD);	registerPort("TxD",		OUT_PORT,	0x1,	TxD,	&mTxD);	registerPort("RTS",		OUT_PORT,	0x1,	RTS,	&mRTS);	registerPort("IRQ",		OUT_PORT,	0x1,	IRQ,	&mIRQ);
+{	registerPort("RxD",		IN_PORT,	0x1,	RxD,	&mRxD); 	registerPort("CTS",		IN_PORT,	0x1,	CTS,	&mCTS); 	registerPort("DCD",		IN_PORT,	0x1,	DCD,	&mDCD);	registerPort("TxD",		OUT_PORT,	0x1,	TxD,	&mTxD);	registerPort("RTS",		OUT_PORT,	0x1,	RTS,	&mRTS);	registerPort("IRQ",		OUT_PORT,	0x1,	IRQ,	&mIRQ);	cout << "CPU clock = " << dec << cpuClock << " MHz\n";
 }
 
 bool ACIA6850::read(uint16_t adr, uint8_t& data)
@@ -181,6 +181,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 		if (mCycleCount % mRxClkCycles == 0) { // External RxClk transition
 			mRxCLKCnt++;
 			if (mRxState == START_BIT) {
+				cout << "Sample start bit, sample interval = " << dec << mRxClkCycles << " cycles\n";
 				if (mRxD == 0)
 					mRxLowSamples++;
 				else
@@ -231,6 +232,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 					mRDR = mRxBuffer;
 				mSR |= ACIA_SR_RDRF_MASK; // Set Receive Data Register Full bit
 				mRxState = NO_BIT;
+				cout << "ACIA received byte 0x" << hex << (int)mRDR << "\n";
 				break;
 			}
 			default: // NO_BIT
@@ -301,11 +303,13 @@ bool ACIA6850::advance(uint64_t stopCycle)
 void ACIA6850::processPortUpdate(int index)
 {
 	
-	if (index = DCD) {
+	if (index == DCD) {
 		if (mDCD != pDCD) {
-			if (mDCD == 1) {
+			if (mDCD == 0) {
+				mRxState = START_BIT; // Initiate a first start bit synchronisation
 				mSR |= ACIA_SR_DCD_MASK; // Set Data Carrier Detect bit (cleared by reading of SR + RDR or master RESET)
 				mDCDClrCnt = 0;
+				cout << "ACIA DCD Input Low (active)\n";
 				if (ACIA_CR_RIE) {
 					updatePort(IRQ, 0);
 					mSR |= ACIA_SR_IRQ_MASK;
@@ -315,15 +319,32 @@ void ACIA6850::processPortUpdate(int index)
 		pDCD = mDCD;
 	} 
 
-	else if (index = CTS == 1) {
+	else if (index == CTS) {
 		if (mCTS != pCTS) {
 			mSR &= ~ACIA_SR_CTS;
-			if (mCTS == 1)
+			if (mCTS == 0) {
+				cout << "ACIA CTS Input Low (active)\n";
 				mSR |= ACIA_SR_CTS_MASK;
-			else if (mTxState == NO_BIT)
+			}
+			else if (mTxState == NO_BIT) {
 				mSR |= ACIA_SR_TDRE_MASK;
+			}
 		}
 		pCTS = mCTS;
 	}
 
+}
+
+void ACIA6850::setRxClkRate(long clkRate) {
+	mRxClkRate = clkRate;
+	mRxClkCycles = (int)round(mCPUClock * 1e6 / clkRate);
+	cout << "ACIA Rx Clock set to " << dec << mRxClkRate << " Hz, and CPU cycles per Rx Clock cycles set to " << mRxClkCycles << 
+		" for a CPU Clock of " << mCPUClock << " MHz\n";
+}
+
+void ACIA6850::setTxClkRate(long clkRate) {
+	mTxClkRate = clkRate;
+	mTxClkCycles = (int)round(mCPUClock * 1e6 / clkRate);
+	cout << "ACIA Tx Clock set to " << dec << mTxClkRate << " Hz, and CPU cycles per Tx Clock cycles set to " << mTxClkCycles << 
+		" for a CPU Clock of " << mCPUClock << " MHz\n";
 }

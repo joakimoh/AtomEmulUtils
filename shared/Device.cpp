@@ -125,7 +125,11 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 				(int)pval << " & 0x" << hex << setfill('0') << setw(2) << (int)(uint8_t)(~input.mask) << " | ((0x" << hex << (int)nval <<
 				(input.shifts >= 0 ? " >> " : " << ") << setfill(' ') << dec << (input.shifts >= 0 ? input.shifts : -input.shifts) <<
 				") & 0x" << hex << (int)input.mask << ")" << setfill('0') << setw(2) <<
-				" = 0x" << hex << (int)*(input.port->val) << dec << "\n";
+				" = 0x" << hex << (int)*(input.port->val) << dec;
+			if (input.process)
+				cout << "; processing\n";
+			else
+				cout << "\n";
 		}
 
 		if (triggerConnectedDevices && input.port->triggerDevice)
@@ -428,7 +432,7 @@ Devices::Devices(
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					double clk = getDoubleVal(sin);
-					ACIA6850* acia = new ACIA6850(dev_name, cpuClock, wait_states, dev_adr, clk, mDM, &connection_manager);
+					ACIA6850* acia = new ACIA6850(dev_name, dev_adr, clk, cpuClock, wait_states, mDM, &connection_manager);
 					mDevices.push_back(acia);
 
 					}
