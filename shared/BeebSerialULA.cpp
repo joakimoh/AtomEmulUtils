@@ -255,16 +255,13 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					}
 				}
 				else {
-					if (mDCD == 0)
+					if (mDCD == 0) {
 						cout << "Carrier lost  at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
-					updatePort(DCD, 1);
+						updatePort(DCD, 1);
+						mToneHalfCycles = 0;
+					}
 				}
 
-				// Consider a too long same level input as loss of carrier
-				if (mLevelCnt > mLowToneHalfCycleDurationMax) {
-					cout << "Carrier lost  at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
-					updatePort(DCD, 1);
-				}
 
 
 
@@ -295,6 +292,13 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 				}
 				
 
+			}
+
+			// Consider a too long same level input as loss of carrier
+			if (mLevelCnt > mLowToneHalfCycleDurationMax && mDCD == 0) {
+				cout << "Carrier lost  at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
+				updatePort(DCD, 1);
+				mToneHalfCycles = 0;
 			}
 		}
 
