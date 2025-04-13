@@ -244,7 +244,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 				// Check for carrier of at least 1s; assert Data Carrier Detect (DCD) to the ACIA when detected
 				if (high_tone)
 					mToneHalfCycles++;
-				else
+				else if (mToneHalfCycles > 0)
 					mToneHalfCycles--;
 				if (mToneHalfCycles > mMinCarrierCycles) {
 					if (mDCD == 1) {
@@ -256,9 +256,17 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 				}
 				else {
 					if (mDCD == 0)
-						cout << "Carried lost  at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
+						cout << "Carrier lost  at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
 					updatePort(DCD, 1);
 				}
+
+				// Consider a too long same level input as loss of carrier
+				if (mLevelCnt > mLowToneHalfCycleDurationMax) {
+					cout << "Carrier lost  at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
+					updatePort(DCD, 1);
+				}
+
+
 
 
 

@@ -42,6 +42,7 @@ private:
 #define ACIA_CR_WORD		((mCR >> 2) & 0x7)
 #define ACIA_CR_Tx			((mCR >> 5) & 0x3)
 #define ACIA_CR_RIE			((mCR >> 7) & 0x1)
+#define ACIA_CR_TIE			(((mCR >> 5) & 0x3) == 0x01)
 
 	// Status Register (SR) Fields
 #define ACIA_SR_RDRF_MASK	(0x1 << 0)
@@ -60,15 +61,11 @@ private:
 #define ACIA_SR_OVRN		((mSR >> 5) & 0x1)
 #define ACIA_SR_PE			((mSR >> 6) & 0x1)
 #define ACIA_SR_IRQ			((mSR >> 7) & 0x1)
-	int mDCDClrCnt = 0;
 
 	uint8_t mClkDiv = 1;	// Rx/Tx clock divide (from mCR b1b0)
 	uint8_t mNDataBits = 7;		// no of data bits (from mCR b4b3b2)
 	int8_t mParity = -1;	// parity: -1 <=> none, 0 <=> even, 1 <=> odd (from mCR b4b3b2)
 	int8_t mStopBits = 1;	// no of stop bits (from mCR b4b3b2)
-
-	bool mEnaTxIRQ = false;
-	bool mEnaRxIRQ = false;
 
 	int mTxCLKCnt = 0;
 
@@ -89,6 +86,8 @@ private:
 
 	bool mTxPending = false;
 
+	bool mPendingRxIRQClr = false;
+
 	uint8_t mRxBuffer = 0;
 
 	long mRxClkRate = 1;
@@ -106,6 +105,7 @@ private:
 	uint64_t mRxMidSampleClkCycle = 0;
 
 	void update_settings();
+	void updateIRQ();
 
 
 public:

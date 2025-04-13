@@ -14,22 +14,27 @@ bool ACIA6850::read(uint16_t adr, uint8_t& data)
 	if ((adr & 0x1) == 0) {
 		// Status Register
 		data = mSR;
-		mSR &= ~ACIA_SR_TDRE_MASK; // Clear the Transmit Data Register Empty bit
-		if (ACIA_SR_DCD && mDCDClrCnt == 0)
-			mDCDClrCnt++; // Prepare for clearing the Data Carrier Detect bit
+
+		// Interrupts caused by Overrun or loss od DCD are cleared by reading the SR and then the RDR (or by master reset)
+		if (ACIA_SR_OVRN || ACIA_SR_DCD)
+			mPendingRxIRQClr = true;
 	}
 	else {
-		// Receive Data Register
+		// Receive Data Register (RDR)
 		data = mRDR;
+		if (ACIA_SR_RDRF)
+			cout << "CPU Read of ACIA RDR when RDRF SR bit set gave 0x" << hex << (int)data << " at " << mCycleCount / mCPUClock * 1e-6 << "s\n";
 		mSR &= ~ACIA_SR_RDRF_MASK; // Clear the Receive Data Register Full bit
-		if (ACIA_SR_DCD && mDCDClrCnt == 1) {
-			mDCDClrCnt = 0;
-			mSR &= ~ACIA_SR_DCD_MASK; // Clear the Data Carrier Detect bit if the SR was first read
-			mDCDClrCnt++;
+
+		// Interrupts caused by Overrun or loss od DCD are cleared by reading the SR (mPendingRxIRQClr is true) and then the RDR
+		if (mPendingRxIRQClr) { 
+			mSR &= ~ACIA_SR_OVRN_MASK;
+			mSR &= ~ACIA_SR_DCD_MASK;
+			mPendingRxIRQClr = false;
 		}
 	}
 	
-
+	updateIRQ();
 
 	return true;
 }
@@ -63,7 +68,7 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 				updatePort(RTS, 1);
 				mPowerOn = false;
 			}
-			updatePort(IRQ, 1);
+			updateIRQ();
 			return true;
 		default:
 			break;
@@ -127,25 +132,21 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		switch (ACIA_CR_Tx) {
 		case 0x0:
 			updatePort(RTS, 0);
-			mEnaTxIRQ = false;
 			break;
 		case 0x1:
 			updatePort(RTS, 0);
-			mEnaTxIRQ = true;
 			break;
 		case 0x2:
 			updatePort(RTS, 1);
-			mEnaTxIRQ = false;
 			break;
 		case 0x3:
 			updatePort(RTS, 0);
 			updatePort(TxD, 0); // break level (space) on data out
-			mEnaTxIRQ = false;
 			break;
 		default:
 			break;
 		}
-		mEnaRxIRQ = (mCR & 0x80) != 0;
+
 	}
 	else {
 		// Transmit Data Register
@@ -161,6 +162,8 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 
 	update_settings();
 
+	updateIRQ(); // Update IRQ line based on condition bits and interrupt enable status
+
 	return true;
 }
 
@@ -174,7 +177,8 @@ void ACIA6850::update_settings()
 
 	if (mDM->debug(DBG_VERBOSE)) {
 		cout << "\nACIA Settings:\n" << dec <<
-			"Ena Tx IRQ =        " << (int)mEnaTxIRQ << "\n" <<
+			"Ena Rx IRQ =        " << (int)ACIA_CR_RIE << "\n" <<
+			"Ena Tx IRQ =        " << (int)ACIA_CR_TIE << "\n" <<
 			"Tx State =          " << _ACIA_STATE(mTxState) << "\n" <<
 			"Clock Div =         " << (int)mClkDiv << "\n" <<
 			"No of data bits =   " << (int)mNDataBits << "\n" <<
@@ -259,8 +263,13 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			{
 				if (mRxD != 1)
 					mSR |= ACIA_SR_PE_MASK; // Set Framing Error bit
-				if (!ACIA_SR_RDRF) // Only transfer received data if the RDR is not already Full
+				if (!ACIA_SR_RDRF) {// Only transfer received data if the RDR is not already Full
 					mRDR = mRxBuffer;
+					//cout << "ACIA Receive Data Register EMPTY - can update it with received data!\n";
+				}
+				else {
+					cout << "ACIA Receive Data Register FULL - cannot update it with received data!\n";
+				}
 				mSR |= ACIA_SR_RDRF_MASK; // Set Receive Data Register Full bit
 				mRxState = START_BIT;
 				mRxLowSamples = 0;
@@ -318,8 +327,9 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				mSentStopBits++;
 				if (mSentStopBits == mStopBits) {
 					mTxState = NO_BIT;
-					if (!ACIA_SR_CTS)
+					if (!ACIA_SR_CTS) {
 						mSR |= ACIA_SR_TDRE_MASK; // Set the Transmit Data Register Empty bit (if not inhibited by the CTS)
+					}
 				}
 				break;
 			}
@@ -328,6 +338,8 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			}
 
 		}
+
+		updateIRQ();
 
 		mCycleCount++;
 	}
@@ -343,16 +355,12 @@ void ACIA6850::processPortUpdate(int index)
 			if (mDCD == 0) {
 				mRxLowSamples = 0;
 				mRxState = START_BIT; // Initiate a first start bit synchronisation
-				mSR |= ACIA_SR_DCD_MASK; // Set Data Carrier Detect bit (cleared by reading of SR + RDR or master RESET)
-				mDCDClrCnt = 0;
-				//cout << "ACIA DCD Input Low (active)\n";
-				if (ACIA_CR_RIE) {
-					updatePort(IRQ, 0);
-					mSR |= ACIA_SR_IRQ_MASK;
-				}
+				//cout << "ACIA DCD Input Low (active)\n";				
 			}
-			else
+			else { // Loss of Carrier (mDCD == 1)
 				mRxState = NO_BIT;
+				mSR |= ACIA_SR_DCD_MASK; // Set Data Carrier Detect (Lost) bit (cleared by reading of SR + RDR or master RESET)
+			}
 		}
 		pDCD = mDCD;
 	} 
@@ -364,13 +372,44 @@ void ACIA6850::processPortUpdate(int index)
 				//cout << "ACIA CTS Input Low (active)\n";
 				mSR |= ACIA_SR_CTS_MASK;
 			}
-			else if (mTxState == NO_BIT) {
-				mSR |= ACIA_SR_TDRE_MASK;
+			else { // Loss of CTS (mCTS == 1)
+				// Loss of CTS shall clear the TDRE bit
+				mSR &= ~ACIA_SR_TDRE_MASK;
+				cout << "*** CARRIER LOST\n";
 			}
 		}
 		pCTS = mCTS;
 	}
 
+	updateIRQ();
+
+}
+
+void ACIA6850::updateIRQ()
+{
+	uint8_t p_IRQ = mIRQ;
+	if (
+		ACIA_CR_TIE && ACIA_SR_TDRE ||
+		ACIA_CR_RIE && (ACIA_SR_RDRF || ACIA_SR_OVRN || ACIA_SR_DCD)
+		) {
+		updatePort(IRQ, 0);
+		mSR |= ACIA_SR_IRQ_MASK;
+		if (p_IRQ == 1) {
+			stringstream sout;
+			sout << ((ACIA_CR_TIE && ACIA_SR_TDRE) ? "TDRE " : "");
+			sout << ((ACIA_CR_RIE && ACIA_SR_RDRF) ? "RDRF " : "");
+			sout << ((ACIA_CR_RIE && ACIA_SR_OVRN) ? "OVERN " : "");
+			sout << ((ACIA_CR_RIE && ACIA_SR_DCD) ? "DCD " : "");
+			cout << "ACIA: IRQ Active (Low) (" << sout.str() << ")\n";
+		}
+	}
+	else {
+		updatePort(IRQ, 1);
+		mSR &= ~ACIA_SR_IRQ_MASK;
+		if (p_IRQ == 0) {
+			cout << "ACIA: IRQ Inactive (High)\n";
+		}
+	}
 }
 
 void ACIA6850::setRxClkRate(long clkRate) {
