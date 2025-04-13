@@ -78,6 +78,7 @@ private:
 	int mOutBits = 0; // No of bits to shift out
 	int mInBits = 0; // No of bits to shift in
 	enum State { START_BIT, DATA_BIT, PARITY_BIT, STOP_BIT, NO_BIT};
+	#define _ACIA_STATE(x) (x==START_BIT?"Start Bit":(x==DATA_BIT?"Data bit":(x==PARITY_BIT?"Parity Bit":(x==STOP_BIT?"Stop Bit":"No Bit"))))
 	State mRxState = NO_BIT;
 	State mTxState = NO_BIT;
 	int mRxLowSamples = 0;
@@ -91,14 +92,19 @@ private:
 
 	uint8_t mRxBuffer = 0;
 
-	long mRxClkRate;
-	long mTxClkRate;
+	long mRxClkRate = 1;
+	long mTxClkRate = 1;
+
+	int mRxDivClkRate = 1;
+	int mTxDivClkRate = 1;
 
 	int mRxClkCycles = 1;
 	int mTxClkCycles = 1;
 
 	int mRxDivCycles = 1;
 	int mTxDivCycles = 1;
+
+	void update_settings();
 
 
 public:

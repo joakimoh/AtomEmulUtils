@@ -38,7 +38,7 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 {
 
 	// Call parent class to trigger scheduling of other devices when applicable
-	return MemoryMappedDevice::triggerAfterWrite(adr, data);
+	MemoryMappedDevice::triggerAfterWrite(adr, data);
 
 	if ((adr & 0x1) == 0) {
 		// Control Register
@@ -47,7 +47,7 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		// Rx & Tx clock divide
 		switch (ACIA_CR_DIV) {
 		case 0x0:
-			mClkDiv = 1;		
+			mClkDiv = 1;
 			break;
 		case 0x1:
 			mClkDiv = 16;
@@ -68,8 +68,6 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		default:
 			break;
 		}
-		mRxDivCycles = mRxClkRate * mClkDiv;
-		mTxDivCycles = mTxClkRate * mClkDiv;
 
 		// Rx & Tx data bits
 		switch (ACIA_CR_WORD) {
@@ -159,7 +157,34 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 			mTxState = START_BIT;
 	}
 
+	cout << "ACIA COntrol Register updated to 0x" << hex << (int)mCR << "\n";
+
+	update_settings();
+
 	return true;
+}
+
+void ACIA6850::update_settings()
+{
+
+	mRxDivClkRate = mRxClkRate / mClkDiv;
+	mTxDivClkRate = mTxClkRate / mClkDiv;
+	mRxDivCycles = (int)round(mCPUClock * 1e6 / mRxDivClkRate);
+	mTxDivCycles = (int)round(mCPUClock * 1e6 / mTxDivClkRate);
+
+	cout << "\nACIA Settings:\n" << dec <<
+		"Ena Tx IRQ =        " << (int)mEnaTxIRQ << "\n" <<
+		"Tx State =          " << _ACIA_STATE(mTxState) <<  "\n" <<
+		"Clock Div =         " << (int) mClkDiv <<  "\n" <<
+		"No of data bits =   " << (int) mNDataBits <<  "\n" <<
+		"Parity =            " <<(int) mParity <<  "\n" <<
+		"No of stop bits =   " << (int) mStopBits << "\n" <<
+		"No of Rx bits =     " << (int) mInBits <<  "\n" <<
+		"Rx DIV clock rate = " << mRxDivClkRate << "\n" <<
+		"Tx DIV clock rate = " << mTxDivClkRate <<  "\n" <<
+		"Rx DIV cycles =     " << mRxDivCycles <<  "\n" <<
+		"Tx DIV cycles =     " << mTxDivCycles << "\n";
+
 }
 
 // Reset device
@@ -196,6 +221,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 						mRxPar = 0;
 					else
 						mRxPar = 1;
+					cout << dec << mRxLowSamples << " samples detected for start bit (" << mClkDiv / 2 << ")\n";
 				}
 			}
 		}
@@ -232,10 +258,12 @@ bool ACIA6850::advance(uint64_t stopCycle)
 					mRDR = mRxBuffer;
 				mSR |= ACIA_SR_RDRF_MASK; // Set Receive Data Register Full bit
 				mRxState = NO_BIT;
+				mRxLowSamples = 0;
 				cout << "ACIA received byte 0x" << hex << (int)mRDR << "\n";
 				break;
 			}
 			default: // NO_BIT
+				mRxLowSamples = 0;
 				break;
 			}
 		}
@@ -306,6 +334,7 @@ void ACIA6850::processPortUpdate(int index)
 	if (index == DCD) {
 		if (mDCD != pDCD) {
 			if (mDCD == 0) {
+				mRxLowSamples = 0;
 				mRxState = START_BIT; // Initiate a first start bit synchronisation
 				mSR |= ACIA_SR_DCD_MASK; // Set Data Carrier Detect bit (cleared by reading of SR + RDR or master RESET)
 				mDCDClrCnt = 0;
@@ -337,9 +366,10 @@ void ACIA6850::processPortUpdate(int index)
 
 void ACIA6850::setRxClkRate(long clkRate) {
 	mRxClkRate = clkRate;
-	mRxClkCycles = (int)round(mCPUClock * 1e6 / clkRate);
+	mRxClkCycles = (int)round(mCPUClock * 1e6 / clkRate);	
 	cout << "ACIA Rx Clock set to " << dec << mRxClkRate << " Hz, and CPU cycles per Rx Clock cycles set to " << mRxClkCycles << 
 		" for a CPU Clock of " << mCPUClock << " MHz\n";
+	update_settings();
 }
 
 void ACIA6850::setTxClkRate(long clkRate) {
@@ -347,4 +377,5 @@ void ACIA6850::setTxClkRate(long clkRate) {
 	mTxClkCycles = (int)round(mCPUClock * 1e6 / clkRate);
 	cout << "ACIA Tx Clock set to " << dec << mTxClkRate << " Hz, and CPU cycles per Tx Clock cycles set to " << mTxClkCycles << 
 		" for a CPU Clock of " << mCPUClock << " MHz\n";
+	update_settings();
 }
