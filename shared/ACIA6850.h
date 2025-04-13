@@ -70,7 +70,6 @@ private:
 	bool mEnaTxIRQ = false;
 	bool mEnaRxIRQ = false;
 
-	int mRxCLKCnt = 0;
 	int mTxCLKCnt = 0;
 
 	uint16_t mOutReg = 0; // 12-bit output shift register (1 start bit, 7-8 data bits, 0/1 parity bit, 1-2 stop bits
@@ -103,6 +102,8 @@ private:
 
 	int mRxDivCycles = 1;
 	int mTxDivCycles = 1;
+
+	uint64_t mRxMidSampleClkCycle = 0;
 
 	void update_settings();
 
