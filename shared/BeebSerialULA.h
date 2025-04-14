@@ -22,15 +22,20 @@ private:
 	uint8_t mCASMO = 0;
 	uint8_t mCAS_IN = 0;
 	uint8_t mCAS_OUT = 0;
-	uint8_t mDIn = 0;
+	uint8_t mDIn = 1;
 	uint8_t mDOut = 0;
 	uint8_t mRTSO = 0;
-	uint8_t mRxD = 0x0;
+	uint8_t mRxD = 0x1;
 	uint8_t mTxD = 0x0;
 	uint8_t mRTSI = 0x1;
 	uint8_t mCTSI = 0x0;
 	uint8_t mCTSO = 0x0;
-	uint8_t mDCD = 0x1;
+#define DCD_SERIAL_ACTIVE	0
+#define DCD_SERAL_INACTIVE	1
+#define DCD_TAPE_ACTIVE		0
+#define DCD_TAPE_INACTIVE	1
+
+	uint8_t mDCD = DCD_SERIAL_ACTIVE;
 	uint8_t mRxCLK = 1;
 	uint8_t mTxCLK = 1;
 	uint8_t mIRQ = 1;

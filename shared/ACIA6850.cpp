@@ -22,8 +22,8 @@ bool ACIA6850::read(uint16_t adr, uint8_t& data)
 	else {
 		// Receive Data Register (RDR)
 		data = mRDR;
-		if (ACIA_SR_RDRF)
-			cout << "CPU Read of ACIA RDR when RDRF SR bit set gave 0x" << hex << (int)data << " at " << mCycleCount / mCPUClock * 1e-6 << "s\n";
+		//if (ACIA_SR_RDRF)
+		//	cout << "CPU Read of ACIA RDR when RDRF SR bit set gave 0x" << hex << (int)data << " at " << mCycleCount / mCPUClock * 1e-6 << "s\n";
 		mSR &= ~ACIA_SR_RDRF_MASK; // Clear the Receive Data Register Full bit
 
 		// Interrupts caused by Overrun or loss od DCD are cleared by reading the SR (mPendingRxIRQClr is true) and then the RDR
@@ -218,7 +218,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				mRxLowSamples++;
 			else
 				mRxLowSamples = 0;
-			if (mRxLowSamples >= mClkDiv / 2) { // Got LOW samples for half the bit duration?
+			if (mRxLowSamples > mClkDiv / 2) { // Got LOW samples for half the bit duration?
 				mRxMidSampleClkCycle = mCycleCount; // Save mid sample reference for use as sample point later on
 				mRxState = DATA_BIT;
 				mRxBits = 0;
@@ -268,13 +268,13 @@ bool ACIA6850::advance(uint64_t stopCycle)
 					//cout << "ACIA Receive Data Register EMPTY - can update it with received data!\n";
 				}
 				else {
-					cout << "ACIA Receive Data Register FULL - cannot update it with received data!\n";
+					//cout << "ACIA Receive Data Register FULL - cannot update it with received data!\n";
 				}
 				mSR |= ACIA_SR_RDRF_MASK; // Set Receive Data Register Full bit
 				mRxState = START_BIT;
 				mRxLowSamples = 0;
 				mRxBuffer = 0;
-				cout << "ACIA received byte 0x" << hex << (int)mRDR << " at " << mCycleCount / mCPUClock * 1e-6 << "s\n";
+				//cout << "ACIA received byte 0x" << hex << (int)mRDR << " at " << mCycleCount / mCPUClock * 1e-6 << "s\n";
 				break;
 			}
 			default: // NO_BIT
@@ -394,7 +394,7 @@ void ACIA6850::updateIRQ()
 		) {
 		updatePort(IRQ, 0);
 		mSR |= ACIA_SR_IRQ_MASK;
-		if (p_IRQ == 1) {
+		if (false && p_IRQ == 1) {
 			stringstream sout;
 			sout << ((ACIA_CR_TIE && ACIA_SR_TDRE) ? "TDRE " : "");
 			sout << ((ACIA_CR_RIE && ACIA_SR_RDRF) ? "RDRF " : "");
@@ -406,7 +406,7 @@ void ACIA6850::updateIRQ()
 	else {
 		updatePort(IRQ, 1);
 		mSR &= ~ACIA_SR_IRQ_MASK;
-		if (p_IRQ == 0) {
+		if (false && p_IRQ == 0) {
 			cout << "ACIA: IRQ Inactive (High)\n";
 		}
 	}

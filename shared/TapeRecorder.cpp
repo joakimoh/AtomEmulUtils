@@ -78,7 +78,7 @@ bool TapeRecorder::startLoadFile(string tapeFile)
 	if (!mCodec->decode(tapeFile, mCasInPulses, mCasInPulseLevel, mSampleRate)) {
 		return false;
 	}
-	cout << "CSW File with  " << mCasInPulses.size() << " pulse bytes...\n";
+	//cout << "CSW File with  " << mCasInPulses.size() << " pulse bytes...\n";
 	updatePort(CAS_IN, mCasInPulseLevel);
 
 	return true;
