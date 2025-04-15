@@ -26,6 +26,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "-ctrace <hex address> <pre trace len> <post trace len>: as trace but the debugging will be repeated every time the fetch address is encountered\n";
 	cout << "\tor written to. The tracing starts <pre trace len> instructions prior to the trigger and lasts <post trace len>\n";
 	cout << "\tinstructions after the trigger.\n\n";
+	cout << "-log <hex adr>:\n\tStart logging instruction execution after execution reaches the specified address\n";
 	cout << "-clog <hex adr>:\n\tCyclicallly logs the result of the execution of an instruction at the specified address\n";
 	cout << "\t(as -ctrace <hex adr> 0 0 but faster)\n\n";
 	cout << "-ilog <hex adr>:\n\tStart logging instruction execution after an interrupt and when execution reaches the specified address\n\n";
@@ -57,6 +58,10 @@ ArgParser::ArgParser(int argc, const char* argv[])
 	while (a < argc) {
 		if(strcmp(argv[a], "-speed") == 0) {
 			emulationSpeed = stod(argv[a + 1]);
+			a++;
+		}
+		else if (strcmp(argv[a], "-log") == 0) {
+			debugManager.enableLogging(stoi(argv[a + 1], 0, 16));
 			a++;
 		}
 		else if (strcmp(argv[a], "-clog") == 0) {

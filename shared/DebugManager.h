@@ -42,6 +42,7 @@ private:
 
 	int mInterruptLogAdr = -1;
 	int mCyclicLogAdr = -1;
+	int mLogAdr = -1;
 
 	int mTraceAdr = -1;
 	int mPostTraceLen = 0;
@@ -75,7 +76,7 @@ public:
 
 	bool debug(DebugLevel level);
 
-
+	void enableLogging(uint16_t adr);
 	void enableCyclicLogging(uint16_t adr);
 	void enableInterruptLogging(uint16_t adr);
 	void enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring);
@@ -88,6 +89,7 @@ public:
 	void clearDebugLevel(DebugLevel level);
 
 	void triggerInterruptLogging(uint16_t adr, bool condition);
+	void triggerLogging(uint16_t adr);
 	bool triggerExecutionStop(P6502 * cpu, uint16_t adr);
 
 	void startLogging();

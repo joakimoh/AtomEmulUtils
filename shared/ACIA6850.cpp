@@ -225,10 +225,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				mRxBuffer = 0;
 				mSR &= ~ACIA_SR_PE_MASK; // Reset Framing Error
 				mSR &= ~ACIA_SR_PE_MASK; // Reset parity Error
-				if (mParity == 0)
-					mRxPar = 0;
-				else
-					mRxPar = 1;
+				mRxPar = 0;
 				//cout << dec << mRxLowSamples << " samples detected for start bit (" << mClkDiv / 2 << ") at " <<
 				//	mCycleCount / mCPUClock * 1e-6 << "s (" << mCycleCount << ")\n";
 			}
@@ -254,7 +251,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			case PARITY_BIT:
 			{
 				mRxPar ^= mRxD;
-				if (mRxD != mRxPar)
+				if (mRxD != (mRxPar ^ mParity))
 					mSR |= ACIA_SR_PE_MASK; // Parity Error
 				mRxState = STOP_BIT;
 				break;
@@ -357,7 +354,7 @@ void ACIA6850::processPortUpdate(int index)
 				mRxState = START_BIT; // Initiate a first start bit synchronisation
 				//cout << "ACIA DCD Input Low (active)\n";				
 			}
-			else { // Loss of Carrier (mDCD == 1)
+			else { // Loss of Carrier (a low-to-high transition of the DCD input)
 				mRxState = NO_BIT;
 				mSR |= ACIA_SR_DCD_MASK; // Set Data Carrier Detect (Lost) bit (cleared by reading of SR + RDR or master RESET)
 			}

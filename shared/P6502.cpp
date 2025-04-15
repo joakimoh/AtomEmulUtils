@@ -174,6 +174,9 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	// Turn on interrupt logging?
 	mDM->triggerInterruptLogging(mProgramCounter, mIRQ == 0 || mNMI == 0);
 
+	// Turn on unconditional logging
+	mDM->triggerLogging(mProgramCounter);
+
 	// Stop execution?
 	if (mDM->triggerExecutionStop(this, mProgramCounter)) {
 		mCycleCount++;

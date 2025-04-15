@@ -23,14 +23,21 @@ void DebugManager::enableMemDump(uint16_t adr, int sz)
 	mDumpSz = sz;
 }
 
+void DebugManager::enableLogging(uint16_t adr)
+{
+	mLogAdr = adr;
+}
+
 void DebugManager::enableCyclicLogging(uint16_t adr)
 {
 	mCyclicLogAdr = adr;
 }
+
 void DebugManager::enableInterruptLogging(uint16_t adr)
 {
 	mInterruptLogAdr = adr;
 }
+
 void DebugManager::enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring)
 {
 	mTraceAdr = adr;
@@ -38,6 +45,7 @@ void DebugManager::enableTracing(uint16_t adr, int preTraceLen, int postTraceLen
 	mPostTraceLen = postTraceLen;
 	mRecurringTracing = recurring;
 }
+
 bool DebugManager::tracing()
 {
 	return ((mDbgLevel & DBG_6502) != 0 || mFetchAdr == mCyclicLogAdr || (mTraceAdr > 0 && !mEndOfTracingReached));
@@ -78,6 +86,12 @@ void DebugManager::stopLogging()
 void DebugManager::triggerInterruptLogging(uint16_t fetchAdr, bool condition)
 {
 	if (condition && fetchAdr == mInterruptLogAdr)
+		mDbgLevel = DBG_6502;
+}
+
+void DebugManager::triggerLogging(uint16_t fetchAdr)
+{
+	if (fetchAdr == mLogAdr)
 		mDbgLevel = DBG_6502;
 }
 
