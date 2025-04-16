@@ -355,7 +355,7 @@ void ACIA6850::processPortUpdate(int index)
 				//cout << "ACIA DCD Input Low (active)\n";				
 			}
 			else { // Loss of Carrier (a low-to-high transition of the DCD input)
-				mRxState = NO_BIT;
+				//mRxState = NO_BIT;
 				mSR |= ACIA_SR_DCD_MASK; // Set Data Carrier Detect (Lost) bit (cleared by reading of SR + RDR or master RESET)
 			}
 		}

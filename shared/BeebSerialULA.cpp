@@ -30,7 +30,7 @@ BeebSerialULA::BeebSerialULA(
 	mHighToneHalfCycleDurationMin = (int)round(t_low * cpuClock * 1e6 / 2400 / 2);
 	mHighToneHalfCycleDurationMax = (int)round(t_high * cpuClock * 1e6 / 2400 / 2);
 
-	mMinCarrierCycles = (int)round(2.0 * 2400);
+	mMinCarrierHalfCycles = (int)round(0.5 * 2400 * 2);
 }
 
 bool BeebSerialULA::read(uint16_t adr, uint8_t& data)
@@ -152,7 +152,7 @@ bool BeebSerialULA::write(uint16_t adr, uint8_t data)
 		updatePort(CTSO, 0);
 	}
 	else {
-		updatePort(DCD, DCD_SERIAL_ACTIVE);
+		updatePort(DCD, DCD_ACTIVE);
 	}
 
 	// "Tell" the ACIA about the updated Rx & Tx clock rates
@@ -214,61 +214,64 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 				bool low_tone = (half_cycle_cnt >= mLowToneHalfCycleDurationMin && half_cycle_cnt <= mLowToneHalfCycleDurationMax);
 
 				//  If there is a carrier, detect whether the 1/2 cycle was part of a '0' (1200 Hz) or a '1' (2400 Hz) set of 1/2 cycles
-				if (mDCD == DCD_TAPE_ACTIVE) {
+				//if (mDCD == DCD_ACTIVE) {
+				if (mCarrierDetected) {
 					mSameToneHalfCycles++;
 					if (high_tone) {
 						if (mLastTone != 1) {
 							//cout << "#" << dec << mSameToneHalfCycles << ":0# ";
 							mSameToneHalfCycles = 0;
+							updatePort(RxD, 1);
+							mLastTone = 1;
 						}						
-						updatePort(RxD, 1);
-						mLastTone = 1;
+						
 					}
 					else if (low_tone) {
 						if (mLastTone != 0) {
 							//cout << "#" << dec << mSameToneHalfCycles << ":1# ";
 							mSameToneHalfCycles = 0;
-						}
-						updatePort(RxD, 0);
-						mLastTone = 0;
+							updatePort(RxD, 0);
+							mLastTone = 0;					}
+						
 					}
 					else { // neither a high tone (a 2400 1/2 cycle) nor a low tone (a 1200 1/2 cycle)
 						if (mLastTone != -1) {
 							//cout << "#" << dec << mSameToneHalfCycles << ":?# ";
 							mSameToneHalfCycles = 0;
+							updatePort(RxD, 1);
+							mLastTone = -1;
 						}
-						updatePort(RxD, 1);
-						mLastTone = -1;
+						
 					}
 				}
-				else
+				else if (mRxD != 1)
 					updatePort(RxD, 1);
 
-				// Check for carrier of at least 1s; assert Data Carrier Detect (DCD) to the ACIA when detected
-				if (high_tone)
-					mToneHalfCycles++;
-				else if (mToneHalfCycles > 0)
-					mToneHalfCycles--;
-				if (mToneHalfCycles > mMinCarrierCycles) {
-					if (mDCD == DCD_TAPE_INACTIVE) {
-						//cout << "\n" << dec << mToneHalfCycles << " 1/2 cycles (" << (mToneHalfCycles / 2400 / 2) << "s) of Carrier detected at " <<
-						//	(mCycleCount / mCPUClock * 1e-6) << "s\n";
-						updatePort(DCD, DCD_TAPE_ACTIVE);
-						mSameToneHalfCycles = 0;
-					}
+				// Check for carrier of at least 0.5s; assert Data Carrier Detect (DCD) to the ACIA when detected
+				if (high_tone) {
+					mHighToneHalfCycles++;
+					mLowerToneHalfCycles = 0;
 				}
 				else {
-					if (mDCD == DCD_TAPE_ACTIVE) {
-						//cout << "Carrier lost  at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
-						updatePort(DCD, DCD_TAPE_INACTIVE);
-						mToneHalfCycles = 0;
+					mLowerToneHalfCycles++;
+					// Deactivate DCD if a complete lower tone cycle was received (normally this is due to a start bit)
+					if (mLowerToneHalfCycles >= 2) {
+						//if (mDCD == DCD_ACTIVE)
+						//	cout << "DCD -> HIGH at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
+						updatePort(DCD, DCD_INACTIVE);					
+						mHighToneHalfCycles = 0;
 					}
 				}
-
-
-
-
-
+				if (mHighToneHalfCycles > mMinCarrierHalfCycles) {
+					if (mDCD == DCD_INACTIVE) {
+						//cout << "\n" << dec << mHighToneHalfCycles << " 1/2 cycles (" << ((double) mHighToneHalfCycles / 2400 / 2) << "s) of Carrier detected at " <<
+						//	(mCycleCount / mCPUClock * 1e-6) << "s\n";
+						//cout << "DCD -> LOW at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
+						updatePort(DCD, DCD_ACTIVE);
+						mSameToneHalfCycles = 0;
+						mCarrierDetected = true;
+					}
+				}
 
 				//
 				// Generate cassette output when Request To Send (RTS) is active (i.e., Low)
@@ -298,10 +301,14 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 			}
 
 			// Consider a too long same level input as loss of carrier
-			if (mLevelCnt > mLowToneHalfCycleDurationMax && mDCD == DCD_TAPE_ACTIVE) {
-				//cout << "Carrier lost  at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
-				updatePort(DCD, DCD_TAPE_INACTIVE);
-				mToneHalfCycles = 0;
+			if (mLevelCnt > mLowToneHalfCycleDurationMax && mDCD == DCD_ACTIVE) {			
+				if (mDCD == DCD_ACTIVE) {
+					//cout << "Carrier lost  at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
+					//cout << "DCD -> HIGH at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
+				}				
+				updatePort(DCD, DCD_INACTIVE);
+				mHighToneHalfCycles = 0;
+				mCarrierDetected = false;
 			}
 		}
 

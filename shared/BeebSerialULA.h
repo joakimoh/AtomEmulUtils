@@ -30,15 +30,16 @@ private:
 	uint8_t mRTSI = 0x1;
 	uint8_t mCTSI = 0x0;
 	uint8_t mCTSO = 0x0;
-#define DCD_SERIAL_ACTIVE	0
-#define DCD_SERAL_INACTIVE	1
-#define DCD_TAPE_ACTIVE		0
-#define DCD_TAPE_INACTIVE	1
+#define DCD_ACTIVE	0
+#define DCD_INACTIVE	1
 
-	uint8_t mDCD = DCD_SERIAL_ACTIVE;
+	uint8_t mDCD = DCD_ACTIVE;
 	uint8_t mRxCLK = 1;
 	uint8_t mTxCLK = 1;
 	uint8_t mIRQ = 1;
+
+	bool mCarrierDetected = false;
+	int mLowerToneHalfCycles = 0;
 
 	// Registers
 	uint8_t mCR = 0x0;	// base address + 0
@@ -61,7 +62,7 @@ private:
 
 	int mLevelCnt = 0;
 	uint8_t mLevel = 0;
-	int mToneHalfCycles = 0;
+	int mHighToneHalfCycles = 0;
 	int mLongHalfCycles = 0;
 
 	// Tone synthesis
@@ -76,7 +77,7 @@ private:
 	int mLowToneHalfCycleDuration = 0;
 	int mLowToneHalfCycleDurationMin = 0;
 	int mLowToneHalfCycleDurationMax = 0;
-	int mMinCarrierCycles = 0;
+	int mMinCarrierHalfCycles = 0;
 
 	int mSameToneHalfCycles = 0; // For debugging only
 	int mLastTone = -1;
