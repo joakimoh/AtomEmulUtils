@@ -252,6 +252,23 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 	return true;
 
 }
+
+bool PIA8255::dump(uint16_t adr, uint8_t& data)
+{
+	if (selected(adr)) {
+		if (adr == PIA8255_PORT_A)
+			data = mPortA;
+		else if (adr == PIA8255_PORT_B)		
+			data = mPortB;
+		else if (adr == PIA8255_PORT_C)	
+			data = mPortC;
+		else
+			data = mCR;
+		return true;
+	}
+	return false;
+}
+
 bool PIA8255::write(uint16_t adr, uint8_t data)
 {
 	if (!selected(adr))

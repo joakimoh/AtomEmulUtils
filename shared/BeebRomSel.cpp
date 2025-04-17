@@ -26,6 +26,16 @@ bool BeebROMSel::read(uint16_t adr, uint8_t& data)
 	return true;
 
 }
+
+bool BeebROMSel::dump(uint16_t adr, uint8_t& data)
+{
+	if (selected(adr)) {
+		data = mReg;
+		return true;
+	}
+	return false;
+}
+
 bool BeebROMSel::write(uint16_t adr, uint8_t data)
 {
 	if (!selected(adr))

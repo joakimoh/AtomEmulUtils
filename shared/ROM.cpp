@@ -72,6 +72,16 @@ bool ROM::read(uint16_t adr, uint8_t& data)
 	return true;
 
 }
+
+bool ROM::dump(uint16_t adr, uint8_t& data)
+{
+	if (selected(adr)) {
+		data = mMem[adr - mMemorySpace.adr];
+		return true;
+	}
+	return false;
+}
+
 bool ROM::write(uint16_t adr, uint8_t data)
 {
 	return false; // ROM is read-only!

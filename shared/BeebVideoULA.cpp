@@ -521,6 +521,12 @@ bool BeebVideoULA::read(uint16_t adr, uint8_t& data)
 	return true;
 }
 
+bool BeebVideoULA::dump(uint16_t adr, uint8_t& data)
+{
+	data = 0xff;
+	return false;
+}
+
 void BeebVideoULA::updateScreenSz()
 {
 	// For non-teletext mode the visible screen's actual pixels are 640 x 256

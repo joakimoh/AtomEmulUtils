@@ -23,6 +23,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "-stop <hex address>: stop execution at this address\n\n";
 	cout << "-dump <hex address> <hex size>: dump memory content address to address+size-1 after stopping execution\n\n";
 	cout << "-trace <hex address> <pre trace len> <post trace len>: debug around a certain fetch address\n";
+	cout << "-qtrace <hex address> <pre trace len> <post trace len>: same as -trace but quicker and with less information\n";
 	cout << "-ctrace <hex address> <pre trace len> <post trace len>: as trace but the debugging will be repeated every time the fetch address is encountered\n";
 	cout << "\tor written to. The tracing starts <pre trace len> instructions prior to the trigger and lasts <post trace len>\n";
 	cout << "\tinstructions after the trigger.\n\n";
@@ -76,9 +77,10 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			debugManager.enableExecStop(stoi(argv[a + 1], 0, 16));
 			a++;
 		}
-		else if (strcmp(argv[a], "-trace") == 0 || strcmp(argv[a], "-ctrace") == 0) {
+		else if (strcmp(argv[a], "-trace") == 0 || strcmp(argv[a], "-ctrace") == 0 || strcmp(argv[a], "-qtrace") == 0) {
 			uint16_t adr = stoi(argv[a + 1], 0, 16);
 			bool recurring = strcmp(argv[a], "-ctrace") == 0;
+			bool quick_trace = strcmp(argv[a], "-qtrace") == 0 || recurring;
 			a++;
 			if (a >= argc) {
 				printUsage(argv[0]);
@@ -91,7 +93,7 @@ ArgParser::ArgParser(int argc, const char* argv[])
 				return;
 			}
 			int post_trace_len = stoi(argv[a + 1]); 
-			debugManager.enableTracing(adr, pre_trace_len, post_trace_len, recurring);
+			debugManager.enableTracing(adr, pre_trace_len, post_trace_len, recurring, !quick_trace);
 			a++;
 		}
 		else if(strcmp(argv[a], "-dump") == 0) {

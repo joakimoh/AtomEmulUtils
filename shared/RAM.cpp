@@ -41,6 +41,17 @@ bool RAM::read(uint16_t adr, uint8_t& data)
 	return true;
 
 }
+
+bool  RAM::dump(uint16_t adr, uint8_t& data)
+{
+	if (selected(adr))
+		data = mMem[adr - mMemorySpace.adr];
+	else
+		data = 0x0;
+
+	return true;
+}
+
 bool RAM::write(uint16_t adr, uint8_t data)
 {
 

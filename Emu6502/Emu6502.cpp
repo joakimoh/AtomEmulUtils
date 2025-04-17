@@ -136,6 +136,7 @@ int main(int argc, const char* argv[])
         field_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices
 
     );
+    arg_parser.debugManager.setDevices(&devices);
 
     if (microprocessor == NULL) {
         cout << "No microprocessor defined!\n";

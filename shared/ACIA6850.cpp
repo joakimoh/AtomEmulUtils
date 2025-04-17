@@ -39,6 +39,18 @@ bool ACIA6850::read(uint16_t adr, uint8_t& data)
 	return true;
 }
 
+bool ACIA6850::dump(uint16_t adr, uint8_t& data)
+{
+	if (selected(adr)) {
+		if ((adr & 0x1) == 0)
+			data = mSR;
+		else 
+			data = mRDR;
+		return true;
+	}
+	return false;
+}
+
 bool ACIA6850::write(uint16_t adr, uint8_t data)
 {
 
@@ -63,12 +75,14 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		case 0x3:
 			// master reset
 			mCR = 0;
-			mSR &= mCTS; // Clear all bits except the CTS bit that shall still reflect the state of the CTS input
+			mSR &= ACIA_SR_CTS_MASK; // Clear all bits except the CTS bit that shall still reflect the state of the CTS input
 			if (mPowerOn) {
 				updatePort(RTS, 1);
 				mPowerOn = false;
 			}
 			updateIRQ();
+			mRxState = NO_BIT;
+			mTxState = NO_BIT;
 			return true;
 		default:
 			break;
@@ -364,7 +378,7 @@ void ACIA6850::processPortUpdate(int index)
 
 	else if (index == CTS) {
 		if (mCTS != pCTS) {
-			mSR &= ~ACIA_SR_CTS;
+			mSR &= ~ACIA_SR_CTS_MASK;
 			if (mCTS == 0) {
 				//cout << "ACIA CTS Input Low (active)\n";
 				mSR |= ACIA_SR_CTS_MASK;
@@ -391,7 +405,7 @@ void ACIA6850::updateIRQ()
 		) {
 		updatePort(IRQ, 0);
 		mSR |= ACIA_SR_IRQ_MASK;
-		if (false && p_IRQ == 1) {
+		if (mDM -> debug(DBG_IO_PERIPHERAL) && p_IRQ == 1) {
 			stringstream sout;
 			sout << ((ACIA_CR_TIE && ACIA_SR_TDRE) ? "TDRE " : "");
 			sout << ((ACIA_CR_RIE && ACIA_SR_RDRF) ? "RDRF " : "");
@@ -403,7 +417,7 @@ void ACIA6850::updateIRQ()
 	else {
 		updatePort(IRQ, 1);
 		mSR &= ~ACIA_SR_IRQ_MASK;
-		if (false && p_IRQ == 0) {
+		if (mDM->debug(DBG_IO_PERIPHERAL) && p_IRQ == 0) {
 			cout << "ACIA: IRQ Inactive (High)\n";
 		}
 	}

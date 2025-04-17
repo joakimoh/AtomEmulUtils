@@ -93,6 +93,7 @@ public:
 	BeebSerialULA(string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugManager* debugManager, ConnectionManager* connectionManager);
 
 	bool read(uint16_t adr, uint8_t& data);
+	bool dump(uint16_t adr, uint8_t& data) override;
 	bool write(uint16_t adr, uint8_t data);
 
 	// Reset device

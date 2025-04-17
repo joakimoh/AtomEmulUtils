@@ -130,6 +130,7 @@ public:
 	~BeebVideoULA();
 
 	bool read(uint16_t adr, uint8_t& data);
+	bool dump(uint16_t adr, uint8_t& data) override;
 	bool write(uint16_t adr, uint8_t data);
 
 	inline double getScanLineDuration();

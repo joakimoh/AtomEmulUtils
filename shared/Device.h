@@ -191,6 +191,7 @@ class Devices {
 private:
 
 	vector<Device*> mDevices;
+	vector<MemoryMappedDevice*> mMemoryMappedDevices;
 	DebugManager *mDM = NULL;
 
 	string getFileName(string& path, stringstream& sin);
@@ -251,6 +252,12 @@ public:
 	}
 
 	int size() { return (int) mDevices.size(); }
+
+	// Non-intrusive reading of the memory location of a device.
+	// If no memory-mapped device exists at the specified address,
+	// the method will return false.
+	bool dumpDeviceMemory(uint16_t adr, uint8_t& data);
+
 
 };
 

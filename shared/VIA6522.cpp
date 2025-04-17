@@ -612,6 +612,127 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 
 }
 
+bool VIA6522::dump(uint16_t adr, uint8_t& data)
+{
+	if (selected(adr)) {
+		data = mMem[adr - mMemorySpace.adr];
+		uint16_t a = (adr - mMemorySpace.adr) & 0xf;
+		switch (a) {
+
+		case IRB:
+			// Input Register B - if PBi is acting as input: if latching is disabled (ACR b1=0) IRB reflects PB; if not (ACR b1=1) the PB value latched by CB1
+		{
+			if (mACR & 0x2) // PB is latched
+				data = (mIRB & mDDRB) | (mPB_latched & ~mDDRB);
+			else
+				data = (mIRB & mDDRB) | (mPB & ~mDDRB);
+			break;
+
+		}
+
+		case IRA:
+			// Input Register A - if PA is acting as input: if latching is disabled (ACR b0=0) IRB reflects PA; if not (ACR b1=1) the PB value latched by CA1
+		{
+			// Get latched or non-latched Port A data
+			if (mACR & 0x1) // PA is latched
+				data = (mIRA & mDDRA) | (mPA_latched & ~mDDRA);
+			else
+				data = (mIRA & mDDRA) | (mPA & ~mDDRA);
+
+
+			break;
+		}
+		case DDRB:
+			// Data Direction Register B - '0' means corresponding PB acts as input; otherwise as output
+			data = mDDRB;
+			break;
+
+		case DDRA:
+			// Data Direction Register A - '0' means corresponding PA acts as input; otherwise as output
+			data = mDDRA;
+			break;
+
+		case T1CL:
+			// T1 Low-Order Counter
+			data = mTimer1Counter & 0xff;
+			break;
+
+		case T1CH:
+			// T1 High-Order Counter
+			data = (mTimer1Counter >> 8) & 0xff;
+			break;
+
+		case T1LL:
+			// T1 Low-Order Latch
+			data = mTimer1LatchLow;
+			break;
+
+		case T1LH:
+			// T1 Low-Order Latch
+			data = mTimer1LatchHigh;
+			break;
+
+		case T2CL:
+			// T2 Low-Order Counter
+			data = mTimer2Counter & 0xff;
+
+			break;
+
+		case T2CH:
+			// T2 High-Order Counter
+			data = (mTimer2Counter >> 8) & 0xff;
+			break;
+
+		case SR:
+			// Shift Register
+		{
+
+			data = mShiftRegister;
+
+			break;
+
+		}
+
+		case ACR:
+			// Auxiliary Control Register
+			data = mACR;
+			break;
+
+		case PCR:
+			// Peripheral Control Register 
+			data = mPCR;
+			break;
+
+		case IFR:
+			// Interrupt Flag Register
+			if (((mIFR & mIER) & 0x7f) == 0)
+				data = mIFR & 0x7f; // Clear IRQ bit
+			else
+				data = mIFR | 0x80; // Set IRQ bit
+			break;
+
+		case IER:
+			// Interrupt Enable Register
+			data = mIER | 0x80;
+			break;
+
+		case IRA2:
+			// Input Register A when no handshaking
+		{
+			mIRA2 = (mIRA2 & mDDRA) | (mPA & ~mDDRA);
+			data = mIRA2;
+			break;
+		}
+
+		default:
+			data = 0xff;
+			return false;
+			break;
+		}
+	}
+	return false;
+}
+
 bool VIA6522::write(uint16_t adr, uint8_t data)
 {
 

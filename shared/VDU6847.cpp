@@ -455,6 +455,16 @@ bool VDU6847::read(uint16_t adr, uint8_t& data)
 	return true;
 
 }
+
+bool VDU6847::dump(uint16_t adr, uint8_t& data)
+{
+	if (selected(adr)) {
+		data = mMem[adr - mMemorySpace.adr];
+		return true;
+	}
+	return false;
+}
+
 bool VDU6847::write(uint16_t adr, uint8_t data)
 {
 	if (!selected(adr))

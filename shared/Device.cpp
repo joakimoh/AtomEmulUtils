@@ -704,6 +704,9 @@ Devices::Devices(
 		throw runtime_error("Failed to get memory-mapped devices");
 	}
 
+	// Also maintain a separate list of memory-mapped devices for the Devices class itself
+	getMemoryMappedDevices(mMemoryMappedDevices);
+
 	// Sort the devices according to their specified scheduling
 	// Also reset each device and propagate its ports' values to connected devices
 	for (int i = 0; i < mDevices.size(); i++) {
@@ -881,6 +884,22 @@ bool Devices::getZPMemDevice(MemoryMappedDevice * &zpMem)
 		return true;
 		}
 	}
+	return false;
+}
+
+// Non-intrusive reading of the memory location of a device.
+// If no memory-mapped device exists at the specified address,
+// the method will return false.
+bool Devices::dumpDeviceMemory(uint16_t adr, uint8_t& data)
+{
+	for (int i = 0; i < mMemoryMappedDevices.size(); i++) {
+		MemoryMappedDevice* dev = mMemoryMappedDevices[i];
+		if (dev->selected(adr)) {			
+			return dev->dump(adr, data);
+		}
+	}
+
+	data = 0x0;
 	return false;
 }
 

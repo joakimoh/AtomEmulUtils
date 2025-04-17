@@ -29,6 +29,7 @@ public:
 	PIA8255(string name, double cpuclock, uint8_t waitStates, uint16_t adr, DebugManager  *debugManager, ConnectionManager *connectionManager);
 
 	bool read(uint16_t adr, uint8_t& data);
+	bool dump(uint16_t adr, uint8_t& data) override;
 	bool write(uint16_t adr, uint8_t data);
 
 	// Reset device

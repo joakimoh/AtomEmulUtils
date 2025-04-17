@@ -5,10 +5,13 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <cstdint>
+#include "Codec6502.h"
 
 class P6502;
 class Device;
 class DevicePort;
+class Devices;
 
 using namespace std;
 
@@ -28,13 +31,49 @@ typedef int DebugLevel;
 #define DBG_TIME			0x800
 #define	DBG_ALL				0xfff
 
+typedef struct InstrLogData_struct {
+	double logTime = 0;
+	Codec6502::InstructionInfo instr;
+	uint8_t A = 0x0;
+	uint8_t X = 0x0;
+	uint8_t Y = 0x0;
+	uint8_t SP = 0x0;
+	uint8_t SR = 0x0;
+	uint16_t PC = 0x0;
+	uint16_t opcodePC = 0x0;
+	uint16_t opcode = 0x0;
+	uint16_t operand = 0x0;
+	int accessAdr = -1;
+	bool decodeFailure = false;
+	bool rwFailure = false;
+	bool execFailure = false;
+	bool activeIRQ = false;
+	bool activeNMI = false;
+	uint16_t stack = 0x0;
+	uint8_t readVal = 0;
+	uint8_t writtenVal = 0;
+} InstrLogData;
+
 
 class DebugManager {
 
 private:
 
+	Codec6502 mCodec;
+
 	int mTraceCount = 0;
 	vector<string> mBufferedTraceLines;
+
+	bool mExtensiveLog = false;
+
+#define	INSTR_BUFFER_SIZE	100
+
+	vector<InstrLogData> mBufferedInstrLog = vector<InstrLogData>(INSTR_BUFFER_SIZE);
+
+	int mBufferInstrReadIndex = 0;
+	int mBufferInstrWriteIndex = 0;
+	int mBufferInstrSize = 0;
+
 	bool mEndOfTracingReached = false;
 	bool mEndofPrebufferingReached = false;
 	uint16_t mFetchAdr = 0x0;
@@ -52,7 +91,7 @@ private:
 	int mDumpAdr = -1;
 	int mDumpSz = -1;
 
-
+	int mPC = -1;
 	int mX = -1;
 	int mY = -1;
 	int mA = -1;
@@ -72,6 +111,10 @@ private:
 
 	bool matchFetchAddress(uint16_t fetchAdr);
 
+	Devices* mDevices = NULL;
+
+	void printInstrLogData(InstrLogData instrLogData);
+
 public:
 
 	bool debug(DebugLevel level);
@@ -79,7 +122,7 @@ public:
 	void enableLogging(uint16_t adr);
 	void enableCyclicLogging(uint16_t adr);
 	void enableInterruptLogging(uint16_t adr);
-	void enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring);
+	void enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring, bool extensive);
 	void enableMemDump(uint16_t adr, int sz);
 	void enableExecStop(uint16_t adr);
 	bool tracing();
@@ -99,7 +142,14 @@ public:
 
 	void log(Device * dev, DebugLevel level, string line);
 
+	void log(Device* dev, DebugLevel level, InstrLogData instrLogData);
+
 	bool matchPort(DevicePort* port);
+
+	void setDevices(Devices *devices);
+
+	bool quickTracing() { return !mExtensiveLog; }
+
 };
 
 

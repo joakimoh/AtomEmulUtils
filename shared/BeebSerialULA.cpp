@@ -39,6 +39,12 @@ bool BeebSerialULA::read(uint16_t adr, uint8_t& data)
 	return true;
 }
 
+bool  BeebSerialULA::dump(uint16_t adr, uint8_t& data)
+{
+	data = 0xff;
+	return false;
+}
+
 /*
 *
 * https://beebwiki.mdfs.net/Serial_ULA with remarks added in []

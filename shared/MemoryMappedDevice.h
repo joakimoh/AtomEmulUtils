@@ -30,7 +30,11 @@ public:
 
 	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
+	// Intrusive read of a device's memory that could trigger actions on the device's side
 	virtual bool read(uint16_t adr, uint8_t& data);
+
+	// Non-intrusive read of a device's memory
+	virtual bool dump(uint16_t adr, uint8_t& data) { return read(adr,data); }
 
 	virtual bool write(uint16_t adr, uint8_t data);
 

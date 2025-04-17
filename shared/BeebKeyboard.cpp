@@ -143,8 +143,10 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 		updatePort(ROW, 0x0);
 
 	// Get BREAK key
-	if (al_key_down(&mKeyboardState, mBreakKey.keyCode))
+	if (al_key_down(&mKeyboardState, mBreakKey.keyCode)) {
+		cout << "BREAK key pressed\n!";
 		updatePort(BREAK, 0x0);
+	}
 	else
 		updatePort(BREAK, 0x1);
 

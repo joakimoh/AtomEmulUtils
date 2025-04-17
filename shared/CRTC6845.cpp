@@ -278,6 +278,19 @@ bool CRTC6845::read(uint16_t adr, uint8_t& data)
 	return true;
 }
 
+bool CRTC6845::dump(uint16_t adr, uint8_t& data)
+{
+	if (selected(adr)) {
+		int16_t a = adr - mMemorySpace.adr;
+		if (mAddressRegister > 0 && mAddressRegister < 18 && mRegInfo[mAddressRegister].readable)
+			data = mReg[mAddressRegister];
+		else
+			data = 0xff;
+		return true;
+	}
+	return false;
+}
+
 
 //
 // Only the start address (R12/13) and cursor registers (R14/R15) should normally be

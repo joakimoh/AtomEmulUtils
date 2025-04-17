@@ -186,6 +186,7 @@ public:
 	~VDU6847();
 
 	bool read(uint16_t adr, uint8_t& data);
+	bool dump(uint16_t adr, uint8_t& data) override;
 	bool write(uint16_t adr, uint8_t data);
 
 	inline double getScanLineDuration() { return (1.0/60) / 262;  }

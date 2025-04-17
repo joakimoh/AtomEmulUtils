@@ -232,30 +232,67 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			mDM->log(this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[instr.instruction] + " at address 0x" + Utility::int2hexStr(opcode_PC,4) + "\n");
 
 	if (mDM->tracing()) {
-		string instr_s = mCodec.decode(opcode_PC, opcode, operand);
-		stringstream sout;
-		sout << setfill(' ') << setw(30) << left << instr_s << right <<
-			" " << getState();
-		if (instr.readsMem || instr.writesMem)
-			sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << calc_op_adr;
-		if (instr.readsMem)
-			sout << " READ 0x" << setw(2) << (int)read_val;
-		if (instr.writesMem)
-			sout << " WROTE 0x" << setw(2) << (int)written_val;
-		sout << " " << stack2Str();
-		if (!decode_success)
-			sout << "UNKNOWN INSTR";
-		if (!operand_success)
-			sout << " R/W FAILURE";
-		if (!exec_success)
-			sout << " EXEC FAILURE";
-		if (!mIRQ && mIRQ != pIRQ)
-			sout << " *IRQ";
-		if (!mNMI && mNMI != pNMI)
-			sout << " *NMI";
-		sout << "\n";
-		mDM->log(this, DBG_6502, sout.str());
+
+		if (mDM->quickTracing()) {
+
+			InstrLogData instr_log_data;
+			instr_log_data.logTime = getCycleCount() / (mCPUClock * 1e6);
+			instr_log_data.instr = instr;
+			instr_log_data.A = mAcc;
+			instr_log_data.X = mRegisterX;
+			instr_log_data.Y = mRegisterY;
+			instr_log_data.SP = mStackPointer;
+			instr_log_data.SR = mStatusRegister;
+			instr_log_data.opcodePC = opcode_PC;
+			instr_log_data.PC = mProgramCounter;
+			instr_log_data.opcode = opcode;
+			instr_log_data.operand = operand;
+			instr_log_data.accessAdr = calc_op_adr;
+			instr_log_data.activeIRQ = (!mIRQ && mIRQ != pIRQ);
+			instr_log_data.activeNMI = (!mNMI && mNMI != pNMI);
+			instr_log_data.execFailure = !exec_success;
+			instr_log_data.rwFailure = !operand_success;
+			instr_log_data.readVal = read_val;
+			instr_log_data.writtenVal = written_val;
+			instr_log_data.decodeFailure = !decode_success;
+			uint16_t a = (0x100 + mStackPointer + 1) & 0x1ff;
+			uint8_t l, h;
+			readProgramMem(a, l);
+			readProgramMem(a + 1, h);
+			uint16_t w = (h << 8) | l;
+			instr_log_data.stack = w;
+
+			mDM->log(this, DBG_6502, instr_log_data);
+		}
+		else {
+
+			string instr_s = mCodec.decode(opcode_PC, opcode, operand);
+			stringstream sout;
+			sout << setfill(' ') << setw(30) << left << instr_s << right <<
+				" " << getState();
+			if (instr.readsMem || instr.writesMem)
+				sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << calc_op_adr;
+			if (instr.readsMem)
+				sout << " READ 0x" << setw(2) << (int)read_val;
+			if (instr.writesMem)
+				sout << " WROTE 0x" << setw(2) << (int)written_val;
+			sout << " " << stack2Str();
+			if (!decode_success)
+				sout << "UNKNOWN INSTR";
+			if (!operand_success)
+				sout << " R/W FAILURE";
+			if (!exec_success)
+				sout << " EXEC FAILURE";
+			if (!mIRQ && mIRQ != pIRQ)
+				sout << " *IRQ";
+			if (!mNMI && mNMI != pNMI)
+				sout << " *NMI";
+			sout << "\n";
+
+			mDM->log(this, DBG_6502, sout.str());
+		}
 	}
+	
 
 		
 	// Increase time by the no of clock cycles specified for the instruction and mode.
