@@ -13,7 +13,25 @@ bool ArgParser::failed()
 
 void ArgParser::printUsage(const char* name)
 {
-	cout << "Emulates an Acorn\n";
+	cout << "Emulates 6502-based microcontroller systems of the 1980's.\n";
+	cout << "\nAny microcontroller system that uses the emulated hardware devices should in theory be possible\n";
+	cout << "to support. The system of concern is specified by a configuration file that specifies the\n";
+	cout << "used devices, their memory mapping, and how they are connected.\n\n";
+	cout << "Currently the following hardware devices are supported:\n";
+	cout << "\t- R6502 NMOS Microcontroller (used in the BBC Micro e.g.)\n";
+	cout << "\t- Static RAM\n";
+	cout << "\t- Dynamic RAM\n";
+	cout << "\t- ROM\n";
+	cout << "\t- MC6850 Asynchronous Communications Interface Adapter (ACIA)\n";
+	cout << "\t- SY6522 Versatile Interface Adapter (VIA)\n";
+	cout << "\t- 8255 Programmable Peripheral Interface (PIA)\n";
+	cout << "\t- HD6845 CRTC Controller\n";
+	cout << "\t- MC6847 Video Display Generator\n";
+	cout << "\t- SAA5050 Teletext Character Generator\n";
+	cout << "\t- Standard Tape Recorder: Emulates the tape recorder you connect to the computer\n";
+	cout << "\t- Custom Acorn Atom hardware: Cassette Interface, Keyboard amd Speaker\n";
+	cout << "\t- Custom BBC Micro hardware: Serial ULA, Keyboard, ROM Selection and Video ULA\n";
+	cout << "\n";
 	cout << "Usage:\t" << name << " -map <memory map file> [-pgm <program> <hex adr>] [-speed <emulation speed>] [-v] <advanced options>\n\n";
 	cout << "<emulation speed>:\nEmulation speed in %. If not specified, 100% (real time) is assumed\n\n";
 	cout << "<memory map file>:\n\tFile which defines devices and their memory mapping.\n\n";
@@ -23,14 +41,16 @@ void ArgParser::printUsage(const char* name)
 	cout << "-stop <hex address>: stop execution at this address\n\n";
 	cout << "-dump <hex address> <hex size>: dump memory content address to address+size-1 after stopping execution\n\n";
 	cout << "-trace <hex address> <pre trace len> <post trace len>: debug around a certain fetch address\n";
-	cout << "-qtrace <hex address> <pre trace len> <post trace len>: same as -trace but quicker and with less information\n";
+	cout << "-xtrace <hex address> <pre trace len> <post trace len>: same as -trace but with more information (and therefoe slower)\n";
 	cout << "-ctrace <hex address> <pre trace len> <post trace len>: as trace but the debugging will be repeated every time the fetch address is encountered\n";
+	cout << "-ctrace <hex address> <pre trace len> <post trace len>: as trace but the debugging condition only checked for after user presses <CTRL-T>\n";
 	cout << "\tor written to. The tracing starts <pre trace len> instructions prior to the trigger and lasts <post trace len>\n";
 	cout << "\tinstructions after the trigger.\n\n";
 	cout << "-log <hex adr>:\n\tStart logging instruction execution after execution reaches the specified address\n";
 	cout << "-clog <hex adr>:\n\tCyclicallly logs the result of the execution of an instruction at the specified address\n";
 	cout << "\t(as -ctrace <hex adr> 0 0 but faster)\n\n";
-	cout << "-ilog <hex adr>:\n\tStart logging instruction execution after an interrupt and when execution reaches the specified address\n\n";
+	cout << "-ilog <hex adr>:\n\tStart logging instruction execution after an interrupt and when execution reaches the specified address\n";
+	cout << "-mlog <adr>:\n\tmemory concent to add along with the log\n\n";
 	cout << "-dbg <string with one or more of the letters below>: Debugging of different detail.\n";
 	cout << "\t'e' errors\n";
 	cout << "\t'w' warnings\n";
@@ -65,6 +85,10 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			debugManager.enableLogging(stoi(argv[a + 1], 0, 16));
 			a++;
 		}
+		else if (strcmp(argv[a], "-mlog") == 0) {
+			debugManager.setMemLogAdr(stoi(argv[a + 1], 0, 16));
+			a++;
+		}
 		else if (strcmp(argv[a], "-clog") == 0) {
 			debugManager.enableCyclicLogging(stoi(argv[a + 1], 0, 16));
 			a++;
@@ -77,10 +101,11 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			debugManager.enableExecStop(stoi(argv[a + 1], 0, 16));
 			a++;
 		}
-		else if (strcmp(argv[a], "-trace") == 0 || strcmp(argv[a], "-ctrace") == 0 || strcmp(argv[a], "-qtrace") == 0) {
+		else if (strcmp(argv[a], "-trace") == 0 || strcmp(argv[a], "-ctrace") == 0 || strcmp(argv[a], "-xtrace") == 0 || strcmp(argv[a], "-ktrace") == 0) {
 			uint16_t adr = stoi(argv[a + 1], 0, 16);
 			bool recurring = strcmp(argv[a], "-ctrace") == 0;
-			bool quick_trace = strcmp(argv[a], "-qtrace") == 0 || recurring;
+			bool quick_trace = strcmp(argv[a], "-xqtrace") != 0 || recurring;
+			bool kb_triggered_start = strcmp(argv[a], "-ktrace") == 0;
 			a++;
 			if (a >= argc) {
 				printUsage(argv[0]);
@@ -93,7 +118,7 @@ ArgParser::ArgParser(int argc, const char* argv[])
 				return;
 			}
 			int post_trace_len = stoi(argv[a + 1]); 
-			debugManager.enableTracing(adr, pre_trace_len, post_trace_len, recurring, !quick_trace);
+			debugManager.enableTracing(adr, pre_trace_len, post_trace_len, recurring, !quick_trace, kb_triggered_start);
 			a++;
 		}
 		else if(strcmp(argv[a], "-dump") == 0) {

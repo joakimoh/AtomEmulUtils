@@ -52,6 +52,7 @@ typedef struct InstrLogData_struct {
 	uint16_t stack = 0x0;
 	uint8_t readVal = 0;
 	uint8_t writtenVal = 0;
+	int memContent = -1;
 } InstrLogData;
 
 
@@ -65,6 +66,7 @@ private:
 	vector<string> mBufferedTraceLines;
 
 	bool mExtensiveLog = false;
+	bool mDelayed = false;
 
 #define	INSTR_BUFFER_SIZE	100
 
@@ -82,6 +84,7 @@ private:
 	int mInterruptLogAdr = -1;
 	int mCyclicLogAdr = -1;
 	int mLogAdr = -1;
+	int mMemLogAdr = -1;
 
 	int mTraceAdr = -1;
 	int mPostTraceLen = 0;
@@ -104,7 +107,6 @@ private:
 
 
 	DebugLevel mDbgLevel = DBG_NONE;
-	bool mLogging = false;
 
 	bool mRecurringTracing = false;
 	bool mStopped = false;
@@ -119,13 +121,16 @@ public:
 
 	bool debug(DebugLevel level);
 
+	void toggleCondition();
 	void enableLogging(uint16_t adr);
 	void enableCyclicLogging(uint16_t adr);
 	void enableInterruptLogging(uint16_t adr);
-	void enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring, bool extensive);
+	void enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring, bool extensive, bool delayed);
 	void enableMemDump(uint16_t adr, int sz);
 	void enableExecStop(uint16_t adr);
 	bool tracing();
+
+	void setMemLogAdr(uint16_t adr);
 
 	void setDebugLevel(DebugLevel level);
 	void setDebugPort(string portDevice, string port);
@@ -135,8 +140,7 @@ public:
 	void triggerLogging(uint16_t adr);
 	bool triggerExecutionStop(P6502 * cpu, uint16_t adr);
 
-	void startLogging();
-	void stopLogging();
+	void toggleLogging();
 
 	void preBuffer(uint16_t adr, uint8_t X, uint8_t Y, uint8_t A);
 

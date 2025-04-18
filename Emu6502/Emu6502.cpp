@@ -67,6 +67,8 @@ ALLEGRO_KEYBOARD_STATE keyboard_state;
 int main(int argc, const char* argv[])
 {
 
+    bool key_pressed = false;
+
     if (!al_init())
 		cout << "Failed to initialise allegro5\n";
 
@@ -386,14 +388,36 @@ int main(int argc, const char* argv[])
         else if (event.type == ALLEGRO_EVENT_TIMER) {
             // The timer event comes from the emulation speed timer (defaults to 60 Hz)
             // This will synchronise the execution on 60 Hz basis (via the wait event above)
-        } 
-        
+        }     
 
-        // Turn on microprocessor debugging (tracing) if user presses <CTRL>-D
+        //
+        // Check for user key input
+        //
+
+        // Get keyboard state
         al_get_keyboard_state(&keyboard_state);
-        if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_D)) {
-            arg_parser.debugManager.setDebugLevel(DBG_6502);
+ 
+        if (!key_pressed) {
+
+            // Start microprocessor debugging (tracing) if user presses <CTRL-D>
+            if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_D)) {
+                arg_parser.debugManager.toggleLogging();
+                key_pressed = true;
+            }
+
+            // Enable microprocessor debugging (tracing) if user presses <CTRL-T>
+            // Debugging starts after the user has pressed <CTRl-T> and the specified triggering condition is met
+            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_T)) {
+                arg_parser.debugManager.toggleCondition();
+                key_pressed = true;
+            }
         }
+        else {
+            if (!al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && !al_key_down(&keyboard_state, ALLEGRO_KEY_D) && !al_key_down(&keyboard_state, ALLEGRO_KEY_T)) {
+                key_pressed = false;
+            }
+        }
+
 
     }
 

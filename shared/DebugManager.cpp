@@ -25,6 +25,31 @@ void DebugManager::enableMemDump(uint16_t adr, int sz)
 	mDumpSz = sz;
 }
 
+void DebugManager::toggleCondition()
+{
+	mDelayed = false;
+	mDbgLevel = DBG_6502;
+	mEndofPrebufferingReached = false;
+	mEndOfTracingReached = false;
+	mBufferInstrReadIndex = mBufferInstrWriteIndex = mBufferInstrSize = 0;
+	mTraceCount = 0;
+	mBufferedTraceLines.clear();
+}
+
+void DebugManager::toggleLogging()
+{
+	mTraceAdr = -1;
+	mLogAdr = -1;
+	mCyclicLogAdr = -1;
+	mInterruptLogAdr = -1;
+	mDbgLevel = (mDbgLevel ^ DBG_6502) & DBG_6502;
+}
+
+void DebugManager::setMemLogAdr(uint16_t adr)
+{
+	mMemLogAdr = adr;
+}
+
 void DebugManager::enableLogging(uint16_t adr)
 {
 	mLogAdr = adr;
@@ -40,7 +65,7 @@ void DebugManager::enableInterruptLogging(uint16_t adr)
 	mInterruptLogAdr = adr;
 }
 
-void DebugManager::enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring, bool extensive)
+void DebugManager::enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring, bool extensive, bool delayed)
 {
 	mDbgLevel = DBG_6502;
 	mTraceAdr = adr;
@@ -48,6 +73,7 @@ void DebugManager::enableTracing(uint16_t adr, int preTraceLen, int postTraceLen
 	mPostTraceLen = postTraceLen;
 	mRecurringTracing = recurring;
 	mExtensiveLog = extensive;
+	mDelayed = delayed;
 	if (!mExtensiveLog)
 		preTraceLen = min(INSTR_BUFFER_SIZE, preTraceLen);
 }
@@ -79,15 +105,7 @@ void DebugManager::clearDebugLevel(DebugLevel level)
 	mDbgLevel &= ~level;
 }
 
-void DebugManager::startLogging()
-{
-	mLogging = true;
-}
 
-void DebugManager::stopLogging()
-{
-	mLogging = false;
-}
 
 void DebugManager::triggerInterruptLogging(uint16_t fetchAdr, bool condition)
 {
@@ -132,7 +150,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 	mY = Y;
 	mA = A;
 
-	if (mTraceAdr > 0) {
+	if (mTraceAdr > 0 && !mDelayed) {
 
 		if (!mEndofPrebufferingReached && !mEndOfTracingReached) {
 			if (mExtensiveLog) {
@@ -170,6 +188,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 
 		if (mEndofPrebufferingReached && mTraceCount > mPostTraceLen) {
 			mDbgLevel &= ~DBG_6502;
+			mDelayed = false;
 			if (mRecurringTracing) {
 				mEndofPrebufferingReached = false;
 			}
@@ -181,13 +200,13 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 
 	}
 
-	
+
 
 }
 
 void DebugManager::log(Device * dev, DebugLevel level, string line)
 {
-	if ((mDbgLevel & level) == 0)
+	if ((mDbgLevel & level) == 0 || mDelayed)
 		return;
 
 	double t = dev->getCycleCount() / (dev->mCPUClock * 1e6);
@@ -210,8 +229,14 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 
 void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 {
-	if ((mDbgLevel & level) == 0)
+	if ((mDbgLevel & level) == 0 || mDelayed)
 		return;
+
+	if (mMemLogAdr > 0 && mDevices != NULL) {
+		uint8_t data;
+		mDevices->dumpDeviceMemory(mMemLogAdr, data);
+		instrLogData.memContent = (int)data;
+	}
 
 	// Update circular buffer
 	mBufferedInstrLog[mBufferInstrWriteIndex] = instrLogData;
@@ -221,7 +246,7 @@ void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 	if (mBufferInstrSize < mPreTraceLen)
 		mBufferInstrSize++;
 
-	if ((mDbgLevel & level) != 0 && mEndofPrebufferingReached && !mEndOfTracingReached) {
+	if ((mDbgLevel & level) != 0 && (mTraceAdr <= 0 || (mEndofPrebufferingReached && !mEndOfTracingReached))) {
 		printInstrLogData(instrLogData);
 		mTraceCount++;
 	}
@@ -262,7 +287,7 @@ void DebugManager::printInstrLogData(InstrLogData instrLogData)
 	sout << " ";
 
 	uint16_t stack_adr = (0x100 + instrLogData.SP + 1) & 0x1ff;
-	sout << "mem[" << hex << setw(3) << setfill('0') << stack_adr << "]=" << setw(2) << setfill('0') << hex << instrLogData.stack;
+	sout << "Mem[" << hex << setw(3) << setfill('0') << stack_adr << "]=" << setw(2) << setfill('0') << hex << instrLogData.stack;
 
 	if (instrLogData.decodeFailure)
 		sout << "UNKNOWN INSTR";
@@ -274,6 +299,8 @@ void DebugManager::printInstrLogData(InstrLogData instrLogData)
 		sout << " *IRQ";
 	if (instrLogData.activeNMI)
 		sout << " *NMI";
+	if (instrLogData.memContent != -1)
+		sout << " Mem[0x" << hex << mMemLogAdr << "]=0x" << instrLogData.memContent;
 	sout << "\n";
 
 	cout << sout.str();
