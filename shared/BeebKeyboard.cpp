@@ -84,14 +84,6 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 
 	uint8_t oROW = mROW;
 
-	// Toggle ROW state from active (HIGH) to inactive (LOW) to secure that update is propagated.
-	// The keyboard ROW output is connected to the System VIA PA7 input.
-	// If the PA7 was previously configured as an output (with a HIGH value) and the keyboard's
-	// ROW output was LOW, then the VIA will not get an update of the ROW unless a port update is made here.
-	// Therefore we start by setting ROW output to '0' (inactive)
-	updatePort(ROW, 0x0);
-	//updatePort(PRESSED, 0x0);
-
 	bool selected_key_pressed = false;
 	bool column_key_pressed = false;
 
@@ -124,6 +116,8 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 				if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
 					column_key_pressed = true;
 					mDM->log(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!\n");
+//					if (key.keyName == "B")
+//						mDM->setDebugLevel(DBG_INTERRUPTS | DBG_KEYBOARD | DBG_IO_PERIPHERAL | DBG_PORT | DBG_6502);
 					break;
 				}
 			}
@@ -131,6 +125,7 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 	}
 
 	// Any key pressed in a selected column
+	uint8_t old_pressed = mPRESSED;
 	if (column_key_pressed)
 		updatePort(PRESSED, 0x1);
 	else
@@ -144,13 +139,12 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 
 	// Get BREAK key
 	if (al_key_down(&mKeyboardState, mBreakKey.keyCode)) {
-		cout << "BREAK key pressed\n!";
 		updatePort(BREAK, 0x0);
 	}
 	else
 		updatePort(BREAK, 0x1);
 
-	if (mDM->debug(DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mKB_ENA != pKB_ENA)) {
+	if (mDM->debug(DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mKB_ENA != pKB_ENA || mPRESSED != old_pressed)) {
 		mDM->log(this, DBG_KEYBOARD, "KB_ENA = " + to_string(mKB_ENA) + ",COL_SEL = " + to_string(mCOL_SEL) + 
 			", ROW_SEL = " + to_string(mROW_SEL) + ", PRESSED = " + to_string(mPRESSED) + ", ROW = " + to_string(mROW) + "\n");
 	}

@@ -161,6 +161,9 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 			break;
 		}
 
+		if (mDM->debug(DBG_IO_PERIPHERAL))
+			cout << "\nACIA Control Register updated to 0x" << hex << (int)mCR << "\n";
+
 	}
 	else {
 		// Transmit Data Register
@@ -172,7 +175,7 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 			mTxState = START_BIT;
 	}
 
-	//cout << "\nACIA Control Register updated to 0x" << hex << (int)mCR << "\n";
+	
 
 	update_settings();
 
@@ -405,7 +408,7 @@ void ACIA6850::updateIRQ()
 		) {
 		updatePort(IRQ, 0);
 		mSR |= ACIA_SR_IRQ_MASK;
-		if (mDM -> debug(DBG_IO_PERIPHERAL) && p_IRQ == 1) {
+		if (mDM -> debug(DBG_INTERRUPTS) && p_IRQ == 1) {
 			stringstream sout;
 			sout << ((ACIA_CR_TIE && ACIA_SR_TDRE) ? "TDRE " : "");
 			sout << ((ACIA_CR_RIE && ACIA_SR_RDRF) ? "RDRF " : "");
@@ -417,7 +420,7 @@ void ACIA6850::updateIRQ()
 	else {
 		updatePort(IRQ, 1);
 		mSR &= ~ACIA_SR_IRQ_MASK;
-		if (mDM->debug(DBG_IO_PERIPHERAL) && p_IRQ == 0) {
+		if (mDM->debug(DBG_INTERRUPTS) && p_IRQ == 0) {
 			cout << "ACIA: IRQ Inactive (High)\n";
 		}
 	}

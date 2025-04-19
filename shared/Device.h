@@ -72,7 +72,6 @@ public:
 	vector<InputReference>	inputs;					// connected inputs (used only if the port is an output port)
 	vector<InputReference>	bidirectionalInputs;	// connected bidirectional ports (used only if the port is an output port)
 	bool					triggerDevice = false;	// true if the device's trigger() method shall be called on an update of an input port
-	bool					firstUpdate = true;		// Used to force a first initial update (as updates otherwise only are on change)
 };
 
 typedef struct BitsSelection_struct {

@@ -100,40 +100,45 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 		if (input.invert) {
 			uint8_t oval = val;
 			nval = ~val;
-			//cout << "INVERT " << input.port->dev->name << ":" << input.port->name << ": " << hex << (int) oval << " => " << (int)val << "\n";
 		}
+		uint8_t n_ival;
 		if (input.shifts >= 0)
-			*(input.port->val) = ((pval & ~input.mask) | ((nval >> input.shifts) & input.mask)) & input.port->mask;
+			n_ival = ((pval & ~input.mask) | ((nval >> input.shifts) & input.mask)) & input.port->mask;
 		else
-			*(input.port->val) = ((pval & ~input.mask) | ((nval << (-input.shifts)) & input.mask)) & input.port->mask;
+			n_ival = ((pval & ~input.mask) | ((nval << (-input.shifts)) & input.mask)) & input.port->mask;
 
-		if (input.process)
-			input.port->dev->processPortUpdate(input.port->localIndex);
+		if (*(input.port->val) != n_ival) {
 
-		if (
-			mDM->matchPort(input.port) && 
-			((port->firstUpdate && mDM->debug(DBG_PORT)) || (mDM->debug(DBG_PORT) && *(input.port->val) != pval))
-		) {
-			string shift_s, c_dir;
-			if (input.shifts >= 0)
-				shift_s = "((src >> shifts) & mask)";
-			else
-				shift_s = "((src << shifts) & mask)";
-			cout << this->name << ":" << port->name << " = 0x" << (int)val << " => " <<
-				input.port->dev->name << ":" << input.port->name << " = " <<
-				input.port->name << " &  ~mask | " << shift_s << " = 0x" << hex <<
-				(int)pval << " & 0x" << hex << setfill('0') << setw(2) << (int)(uint8_t)(~input.mask) << " | ((0x" << hex << (int)nval <<
-				(input.shifts >= 0 ? " >> " : " << ") << setfill(' ') << dec << (input.shifts >= 0 ? input.shifts : -input.shifts) <<
-				") & 0x" << hex << (int)input.mask << ")" << setfill('0') << setw(2) <<
-				" = 0x" << hex << (int)*(input.port->val) << dec;
+			*(input.port->val) = n_ival;
+
 			if (input.process)
-				cout << "; processing\n";
-			else
-				cout << "\n";
-		}
+				input.port->dev->processPortUpdate(input.port->localIndex);
 
-		if (triggerConnectedDevices && input.port->triggerDevice)
-			input.port->dev->trigger(input.port->localIndex);
+			if (
+				mDM->matchPort(input.port) &&
+				(mDM->debug(DBG_PORT) && *(input.port->val) != pval)
+				) {
+				string shift_s, c_dir;
+				if (input.shifts >= 0)
+					shift_s = "((src >> shifts) & mask)";
+				else
+					shift_s = "((src << shifts) & mask)";
+				cout << this->name << ":" << port->name << " = 0x" << (int)val << " => " <<
+					input.port->dev->name << ":" << input.port->name << " = " <<
+					input.port->name << " &  ~mask | " << shift_s << " = 0x" << hex <<
+					(int)pval << " & 0x" << hex << setfill('0') << setw(2) << (int)(uint8_t)(~input.mask) << " | ((0x" << hex << (int)nval <<
+					(input.shifts >= 0 ? " >> " : " << ") << setfill(' ') << dec << (input.shifts >= 0 ? input.shifts : -input.shifts) <<
+					") & 0x" << hex << (int)input.mask << ")" << setfill('0') << setw(2) <<
+					" = 0x" << hex << (int)*(input.port->val) << dec;
+				if (input.process)
+					cout << "; processing\n";
+				else
+					cout << "\n";
+			}
+
+			if (triggerConnectedDevices && input.port->triggerDevice)
+				input.port->dev->trigger(input.port->localIndex);
+		}
 
 	}
 
@@ -145,25 +150,11 @@ bool Device::updatePort(int index, uint8_t val, bool triggerConnectedDevices)
 	if (index < 0 && index >= mPorts.size())
 		return false;
 
-	bool no_change_and_not_init = !mPorts[index]->firstUpdate && *(mPorts[index]->val) == val;
-
-	if (no_change_and_not_init && mPorts[index]->bidirectionalInputs.size() == 0)
-		return true;
-
 	*(mPorts[index]->val) = val;
-
-	// Only update pure input ports on change
-	if (!no_change_and_not_init) {
-		if (!updateConnectedPorts(mPorts[index]->inputs, val, mPorts[index], triggerConnectedDevices))
-			return false;
-	}
-
-	// Always update bidirectional ports
+	if (!updateConnectedPorts(mPorts[index]->inputs, val, mPorts[index], triggerConnectedDevices))
+		return false;
 	if (!updateConnectedPorts(mPorts[index]->bidirectionalInputs, val, mPorts[index], triggerConnectedDevices))
 		return false;
-
-	// For pure input ports (but not bidirectional ports), all subsequent updates will only be considered on change to lower CPU load
-	mPorts[index]->firstUpdate = false;
 
 	return true;
 }

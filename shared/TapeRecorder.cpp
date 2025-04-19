@@ -120,6 +120,7 @@ void TapeRecorder::stop()
 		mLoadFromTape = false;
 		mPlay = false;
 		mCasInPulses.clear();
+		cout << "STOP\n";
 	}
 	else if (mSaveToTape) {
 		mSaveToTape = false;

@@ -399,7 +399,11 @@ bool VIA6522::advance(uint64_t stopCycle)
 		pTimer1Counter = mTimer1Counter;
 		pTimer2Counter = mTimer2Counter;
 
+		updateIRQ();
+
 	}
+
+	
 
 	return true;
 }
@@ -409,14 +413,14 @@ void VIA6522::updateIRQ()
 	if ((mIFR & mIER & 0x7f) == 0) { // No pending interrupts
 		updatePort(IRQ, 0x1);
 		if (mDM->debug(DBG_INTERRUPTS) && mIRQ != pIRQ) {
-			mDM->log(this, DBG_INTERRUPTS, "VIA deassert (make HIGH) of IRQ line\n\tIFR = " + IFR2Str() + "\n\tIER = " + IER2Str() + "\n\tACR = " + ACR2Str() + "\n\tPCR = " + PCR2Str() + "\n\n");
+			mDM->log(this, DBG_INTERRUPTS, "VIA deactivates the IRQ line (makes it HIGH)\n\tIFR = " + IFR2Str() + "\n\tIER = " + IER2Str() + "\n\tACR = " + ACR2Str() + "\n\tPCR = " + PCR2Str() + "\n\n");
 		}
 		pIRQ = mIRQ;
 	}
 	else { // Pending interrupts
 		updatePort(IRQ, 0x0);
-		if (mDM->debug(DBG_INTERRUPTS) && mIRQ != pIRQ) {
-			mDM->log(this, DBG_INTERRUPTS, "Via assert (make LOW) of IRQ line \n\tIFR = " + IFR2Str() + "\n\tIER = " + IER2Str() + "\n\tACR = " + ACR2Str() + "\n\tPCR = " + PCR2Str() + "\n\n");
+		if (mDM->debug(DBG_INTERRUPTS)){//}&& mIRQ != pIRQ) {
+			mDM->log(this, DBG_INTERRUPTS, "Via activates the IRQ line (makes it LOW)\n\tIFR = " + IFR2Str() + "\n\tIER = " + IER2Str() + "\n\tACR = " + ACR2Str() + "\n\tPCR = " + PCR2Str() + "\n\n");
 		}
 		pIRQ = mIRQ;
 	}
@@ -431,7 +435,6 @@ void VIA6522::clearIFR(uint8_t mask)
 		mDM->log(this, DBG_IO_PERIPHERAL, "VIA clear IFR 0x" + Utility::int2hexStr(oIFR,2) + " => " + IFR2Str() + " for PCR = " + PCR2Str() + ", ACR = " + ACR2Str() + " and IER = " + IER2Str() + "\n");
 	}
 	pIFR = mIFR;
-	updateIRQ();
 }
 
 void VIA6522::setIFR(uint8_t mask)
@@ -439,10 +442,9 @@ void VIA6522::setIFR(uint8_t mask)
 	uint8_t oIFR = mIFR;
 	mIFR |= mask;
 	if (mIFR != oIFR) {
-		mDM->log(this, DBG_IO_PERIPHERAL, "VIA set IFR 0x" + Utility::int2hexStr(oIFR, 2) + " => " + IFR2Str() + " for PCR = " + PCR2Str() + ", ACR = " + ACR2Str() + " and IER = " + IER2Str() + "\n");
+		mDM->log(this, DBG_IO_PERIPHERAL, "VIA sets IFR 0x" + Utility::int2hexStr(oIFR, 2) + " => " + IFR2Str() + " for PCR = " + PCR2Str() + ", ACR = " + ACR2Str() + " and IER = " + IER2Str() + "\n");
 	}
 	pIFR = mIFR;
-	updateIRQ();
 }
 
 bool VIA6522::read(uint16_t adr, uint8_t &data)
@@ -608,6 +610,8 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		break;
 	}
 
+	updateIRQ();
+
 	return true;
 
 }
@@ -615,7 +619,6 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 bool VIA6522::dump(uint16_t adr, uint8_t& data)
 {
 	if (selected(adr)) {
-		data = mMem[adr - mMemorySpace.adr];
 		uint16_t a = (adr - mMemorySpace.adr) & 0xf;
 		switch (a) {
 
@@ -935,7 +938,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	{
 		mIFR &= (~data) & 0x7f;
 		if (mDM->debug(DBG_IO_PERIPHERAL))
-			mDM->log(this, DBG_IO_PERIPHERAL, "Write VIA 6522 at 0x" + Utility::int2hexStr(adr,4) + " IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
+			mDM->log(this, DBG_IO_PERIPHERAL, "Write to VIA 6522 IFR at 0x" + Utility::int2hexStr(adr,4) + " IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
 		updateIRQ();
 
 		break;
@@ -950,7 +953,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 			mIER = (mIER & ~data) & 0x7f;
 		}
 		if (mDM->debug(DBG_IO_PERIPHERAL))
-			mDM->log(this, DBG_IO_PERIPHERAL, "Write VIA 6522 at 0x" + Utility::int2hexStr(adr, 4) + " IER = 0x" + Utility::int2hexStr(mIER, 2) + " (" + IER2Str() + ")\n");
+			mDM->log(this, DBG_IO_PERIPHERAL, "Write to VIA 6522 IER at 0x" + Utility::int2hexStr(adr, 4) + " IER = 0x" + Utility::int2hexStr(mIER, 2) + " (" + IER2Str() + ")\n");
 
 
 		break;
@@ -973,6 +976,8 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		return false;
 	}
 	}
+
+	updateIRQ();
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	return MemoryMappedDevice::triggerAfterWrite(adr, data);
