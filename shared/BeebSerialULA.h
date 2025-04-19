@@ -15,6 +15,11 @@ private:
 
 	double mClock = 1.0;
 
+	long mTapeStartCount = -1;
+	long mTapeCount = 0;
+	bool mLowToneDetected = false;
+	uint8_t pCAS_IN = 0;
+	bool mfirstTapeSample = true;
 
 	// Ports
 	int RxD, TxD, RTSI, CTSO, CTSI, DCD, RxCLK, TxCLK;

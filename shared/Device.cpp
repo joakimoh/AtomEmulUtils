@@ -90,6 +90,20 @@ bool Device::updatePort(int index, uint8_t val)
 	return updatePort(index, val, true);
 }
 
+bool Device::updatePort(int index, uint8_t val, bool triggerConnectedDevices)
+{
+	if (index < 0 && index >= mPorts.size())
+		return false;
+
+	*(mPorts[index]->val) = val;
+	if (!updateConnectedPorts(mPorts[index]->inputs, val, mPorts[index], triggerConnectedDevices))
+		return false;
+	if (!updateConnectedPorts(mPorts[index]->bidirectionalInputs, val, mPorts[index], triggerConnectedDevices))
+		return false;
+
+	return true;
+}
+
 bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_t val, DevicePort *port, bool triggerConnectedDevices)
 {
 	
@@ -107,7 +121,7 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 		else
 			n_ival = ((pval & ~input.mask) | ((nval << (-input.shifts)) & input.mask)) & input.port->mask;
 
-		if (*(input.port->val) != n_ival) {
+		if (*(input.port->val) != n_ival || input.port->dir == IO_PORT) { // update on change or always for a bidirectional port
 
 			*(input.port->val) = n_ival;
 
@@ -145,19 +159,7 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 	return true;
 }
 
-bool Device::updatePort(int index, uint8_t val, bool triggerConnectedDevices)
-{
-	if (index < 0 && index >= mPorts.size())
-		return false;
 
-	*(mPorts[index]->val) = val;
-	if (!updateConnectedPorts(mPorts[index]->inputs, val, mPorts[index], triggerConnectedDevices))
-		return false;
-	if (!updateConnectedPorts(mPorts[index]->bidirectionalInputs, val, mPorts[index], triggerConnectedDevices))
-		return false;
-
-	return true;
-}
 
 bool Device::updatePorts()
 {

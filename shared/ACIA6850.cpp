@@ -243,8 +243,8 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				mSR &= ~ACIA_SR_PE_MASK; // Reset Framing Error
 				mSR &= ~ACIA_SR_PE_MASK; // Reset parity Error
 				mRxPar = 0;
-				//cout << dec << mRxLowSamples << " samples detected for start bit (" << mClkDiv / 2 << ") at " <<
-				//	mCycleCount / mCPUClock * 1e-6 << "s (" << mCycleCount << ")\n";
+				cout << dec << mRxLowSamples << " samples detected for start bit (" << mClkDiv / 2 << ") at " <<
+					mCycleCount / mCPUClock * 1e-6 << "s (" << mCycleCount << ")\n";
 			}
 		}
 
@@ -288,7 +288,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				mRxState = START_BIT;
 				mRxLowSamples = 0;
 				mRxBuffer = 0;
-				//cout << "ACIA received byte 0x" << hex << (int)mRDR << " at " << mCycleCount / mCPUClock * 1e-6 << "s\n";
+				cout << "ACIA received byte 0x" << hex << (int)mRDR << " at " << mCycleCount / mCPUClock * 1e-6 << "s\n";
 				break;
 			}
 			default: // NO_BIT

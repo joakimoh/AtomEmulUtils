@@ -12,9 +12,12 @@ BeebSerialULA::BeebSerialULA(
 	registerPort("DCD",		OUT_PORT,	0x1,	DCD,		&mDCD);		// Data Carrier Detect			to ACIA
 	registerPort("TxD",		IN_PORT,	0x1,	TxD,		&mTxD);		// Transmit Data				from ACIA
 	registerPort("RTSI",	IN_PORT,	0x1,	RTSI,		&mRTSI);	// Request To Send				from ACIA
+
 	registerPort("CASMO",	OUT_PORT,	0x1,	CASMO,		&mCASMO);	// Cassette Motor control		to relay
+
 	registerPort("CAS_IN",	IN_PORT,	0x1,	CAS_IN,		&mCAS_IN);	// Cassette In					from Tape Recorder
 	registerPort("CAS_OUT",	OUT_PORT,	0x1,	CAS_OUT,	&mCAS_OUT);	// Cassette Out					to Tape Recorder
+
 	registerPort("DIn",		IN_PORT,	0x1,	DIn,		&mDIn);		// Serial In					from RS423 Interface
 	registerPort("DOut",	OUT_PORT,	0x1,	DOut,		&mDOut);	// Serial Out					to RS423 Interface
 	registerPort("RTSO",	OUT_PORT,	0x1,	RTSO,		&mRTSO);	// Request To Send Out			to RS423 Interface
@@ -202,11 +205,25 @@ bool BeebSerialULA::isNewHalfCycle(int &nCpuCycles)
 // Advance until clock cycle stopcycle has been reached
 bool BeebSerialULA::advance(uint64_t stopCycle)
 {
+	if (mCAS_IN != pCAS_IN && mTapeStartCount < 0) {
+		if (!mfirstTapeSample) {
+			mTapeStartCount = mCycleCount;
+			cout << "*** TAPE STARTS AT " << dec << mTapeStartCount << " cycles...\n";
+		}
+		mfirstTapeSample = false;
+	}
+	pCAS_IN = mCAS_IN;
 
 	
 	while (mCycleCount < stopCycle) {
 
 		if (!SER_ULA_CR_ENA_SER) { // Cassette Interface
+
+
+			mTapeCount = mCycleCount - mTapeStartCount;
+			double tape_time = mTapeCount / mCPUClock * 1e-6;
+			double time = mCycleCount / mCPUClock * 1e-6;
+
 
 			// Check for a complete 1/2 Cycle
 			int half_cycle_cnt;
@@ -219,13 +236,25 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 				bool high_tone = (half_cycle_cnt >= mHighToneHalfCycleDurationMin && half_cycle_cnt <= mHighToneHalfCycleDurationMax);
 				bool low_tone = (half_cycle_cnt >= mLowToneHalfCycleDurationMin && half_cycle_cnt <= mLowToneHalfCycleDurationMax);
 
+
 				//  If there is a carrier, detect whether the 1/2 cycle was part of a '0' (1200 Hz) or a '1' (2400 Hz) set of 1/2 cycles
-				//if (mDCD == DCD_ACTIVE) {
 				if (mCarrierDetected) {
+
+					if (!mLowToneDetected && low_tone)
+						mLowToneDetected = true;
+
+
+					if (high_tone && mLowToneDetected)
+						cout << dec << half_cycle_cnt << " samples High tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
+					else if (low_tone)
+						cout << dec << half_cycle_cnt << " samples Low tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
+					else if (mLowToneDetected)
+						cout << "*** " << dec << half_cycle_cnt << " samples Undefined tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
+
 					mSameToneHalfCycles++;
 					if (high_tone) {
 						if (mLastTone != 1) {
-							//cout << "#" << dec << mSameToneHalfCycles << ":0# ";
+							//cout << "\n#" << dec << mSameToneHalfCycles << "x'0' at " << tape_time << "s (" << time << "s)#\n";
 							mSameToneHalfCycles = 0;
 							updatePort(RxD, 1);
 							mLastTone = 1;
@@ -234,7 +263,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					}
 					else if (low_tone) {
 						if (mLastTone != 0) {
-							//cout << "#" << dec << mSameToneHalfCycles << ":1# ";
+							//cout << "\n#" << dec << mSameToneHalfCycles << "x'1' at " << tape_time << "s (" << time << "s)#\n";
 							mSameToneHalfCycles = 0;
 							updatePort(RxD, 0);
 							mLastTone = 0;					}
@@ -242,7 +271,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					}
 					else { // neither a high tone (a 2400 1/2 cycle) nor a low tone (a 1200 1/2 cycle)
 						if (mLastTone != -1) {
-							//cout << "#" << dec << mSameToneHalfCycles << ":?# ";
+							//cout << "#" << dec << mSameToneHalfCycles << "x'?' at " << tape_time << "s (" << time << "s)#\n";
 							mSameToneHalfCycles = 0;
 							updatePort(RxD, 1);
 							mLastTone = -1;
@@ -263,7 +292,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					// Deactivate DCD if a complete lower tone cycle was received (normally this is due to a start bit)
 					if (mLowerToneHalfCycles >= 2) {
 						//if (mDCD == DCD_ACTIVE)
-						//	cout << "DCD -> HIGH at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
+						//	cout << "DCD -> HIGH at " << tape_time << "s\n";
 						updatePort(DCD, DCD_INACTIVE);					
 						mHighToneHalfCycles = 0;
 					}
@@ -272,7 +301,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					if (mDCD == DCD_INACTIVE) {
 						//cout << "\n" << dec << mHighToneHalfCycles << " 1/2 cycles (" << ((double) mHighToneHalfCycles / 2400 / 2) << "s) of Carrier detected at " <<
 						//	(mCycleCount / mCPUClock * 1e-6) << "s\n";
-						//cout << "DCD -> LOW at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
+						//cout << "DCD -> LOW at " << tape_time << "s\n";
 						updatePort(DCD, DCD_ACTIVE);
 						mSameToneHalfCycles = 0;
 						mCarrierDetected = true;
@@ -346,6 +375,7 @@ void BeebSerialULA::processPortUpdate(int index)
 			updatePort(CTSO, mCTSI);// forward the RS423 CTS to the ACIA
 		}
 	}
+
 
 }
 
