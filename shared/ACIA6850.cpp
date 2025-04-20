@@ -299,11 +299,11 @@ bool ACIA6850::advance(uint64_t stopCycle)
 					//cout << "ACIA Receive Data Register EMPTY - can update it with received data!\n";
 				}
 				else {
-					cout << "ACIA Receive Data Register FULL - cannot update it with received data!\n";
+					//cout << "ACIA Receive Data Register FULL - cannot update it with received data!\n";
 				}
 
 				//if (mDM->debug(DBG_IO_PERIPHERAL))
-				cout << "\nACIA received byte 0x" << hex << (int)mRDR << " (" << (int)mRxBuffer << ") at " << data_time << "s (" << time << "s)\n";
+				//cout << "\nACIA received byte 0x" << hex << (int)mRDR << " (" << (int)mRxBuffer << ") at " << data_time << "s (" << time << "s)\n";
 
 				mSR |= ACIA_SR_RDRF_MASK; // Set Receive Data Register Full bit
 				mRxState = START_BIT;
