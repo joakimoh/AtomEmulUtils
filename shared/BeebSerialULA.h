@@ -70,6 +70,7 @@ private:
 	int mHighToneHalfCycles = 0;
 	int mLongHalfCycles = 0;
 	int mHalfCycleCnt = 0;
+	int mBitDurationCnt = 0;
 
 	// Tone synthesis
 	uint8_t mTone = 0;

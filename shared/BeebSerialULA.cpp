@@ -344,14 +344,17 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 				//
 				if (mTxD != pTxD) {
 					cout << "Serial ULA starts " << (mTxD == 0 ? "Low Tone" : "High Tone") << " after " << dec << mHalfCycleCnt << " 1/2 cycles of different tone\n";
+					cout << "Same level duration was " << dec << mBitDurationCnt << " cycles\n";
 					if (mTxD == 0)
 						mToneHalfCycleDuration = mLowToneHalfCycleDuration;
 					else
 						mToneHalfCycleDuration = mHighToneHalfCycleDuration;
 					mToneCnt = 0;
 					mHalfCycleCnt = 0;
+					mBitDurationCnt = 0;
 				}
 				else {
+					mBitDurationCnt++;
 					mToneCnt++;
 					if (mToneCnt == mToneHalfCycleDuration) {
 						//cout << (mToneHalfCycleDuration == mHighToneHalfCycleDuration ? "H" : "L");
