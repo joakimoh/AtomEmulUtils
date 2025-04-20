@@ -31,7 +31,7 @@ bool TapeRecorder::advance(uint64_t stopCycle)
 
 				// One 1/2 cycle has passed => update tape file
 				if (mRecord) {
-					unsigned int pulse_len = (int)round((double)mHalfCycleDuration / mCPUClock * 1e6 * mSampleRate);
+					unsigned int pulse_len = (int)round((double)mHalfCycleDuration / (mCPUClock * 1e6) * mSampleRate);
 					if (!mCodec->writePulse(pulse_len)) {
 						return false;
 					}

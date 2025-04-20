@@ -69,6 +69,7 @@ private:
 	uint8_t mLevel = 0;
 	int mHighToneHalfCycles = 0;
 	int mLongHalfCycles = 0;
+	int mHalfCycleCnt = 0;
 
 	// Tone synthesis
 	uint8_t mTone = 0;

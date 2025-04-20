@@ -33,6 +33,18 @@ BeebSerialULA::BeebSerialULA(
 	mHighToneHalfCycleDurationMin = (int)round(t_low * cpuClock * 1e6 / 2400 / 2);
 	mHighToneHalfCycleDurationMax = (int)round(t_high * cpuClock * 1e6 / 2400 / 2);
 
+	if (mDM->debug(DBG_VERBOSE)) {
+		cout << "mLowToneHalfCycleDuration = " << dec << mLowToneHalfCycleDuration << "\n";
+		cout << "mLowToneHalfCycleDurationMin = " << dec << mLowToneHalfCycleDurationMin << "\n";
+		cout << "mLowToneHalfCycleDurationMax = " << dec << mLowToneHalfCycleDurationMax << "\n";
+		cout << "mHighToneHalfCycleDuration = " << dec << mHighToneHalfCycleDuration << "\n";
+		cout << "mHighToneHalfCycleDurationMin = " << dec << mHighToneHalfCycleDurationMin << "\n";
+		cout << "mHighToneHalfCycleDurationMax = " << dec << mHighToneHalfCycleDurationMax << "\n";
+	}
+
+	// Initialise the Tx 1/2 cycle duration to something > 0
+	mToneHalfCycleDuration = mHighToneHalfCycleDuration;
+
 	mMinCarrierHalfCycles = (int)round(0.5 * 2400 * 2);
 }
 
@@ -317,32 +329,42 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					}
 				}
 
-				//
-				// Generate cassette output when Request To Send (RTS) is active (i.e., Low)
-				//
-
-				if (mRTSI == 0) {
-
-					//
-					// Change tone frequency when Tx data from the ACIA changes
-					//
-					if (mTxD != pTxD) {
-						if (mTxD == 0)
-							mToneHalfCycleDuration = mLowToneHalfCycleDuration;
-						else
-							mToneHalfCycleDuration = mHighToneHalfCycleDuration;
-						mToneCnt = 0;
-					}
-					else {
-						mToneCnt++;
-						if (mToneCnt == mToneHalfCycleDuration)
-							updatePort(CAS_OUT, 1 - mCAS_OUT);
-					}
-
-				}
 				
 
 			}
+
+			//
+			// Generate cassette output when Request To Send (RTS) is active (i.e., Low)
+			//
+
+			if (mRTSI == 0) {
+
+				//
+				// Change tone frequency when Tx data from the ACIA changes
+				//
+				if (mTxD != pTxD) {
+					cout << "Serial ULA starts " << (mTxD == 0 ? "Low Tone" : "High Tone") << " after " << dec << mHalfCycleCnt << " 1/2 cycles of different tone\n";
+					if (mTxD == 0)
+						mToneHalfCycleDuration = mLowToneHalfCycleDuration;
+					else
+						mToneHalfCycleDuration = mHighToneHalfCycleDuration;
+					mToneCnt = 0;
+					mHalfCycleCnt = 0;
+				}
+				else {
+					mToneCnt++;
+					if (mToneCnt == mToneHalfCycleDuration) {
+						//cout << (mToneHalfCycleDuration == mHighToneHalfCycleDuration ? "H" : "L");
+						//cout << dec << mToneCnt << " ";
+						updatePort(CAS_OUT, 1 - mCAS_OUT);
+						mToneCnt = 0;
+						mHalfCycleCnt++;
+					}
+				}
+				pTxD = mTxD;
+
+			}
+
 
 			// Consider a too long same level input as loss of carrier
 			if (mLevelCnt > mLowToneHalfCycleDurationMax && mDCD == DCD_ACTIVE) {			
@@ -361,7 +383,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 		mCycleCount++;
 	}
 
-	pTxD = mTxD;
+	
 
 	return true;
 }
@@ -383,6 +405,11 @@ void BeebSerialULA::processPortUpdate(int index)
 		else if (index == CTSI) {
 			updatePort(CTSO, mCTSI);// forward the RS423 CTS to the ACIA
 		}
+	}
+
+	else {
+		if (index == RTSI)
+			cout << "Serial ULA receives RTS update to 0x" << hex << (int)mRTSI << "\n";
 	}
 
 

@@ -372,6 +372,7 @@ int main(int argc, const char* argv[])
         wait_cnt += wait_dur.count();
 
         bool cont = true;
+        // There could be more than one event in the queue - make sure to empty it before waiting for next timer event
         while (cont) {
 
             // act on event

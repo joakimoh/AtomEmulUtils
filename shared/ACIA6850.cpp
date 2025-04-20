@@ -330,7 +330,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			switch (mTxState) {
 			case START_BIT:
 			{
-				mTxD = 0;
+				updatePort(TxD, 0);
 				mSentStopBits = 0;
 				cout << "ACIA writes start bit\n";
 				mTxState = DATA_BIT;
@@ -344,7 +344,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			}
 			case DATA_BIT:
 			{
-				mTxD = mTDR & 0x1;
+				updatePort(TxD, mTDR & 0x1);
 				cout << "ACIA writes data bit '" << (int) mTxD << "'\n";
 				mTDR = (mTDR >> 1) & 0x7f;
 				mTxPar ^= mTxD;
@@ -360,13 +360,13 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			}
 			case PARITY_BIT:
 			{
-				mTxD = mTxPar;
+				updatePort(TxD, mTxPar);
 				mTxState = STOP_BIT;
 				break;
 			}
 			case STOP_BIT:
 			{
-				mTxD = 1;
+				updatePort(TxD, 1);
 				cout << "ACIA writes stop bit\n";
 				mSentStopBits++;
 				if (mSentStopBits == mStopBits) {
