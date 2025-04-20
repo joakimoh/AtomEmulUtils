@@ -76,11 +76,11 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 			// master reset
 			mCR = 0;
 			mSR &= ACIA_SR_CTS_MASK; // Clear all bits except the CTS bit that shall still reflect the state of the CTS input
+			mSR |= ACIA_SR_TDRE_MASK; // Also set the Transmit Data Register Empty bit (makes sense even if not clear by the MC6850 datasheet)
 			if (mPowerOn) {
 				updatePort(RTS, 1);
 				mPowerOn = false;
 			}
-			updateIRQ();
 			mRxState = NO_BIT;
 			mTxState = NO_BIT;
 			return true;
@@ -169,10 +169,14 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		// Transmit Data Register
 		mTDR = data;
 		mSR &= ~ACIA_SR_TDRE_MASK; // Clear the Transmit Data Register Empty bit
-		if (mTxState != NO_BIT)
+		if (mTxState == NO_BIT) {
 			mTxPending = true;
-		else
+			cout << "Write first byte 0x" << hex << (int) data << " to transmit into the ACIA TDR\n";
+		}
+		else {
+			cout << "Write next byte 0x" << hex << (int) data << " to transmit into the ACIA TDR\n";
 			mTxState = START_BIT;
+		}
 	}
 
 	
@@ -320,24 +324,28 @@ bool ACIA6850::advance(uint64_t stopCycle)
 
 		if (mCycleCount % mTxDivCycles == 0) { // Internal Tx DIV clock rate
 			if (mTxPending && mTxState == NO_BIT) {
-				mTxState = START_BIT;
+				mTxState = START_BIT;			
 				mTxPending = false;
 			}
 			switch (mTxState) {
 			case START_BIT:
 			{
 				mTxD = 0;
+				mSentStopBits = 0;
+				cout << "ACIA writes start bit\n";
 				mTxState = DATA_BIT;
 				mTxBits = 0;
 				if (mParity == 0)
 					mTxPar = 0;
 				else
 					mTxPar = 1;
+				
 				break;
 			}
 			case DATA_BIT:
 			{
 				mTxD = mTDR & 0x1;
+				cout << "ACIA writes data bit '" << (int) mTxD << "'\n";
 				mTDR = (mTDR >> 1) & 0x7f;
 				mTxPar ^= mTxD;
 				mTxBits++;
@@ -347,6 +355,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 					else
 						mTxState = PARITY_BIT;
 				}
+				
 				break;
 			}
 			case PARITY_BIT:
@@ -358,6 +367,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			case STOP_BIT:
 			{
 				mTxD = 1;
+				cout << "ACIA writes stop bit\n";
 				mSentStopBits++;
 				if (mSentStopBits == mStopBits) {
 					mTxState = NO_BIT;
@@ -365,6 +375,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 						mSR |= ACIA_SR_TDRE_MASK; // Set the Transmit Data Register Empty bit (if not inhibited by the CTS)
 					}
 				}
+				
 				break;
 			}
 			default: // NO_BIT
@@ -428,7 +439,7 @@ void ACIA6850::updateIRQ()
 		) {
 		updatePort(IRQ, 0);
 		mSR |= ACIA_SR_IRQ_MASK;
-		if (mDM -> debug(DBG_INTERRUPTS) && p_IRQ == 1) {
+		if (/*mDM->debug(DBG_INTERRUPTS) &&*/ p_IRQ == 1) {
 			stringstream sout;
 			sout << ((ACIA_CR_TIE && ACIA_SR_TDRE) ? "TDRE " : "");
 			sout << ((ACIA_CR_RIE && ACIA_SR_RDRF) ? "RDRF " : "");
@@ -440,7 +451,7 @@ void ACIA6850::updateIRQ()
 	else {
 		updatePort(IRQ, 1);
 		mSR &= ~ACIA_SR_IRQ_MASK;
-		if (mDM->debug(DBG_INTERRUPTS) && p_IRQ == 0) {
+		if (/*mDM->debug(DBG_INTERRUPTS) &&*/ p_IRQ == 0) {
 			cout << "ACIA: IRQ Inactive (High)\n";
 		}
 	}
