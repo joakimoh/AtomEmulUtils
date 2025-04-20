@@ -125,28 +125,6 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 			if (input.process)
 				input.port->dev->processPortUpdate(input.port->localIndex);
 
-			if (
-				mDM->matchPort(input.port) &&
-				(mDM->debug(DBG_PORT) && *(input.port->val) != pval)
-				) {
-				string shift_s, c_dir;
-				if (input.shifts >= 0)
-					shift_s = "((src >> shifts) & mask)";
-				else
-					shift_s = "((src << shifts) & mask)";
-				cout << this->name << ":" << port->name << " = 0x" << (int)val << " => " <<
-					input.port->dev->name << ":" << input.port->name << " = " <<
-					input.port->name << " &  ~mask | " << shift_s << " = 0x" << hex <<
-					(int)pval << " & 0x" << hex << setfill('0') << setw(2) << (int)(uint8_t)(~input.mask) << " | ((0x" << hex << (int)nval <<
-					(input.shifts >= 0 ? " >> " : " << ") << setfill(' ') << dec << (input.shifts >= 0 ? input.shifts : -input.shifts) <<
-					") & 0x" << hex << (int)input.mask << ")" << setfill('0') << setw(2) <<
-					" = 0x" << hex << (int)*(input.port->val) << dec;
-				if (input.process)
-					cout << "; processing\n";
-				else
-					cout << "\n";
-			}
-
 			// Call destination port's advance() method on port update -  if specified by configuration and enabled
 			if (triggerConnectedDevices && input.port->triggerDevice)
 				input.port->dev->trigger(input.port->localIndex);
@@ -175,38 +153,65 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 	if (dstPort.invert)
 		src_val = ~srcVal;
 	uint8_t nval;
+	uint8_t nval_or;
 	if (shifts >= 0)
-		nval = ((pval & ~dst_sel_mask) | ((src_val >> shifts) & dst_sel_mask)) & dst_mask;
+		nval_or = (src_val >> shifts) & dst_sel_mask;
 	else
-		nval = ((pval & ~dst_sel_mask) | ((src_val << (-shifts)) & dst_sel_mask)) & dst_mask;
+		nval_or = (src_val << (-shifts)) & dst_sel_mask;
+	nval = ((pval & ~dst_sel_mask) | nval_or) & dst_mask;
 
 	// update on change or always for a bidirectional
 	if (pval != nval || dstPort.port->dir == IO_PORT) {
 
+	
 		// Arbitrate with 'AND' logic between the new source port-based value and and other source port-based values
 		// Example: The IRQ line on the 6502 CPU receives is updated from several devices but shall remain low as long as at least
 		//			one device requests the IRQ line to be low even if another device requests it to be high.
 		if (dstPort.port->portSources.size() > 1) {
 
-			uint8_t aval = pval; // initialise abritrated value with the destination port's current (old) value
+			uint8_t aval = dst_mask; // initialise abritrated value with the destination port's mask <=> all bits set (High)
 
-			cout << "\nABRITRATION FOR PORT " << dstPort.port->dev->name << ":" << dstPort.port->name << " = 0x" << hex << (int) pval << "\n";
+			//cout << "\nABRITRATION FOR PORT " << dstPort.port->dev->name << ":" << dstPort.port->name << " = 0x" << hex << (int) pval << "\n";
 
 			for (int i = 0; i < dstPort.port->portSources.size(); i++) {
 				OutputReference &src_ref = dstPort.port->portSources[i];
 				if (src_ref.srcPort == srcPort) {
-					src_ref.dstVal = nval;
-					cout << "*";
+					src_ref.dstVal = nval_or;
+					//cout << "*";
 				}
 				// update destination port's source port entry with new requested value		
 				aval &= src_ref.dstVal | ~src_ref.dstMask; // arbitrate with each source port's value
-				cout << "SOURCE PORT " << src_ref.srcPort->dev->name << ":" << src_ref.srcPort->name << " = 0x" << hex << (int) src_ref.dstVal <<
-					" (mask 0x" << (int)src_ref.dstMask << ")\n";
+				//cout << "SOURCE PORT " << src_ref.srcPort->dev->name << ":" << src_ref.srcPort->name << " = 0x" << hex << (int) src_ref.dstVal <<
+				//	" (mask 0x" << (int)src_ref.dstMask << ")\n";
 			}
-			cout << "ARBITRATED VALUE BECAME 0x" << hex << (int)aval << "\n";
+			//cout << "ARBITRATED VALUE BECAME 0x" << hex << (int)aval << "\n";
+
+			*dst_val_p = aval;
 		}
 		else { // Only one source device connected to the port => arbitration not needed
 			*dst_val_p = nval;
+		}
+
+		if (/*dstPort.port->portSources.size() > 1 || */(
+			mDM->matchPort(dstPort.port) &&
+			(mDM->debug(DBG_PORT) && *(dstPort.port->val) != pval)
+			)) {
+			string shift_s, c_dir;
+			if (dstPort.shifts >= 0)
+				shift_s = "((src >> shifts) & mask)";
+			else
+				shift_s = "((src << shifts) & mask)";
+			cout << this->name << ":" << srcPort->name << " = 0x" << (int)srcVal << " => " <<
+				dstPort.port->dev->name << ":" << dstPort.port->name << " = " <<
+				dstPort.port->name << " &  ~mask | " << shift_s << " = 0x" << hex <<
+				(int)pval << " & 0x" << hex << setfill('0') << setw(2) << (int)(uint8_t)(~dst_sel_mask) << " | ((0x" << hex << (int)nval <<
+				(shifts >= 0 ? " >> " : " << ") << setfill(' ') << dec << (shifts >= 0 ? shifts : -shifts) <<
+				") & 0x" << hex << (int)dst_sel_mask << ")" << setfill('0') << setw(2) <<
+				" = 0x" << hex << (int)(*dst_val_p) << dec;
+			if (dstPort.process)
+				cout << "; processing\n";
+			else
+				cout << "\n";
 		}
 
 		return true;
