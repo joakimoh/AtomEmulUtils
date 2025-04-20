@@ -10,11 +10,17 @@ using namespace std;
 
 class ACIA6850 : public MemoryMappedDevice {
 
+public:
+	bool mDataStart = false; // for debugging only
 private:
 
 	double mClock = 1.0;
 
 	bool mPowerOn = true;
+
+	// For debugging only
+	long mDataStartCount = -1;
+	long mDataCount = 0;
 
 	// Ports
 	int RxD, TxD, RTS, CTS, DCD, IRQ;

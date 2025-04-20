@@ -205,15 +205,20 @@ bool BeebSerialULA::isNewHalfCycle(int &nCpuCycles)
 // Advance until clock cycle stopcycle has been reached
 bool BeebSerialULA::advance(uint64_t stopCycle)
 {
-	if (mCAS_IN != pCAS_IN && mTapeStartCount < 0) {
-		if (!mfirstTapeSample) {
-			mTapeStartCount = mCycleCount;
-			cout << "*** TAPE STARTS AT " << dec << mTapeStartCount << " cycles...\n";
-		}
-		mfirstTapeSample = false;
+	if (mTapeStartCount < 0) {
+		if (mCAS_IN != pCAS_IN) {
+			if (!mfirstTapeSample) {
+				mTapeStartCount = mCycleCount;
+				if (mDM->debug(DBG_IO_PERIPHERAL))
+					cout << "*** TAPE STARTS AT " << dec << mTapeStartCount << " cycles (" << mCycleCount / mCPUClock * 1e-6 << "s)\n";
+				if (mACIA != NULL)
+					mACIA->mDataStart = true;				
+			}
+			mfirstTapeSample = false;
+		}		
+		pCAS_IN = mCAS_IN;
 	}
-	pCAS_IN = mCAS_IN;
-
+	
 	
 	while (mCycleCount < stopCycle) {
 
@@ -243,18 +248,11 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					if (!mLowToneDetected && low_tone)
 						mLowToneDetected = true;
 
-
-					if (high_tone && mLowToneDetected)
-						cout << dec << half_cycle_cnt << " samples High tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
-					else if (low_tone)
-						cout << dec << half_cycle_cnt << " samples Low tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
-					else if (mLowToneDetected)
-						cout << "*** " << dec << half_cycle_cnt << " samples Undefined tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
-
 					mSameToneHalfCycles++;
 					if (high_tone) {
 						if (mLastTone != 1) {
-							//cout << "\n#" << dec << mSameToneHalfCycles << "x'0' at " << tape_time << "s (" << time << "s)#\n";
+							if (mDM->debug(DBG_IO_PERIPHERAL))
+								cout << "\n#" << dec << mSameToneHalfCycles << "x'" << dec << mLastTone << "' at " << tape_time << "s(" << time << "s)#\n";
 							mSameToneHalfCycles = 0;
 							updatePort(RxD, 1);
 							mLastTone = 1;
@@ -263,7 +261,8 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					}
 					else if (low_tone) {
 						if (mLastTone != 0) {
-							//cout << "\n#" << dec << mSameToneHalfCycles << "x'1' at " << tape_time << "s (" << time << "s)#\n";
+							if (mDM->debug(DBG_IO_PERIPHERAL))
+								cout << "\n#" << dec << mSameToneHalfCycles << "x'" << dec << mLastTone << "' at " << tape_time << "s (" << time << "s)#\n";
 							mSameToneHalfCycles = 0;
 							updatePort(RxD, 0);
 							mLastTone = 0;					}
@@ -271,13 +270,23 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					}
 					else { // neither a high tone (a 2400 1/2 cycle) nor a low tone (a 1200 1/2 cycle)
 						if (mLastTone != -1) {
-							//cout << "#" << dec << mSameToneHalfCycles << "x'?' at " << tape_time << "s (" << time << "s)#\n";
+							if (mDM->debug(DBG_IO_PERIPHERAL))
+								cout << "#" << dec << mSameToneHalfCycles << "x'" << dec << mLastTone << "' at " << tape_time << "s (" << time << "s)#\n";
 							mSameToneHalfCycles = 0;
 							updatePort(RxD, 1);
 							mLastTone = -1;
 						}
 						
 					}
+
+					/*
+					if (high_tone && mLowToneDetected)
+						cout << dec << half_cycle_cnt << " samples High tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
+					else if (low_tone)
+						cout << dec << half_cycle_cnt << " samples Low tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
+					else if (mLowToneDetected)
+						cout << "*** " << dec << half_cycle_cnt << " samples Undefined tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
+					*/
 				}
 				else if (mRxD != 1)
 					updatePort(RxD, 1);

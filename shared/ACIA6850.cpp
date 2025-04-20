@@ -225,17 +225,32 @@ bool ACIA6850::reset()
 // Advance until clock cycle stopcycle has been reached
 bool ACIA6850::advance(uint64_t stopCycle)
 {
+	if (mDataStart && mDataStartCount < 0) {
+			mDataStartCount = mCycleCount;
+			if (mDM->debug(DBG_IO_PERIPHERAL))
+				cout << "*** Rx DATA STARTS AT " << dec << mDataStartCount << " cycles (" << mCycleCount / mCPUClock * 1e-6 << "s)\n";
+	}
 
 	while (mCycleCount < stopCycle) {
+
+		mDataCount = mCycleCount - mDataStartCount;
+		double data_time = mDataCount / mCPUClock * 1e-6;
+		double time = mCycleCount / mCPUClock * 1e-6;
+			
+		if (mDataStartCount > 0 && mRxState != NO_BIT && mCycleCount % mRxClkCycles == 0) {
+			//cout << dec << (int)mRxD;
+		}
 
 		// Check for a start bit at the external Rx clock rate to find and 
 		// synchronise to the middle of a bit
 		if (mRxState == START_BIT && mCycleCount % mRxClkCycles == 0) {
 			if (mRxD == 0)
 				mRxLowSamples++;
-			else
+			else {
 				mRxLowSamples = 0;
-			if (mRxLowSamples > mClkDiv / 2) { // Got LOW samples for half the bit duration?
+			}
+			if (mRxLowSamples > mClkDiv / 2 ) { // Got LOW samples for half the bit duration?
+				//cout << "#";
 				mRxMidSampleClkCycle = mCycleCount; // Save mid sample reference for use as sample point later on
 				mRxState = DATA_BIT;
 				mRxBits = 0;
@@ -243,13 +258,15 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				mSR &= ~ACIA_SR_PE_MASK; // Reset Framing Error
 				mSR &= ~ACIA_SR_PE_MASK; // Reset parity Error
 				mRxPar = 0;
-				cout << dec << mRxLowSamples << " samples detected for start bit (" << mClkDiv / 2 << ") at " <<
-					mCycleCount / mCPUClock * 1e-6 << "s (" << mCycleCount << ")\n";
+				if (mDM->debug(DBG_IO_PERIPHERAL))
+					cout << "\n" << dec << mRxLowSamples << " samples detected for start bit (" << mClkDiv / 2 << ") at " <<
+					data_time << "s (" << time << "s)\n";
 			}
 		}
 
 		// Check for data/parity/stop bits at the internal Rx DIV clock rate
 		else if (mRxState != START_BIT && mRxState != NO_BIT && (mCycleCount - mRxMidSampleClkCycle) % mRxDivCycles == 0) {
+			//cout << "*";
 			//cout << _ACIA_STATE(mRxState) << ": Sampled bit at " << mCycleCount / mCPUClock * 1e-6 << "s (" << mCycleCount - mRxMidSampleClkCycle << ") = '" << (int)mRxD << "'\n";
 			switch (mRxState) {
 			case DATA_BIT:
@@ -282,13 +299,16 @@ bool ACIA6850::advance(uint64_t stopCycle)
 					//cout << "ACIA Receive Data Register EMPTY - can update it with received data!\n";
 				}
 				else {
-					//cout << "ACIA Receive Data Register FULL - cannot update it with received data!\n";
+					cout << "ACIA Receive Data Register FULL - cannot update it with received data!\n";
 				}
+
+				//if (mDM->debug(DBG_IO_PERIPHERAL))
+				cout << "\nACIA received byte 0x" << hex << (int)mRDR << " (" << (int)mRxBuffer << ") at " << data_time << "s (" << time << "s)\n";
+
 				mSR |= ACIA_SR_RDRF_MASK; // Set Receive Data Register Full bit
 				mRxState = START_BIT;
 				mRxLowSamples = 0;
 				mRxBuffer = 0;
-				cout << "ACIA received byte 0x" << hex << (int)mRDR << " at " << mCycleCount / mCPUClock * 1e-6 << "s\n";
 				break;
 			}
 			default: // NO_BIT

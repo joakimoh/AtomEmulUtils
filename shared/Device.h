@@ -57,6 +57,12 @@ typedef struct InputReference_struct {
 	bool			process = false;		// If true, the receiving device's process method will be called in addition to updating the port value
 } InputReference;
 
+// Reference to a source port by a destination port
+typedef struct OutputReference_struct {
+	DevicePort* srcPort;			// Reference to a source port
+	uint8_t		dstVal = 0x0;		// Requested value for the destination port based on the source port value
+} OutputReference;
+
 enum PortDirection {IN_PORT, OUT_PORT, IO_PORT};
 #define _PORT_DIR(x) (x==IN_PORT?"IN":(x==OUT_PORT?"OUT":"IN/OUT"))
 
@@ -71,6 +77,7 @@ public:
 	uint8_t	*				val;					// pointer to variable holding the port's value
 	vector<InputReference>	inputs;					// connected inputs (used only if the port is an output port)
 	vector<InputReference>	bidirectionalInputs;	// connected bidirectional ports (used only if the port is an output port)
+	vector<OutputReference> portSources;			// Connected outputs - used if more than one device connects to a port (e.g., an IRQ input connected to many devices)
 	bool					triggerDevice = false;	// true if the device's trigger() method shall be called on an update of an input port
 };
 
@@ -98,6 +105,7 @@ class Device {
 
 private:
 	bool updatePort(int index, uint8_t val, bool triggerConnectedDevices);
+	bool updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal, uint8_t &arbitratedVal);
 	bool updateConnectedPorts(vector<InputReference>& connectedPorts, uint8_t val, DevicePort* port, bool triggerConnectedDevices);
 
 protected:

@@ -111,20 +111,17 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 		InputReference input = connectedPorts[i];
 		uint8_t pval = *(input.port->val);
 		uint8_t nval = val;
-		if (input.invert) {
-			uint8_t oval = val;
+		if (input.invert)
 			nval = ~val;
-		}
 		uint8_t n_ival;
 		if (input.shifts >= 0)
 			n_ival = ((pval & ~input.mask) | ((nval >> input.shifts) & input.mask)) & input.port->mask;
 		else
 			n_ival = ((pval & ~input.mask) | ((nval << (-input.shifts)) & input.mask)) & input.port->mask;
 
-		if (*(input.port->val) != n_ival || input.port->dir == IO_PORT) { // update on change or always for a bidirectional port
+		if (updateDstPortValue(port, input,val, *(input.port->val))) { // update destibation port on change or always for a bidirectional port
 
-			*(input.port->val) = n_ival;
-
+			// Call special processing on the receing device - if specified by configuration
 			if (input.process)
 				input.port->dev->processPortUpdate(input.port->localIndex);
 
@@ -150,6 +147,7 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 					cout << "\n";
 			}
 
+			// Call destination port's advance() method on port update -  if specified by configuration and enabled
 			if (triggerConnectedDevices && input.port->triggerDevice)
 				input.port->dev->trigger(input.port->localIndex);
 		}
@@ -159,7 +157,55 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 	return true;
 }
 
+//
+// Update a destinaton port based on a source port value
+//
+// Returns true if there was an change; otherwise false
+//
+bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal, uint8_t &arbitratedVal)
+{
+	uint8_t pval = *(dstPort.port->val);
 
+	// Calculate new port val based on source port value
+	int shifts = dstPort.shifts;
+	int dst_sel_mask = dstPort.mask;
+	int dst_mask = dstPort.port->mask;
+	uint8_t nval = srcVal;
+	if (dstPort.invert)
+		nval = ~srcVal;
+	uint8_t n_ival;
+	if (shifts >= 0)
+		n_ival = ((pval & ~dst_sel_mask) | ((nval >> shifts) & dst_sel_mask)) & dst_mask;
+	else
+		n_ival = ((pval & ~dst_sel_mask) | ((nval << (-shifts)) & dst_sel_mask)) & dst_mask;
+
+	// update on change or always for a bidirectional
+	if (pval != n_ival || dstPort.port->dir == IO_PORT) { 
+
+		// Arbitrate with 'AND' logic between the new source port-based value and and other source port-based values
+		// Example: The IRQ line on the 6502 CPU receives is updated from several devices but shall remain low as long as at least
+		//			one device requests the IRQ line to be low even if another device requests it to be high.
+		if (dstPort.port->portSources.size() > 1) {
+
+			// Find source port
+			arbitratedVal = n_ival; // Initialise with current source port value
+			for (int i = 0; i < dstPort.port->portSources.size(); i++) {
+				if (dstPort.port->portSources[i].srcPort == srcPort)
+					dstPort.port->portSources[i].dstVal = n_ival;		 // update destination port's source port entry with new requested value
+				else
+					arbitratedVal &= dstPort.port->portSources[i].dstVal; // consider each other source port's value
+			}
+		}
+		else { // Only one source device connected to the port => arbitration not needed
+			arbitratedVal = n_ival;
+		}
+
+		return true;
+	}
+
+	arbitratedVal = 0; // dummy assigment to keep compiler happy
+	return false;
+}
 
 bool Device::updatePorts()
 {

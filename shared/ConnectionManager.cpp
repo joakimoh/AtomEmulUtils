@@ -143,6 +143,17 @@ bool ConnectionManager::connect(string srcName, string dstName, bool invert, boo
 		src_port.port->bidirectionalInputs.push_back(input_ref);
 	else
 		src_port.port->inputs.push_back(input_ref);
+
+	// Add the source port to the destination port's list of source ports
+	// - used when more than one source port is connected to the same destination port
+	// The destination port will as default assume an 'AND' logic to arbitrate between
+	// serval source port values. I.e., only if all source ports require a high value
+	// will the destination port be assigned a high value; otherwise its value will
+	// be low as long as at least one destination port requires a low value.
+	OutputReference output_ref;
+	output_ref.srcPort = src_port.port;
+	dst_port.port->portSources.push_back(output_ref);
+
 	if (mDM->debug(DBG_VERBOSE))
 		cout << "CONNECT " << srcName << " AND " << dstName << " => shifts = " << dec << input_ref.shifts << ", mask = 0x" <<
 		hex << (int)input_ref.mask << dec << ", invert = " << (invert ? "true" : "false") << ", process = " << (process ? "true" : "false") << "\n";
