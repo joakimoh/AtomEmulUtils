@@ -75,7 +75,7 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		case 0x3:
 			// master reset
 			mCR = 0;
-			mSR &= ACIA_SR_CTS_MASK; // Clear all bits except the CTS bit that shall still reflect the state of the CTS input
+			mSR &= ~ACIA_SR_CTS_MASK; // Clear all bits except the CTS bit that shall still reflect the state of the CTS input
 			mSR |= ACIA_SR_TDRE_MASK; // Also set the Transmit Data Register Empty bit (makes sense even if not clear by the MC6850 datasheet)
 			if (mPowerOn) {
 				updatePort(RTS, 1);
@@ -372,7 +372,12 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				if (mSentStopBits == mStopBits) {
 					mTxState = NO_BIT;
 					if (!ACIA_SR_CTS) {
+						cout << "TDRE set\n";
 						mSR |= ACIA_SR_TDRE_MASK; // Set the Transmit Data Register Empty bit (if not inhibited by the CTS)
+					}
+					else
+					{
+						cout << "CTS High (SR = 0x" << hex << (int) mSR << ") = > inhibits TDRE being set\n";
 					}
 				}
 				
@@ -414,10 +419,11 @@ void ACIA6850::processPortUpdate(int index)
 		if (mCTS != pCTS) {
 			mSR &= ~ACIA_SR_CTS_MASK;
 			if (mCTS == 0) {
-				//cout << "ACIA CTS Input Low (active)\n";
+				cout << "ACIA CTS Input Low (active)\n";
 				mSR |= ACIA_SR_CTS_MASK;
 			}
 			else { // Loss of CTS (mCTS == 1)
+				mSR &= ~ACIA_SR_CTS_MASK;
 				// Loss of CTS shall clear the TDRE bit
 				mSR &= ~ACIA_SR_TDRE_MASK;
 				cout << "*** CARRIER LOST\n";

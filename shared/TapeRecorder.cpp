@@ -105,6 +105,7 @@ void TapeRecorder::rewind()
 	if (mLoadFromTape) {
 		mCasInPulseIndex = 0;
 		mPlay = false;
+		cout << "REWIND\n";
 	}
 }
 
@@ -112,6 +113,7 @@ void TapeRecorder::pause()
 {
 	mPlay = false;
 	mRecord = false;
+	cout << "PAUSE\n";
 }
 
 void TapeRecorder::stop()
@@ -125,6 +127,7 @@ void TapeRecorder::stop()
 	else if (mSaveToTape) {
 		mSaveToTape = false;
 		mRecord = false;
+		cout << "STOP\n";
 		mCodec->closeTapeFileW();
 	}
 	
@@ -133,4 +136,5 @@ void TapeRecorder::stop()
 void TapeRecorder::record()
 {
 	mRecord = true;
+	cout << "RECORD\n";
 }

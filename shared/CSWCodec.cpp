@@ -288,13 +288,16 @@ bool CSWCodec::openTapeFileW(string& filePath)
 
     mTapeFilePath = filePath;
 
+    //if (mDM->debug(DBG_VERBOSE))
+        cout << "Pulses will be written to file '" << filePath << "'\n";
+
     return true;
 }
 
 bool CSWCodec::closeTapeFileW()
 {
     if (mPulses.size() == 0) {
-        if (mDM->debug(DBG_VERBOSE))
+        //if (mDM->debug(DBG_VERBOSE))
             cout << "No pulses to write when closing file!\n";
         return false;
     }
