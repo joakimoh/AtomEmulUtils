@@ -80,6 +80,7 @@ public:
 	vector<InputReference>	bidirectionalInputs;	// connected bidirectional ports (used only if the port is an output port)
 	vector<OutputReference> portSources;			// Connected outputs - used if more than one device connects to a port (e.g., an IRQ input connected to many devices)
 	bool					triggerDevice = false;	// true if the device's trigger() method shall be called on an update of an input port
+	bool					arbitration = false;	// true if more than one device is connected at least one bit slice of the port
 };
 
 typedef struct BitsSelection_struct {

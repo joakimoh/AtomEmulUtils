@@ -155,6 +155,16 @@ bool ConnectionManager::connect(string srcName, string dstName, bool invert, boo
 	output_ref.dstMask = dst_port.bits.mask;
 	dst_port.port->portSources.push_back(output_ref);
 
+	if (dst_port.port->portSources.size() > 1) {
+		uint8_t dst_mask = 0xff;
+		for (int i = 0; i < dst_port.port->portSources.size(); i++) {
+			dst_mask &= dst_port.port->portSources[i].dstMask;
+			//cout << "*** " << dst_port.port->portSources[i].srcPort->name << " mask: " << hex << (int) dst_port.port->portSources[i].dstMask << "\n";
+		}
+		dst_port.port->arbitration = (dst_mask != 0);
+		//cout << "*** arbitration = " << (int)dst_port.port->arbitration << " as mask became 0x" << hex << (int) dst_mask << "\n\n";
+	}
+
 	if (mDM->debug(DBG_VERBOSE))
 		cout << "CONNECT " << srcName << " AND " << dstName << " => shifts = " << dec << input_ref.shifts << ", mask = 0x" <<
 		hex << (int)input_ref.mask << dec << ", invert = " << (invert ? "true" : "false") << ", process = " << (process ? "true" : "false") << "\n";
