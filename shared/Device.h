@@ -61,6 +61,7 @@ typedef struct InputReference_struct {
 typedef struct OutputReference_struct {
 	DevicePort* srcPort;			// Reference to a source port
 	uint8_t		dstVal = 0x0;		// Requested value for the destination port based on the source port value
+	uint8_t		dstMask = 0xff;		// Bit mask specifying the bits of the destination port connected to the source port
 } OutputReference;
 
 enum PortDirection {IN_PORT, OUT_PORT, IO_PORT};
@@ -105,7 +106,7 @@ class Device {
 
 private:
 	bool updatePort(int index, uint8_t val, bool triggerConnectedDevices);
-	bool updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal, uint8_t &arbitratedVal);
+	bool updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal);
 	bool updateConnectedPorts(vector<InputReference>& connectedPorts, uint8_t val, DevicePort* port, bool triggerConnectedDevices);
 
 protected:

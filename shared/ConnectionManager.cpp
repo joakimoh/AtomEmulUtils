@@ -152,6 +152,7 @@ bool ConnectionManager::connect(string srcName, string dstName, bool invert, boo
 	// be low as long as at least one destination port requires a low value.
 	OutputReference output_ref;
 	output_ref.srcPort = src_port.port;
+	output_ref.dstMask = dst_port.bits.mask;
 	dst_port.port->portSources.push_back(output_ref);
 
 	if (mDM->debug(DBG_VERBOSE))
