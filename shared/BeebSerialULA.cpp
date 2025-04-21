@@ -343,6 +343,15 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 				// Change tone frequency when Tx data from the ACIA changes
 				//
 				if (mTxD != pTxD) {
+
+					// Terminate ongoing 1/2 cycle if it is longer than half that of a 1/2 cycle (of the current type,i.e. either low or high 1/2 cycle)
+					mBitDurationCnt++;
+					mToneCnt++;
+					if (mToneCnt > mToneHalfCycleDuration / 2) {
+							updatePort(CAS_OUT, 1 - mCAS_OUT);
+							mHalfCycleCnt++;
+						}
+
 					cout << "Serial ULA starts " << (mTxD == 0 ? "Low Tone" : "High Tone") << " after " << dec << mHalfCycleCnt << " 1/2 cycles of different tone\n";
 					cout << "Same level duration was " << dec << mBitDurationCnt << " cycles\n";
 					if (mTxD == 0)
@@ -366,6 +375,11 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 				}
 				pTxD = mTxD;
 
+			}
+
+			else {
+				// Keep CAS OUT low when RTS is high as an emulation of 'zero output voltage'
+				updatePort(CAS_OUT, 0);
 			}
 
 
