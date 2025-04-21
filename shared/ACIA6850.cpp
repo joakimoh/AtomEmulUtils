@@ -445,7 +445,7 @@ void ACIA6850::updateIRQ()
 		) {
 		updatePort(IRQ, 0);
 		mSR |= ACIA_SR_IRQ_MASK;
-		if (/*mDM->debug(DBG_INTERRUPTS) &&*/ p_IRQ == 1) {
+		if (mDM->debug(DBG_INTERRUPTS) && p_IRQ == 1) {
 			stringstream sout;
 			sout << ((ACIA_CR_TIE && ACIA_SR_TDRE) ? "TDRE " : "");
 			sout << ((ACIA_CR_RIE && ACIA_SR_RDRF) ? "RDRF " : "");
@@ -457,7 +457,7 @@ void ACIA6850::updateIRQ()
 	else {
 		updatePort(IRQ, 1);
 		mSR &= ~ACIA_SR_IRQ_MASK;
-		if (/*mDM->debug(DBG_INTERRUPTS) &&*/ p_IRQ == 0) {
+		if (mDM->debug(DBG_INTERRUPTS) && p_IRQ == 0) {
 			cout << "ACIA: IRQ Inactive (High)\n";
 		}
 	}

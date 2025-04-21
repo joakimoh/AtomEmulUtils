@@ -51,9 +51,14 @@ bool TapeRecorder::advance(uint64_t stopCycle)
 				if (!mCodec->readPulse(mCasInPulses, mCasInPulseIndex, pulse_len)) {
 					mLoadFromTape = false;
 					updatePort(CAS_IN, 0);
+					cout << "End of Tape\n";
+					stop();
 				}
-				mCasInPulseLen = (int)round(mCPUClock * 1e6 * pulse_len / mSampleRate);
-				mCasInPulseStartCount = mCycleCount;
+				else {
+				
+					mCasInPulseLen = (int)round(mCPUClock * 1e6 * pulse_len / mSampleRate);
+					mCasInPulseStartCount = mCycleCount;
+				}
 			}
 		}
 
