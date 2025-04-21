@@ -127,6 +127,7 @@ void TapeRecorder::stop()
 		mLoadFromTape = false;
 		mPlay = false;
 		mCasInPulses.clear();
+		updatePort(CAS_IN, 0);
 		cout << "STOP\n";
 	}
 	else if (mSaveToTape) {

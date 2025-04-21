@@ -23,7 +23,7 @@ BeebSerialULA::BeebSerialULA(
 	registerPort("RTSO",	OUT_PORT,	0x1,	RTSO,		&mRTSO);	// Request To Send Out			to RS423 Interface
 	registerPort("CTSI",	IN_PORT,	0x1,	CTSI,		&mCTSI);	// Clear To Send				from RS423 Interface
 
-	double tolerance = 0.2;
+	double tolerance = 0.3;
 	double t_low = 1 - tolerance;
 	double t_high = 1 + tolerance;
 	mLowToneHalfCycleDuration = (int)round(cpuClock * 1e6 / 1200 / 2);

@@ -104,14 +104,15 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
 
     case STOP_ID:
     {
+        al_set_menu_item_flags(mMenu, PLAY_ID, ALLEGRO_MENU_ITEM_DISABLED);
+        al_set_menu_item_flags(mMenu, REWIND_ID, ALLEGRO_MENU_ITEM_DISABLED);
+        al_set_menu_item_flags(mMenu, RECORD_ID, ALLEGRO_MENU_ITEM_DISABLED);
+        al_set_menu_item_flags(mMenu, PAUSE_ID, ALLEGRO_MENU_ITEM_DISABLED);
+        al_set_menu_item_flags(mMenu, STOP_ID, ALLEGRO_MENU_ITEM_CHECKED);
+        al_set_menu_item_flags(mMenu, LOAD_TAPE_ID, 0);
+        al_set_menu_item_flags(mMenu, SAVE_TAPE_ID, 0);
         if (mTapeRec->playing() || mTapeRec->recording()) {
-            al_set_menu_item_flags(mMenu, PLAY_ID, ALLEGRO_MENU_ITEM_DISABLED);
-            al_set_menu_item_flags(mMenu, REWIND_ID, ALLEGRO_MENU_ITEM_DISABLED);
-            al_set_menu_item_flags(mMenu, RECORD_ID, ALLEGRO_MENU_ITEM_DISABLED);
-            al_set_menu_item_flags(mMenu, PAUSE_ID, ALLEGRO_MENU_ITEM_DISABLED);
-            al_set_menu_item_flags(mMenu, STOP_ID, ALLEGRO_MENU_ITEM_CHECKED);
-            al_set_menu_item_flags(mMenu, LOAD_TAPE_ID, 0);
-            al_set_menu_item_flags(mMenu, SAVE_TAPE_ID, 0);
+            
             mTapeRec->stop();
         }
         break;
