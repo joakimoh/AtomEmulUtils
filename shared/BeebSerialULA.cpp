@@ -344,7 +344,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 				//
 				if (mTxD != pTxD) {
 
-					// Terminate ongoing 1/2 cycle if it is longer than half that of a 1/2 cycle (of the current type,i.e. either low or high 1/2 cycle)
+					// Terminate ongoing 1/2 cycle if it is longer than half that of a 1/2 cycle (of the current type, i.e. either low or high 1/2 cycle)
 					mBitDurationCnt++;
 					mToneCnt++;
 					if (mToneCnt > mToneHalfCycleDuration / 2) {
