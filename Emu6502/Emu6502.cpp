@@ -113,6 +113,11 @@ int main(int argc, const char* argv[])
    al_set_new_display_flags(ALLEGRO_RESIZABLE);
 #endif
 
+   // Some optimisation tried to speed up the al_flip_display()  operation.
+   // Doesnt' seem to have any effect though...
+   //al_set_new_display_option(ALLEGRO_SINGLE_BUFFER, true, ALLEGRO_REQUIRE);
+   //al_set_new_display_option(ALLEGRO_VSYNC, 1, ALLEGRO_REQUIRE);
+
     int disp_w = 960;
     int disp_h = 600;
     ALLEGRO_DISPLAY* disp = al_create_display(disp_w, disp_h); // Just an initial size - will be resized to fit the video display unit's preference later on!
