@@ -16,6 +16,7 @@ enum {
 
     FILE_ID = 1,
     LOAD_INTO_RAM,
+    SAVE_FROM_RAM,
     FILE_EXIT_ID,
 
     TAPE_RECORDER_ID,

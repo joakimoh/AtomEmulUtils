@@ -30,6 +30,8 @@ ALLEGRO_MENU_INFO main_menu[] = {
       ALLEGRO_START_OF_MENU("&File", FILE_ID),
          { "&Load data into RAM",   LOAD_INTO_RAM,  0,  NULL },
          ALLEGRO_MENU_SEPARATOR,
+         { "&Save memory data to file",   SAVE_FROM_RAM,  0,  NULL },
+         ALLEGRO_MENU_SEPARATOR,
          { "E&xit",                 FILE_EXIT_ID,   0,  NULL },
          ALLEGRO_END_OF_MENU,
 

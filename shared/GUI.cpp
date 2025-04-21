@@ -1,5 +1,8 @@
 #include "GUI.h"
 #include <iostream>
+#include <filesystem>
+#include <fstream>
+#include "Tokeniser.h"
 
 using namespace std;
 
@@ -26,6 +29,55 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
 
     switch (event->user.data1) {
 
+    case SAVE_FROM_RAM:
+    {
+        // Select file to dump memory data into
+        ALLEGRO_FILECHOOSER* filechooser;
+        filechooser = al_create_native_file_dialog("", "Select  file to dump memory data to - name must be <any prefix excluding '_'>_<start adr in hex>_<end adr in hex>.<any suffix>", "*.*;", ALLEGRO_FILECHOOSER_SAVE);
+        al_show_native_file_dialog(mDisplay, filechooser);
+        int n = al_get_native_file_dialog_count(filechooser);
+        if (n != 1)
+            return false;
+        string memory_dump_file_name = al_get_native_file_dialog_path(filechooser, 0);
+        al_destroy_native_file_dialog(filechooser);
+
+        // Extract data name and address info from file name
+        string start_adr_s, end_adr_s;
+        uint32_t start_adr, end_adr;
+        string data_name;
+        Tokeniser tok(memory_dump_file_name, '_');
+        if (!tok.nextToken(data_name) || !tok.nextToken(start_adr_s) || !tok.nextToken(end_adr_s)) {
+            return false;
+        }
+        try {
+            start_adr = stoi(start_adr_s, 0, 16);
+            end_adr = stoi(end_adr_s, 0, 16);
+        }
+        catch (const invalid_argument& ia) {
+            return false;
+        }
+        cout << "Start Address = 0x" << hex << start_adr << "\n";
+        cout << "End Address = 0x" << hex << end_adr << "\n";
+
+        // Create file
+        ofstream memory_dump_file(memory_dump_file_name, ios::out | ios::binary | ios::ate);
+        if (!memory_dump_file) {
+            cout << "couldn't create memory dump file '" << memory_dump_file_name << "!\n";
+            return false;
+        }
+
+        // Write memory data to file
+        uint8_t d;
+        for (uint16_t a = (start_adr & 0xffff); a <= (end_adr & 0xffff); a++) {
+            mDevices->dumpDeviceMemory(a, d);
+            memory_dump_file << d;
+        }
+        memory_dump_file.close();
+
+
+        break;
+    }
+
     case LOAD_INTO_RAM:
     {
         ALLEGRO_FILECHOOSER* filechooser;
@@ -34,10 +86,33 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         int n = al_get_native_file_dialog_count(filechooser);
         if (n != 1)
             return false;
-        string file = al_get_native_file_dialog_path(filechooser, 0);
+        string program_file_name = al_get_native_file_dialog_path(filechooser, 0);
         al_destroy_native_file_dialog(filechooser);
-        uint16_t load_adr = 0xe00;
-        Program data = { file, load_adr };
+
+        filesystem::path file_path = program_file_name;
+        filesystem::path dir_path = file_path.parent_path();
+        filesystem::path file_stem = file_path.stem();
+        filesystem::path info_file = file_stem.string() + ".inf";
+        filesystem::path info_file_path = dir_path / info_file;
+        string info_file_name = info_file_path.string();
+
+        if (!filesystem::exists(info_file_path)) {
+            cout << "*ERROR*\nPlease create an info file '" << info_file_name <<
+                "' with the first line starting with '<program file name without file extension> <load address in hex>' to load data into RAM!\n";
+            return false;
+        } 
+        ifstream info_f(info_file_path);
+        if (!info_f) {
+            cout << "couldn't open INF file " << info_file_path << "\n";
+            return false;
+        }
+        info_f.seekg(0);
+        string program;
+        info_f >> program;
+        uint32_t load_adr;
+        info_f >> hex >> load_adr;
+        cout << "Program '" << program << "' with load address 0x" << hex << load_adr << "\n";
+        Program data = { program_file_name, load_adr };
         if (!mDevices->loadData(data))
             return false;
         

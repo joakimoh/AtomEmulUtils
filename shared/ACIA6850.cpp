@@ -171,10 +171,12 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		mSR &= ~ACIA_SR_TDRE_MASK; // Clear the Transmit Data Register Empty bit
 		if (mTxState == NO_BIT) {
 			mTxPending = true;
-			cout << "Write first byte 0x" << hex << (int) data << " to transmit into the ACIA TDR\n";
+			if (mDM->debug(DBG_IO_PERIPHERAL))
+				cout << "Write first byte 0x" << hex << (int) data << " to transmit into the ACIA TDR\n";
 		}
 		else {
-			cout << "Write next byte 0x" << hex << (int) data << " to transmit into the ACIA TDR\n";
+			if (mDM->debug(DBG_IO_PERIPHERAL))
+				cout << "Write next byte 0x" << hex << (int) data << " to transmit into the ACIA TDR\n";
 			mTxState = START_BIT;
 		}
 	}
@@ -332,7 +334,8 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			{
 				updatePort(TxD, 0);
 				mSentStopBits = 0;
-				cout << "ACIA writes start bit\n";
+				if (mDM->debug(DBG_IO_PERIPHERAL))
+					cout << "ACIA writes start bit\n";
 				mTxState = DATA_BIT;
 				mTxBits = 0;
 				if (mParity == 0)
@@ -345,7 +348,8 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			case DATA_BIT:
 			{
 				updatePort(TxD, mTDR & 0x1);
-				cout << "ACIA writes data bit '" << (int) mTxD << "'\n";
+				if (mDM->debug(DBG_IO_PERIPHERAL))
+					cout << "ACIA writes data bit '" << (int) mTxD << "'\n";
 				mTDR = (mTDR >> 1) & 0x7f;
 				mTxPar ^= mTxD;
 				mTxBits++;
@@ -367,17 +371,20 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			case STOP_BIT:
 			{
 				updatePort(TxD, 1);
-				cout << "ACIA writes stop bit\n";
+				if (mDM->debug(DBG_IO_PERIPHERAL))
+					cout << "ACIA writes stop bit\n";
 				mSentStopBits++;
 				if (mSentStopBits == mStopBits) {
 					mTxState = NO_BIT;
 					if (!ACIA_SR_CTS) {
-						cout << "TDRE set\n";
+						if (mDM->debug(DBG_IO_PERIPHERAL))
+							cout << "TDRE set\n";
 						mSR |= ACIA_SR_TDRE_MASK; // Set the Transmit Data Register Empty bit (if not inhibited by the CTS)
 					}
 					else
 					{
-						cout << "CTS High (SR = 0x" << hex << (int) mSR << ") = > inhibits TDRE being set\n";
+						if (mDM->debug(DBG_IO_PERIPHERAL))
+							cout << "CTS High (SR = 0x" << hex << (int) mSR << ") = > inhibits TDRE being set\n";
 					}
 				}
 				
@@ -419,14 +426,16 @@ void ACIA6850::processPortUpdate(int index)
 		if (mCTS != pCTS) {
 			mSR &= ~ACIA_SR_CTS_MASK;
 			if (mCTS == 0) {
-				cout << "ACIA CTS Input Low (active)\n";
+				if (mDM->debug(DBG_IO_PERIPHERAL))
+					cout << "ACIA CTS Input Low (active)\n";
 				mSR |= ACIA_SR_CTS_MASK;
 			}
 			else { // Loss of CTS (mCTS == 1)
 				mSR &= ~ACIA_SR_CTS_MASK;
 				// Loss of CTS shall clear the TDRE bit
 				mSR &= ~ACIA_SR_TDRE_MASK;
-				cout << "*** CARRIER LOST\n";
+				if (mDM->debug(DBG_IO_PERIPHERAL))
+					cout << "*** CARRIER LOST\n";
 			}
 		}
 		pCTS = mCTS;
