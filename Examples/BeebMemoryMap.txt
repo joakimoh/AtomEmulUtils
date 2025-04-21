@@ -59,14 +59,14 @@ CONNECT:P	ACIA:RTS		SerialULA:RTSI		// connect the ACIA RTS to the Serial ULA
 CONNECT		SerialULA:RxD		ACIA:RxD		// connect the Serial ULA Rx data to the ACIA
 CONNECT:P	SerialULA:CTSO		ACIA:CTS		// connect the Serial ULA CTS to the ACIA
 CONNECT:P	SerialULA:DCD		ACIA:DCD		// connect the Serial ULA DCD to the ACIA
+CONNECT		ACIA:IRQ		UC:IRQ
 
 //
 //	Device scheduling
 //
 TRIGGER KB	MEM	OS	READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release)
-//SCHED	KB	FIELD				// Also schedule the keyboard on field basis (for RESET release)
+SCHED	KB	FIELD				// Also schedule the keyboard on field basis (for RESET release)
 TRIGGER	KB	MEM	SYS_VIA	WRITE	fe4f	// Beeb selects keyboard row & col by writing to VIA Port A (address fe4f)
-//TRIGGER KB	MEM	OS	READ	f12c	// Trigger keyboard when interrupts have been temporarily enabled
 TRIGGER	CRTC	CALL	VDU			// Trigger the CRTC explictly by VDU function calls
 TRIGGER	TCG	CALL	VDU			// Trigger the TCG explictly by VDU function calls
 TRIGGER ACIA	CALL	SerialULA		// Trigger the ACIA explictly by Serial ULA function calls
