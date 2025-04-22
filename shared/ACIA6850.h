@@ -39,6 +39,9 @@ private:
 	uint8_t mTDR = 0x0;	// base address + 1 - Write-only
 	uint8_t mRDR = 0x0;	// base address + 1 - Read-only
 
+	uint8_t pCR = mCR;
+
+
 	// Control Register (CR) Fields
 #define ACIA_CR_DIV_MASK	(0x3 << 0)
 #define ACIA_CR_WORD_MASK	(0x7 << 2)
@@ -98,6 +101,8 @@ private:
 
 	long mRxClkRate = 1;
 	long mTxClkRate = 1;
+	long pRxClkRate = mRxClkRate;
+	long pTxClkRate = mTxClkRate;
 
 	int mRxDivClkRate = 1;
 	int mTxDivClkRate = 1;

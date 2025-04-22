@@ -212,10 +212,9 @@ bool CRTC6845::updateOutputs()
 	//
 	// Check for Visible active part of scan line
 	// 
-	// Display skew not considered (yet)!!!
+	// Display skew (mCharSkew) is considered by moving the left border - see updateSettings()
 	//
-
-	if (mCharCol  < mActiveRowChars && mCharRow < mActiveRows)
+	if (mCharCol  < mActiveRowChars  && mCharRow < mActiveRows)
 		updatePort(DISPTMG, 0x1);
 	else
 		updatePort(DISPTMG, 0x0);
@@ -227,7 +226,7 @@ bool CRTC6845::updateOutputs()
 	int cursor_first_line = mReg[R10_CursorStart] & 0x1f;
 	int cursor_last_line = mReg[R11_CursorEnd] & 0x1f;
 	int cursor_disp_mode = (mReg[R10_CursorStart] >> 5) & 0x3; // 00: Non-blink,  01: non-display, 10: blink 16-field, 11: blink 32-field
-	mCursorLocation = ((mReg[R14_CursorH] & 0x3f) << 8) | mReg[R15_CursorL];// +mCursSkew - mCharSkew;
+	mCursorLocation = ((mReg[R14_CursorH] & 0x3f) << 8) | mReg[R15_CursorL];// + mCursSkew;
 	bool cursor_on = (
 		cursor_disp_mode == 0x0 ||
 		(cursor_disp_mode == 0x2 /* && mField % 16 < 8*/) ||

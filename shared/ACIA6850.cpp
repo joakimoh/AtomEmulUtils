@@ -193,13 +193,18 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 
 void ACIA6850::update_settings()
 {
+	bool change = (pCR != mCR || mRxClkRate != pRxClkRate || mTxClkRate != pTxClkRate);
+	pCR = mCR;
+	pRxClkRate = mRxClkRate;
+	pTxClkRate = mTxClkRate;
+
 
 	mRxDivClkRate = mRxClkRate / mClkDiv;
 	mTxDivClkRate = mTxClkRate / mClkDiv;
 	mRxDivCycles = (int)round(mCPUClock * 1e6 / mRxDivClkRate);
 	mTxDivCycles = (int)round(mCPUClock * 1e6 / mTxDivClkRate);
 
-	if (mDM->debug(DBG_VERBOSE)) {
+	if (change && mDM->debug(DBG_VERBOSE)) {
 		cout << "\nACIA Settings:\n" << dec <<
 			"Ena Rx IRQ =        " << (int)ACIA_CR_RIE << "\n" <<
 			"Ena Tx IRQ =        " << (int)ACIA_CR_TIE << "\n" <<
