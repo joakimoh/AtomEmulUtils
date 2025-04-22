@@ -188,6 +188,7 @@ public:
 		return mCRTC != NULL && mTGC != NULL && mCRTC->initialised();
 	}
 
+	// Process a port update directly (and not just next time the advance() method is called)
 	void processPortUpdate(int port) override;
 };
 

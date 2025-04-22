@@ -119,15 +119,12 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 		else
 			n_ival = ((pval & ~input.mask) | ((nval << (-input.shifts)) & input.mask)) & input.port->mask;
 
-		if (updateDstPortValue(port, input,val)) { // update destibation port on change or always for a bidirectional port
+		if (updateDstPortValue(port, input,val)) { // update destination port on change or always for a bidirectional port
 
-			// Call special processing on the receing device - if specified by configuration
+			// Call direct processing on the receing device - if specified by configuration
 			if (input.process)
 				input.port->dev->processPortUpdate(input.port->localIndex);
 
-			// Call destination port's advance() method on port update -  if specified by configuration and enabled
-			if (triggerConnectedDevices && input.port->triggerDevice)
-				input.port->dev->trigger(input.port->localIndex);
 		}
 
 	}
@@ -627,16 +624,6 @@ Devices::Devices(
 					sin >> accessed_adr_s;
 					uint16_t accessed_adr = stoi(accessed_adr_s, 0, 16);
 					((MemoryMappedDevice*)accessed_device)->registerAccess(triggered_device, accessed_adr, write);
-				}
-				else if (trigger_type == "PORT") {
-					DevicePort* device_port;
-					string port_name;
-					sin >> port_name;
-					if (!triggered_device->getPortIndex(port_name, device_port)) {
-						cout << "Unknown port '" << port_name << "' at line " << dec << line_no << ":\n\t" << line << "\n";
-						throw runtime_error("Syntax error");
-					}
-					device_port->triggerDevice = true;
 				}
 				else if (trigger_type == "CALL") {
 					string caller_name;

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include "Utility.h"
+#include <cmath>
 
 using namespace std;
 
@@ -1151,5 +1152,14 @@ string VIA6522::ACRLE2Str(uint8_t l)
 	case 0x0: return "No";
 	case 0x1: return "Yes";
 	default: return "???";
+	}
+}
+
+// Process a port update directly (and not just next time the advance() method is called)
+void  VIA6522::processPortUpdate(int index)
+{
+	if (index == RESET && mRESET == 0) {
+		cout << "VIA reset!\n";
+		reset();
 	}
 }

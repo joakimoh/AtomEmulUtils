@@ -79,7 +79,6 @@ public:
 	vector<InputReference>	inputs;					// connected inputs (used only if the port is an output port)
 	vector<InputReference>	bidirectionalInputs;	// connected bidirectional ports (used only if the port is an output port)
 	vector<OutputReference> portSources;			// Connected outputs - used if more than one device connects to a port (e.g., an IRQ input connected to many devices)
-	bool					triggerDevice = false;	// true if the device's trigger() method shall be called on an update of an input port
 	bool					arbitration = false;	// true if more than one device is connected at least one bit slice of the port
 };
 
@@ -156,9 +155,6 @@ public:
 
 	//  Advance until clock cycle stopcycle has been reached
 	virtual bool advance(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }
-
-	// Executed on input port update (when configured)
-	virtual bool trigger(int port) { this->advance(mCycleCount+1); return true; }
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 	bool updatePort(int index, uint8_t val);

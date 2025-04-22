@@ -238,6 +238,9 @@ public:
 
 	bool initialised() { return true; }
 
+	// Process a port update directly (and not just next time the advance() method is called)
+	void processPortUpdate(int index) override;
+
 };
 
 #endif

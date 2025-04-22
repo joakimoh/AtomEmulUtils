@@ -1,6 +1,7 @@
 #include "TT5050.h"
 #include <iostream>
 #include <iomanip>
+#include <cmath>
 
 using namespace std;
 
@@ -414,4 +415,13 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 	mCharRowPos++; // if it was the last char pos, this will be corrected at the next call of getScreenData() based on the HS input
 
 	return true;
+}
+
+// Process a port update directly (and not just next time the advance() method is called)
+void  TT5050::processPortUpdate(int index)
+{
+	if (index == RESET && mRESET == 0) {
+		cout << "TCG reset!\n";
+		reset();
+	}
 }

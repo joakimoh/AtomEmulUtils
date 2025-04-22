@@ -876,6 +876,10 @@ int BeebVideoULA::fieldScanLineOffset()
 
 void BeebVideoULA::processPortUpdate(int port)
 {
+	if (port == RESET && mRESET == 0) {
+		cout << "Video ULA reset!\n";
+		reset();
+	}
 
 	if (port != SCROLL_CTRL)
 		return;

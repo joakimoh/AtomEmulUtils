@@ -122,6 +122,9 @@ public:
 	// Advance one instruction if the stop cycle hasn't already been reached
 	bool advanceInstr(uint64_t& endCycle);
 
+	// Process a port update directly (and not just next time the advance() method is called)
+	void processPortUpdate(int index) override;
+
 };
 
 #endif

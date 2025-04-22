@@ -116,7 +116,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         info_f >> program;
         uint32_t load_adr;
         info_f >> hex >> load_adr;
-        cout << "Program '" << program << "' with load address 0x" << hex << load_adr << "\n";
+        //cout << "Program '" << program << "' with load address 0x" << hex << load_adr << "\n";
         Program data = { program_file_name, load_adr };
         if (!mDevices->loadData(data))
             return false;

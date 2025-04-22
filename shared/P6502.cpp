@@ -1694,3 +1694,11 @@ void P6502::printCallStack()
 	}
 	mDM->log(this, DBG_INTERRUPTS, s);
 }
+
+void P6502::processPortUpdate(int index)
+{
+	if (index == RESET && mRESET == 0) {
+		cout << "6502 reset!\n";
+		reset();
+	}
+}

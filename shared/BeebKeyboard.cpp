@@ -138,11 +138,17 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 		updatePort(ROW, 0x0);
 
 	// Get BREAK key
+	al_get_keyboard_state(&mKeyboardState);
 	if (al_key_down(&mKeyboardState, mBreakKey.keyCode)) {
+		if (mBREAK == 1)
+			cout << "BREAK key pressed\n";
 		updatePort(BREAK, 0x0);
 	}
-	else
+	else {
+		if (mBREAK == 0)
+			cout << "BREAK key released!!!\n";
 		updatePort(BREAK, 0x1);
+	}
 
 	if (mDM->debug(DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mKB_ENA != pKB_ENA || mPRESSED != old_pressed)) {
 		mDM->log(this, DBG_KEYBOARD, "KB_ENA = " + to_string(mKB_ENA) + ",COL_SEL = " + to_string(mCOL_SEL) + 

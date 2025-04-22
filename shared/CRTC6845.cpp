@@ -708,3 +708,12 @@ int CRTC6845::fieldScanLineOffset()
 {
 	return (mField % 2);
 }
+
+// Process a port update directly (and not just next time the advance() method is called)
+void  CRTC6845::processPortUpdate(int index)
+{
+	if (index == RESET && mRESET == 0) {
+		cout << "CRTC reset!\n";
+		reset();
+	}
+}
