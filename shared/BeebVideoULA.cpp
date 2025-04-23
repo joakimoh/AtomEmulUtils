@@ -5,6 +5,7 @@
 #include "Utility.h"
 #include <chrono>
 #include <cmath>
+#include <bitset>
 
 // 
 // The Video ULA sets up the 6847 CRTC.
@@ -348,6 +349,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 
 				// Get cursor configuration
+				//
+				// The video ULA draws each segment in turn, if the corresponding bit is set.
+				// Segments 0 and 1 are each 1/40 or 1/80 of the display width.
+				// Segment 2 is twice as wide as segment 1 if b4 (clock rate) is cleared (clock rate 1 MHz); otheriwse it
+				// has the same size as segement 1.
+				//
 				uint8_t cursor_seg_ena = 0x0;
 				if (mCURSOR) {
 					if (mCursorSegment < 0)
@@ -358,7 +365,11 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					uint8_t cs_01_width = (clk_2_Mhz ? 8 : 16);
 					uint8_t cs_2_width = (cs_01_width << 1) & 0x1;
 					mCursorSegment++;
+					if (mDM->debug(DBG_VDU))
+						cout << "VDU cursor enabled, cursor segments '" << setw(3) << bitset<3>(cursor_segments)   << "'\n";
 				}
+				else
+					mCursorSegment = -1;
 
 				uint8_t Rs, Gs, Bs;
 				uint8_t R, G, B;

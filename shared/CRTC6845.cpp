@@ -229,11 +229,19 @@ bool CRTC6845::updateOutputs()
 	mCursorLocation = ((mReg[R14_CursorH] & 0x3f) << 8) | mReg[R15_CursorL];// + mCursSkew;
 	bool cursor_on = (
 		cursor_disp_mode == 0x0 ||
-		(cursor_disp_mode == 0x2 /* && mField % 16 < 8*/) ||
-		(cursor_disp_mode == 0x3 /* && mField % 32 < 16*/)
+		(cursor_disp_mode == 0x2 && mField % 16 < 8) ||
+		(cursor_disp_mode == 0x3 && mField % 32 < 16)
 		) && mRA >= cursor_first_line && mRA <= cursor_last_line;
-	if (cursor_on && mStartAdr + mCharRow * mActiveRowChars + mCharCol == mCursorLocation)
+	if (cursor_on && mStartAdr + mCharRow * mActiveRowChars + mCharCol == mCursorLocation && mDISPTMG) {
+		if (mDM->debug(DBG_VDU)) {
+			cout << "Cursor active for CRTC scan line " << dec << mScanLine << ", raster line " <<
+				(int) mRA << ", char row " << mCharRow << ", char col " << mCharCol <<
+				", start address 0x" << hex << mStartAdr <<
+				", cursor location 0x" << mCursorLocation << ", active row chars " << dec << mActiveRowChars <<
+				"\n";
+		}
 		updatePort(CUDISP, 0x1);
+	}
 	else
 		updatePort(CUDISP, 0x0);
 
