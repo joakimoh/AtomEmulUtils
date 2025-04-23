@@ -93,7 +93,7 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 	// If in the active display area, update the fetch address and cursor position
 	
 	if (mDISPTMG) {;
-		adr = mStartAdr + mCharRow * mActiveRowChars + mCharCol;
+		adr = mStartAdr + mCharRow * mActiveRowChars + mCharCol - mCharSkew;
 	}
 	
 	// Advance time corresponding to one character and check for HS, VS & DISPTMG
@@ -212,16 +212,15 @@ bool CRTC6845::updateOutputs()
 	//
 	// Check for Visible active part of scan line
 	// 
-	// Display skew (mCharSkew) is considered by moving the left border - see updateSettings()
+	// Display skew (mCharSkew) is also considered by moving the left border - see updateSettings()
 	//
-	if (mCharCol  < mActiveRowChars  && mCharRow < mActiveRows)
+	if (mCharCol >= mCharSkew && mCharCol  < mActiveRowChars + mCharSkew && mCharRow < mActiveRows)
 		updatePort(DISPTMG, 0x1);
 	else
 		updatePort(DISPTMG, 0x0);
 
 	// Check for cursor being selected
-	// Cursor skew not considered (yet)!!!
-	// Cursor blink not implemented (yet)!!!
+	// Cursor skew is considered when setting CUDISP
 	//
 	int cursor_first_line = mReg[R10_CursorStart] & 0x1f;
 	int cursor_last_line = mReg[R11_CursorEnd] & 0x1f;
@@ -231,8 +230,8 @@ bool CRTC6845::updateOutputs()
 		cursor_disp_mode == 0x0 ||
 		(cursor_disp_mode == 0x2 && mField % 16 < 8) ||
 		(cursor_disp_mode == 0x3 && mField % 32 < 16)
-		) && mRA >= cursor_first_line && mRA <= cursor_last_line;
-	if (cursor_on && mStartAdr + mCharRow * mActiveRowChars + mCharCol == mCursorLocation && mDISPTMG) {
+		) && mRA >= cursor_first_line && mRA <= cursor_last_line && mDISPTMG;
+	if (cursor_on && mStartAdr + mCharRow * mActiveRowChars + mCharCol == mCursorLocation + mCursSkew) {
 		if (mDM->debug(DBG_VDU)) {
 			cout << "Cursor active for CRTC scan line " << dec << mScanLine << ", raster line " <<
 				(int) mRA << ", char row " << mCharRow << ", char col " << mCharCol <<

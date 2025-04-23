@@ -209,6 +209,7 @@ public:
 	inline int getBottomBorderLines();
 	inline int getRetraceLines();
 	inline int getRetraceChars();
+	inline void getSkew(int& displaySkew, int& cursorSkew) { displaySkew = mCharSkew; cursorSkew = mCursSkew; }
 
 	//
 	// Interlace-related methods

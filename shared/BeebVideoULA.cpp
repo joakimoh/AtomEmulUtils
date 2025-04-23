@@ -125,6 +125,14 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int bottom_border_lines = getBottomBorderLines();
 	int left_border_chars = getLeftBorderChars();
 	int right_border_chars = getRightBorderChars();
+	int disp_skew;
+	int cursor_skew;
+	if (mCRTC != NULL)
+		mCRTC->getSkew(disp_skew, cursor_skew);
+	else {
+		disp_skew = 0;
+		cursor_skew = 0;
+	}
 
 	int field = fieldScanLineOffset();
 	int adjusted_scanline = mScanLine - field;
@@ -288,7 +296,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			screen_adr -= mHwScrollSub; // correct for wrap around when hardware scrolling		
 		}
 
-		if (adjusted_scanline < active_lines && char_pos < active_chars && (screen_adr >= 0x8000 || screen_adr < 0x3000)) { // exit if the CRTC hasn't been properly initialised yet!
+		if (adjusted_scanline < active_lines && char_pos >= disp_skew && char_pos < active_chars + disp_skew && (screen_adr >= 0x8000 || screen_adr < 0x3000)) { // exit if the CRTC hasn't been properly initialised yet!
 			cout << "CRTC not ready - got address " << hex << (crtc_adr * 8 + (mRA & 0x7)) << " for line " << dec << mScanLine << ", pos " << char_pos << " and for #active chars of " << active_chars << "\n";
 			return false;
 		}
@@ -301,7 +309,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				// Active area of an active line
 			{
 				
-				if (char_pos == 0)
+				if (char_pos == disp_skew)
 					// Add left border
 				{
 
@@ -338,7 +346,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				// For teletext modes, decode video memory data as videotext data
 				if (teletext) {
 					auto tt_start = chrono::high_resolution_clock::now();
-					if (!mTGC->getScreenData(char_pos == 0, adjusted_scanline == 0 && char_pos == 0, screen_data, tgc_data)) {
+					if (!mTGC->getScreenData(char_pos == disp_skew, adjusted_scanline == 0 && char_pos == disp_skew, screen_data, tgc_data)) {
 						cout << "Failed to get teletext symbol at address 0x" << hex << screen_adr << "\n";
 						return false;
 					}
@@ -352,21 +360,23 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				//
 				// The video ULA draws each segment in turn, if the corresponding bit is set.
 				// Segments 0 and 1 are each 1/40 or 1/80 of the display width.
-				// Segment 2 is twice as wide as segment 1 if b4 (clock rate) is cleared (clock rate 1 MHz); otheriwse it
-				// has the same size as segement 1.
+				// Segment 2 is twice as wide as segment 1 if the CRTC clock rate is 1 MHz; otheriwse it
+				// has the same size as segment 1.
 				//
 				uint8_t cursor_seg_ena = 0x0;
-				if (mCURSOR) {
+				bool clk_2_Mhz = ((mControlRegister >> 4) & 0x1) != 0;
+				uint8_t cursor_segments = (mControlRegister >> 5) & 0x7;
+				if (mCURSOR || mCursorSegment > 0 && (mCursorSegment <= 2 || !clk_2_Mhz && mCursorSegment <= 3)) {
 					if (mCursorSegment < 0)
-						mCursorSegment = 0;
-					uint8_t cursor_segments = (mControlRegister >> 5) & 0x7;
-					cursor_seg_ena = cursor_segments >> (2 - mCursorSegment);
-					bool clk_2_Mhz = ((mControlRegister >> 4) & 0x1) != 0;
-					uint8_t cs_01_width = (clk_2_Mhz ? 8 : 16);
-					uint8_t cs_2_width = (cs_01_width << 1) & 0x1;
+						mCursorSegment = 0;// char_skew; // start segment considers character skew (cursor skew already considered in CURSOR input)
+					int shift = (mCursorSegment<=2? mCursorSegment:2);				
+					cursor_seg_ena = (cursor_segments >> (2 - shift)) & 0x1;						
+					if (mDM->debug(DBG_VDU)) {
+						cout << "VDU CURSOR " << dec << (int) mCURSOR << ", cursor ena " << (cursor_seg_ena ? "enabled" : "disabled") <<
+							", cursor segments '" << setw(3) << bitset<3>(cursor_segments) << "', cursor segment #" << dec << mCursorSegment << 
+							", char col " << char_pos << "\n";
+					}
 					mCursorSegment++;
-					if (mDM->debug(DBG_VDU))
-						cout << "VDU cursor enabled, cursor segments '" << setw(3) << bitset<3>(cursor_segments)   << "'\n";
 				}
 				else
 					mCursorSegment = -1;
@@ -444,7 +454,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				auto char_pixel_dur = chrono::duration_cast<chrono::nanoseconds>(char_pixel_stop - char_pixel_start);
 				mCharPixelCnt += char_pixel_dur.count();
 
-				if (char_pos == active_chars - 1)
+				if (char_pos == active_chars + disp_skew - 1)
 					// Add right border 
 				{
 					auto right_border_start = chrono::high_resolution_clock::now();
