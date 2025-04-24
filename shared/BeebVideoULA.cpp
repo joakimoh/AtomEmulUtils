@@ -366,6 +366,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				uint8_t cursor_seg_ena = 0x0;
 				bool clk_2_Mhz = ((mControlRegister >> 4) & 0x1) != 0;
 				uint8_t cursor_segments = (mControlRegister >> 5) & 0x7;
+				if (teletext) // Emulate one character delay for teletext data by shifting the cursor segments one step left
+					cursor_segments = (cursor_segments << 1) & 0x7;
 				if (mCURSOR || mCursorSegment > 0 && (mCursorSegment <= 2 || !clk_2_Mhz && mCursorSegment <= 3)) {
 					if (mCursorSegment < 0)
 						mCursorSegment = 0;// char_skew; // start segment considers character skew (cursor skew already considered in CURSOR input)

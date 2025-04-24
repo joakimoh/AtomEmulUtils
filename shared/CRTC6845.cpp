@@ -231,7 +231,7 @@ bool CRTC6845::updateOutputs()
 		(cursor_disp_mode == 0x2 && mField % 16 < 8) ||
 		(cursor_disp_mode == 0x3 && mField % 32 < 16)
 		) && mRA >= cursor_first_line && mRA <= cursor_last_line && mDISPTMG;
-	if (cursor_on && mStartAdr + mCharRow * mActiveRowChars + mCharCol == mCursorLocation + mCursSkew) {
+	if (cursor_on && mStartAdr + mCharRow * mActiveRowChars + mCharCol + mCharSkew == mCursorLocation + mCursSkew) {
 		if (mDM->debug(DBG_VDU)) {
 			cout << "Cursor active for CRTC scan line " << dec << mScanLine << ", raster line " <<
 				(int) mRA << ", char row " << mCharRow << ", char col " << mCharCol <<
