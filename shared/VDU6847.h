@@ -189,15 +189,15 @@ public:
 	bool dump(uint16_t adr, uint8_t& data) override;
 	bool write(uint16_t adr, uint8_t data);
 
-	inline double getScanLineDuration() { return (1.0/60) / 262;  }
-	inline double getScanLinesPerField() { return 262; }
+	inline double getScanLineDuration() { return (1.0/60) / 262.5;  }
+	inline double getScanLinesPerField() { return 262.5; }
 	inline double getFieldRate() { return 60; }
 	inline int getCharScanLines() { return 12;}
 	inline int getVerticalSyncLine() { return mTVBlkH;  }
 	inline int getHorizontalSyncPos() { return 0; }
 	inline int getCharsPerLine() { return 32; }
 	inline int getVisibleCharsPerLine() { return 32; }
-	inline int getScanLine() { return mScanLine; }
+	inline int getScreenScanLine() { return mScanLine; }
 	inline int getLeftBorderChars() { return mLBrdW / 8; }
 	inline int getTopBorderLines() { return mTBrdH; }
 	inline int getActiveChars() { return mActScreenAreaW/8; }
@@ -206,7 +206,7 @@ public:
 	inline int getBottomBorderLines() { return mBBrdH; }
 	inline int getRetraceLines() { return mTVBlkH + mBVBlkH; }
 	inline int getRetraceChars() { return mLBlkW + mRBlkW; }
-	inline double getScreenScanLines() { return 524;  }
+	inline int getScreenScanLines() { return 524;  }
 
 	//
 	// Interlace-related methods

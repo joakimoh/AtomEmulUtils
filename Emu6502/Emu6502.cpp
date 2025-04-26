@@ -246,15 +246,15 @@ int main(int argc, const char* argv[])
         //cout << "\n\n*** START OF FIELD\n";
         while (!end_of_field) {
 
-            int scan_line = vdu->getScanLine();
+            int screen_scan_line = vdu->getScreenScanLine();
             int field = vdu->fieldScanLineOffset();
             int active_lines = vdu->getActiveLines();
             int bottom_border_lines = vdu->getBottomBorderLines();
-            int adjusted_scanline = scan_line - field;
-            int n_scan_lines = vdu->getScreenScanLines();
+            int adjusted_scanline = screen_scan_line - field;
+            int n_screen_scan_lines = vdu->getScreenScanLines();
             bool interlaced_mode = vdu->interlaceOn();
 
-            // Scan one field scan_line and save time passed in target cycle count to be used as reference
+            // Scan one field screen_scan_line and save time passed in target cycle count to be used as reference
             // target time for the 6502 and the other devices (PIA, VIA, Sound, Tape Recorder, RAM & ROM). This
             // is required to keep execution synchronised with the field updating.
             uint64_t target_cycle_count;
@@ -271,7 +271,7 @@ int main(int argc, const char* argv[])
             else {
                 vdu->advanceLine(target_cycle_count);
                 line_count++;
-                //cout << "LINE " << dec << scan_line << " (" << n_scan_lines << ") - " << (interlaced_mode ? "Interlaced" : "Non-interlaced") << "\n";
+                //cout << "LINE " << dec << screen_scan_line << " (" << n_screen_scan_lines << ") - " << (interlaced_mode ? "Interlaced" : "Non-interlaced") << "\n";
             }
 
             auto vdu_stop = chrono::high_resolution_clock::now();
@@ -327,10 +327,10 @@ int main(int argc, const char* argv[])
             }
 
             // Check for end of field
-            if (interlaced_mode && adjusted_scanline == n_scan_lines - 2) {
+            if (interlaced_mode && adjusted_scanline == n_screen_scan_lines - 2) {
                 add_half_line = true;
             }
-            else if (!interlaced_mode && adjusted_scanline == n_scan_lines - 1) {
+            else if (!interlaced_mode && adjusted_scanline == n_screen_scan_lines - 1) {
                 end_of_field = true;           
             }
 

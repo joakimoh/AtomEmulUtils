@@ -601,8 +601,8 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 		return false;
 	}
 
-	mScanLine = mCRTC->getScanLine();
-	mScreenScanLines = (int) round(mCRTC->getScreenScanLines());
+	mScanLine = mCRTC->getScreenScanLine();
+	mScreenScanLines = mCRTC->getScreenScanLines();
 	mVerticalSyncPos = mCRTC->getVerticalSyncLine();
 
 	if (getCRField(CR_CLOCK_RATE) == 1)
@@ -724,7 +724,7 @@ double BeebVideoULA::getScanLinesPerField()
 		return 312.0;
 }
 
-double BeebVideoULA::getScreenScanLines()
+int BeebVideoULA::getScreenScanLines()
 {
 	if (mCRTC != NULL && mCRTC->initialised())
 		return mCRTC->getScreenScanLines();
@@ -781,9 +781,9 @@ int BeebVideoULA::getVisibleCharsPerLine()
 		return 40;
 }
 
-int BeebVideoULA::getScanLine()
+int BeebVideoULA::getScreenScanLine()
 {
-	return mCRTC->getScanLine();
+	return mCRTC->getScreenScanLine();
 }
 
 int BeebVideoULA::getLeftBorderChars()

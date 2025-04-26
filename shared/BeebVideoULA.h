@@ -141,7 +141,7 @@ public:
 	inline int getHorizontalSyncPos();
 	inline int getCharsPerLine();
 	inline int getVisibleCharsPerLine();
-	inline int getScanLine();
+	inline int getScreenScanLine();
 	inline int getLeftBorderChars();
 	inline int getTopBorderLines();
 	inline int getActiveChars();
@@ -150,7 +150,7 @@ public:
 	inline int getBottomBorderLines();
 	inline int getRetraceLines();
 	inline int getRetraceChars();
-	inline double getScreenScanLines();
+	inline int getScreenScanLines();
 
 	//
 	// Interlace-related methods

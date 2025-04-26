@@ -69,7 +69,7 @@ public:
 	virtual int getHorizontalSyncPos() = 0;
 	virtual int getCharsPerLine() = 0;
 	virtual int getVisibleCharsPerLine() = 0;
-	virtual int getScanLine() = 0;
+	virtual int getScreenScanLine() = 0;
 	virtual inline int getLeftBorderChars() = 0;
 	virtual inline int getRightBorderChars() = 0;
 	virtual inline int getTopBorderLines() = 0;
@@ -78,7 +78,7 @@ public:
 	virtual inline int getActiveLines() = 0;
 	virtual inline int getRetraceLines() = 0;
 	virtual inline int getRetraceChars() = 0;
-	virtual inline double getScreenScanLines() = 0;
+	virtual inline int getScreenScanLines() = 0;
 	virtual inline int fieldScanLineOffset() = 0;
 
 	//

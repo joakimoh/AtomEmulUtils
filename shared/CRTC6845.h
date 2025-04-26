@@ -115,7 +115,6 @@ public:
 	int mCursorLocation = 0x0;
 	
 	int mCharLines = 1;
-	int mUniqueCharLines = 1; // the no of raster lines per character row that are unique per pair of fields (i.e one frame)
 
 
 	// Vertical scan lines: top border, active lines, sync pulse, bottom border (all in unit 'line')
@@ -123,7 +122,6 @@ public:
 	int mTopBorderLines = 0;
 	int mActiveLines = 1; // A multiple of mCharLines
 	int mScreenActiveLines = 1;
-	int mFieldActiveLines = 1;
 	int mActiveRows = 1;
 	int mVSyncRow = 1;
 	int mVSyncLine = 1;
@@ -131,18 +129,11 @@ public:
 	int mBottomBorderLines = 0;
 	int mVisibleScanLines = 1; // mTopBorderLines + mActiveLines + mBottomBorderLines
 	int mCharRows = 1;
-	int mFieldCharRows = 1;
 
-	int mFieldVSyncRow = 1;
-	int mFieldVSyncLine = 1;
-
-	int mFieldActiveRows = 1;
-	int mVFieldSyncPulseH = 1;
 	int mScreenVSyncLine = 1;
 	int mScreenVSyncPulseH = 1;
 
-	double mScanLines = 1;
-	double mFieldScanLines = 1;
+	int mScanLines = 1;
 	int mScreenScanLines = 1; // the no of scan lines that are unique per pair of field (ie. one frame) (should be ~625 for PAL and ~525 for NTSC)
 	int mRetraceLines = 1;
 
@@ -191,15 +182,14 @@ public:
 
 	inline double getScanLineDuration();
 	inline double getScanLinesPerField();
-	inline double getScreenScanLines();
+	inline int getScreenScanLines();
 	inline double getFieldRate();
 	inline int getCharScanLines();
-	inline int getUniqueCharScanLines();
 	inline int getVerticalSyncLine();
 	inline int getHorizontalSyncPos();
 	inline int getCharsPerLine();
 	inline int getVisibleCharsPerLine();
-	inline int getScanLine() { return mScanLine;  }
+	inline int getScreenScanLine() { return mScanLine;  }
 
 	inline int getLeftBorderChars();
 	inline int getTopBorderLines();

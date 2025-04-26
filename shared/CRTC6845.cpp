@@ -1,7 +1,7 @@
 #include "CRTC6845.h"
 #include <iomanip>
 
-//
+//No of character rows per field
 // Note:
 // The video memory address provided will not be used as the start address of the memory (and size) is programmed (R12 & R13 for the start address)
 // 
@@ -127,14 +127,14 @@ bool CRTC6845::advanceChar()
 			cout << "CRTC SCAN LINE = " << dec << mScanLine << ", RASTER LINE = " << (int) mRA << ", CHAR ROW = " << mCharRow << 
 			" (" << mActiveRows << ")\n";
 		
-		if (interlaceOn()) {
+	//	if (interlaceOn()) {
 			mScanLine = (mScanLine + 2) % mScreenScanLines;
 			if ((mField % 2 == 0 && mScanLine == 0) || (mField % 2 == 1 && mScanLine == 1)) { // start of new field
 				
 				mField++;
 				mCharRow = 0;
 				mCharCol = 0;
-				if (interlaced(mInterlaceMode)) {
+				if (!interlaced_video(mInterlaceMode)) {
 					updatePort(RA, 0);
 					if (mField % 2 == 0)
 						mScanLine = 0; // Even field => start at scan line 0
@@ -153,7 +153,7 @@ bool CRTC6845::advanceChar()
 				}
 			}
 			else {
-				if (interlaced(mInterlaceMode)) {
+				if (!interlaced_video(mInterlaceMode)) {//if (interlaced(mInterlaceMode)) {
 					updatePort(RA, (mRA + 1) % mCharLines);
 					if (mRA == 0)
 						mCharRow = (mCharRow + 1) % mCharRows;
@@ -169,8 +169,8 @@ bool CRTC6845::advanceChar()
 					}
 				}
 			}
-		}
-
+	//	}
+/*
 		else {
 			mScanLine = (mScanLine + 1) % mScreenScanLines;
 			if (mScanLine == 0) {
@@ -185,7 +185,7 @@ bool CRTC6845::advanceChar()
 					mCharRow = (mCharRow + 1) % mCharRows;
 			}
 		}
-		
+	*/	
 	}
 	
 
@@ -436,57 +436,49 @@ void CRTC6845::updateSettings(uint8_t reg)
 	mCursorLocation = ((mReg[R14_CursorH] & 0x3f) << 8) | mReg[R15_CursorL];
 
 
-	// Determine field parameters based on the register (frame) parameters
-	mFieldActiveRows = mActiveRows;
-	mVFieldSyncPulseH = mVSyncPulseH;
+	// No of active and no of total scan lines
 	mScanLines = mCharRows * mCharLines + mReg[R5_VerticalTotalAdjust]; // adjust is per field and rows per field => don't multiply R5 value by 2
-	mFieldScanLines = mScanLines;
 	mActiveLines = mActiveRows * mCharLines;
-	mFieldActiveLines = mActiveLines;
-	mFieldVSyncRow = mVSyncRow;
-	mFieldVSyncLine = mVSyncLine;
-	mFieldCharRows = mCharRows;
-	if (interlaced(mInterlaceMode)) {
+
+	// Determine actual screen scan lines based on the raster scan mode (non-interlace, interlace, interlace video)
+	if (non_interlaced(mInterlaceMode)) {
+
+		// In the non-interlace mode, the rasters of even and odd fields are scanned duplicately.
+		// There would then in theory be a thin blank 1/2 scan line between each scan line compared to
+		// the interlace mode, but here we igore this and fill that 1/2 scan line as well (duplicately as for the interlace mode).
+		// Therefore each screen scan line parameter will be twice that as specified by the CRTC registers.
+
 		mScreenActiveLines = mActiveLines * 2;
 		mScreenVSyncLine = mVSyncLine * 2;
 		mScreenVSyncPulseH = mVSyncPulseH * 2;
+		mScreenScanLines = 2 * mScanLines; // screen has twice as many visible scan lines as the specifed no of unique content scan lines
+
+		//cout << "Non-interlace Mode, #screen lines is " << dec << mScanLines << ", #active screen lines is " << mScreenActiveLines << "\n";
 	}
-	else {
+	else if (interlaced(mInterlaceMode)) {
+
+		// In the interlace mode,,the rasters of the odd fields are scanned in the middle of the even fields.
+		// Therefore each screen scan line parameter will be twice that as specified by the CRTC registers.
+		// There will be an extra 1/2 can line added to each field (and therefore one extra to the complete screen) as well,
+		// For PAL, there will e.g., be 312x2=624 screen scan lines based on configuration but with this extra 1/2 scan line per field,
+		// the total no of screen scan lines will become 625.The extra 1/2 scan line is addded by a call to the advanceHalfLine()
+
+		mScreenActiveLines = mActiveLines * 2;
+		mScreenVSyncLine = mVSyncLine * 2;
+		mScreenVSyncPulseH = mVSyncPulseH * 2;
+		mScreenScanLines = 2 * mScanLines; // screen has twice as many visible scan lines as the specifed no of unique content scan lines
+
+	}
+	else { // if (interlaced_video(mInterlaceMode)) {
+
+		// For the video interlace mode, the configured parameters were already per frame except for the vertical adjust
+
 		mScreenActiveLines = mActiveLines;
 		mScreenVSyncLine = mVSyncLine;
 		mScreenVSyncPulseH = mVSyncPulseH;
-	}
-	if (interlaced_video(mInterlaceMode)) { // for video interlace mode, the parameters were per frame => divide by 2 to get field parameter
-		mFieldCharRows = mCharRows / 2;
-		mFieldActiveRows = mActiveRows / 2;
-		mVFieldSyncPulseH = mVSyncPulseH / 2;
 		mScanLines = mCharRows * mCharLines + 2 * mReg[R5_VerticalTotalAdjust]; // adjust is per field but rows per frame => multiply R5 value by 2
-		mFieldScanLines = mScanLines / 2;
-		mFieldActiveLines = mActiveLines / 2;
-		mFieldVSyncRow = mVSyncRow / 2;
-		mFieldVSyncLine = mVSyncLine / 2;	
-	}
+		mScreenScanLines = mScanLines;
 
-
-	//
-	// The scan lines and rasters per character row configured by R9 is to be interpreted as below:
-	// 
-	// Mode						Configured	Unique	Configured		unique rasters			active rasters							active rasters
-	//							scan lines	scan	rasters			per pair				in even field						in odd field
-	//										lines					of fields = one frame
-	//																						row #0				row #1				row #0			row #1
-	// Non-interlaced			l=n(R4+1)		l		n=R9+1			n					0,1,2,...,n-1		same as row #0		0,1,2,...,n-1	same as v #0
-	// Interlaced				l=n(R4+1)		2l		n=R9+1			2n					0,2,4,...,2n-2		same as row #0		1,3,5,...,2n-1	same as row #0			
-	// Interlace & video		l=n(R4+1)		l		n=R9+2			n					0,2,4,...,n-2		same as row #0		1,3,5,...,n-1	same as row #0		n is even
-	//																						0,2,4,...,n-1		1,3,5,...,n-2		1,3,5,...,n-2	0,2,4,...,n-1		n is odd
-	//	
-	if (non_interlaced(mInterlaceMode) || interlaced_video(mInterlaceMode)) {
-		mUniqueCharLines = mCharLines; // the specified no of unique content character raster lines is the same as the no of character raster lines visible on the screen
-		mScreenScanLines = (int)round(mScanLines);
-	}
-	else {// interlaced(mInterlaceMode) // the raster and scan lines have the same content for odd and even fields and are just duplicated to make a complete frame
-		mUniqueCharLines = 2 * mCharLines; // screen has twice as many visible character raster lines as the specifed no of unique content character raster lines
-		mScreenScanLines = (int)round(2 * mScanLines); // screen has twice as many visible scan lines as the specifed no of unique content scan lines
 	}
 
 	//
@@ -554,11 +546,6 @@ void CRTC6845::updateSettings(uint8_t reg)
 }
 
 
-int CRTC6845::getUniqueCharScanLines()
-{
-	return mUniqueCharLines;
-}
-
 void CRTC6845::printSettings()
 {
 
@@ -571,15 +558,12 @@ void CRTC6845::printSettings()
 
  	cout << "CLK:                                                " << (int) mCLK << "\tMhz\n";
 	cout << "Field Rate:                                         " << getFieldRate() << "\tHz\n";
-	cout << "No of character rows per field:                     " << mFieldCharRows << "\tRows\n";
 	cout << "No of character rows per frame:                     " << mCharRows << "\tRows\n";
 	cout << "Scan Lines per Character:                           " << mCharLines << "\tlines\n";
-	cout << "Unique Content Scan Lines per Character:            " << mUniqueCharLines << "\tlines\n";
-	cout << "No of scan lines per field:                         " << round(mFieldScanLines) << "\tlines\n";
+	cout << "No of scan lines per field:                         " << getScanLinesPerField() << "\tlines\n";
 	cout << "No of unique scan lines per frame:                  " << mScreenScanLines << "\tlines\n";
 	cout << "Retrace lines:                                      " << mRetraceLines << "\tlines\n";
 	cout << "Top border lines:                                   " << mTopBorderLines << "\tlines\n";
-	cout << "Active scan lines per field:                        " << mFieldActiveLines << "\tlines\n";
 	cout << "Active scan lines per screen:                       " << mScreenActiveLines << "\tlines\n";
 	cout << "Bottom border lines:                                " << mBottomBorderLines << "\tlines\n";
 	cout << "Scan Line duration:                                 " << mCharCols * Tc << "\tus\n";
@@ -617,11 +601,19 @@ inline double CRTC6845::getScanLineDuration()
 
 inline double CRTC6845::getScanLinesPerField()
 {
-	return mFieldScanLines;
+	return (mScreenScanLines / 2.0);
+	if (mScanLines * mCharCols > 0) {
+		if (interlaceOn())
+			return mScreenScanLines / 2.0 + 0.5;
+		else
+			return mScreenScanLines / 2.0;
+	}
+	else
+		return 50;
 
 }
 
-inline double CRTC6845::getScreenScanLines()
+inline int CRTC6845::getScreenScanLines()
 {
 	return mScreenScanLines;
 }
@@ -630,9 +622,9 @@ inline double CRTC6845::getFieldRate()
 {
 	if (mScanLines * mCharCols > 0) {
 		if (interlaceOn())
-			return mCLK * 1e6 / ((mFieldScanLines + 0.5) * mCharCols);
+			return mCLK * 1e6 / ((mScreenScanLines / 2.0 + 0.5) * mCharCols);
 		else
-			return mCLK * 1e6 / (mFieldScanLines * mCharCols);
+			return mCLK * 1e6 / (mScreenScanLines / 2.0 * mCharCols);
 	}
 	else
 		return 50;
