@@ -51,6 +51,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "\t(as -ctrace <hex adr> 0 0 but faster)\n\n";
 	cout << "-ilog <hex adr>:\n\tStart logging instruction execution after an interrupt and when execution reaches the specified address\n";
 	cout << "-mlog <adr>:\n\tmemory concent to add along with the log\n\n";
+	cout << "-port <device name> <port name>\n\tlog updates of a specific port\n";
 	cout << "-dbg <string with one or more of the letters below>: Debugging of different detail.\n";
 	cout << "\t'e' errors\n";
 	cout << "\t'w' warnings\n";

@@ -420,7 +420,7 @@ void VIA6522::updateIRQ()
 	}
 	else { // Pending interrupts
 		updatePort(IRQ, 0x0);
-		if (mDM->debug(DBG_INTERRUPTS)){//}&& mIRQ != pIRQ) {
+		if (mDM->debug(DBG_INTERRUPTS) && mIRQ != pIRQ) {
 			mDM->log(this, DBG_INTERRUPTS, "Via activates the IRQ line (makes it LOW)\n\tIFR = " + IFR2Str() + "\n\tIER = " + IER2Str() + "\n\tACR = " + ACR2Str() + "\n\tPCR = " + PCR2Str() + "\n\n");
 		}
 		pIRQ = mIRQ;

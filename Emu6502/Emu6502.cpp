@@ -330,9 +330,10 @@ int main(int argc, const char* argv[])
             if (interlaced_mode && adjusted_scanline == n_screen_scan_lines - 2) {
                 add_half_line = true;
             }
-            else if (!interlaced_mode && adjusted_scanline == n_screen_scan_lines - 1) {
+            else if (!interlaced_mode && adjusted_scanline == n_screen_scan_lines - 2) {
                 end_of_field = true;           
             }
+            //cout << dec << adjusted_scanline << "(" << n_screen_scan_lines << ") ";
 
         }
         //cout << "*** END OF FIELD\n";

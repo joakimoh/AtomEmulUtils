@@ -111,43 +111,43 @@ public:
 	int mCharRow = 0;
 	int mCharCol = 0;	
 
-	int mStartAdr = 0x0;
-	int mCursorLocation = 0x0;
+	int mStartAdr_R12_R13 = 0x0;
+	int mCursorLocation_R14_R15 = 0x0;
 	
-	int mCharLines = 1;
+	int mCharLines_R9 = 1;
+	int mScreenRasterLines = 1;
 
 
 	// Vertical scan lines: top border, active lines, sync pulse, bottom border (all in unit 'line')
 	int mTopBorderRows = 0;
 	int mTopBorderLines = 0;
-	int mActiveLines = 1; // A multiple of mCharLines
+	int mActiveLines_R6xR9 = 1; // A multiple of mCharLines_R9
 	int mScreenActiveLines = 1;
-	int mActiveRows = 1;
-	int mVSyncRow = 1;
-	int mVSyncLine = 1;
-	int mVSyncPulseH = 1;
+	int mActiveRows_R6 = 1;
+	int mVSyncRow_R7 = 1;
+	int mVSyncLine_R7xR9 = 1;
+	int mVSyncPulseH_R3 = 1;
 	int mBottomBorderLines = 0;
-	int mVisibleScanLines = 1; // mTopBorderLines + mActiveLines + mBottomBorderLines
-	int mCharRows = 1;
+	int mVisibleScanLines = 1; // mTopBorderLines + mActiveLines_R6xR9 + mBottomBorderLines
+	int mCharRows_R4 = 1;
 
 	int mScreenVSyncLine = 1;
 	int mScreenVSyncPulseH = 1;
 
-	int mScanLines = 1;
 	int mScreenScanLines = 1; // the no of scan lines that are unique per pair of field (ie. one frame) (should be ~625 for PAL and ~525 for NTSC)
 	int mRetraceLines = 1;
 
 	// Horizontal line: left border, active chars, sync pulse, right border (all in unit 'char')
 	int mLeftBorderChars = 0;
-	int mActiveRowChars = 1;
-	int mHzSyncPos = 1;
-	int mHzSyncPulseW = 1;
+	int mActiveRowChars_R1 = 1;
+	int mHzSyncPos_R2 = 1;
+	int mHzSyncPulseW_R3 = 1;
 	int mRightBorderChars = 0;
 	int mVisibleChars = 1; // mLeftBorderChars + mActiveChars + mRightBorderChars
-	int mCharCols = 1;
+	int mCharCols_R0 = 1;
 	int mRetraceChars = 1;
-	int mCharSkew = 0;
-	int mCursSkew = 0;
+	int mCharSkew_R8 = 0;
+	int mCursSkew_R8 = 0;
 	int mField = 0;
 #define _INTERLACE_MODE(x) ((x&1)==0?"Non - interlaced":((x&3)==3?"Interlaced & Video":"Interlaced"))
 	inline bool non_interlaced(int m) { return ((m & 0x1) == 0x0); }
@@ -155,7 +155,7 @@ public:
 	inline bool interlaced_video(int m) { return ((m & 0x3) == 0x3); }
 #define INTERLACED			2
 #define INTERLACED_VIDEO	3
-	int mInterlaceMode = 0;
+	int mInterlaceMode_R8 = 0;
 
 	int mInitialised = false;
 
@@ -199,7 +199,7 @@ public:
 	inline int getBottomBorderLines();
 	inline int getRetraceLines();
 	inline int getRetraceChars();
-	inline void getSkew(int& displaySkew, int& cursorSkew) { displaySkew = mCharSkew; cursorSkew = mCursSkew; }
+	inline void getSkew(int& displaySkew, int& cursorSkew) { displaySkew = mCharSkew_R8; cursorSkew = mCursSkew_R8; }
 
 	//
 	// Interlace-related methods
