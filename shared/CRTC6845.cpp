@@ -116,76 +116,86 @@ bool CRTC6845::advanceChar()
 		printSettings();
 	pCLK = mCLK;
 
-	// Increase char column
+	// Increase the character column one step.
 	// The 6845 linear address generator repeats the same sequence of addresses for each scan line of a character row
 	mCharCol = (mCharCol + 1) % mCharCols_R0;
 
-	// Check for new character row
+	// Check for a new character raster line, a new character rowm and for a new field
 	if (mCharCol == 0) {
+
+		// A new character row
 
 		if (mDM->debug(DBG_VDU))
 			cout << "CRTC SCAN LINE = " << dec << mScanLine << ", RASTER LINE = " << (int) mRA << ", CHAR ROW = " << mCharRow << 
 			" (" << mActiveRows_R6 << ")\n";
 		
-	//	if (interlaceOn()) {
-			mScanLine = (mScanLine + 2) % mScreenScanLines;
-			if ((mField % 2 == 0 && mScanLine == 0) || (mField % 2 == 1 && mScanLine == 1)) { // start of new field
+		// Step to next scan line.
+		// Only every second scan line is however used per field.
+		// An even field uses even scan lines (0,2,4,...) whereas an odd field use odd scan lines (1,3,5,...).
+		mScanLine = (mScanLine + 2) % mScreenScanLines;
+
+		if ((mField % 2 == 0 && mScanLine == 0) || (mField % 2 == 1 && mScanLine == 1)) {
+			
+			// Start of new field
 				
-				mField++;
-				mCharRow = 0;
-				mCharCol = 0;
-				if (!interlaced_video(mInterlaceMode_R8)) {
-					updatePort(RA, 0);
-					if (mField % 2 == 0)
-						mScanLine = 0; // Even field => start at scan line 0
-					else
-						mScanLine = 1; // Odd field => start at scan line 1
-				}
-				else { // interlaced_video(mInterlaceMode_R8)
-					if (mField % 2 == 0) {
-						updatePort(RA, 0); // Even field => start at raster line 0
-						mScanLine = 0; // next field is even => first scan line is 0
-					}
-					else {
-						updatePort(RA, 1); // Odd field => start at raster line 1
-						mScanLine = 1; // next field is odd => first scan line is 1
-					}
-				}
-			}
-			else {
-				if (!interlaced_video(mInterlaceMode_R8)) {//if (interlaced(mInterlaceMode_R8)) {
-					updatePort(RA, (mRA + 1) % mCharLines_R9);
-					if (mRA == 0)
-						mCharRow = (mCharRow + 1) % mCharRows_R4;
-				}
-				else { // interlaced_video(mInterlaceMode_R8)
-					updatePort(RA, (mRA + 2) % mCharLines_R9);
-					if ((mField % 2 == 0 && mRA == 0) || (mField % 2 == 1 && mRA == 1)) { // new character row
-						mCharRow = (mCharRow + 1) % mCharRows_R4;
-						if (mField % 2 == 0)
-							updatePort(RA, 0); // Even field and new character row => start raster line at 0
-						else
-							updatePort(RA, 1); // Odd field and new character row => start raster line at 1
-					}
-				}
-			}
-	//	}
-/*
-		else {
-			mScanLine = (mScanLine + 1) % mScreenScanLines;
-			if (mScanLine == 0) {
-				mField++;
-				mCharRow = 0;
-				mCharCol = 0;
+			mField++;
+			mCharRow = 0;
+			mCharCol = 0;
+			if (!interlaced_video(mInterlaceMode_R8)) {
+
+				// For non-interlace and interlace mode, either even or odd scan lines are used per field.
+				// The raster lines are however always in sequence, i.e., 0,1,2,3,... as the same character 
+				// rasters will be repeated for even and even fields.
+
 				updatePort(RA, 0);
+				if (mField % 2 == 0)
+					mScanLine = 0; // Even field => start at scan line 0
+				else
+					mScanLine = 1; // Odd field => start at scan line 1
 			}
 			else {
+
+				// For interlaced video, either even or odd scan lines are used per field.
+				// The raster lines follow the same pattern, i.e., 0,2,4,8... or 1,3,5,7,... as different character
+				// rasters will be provided for even and odd fields.
+
+				if (mField % 2 == 0) {
+					updatePort(RA, 0); // Even field => start at raster line 0
+					mScanLine = 0; // next field is even => first scan line is 0
+				}
+				else {
+					updatePort(RA, 1); // Odd field => start at raster line 1
+					mScanLine = 1; // next field is odd => first scan line is 1
+				}
+			}
+		}
+		else {
+
+			//  A new line of the current field
+
+			if (!interlaced_video(mInterlaceMode_R8)) {
+				
+				// for non-interlace and interlace mode, the same content is used for odd & even fields
+
 				updatePort(RA, (mRA + 1) % mCharLines_R9);
 				if (mRA == 0)
 					mCharRow = (mCharRow + 1) % mCharRows_R4;
 			}
-		}
-	*/	
+			else {
+				
+				// for interlaced video, different content is used for odd & even fields
+
+				updatePort(RA, (mRA + 2) % mCharLines_R9);
+				if ((mField % 2 == 0 && mRA == 0) || (mField % 2 == 1 && mRA == 1)) { // new character row
+					mCharRow = (mCharRow + 1) % mCharRows_R4;
+					if (mField % 2 == 0)
+						updatePort(RA, 0); // Even field and new character row => start raster line at 0
+					else
+						updatePort(RA, 1); // Odd field and new character row => start raster line at 1
+				}
+			}
+			}
+	
 	}
 	
 
@@ -511,12 +521,12 @@ void CRTC6845::updateSettings(uint8_t reg)
 	// |------------------------------|-----------------|-----------------|---------------|-----------------------------------|
 	// 0                     active-1 [R6xR9]                              VS [R7xR9,R3]                            total-1 [R4xR9+R5]
 	//
-	// Besides the vertical sync pulse, about 3 extra character rows are invisible around the vertical sync pulse
-	// it seems. This was observed on a BBC Micro Model B.
+	// About 3 blanking character rows are visible on the screen it seems. This was observed on a BBC Micro Model B. Let's
+	// emulate this by removing 3 character rows  from the retrace scan lines.
 	//
-	mRetraceLines = 3 * mScreenRasterLines;
-	mBottomBorderLines = mScreenVSyncLine - mScreenActiveLines - mRetraceLines / 2;
-	mTopBorderLines = mScreenScanLines - (mScreenVSyncLine + mScreenVSyncPulseH) - mRetraceLines / 2;
+	mRetraceLines = mScreenScanLines - mScreenActiveLines - 3 * mScreenRasterLines;
+	mBottomBorderLines = max(0,mScreenVSyncLine - mScreenActiveLines - mRetraceLines / 2);
+	mTopBorderLines = max(0,mScreenScanLines - (mScreenVSyncLine + mScreenVSyncPulseH) - mRetraceLines / 2);
 	mVisibleScanLines = mTopBorderLines + mScreenActiveLines + mBottomBorderLines;
 
 	//
@@ -535,11 +545,12 @@ void CRTC6845::updateSettings(uint8_t reg)
 	// |------------------------|------------------------------|------------------------------|------------|----------------------|
 	// 0                    skew [R8]              active+skew-1 [R1+R8]                        HS [R2, R3]                  total-1 [R0]
 	//
-	// Besides the horizontal sync pulse, about 25% extra characters are invisible around the horizontal sync pulse
-	// it seems. This was observed on a BBC Micro Model B.
-	mRetraceChars = round(0.25 * mCharCols_R0);
-	mRightBorderChars = mHzSyncPos_R2 - (mActiveRowChars_R1 + mCharSkew_R8) - mRetraceChars / 2;				// chars after active ones and before HZ sync pulse
-	mLeftBorderChars = mCharSkew_R8 + mCharCols_R0 - (mHzSyncPos_R2 + mHzSyncPulseW_R3) - mRetraceChars / 2;	// chars after HZ sync pulse and before active ones
+	// About 3 blanking characters are visible on the screen it seems. This was observed on a BBC Micro Model B. Let's
+	// emulate this by removing 3 characters from the retrace characters.
+	//
+	mRetraceChars = mCharCols_R0 - mActiveRowChars_R1 - mHzSyncPulseW_R3 - 3;
+	mRightBorderChars = max(0,mHzSyncPos_R2 - (mActiveRowChars_R1 + mCharSkew_R8) - mRetraceChars / 2);				// chars after active ones and before HZ sync pulse
+	mLeftBorderChars = max(0, mCharSkew_R8 + mCharCols_R0 - (mHzSyncPos_R2 + mHzSyncPulseW_R3 ) - mRetraceChars / 2);	// chars after HZ sync pulse and before active ones
 	mVisibleChars = mLeftBorderChars + mActiveRowChars_R1 + mRightBorderChars;								// all chars except the sync pulse
 
 
@@ -556,7 +567,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 		}
 	}
 
-	// Reset the internal state if signficant changes have been made to timing
+	// Reset the internal state if significant changes have been made to timing
 	if (reg == R0_HorizontalTotal || reg == R4_VerticalTotal || reg < 10) {
 		mCharRow = 0;
 		mScanLine = 0;
@@ -574,6 +585,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 		mField = 0;
 		if (mDM->debug(DBG_VERBOSE))
 			printSettings();
+		//cout << "Register R" << dec << (int) reg << " updated => reset internal state!\n";
 	}
 
 
@@ -591,31 +603,33 @@ void CRTC6845::printSettings()
 		cout << "R" << setw(2) <<  setfill('0') << i << ": 0x" << hex << setfill('0') << setw(2) << (int)mReg[i] << dec << "\n";
 
  	cout << "CLK:                                                " << (int) mCLK << "\tMhz\n";
-	cout << "Field Rate:                                         " << getFieldRate() << "\tHz\n";
-	cout << "No of character rows per frame:                     " << mCharRows_R4 << "\tRows\n";
-	cout << "Scan Lines per Character:                           " << mCharLines_R9 << "\tlines\n";
-	cout << "No of scan lines per field:                         " << getScanLinesPerField() << "\tlines\n";
-	cout << "No of unique scan lines per frame:                  " << mScreenScanLines << "\tlines\n";
+	cout << "Scan Line duration: [R0,CLK]                        " << mCharCols_R0 * Tc << "\tus\n";
+	cout << "Total no of characters per line [R0]:               " << mCharCols_R0 << "\tchars\n";
+	cout << "Active characters per line [R1]:                    " << mActiveRowChars_R1 << "\tchars\n";
+	cout << "Horizontal sync position [R2]:                      " << mHzSyncPos_R2 << " chars (" << round(mHzSyncPos_R2 * Tc) << " us)\n";
+	cout << "Horizontal sync pulse width [R3]:                   " << mHzSyncPulseW_R3 << " chars (" << round(mHzSyncPulseW_R3 * Tc) << " us)\n";
+	cout << "Vertical sync pulse width [R3]:                     " << mScreenVSyncPulseH << " lines (" << round(mScreenVSyncPulseH * mCharCols_R0 * Tc) << " us)\n";
+	cout << "No of character rows per field [R4]:                " << mCharRows_R4 << "\tRows\n";
+	cout << "No of scan lines per field [R4,R9,R5]:              " << getScanLinesPerField() << "\tlines\n";
+	cout << "No of unique scan lines per frame [R4,R9,R5]:       " << mScreenScanLines << "\tlines\n";
+	cout << "No of character rows per field [R4]:                " << mCharRows_R4 << "\tRows\n";
+	cout << "No of active character rows per field [R6]:         " << mActiveRows_R6 << "\tRows\n";
+	cout << "Active scan lines per screen [R6,R9]:               " << mScreenActiveLines << "\tlines\n";
+	cout << "Vertical sync position [R7]:                        " << mScreenVSyncLine << " lines (" << round(mScreenVSyncLine * mCharCols_R0 * Tc / 1000) << " ms)\n";
+	cout << "Interlace mode[R8]:                                 " << _INTERLACE_MODE(mInterlaceMode_R8) << "\n";
+	cout << "Character skew [R8]:                                " << mCharSkew_R8 << "\tchars\n";
+	cout << "Cursor skew [R8]:                                   " << mCursSkew_R8 << "\tchars\n";
+	cout << "Scan Lines per Character [R9]:                      " << mCharLines_R9 << "\tlines\n";
+	cout << "Cursor raster lines [R10:R11]                       [" << dec << (int)(mReg[R10_CursorStart] & 0x1f) << ":" << (int)mReg[R11_CursorEnd] << "]\n";
+	cout << "Start address [R12:R13]:                            0x" << hex << mStartAdr_R12_R13 << dec << "\n";
+	cout << "Cursor position [R14:R15]:                          0x" << hex << ((mReg[R14_CursorH] << 8) | mReg[R15_CursorL]) << dec << "\n";
+	cout << "Field Rate [CLK,R0,R4,R9,R5]:                       " << getFieldRate() << "\tHz\n";
 	cout << "Retrace lines:                                      " << mRetraceLines << "\tlines\n";
 	cout << "Top border lines:                                   " << mTopBorderLines << "\tlines\n";
-	cout << "Active scan lines per screen:                       " << mScreenActiveLines << "\tlines\n";
 	cout << "Bottom border lines:                                " << mBottomBorderLines << "\tlines\n";
-	cout << "Scan Line duration:                                 " << mCharCols_R0 * Tc << "\tus\n";
-	cout << "Total no of characters per line:                    " << mCharCols_R0 << "\tchars\n";
 	cout << "Retrace characters per line:                        " << mRetraceChars << "\tchars\n";
 	cout << "Left border chars:                                  " << mLeftBorderChars << "\tchars\n";
-	cout << "Active characters per line:                         " << mActiveRowChars_R1 << "\tchars\n";
 	cout << "Right border chars:                                 " << mRightBorderChars << "\tchars\n";
-	cout << "Vertical sync position:                             " << mScreenVSyncLine << " lines (" << round(mScreenVSyncLine * mCharCols_R0 * Tc / 1000) << " ms)\n";
-	cout << "Horizontal sync position:                           " << mHzSyncPos_R2 << " chars (" << round(mHzSyncPos_R2*Tc) << " us)\n";
-	cout << "Horizontal sync pulse width:                        " << mHzSyncPulseW_R3 << " chars (" << round(mHzSyncPulseW_R3*Tc) << " us)\n";
-	cout << "Vertical sync pulse width:                          " << mScreenVSyncPulseH << " lines (" << round(mScreenVSyncPulseH *mCharCols_R0*Tc) << " us)\n";
-	cout << "Start address:                                      0x" << hex << mStartAdr_R12_R13 << "\n";
-	cout << "Cursor raster lines:                                [" << dec << (int)(mReg[R10_CursorStart] & 0x1f) << ":" << (int)mReg[R11_CursorEnd] << "]\n";
-	cout << "Cursor position:                                    0x" << hex << ((mReg[R14_CursorH] << 8) | mReg[R15_CursorL]) << "\n";
-	cout << "Interlace mode:                                     " << _INTERLACE_MODE(mInterlaceMode_R8) << "\n";
-	cout << "Character skew:                                     " << mCharSkew_R8 << "\tchars\n";
-	cout << "Cursor skew:                                        " << mCursSkew_R8 << "\tchars\n";
 	int cursor_disp_mode = (mReg[R10_CursorStart] >> 5) & 0x3; // 00: Non-blink,  01: non-display, 10: blink 16-field, 11: blink 32-field
 	cout << "Cursor mode:                                        " << (cursor_disp_mode==0?"Fixed":(cursor_disp_mode==1?"None":(cursor_disp_mode==2?"Blink-16":"Blink-32"))) <<
 		"\n";

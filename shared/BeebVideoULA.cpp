@@ -297,7 +297,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		}
 
 		if (adjusted_scanline < active_lines && char_pos >= disp_skew && char_pos < active_chars + disp_skew && (screen_adr >= 0x8000 || screen_adr < 0x3000)) { // exit if the CRTC hasn't been properly initialised yet!
-			cout << "CRTC not ready - got address " << hex << (crtc_adr * 8 + (mRA & 0x7)) << " for line " << dec << mScanLine << ", pos " << char_pos << " and for #active chars of " << active_chars << "\n";
+			//cout << "CRTC not ready - got address " << hex << (crtc_adr * 8 + (mRA & 0x7)) << " for line " << dec << mScanLine << ", pos " << char_pos << " and for #active chars of " << active_chars << "\n";
 			return false;
 		}
 
@@ -350,6 +350,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 						cout << "Failed to get teletext symbol at address 0x" << hex << screen_adr << "\n";
 						return false;
 					}
+					
 					auto tt_stop = chrono::high_resolution_clock::now();
 					auto tt_dur = chrono::duration_cast<chrono::nanoseconds>(tt_stop - tt_start);
 					mTTCnt += tt_dur.count();
