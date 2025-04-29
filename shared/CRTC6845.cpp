@@ -524,6 +524,62 @@ void CRTC6845::updateSettings(uint8_t reg)
 	// About 3 blanking character rows are visible on the screen it seems. This was observed on a BBC Micro Model B. Let's
 	// emulate this by removing 3 character rows  from the retrace scan lines.
 	//
+	int non_active_lines = mScreenScanLines - mScreenActiveLines;
+	int vt_blanking_lines = round(0.08* mScreenScanLines);
+	int bottom_active_lines, top_active_lines, top_non_active_lines, bottom_non_active_lines;
+	
+	if (mScreenVSyncLine + mScreenVSyncPulseH >= mScreenScanLines) {
+		// +-------------------------------------+
+		// |             all lines               |
+		// +--------------+----------------------+
+		// | active lines | non-active lines     |
+		// +----------+---+------------------+---+
+		//  SP (cont) |                      | SP 
+		// -----------+----------------------+----
+		top_active_lines = mScreenActiveLines - (mScreenVSyncLine + mScreenVSyncPulseH) % mScreenActiveLines ;
+		top_non_active_lines = non_active_lines - (mScreenScanLines - mScreenVSyncLine);
+		bottom_non_active_lines = 0;
+		bottom_active_lines = 0;
+	}
+
+	else if (mScreenVSyncLine >= mScreenActiveLines) {
+		// +-------------------------------------+
+		// |             all lines               |
+		// +--------------+----------------------+
+		// | active lines | non-active lines     |
+		// +--------------+--+----+--------------+
+		// |                 | SP |              |
+		// +-----------------+----+--------------+
+		top_active_lines = 0;
+		top_non_active_lines = mScreenScanLines - (mScreenVSyncLine + mScreenVSyncPulseH);
+		bottom_non_active_lines = 0;
+		bottom_active_lines = mScreenActiveLines;
+	}
+	else if (mScreenVSyncLine + mScreenVSyncPulseH >= mScreenActiveLines) {
+		// +-------------------------------------+
+		// |             all lines               |
+		// +--------------+----------------------+
+		// | active lines | non-active lines     |
+		// +------------+----+-------------------+
+		// |            | SP |                   |
+		// +------------+----+-------------------+
+		top_active_lines = 0;
+		top_non_active_lines = mScreenScanLines - (mScreenVSyncLine + mScreenVSyncPulseH);
+		bottom_active_lines = mScreenVSyncLine;
+		bottom_active_lines = 0;
+	}
+	else { // mScreenVSyncLine + mScreenVSyncPulseH < mScreenActiveLines
+		// +-------------------------------------+
+		// |             all lines               |
+		// +--------------+----------------------+
+		// | active lines | non-active lines     |
+		// +-------+----+-+----------------------+
+		// |       | SP |                        |
+		// +-------+----+------------------------+
+		top_active_lines = mScreenActiveLines - (mScreenVSyncLine + mScreenVSyncPulseH);
+		top_non_active_lines = mScreenScanLines - mScreenActiveLines;
+		bottom_active_lines = mScreenActiveLines - mScreenVSyncLine;
+	}
 	mRetraceLines = mScreenScanLines - mScreenActiveLines - 3 * mScreenRasterLines;
 	mBottomBorderLines = max(0,mScreenVSyncLine - mScreenActiveLines - mRetraceLines / 2);
 	mTopBorderLines = max(0,mScreenScanLines - (mScreenVSyncLine + mScreenVSyncPulseH) - mRetraceLines / 2);
@@ -548,11 +604,73 @@ void CRTC6845::updateSettings(uint8_t reg)
 	// About 3 blanking characters are visible on the screen it seems. This was observed on a BBC Micro Model B. Let's
 	// emulate this by removing 3 characters from the retrace characters.
 	//
+	int non_active_chars = max(0,mCharCols_R0 - (mActiveRowChars_R1 + mCharSkew_R8));
+	int hz_half_blanking_chars = min((int) round(0.16 * mCharCols_R0 / 2), non_active_chars);
+	int hz_blanking_chars = 2 * hz_half_blanking_chars;
+	int hz_sync_mid_point = round(mHzSyncPos_R2 + mHzSyncPulseW_R3 / 2.0);
+	int blanking_start_pos = (hz_sync_mid_point - hz_half_blanking_chars + mCharCols_R0) % mCharCols_R0;
+	int blanking_end_pos = (hz_sync_mid_point + hz_half_blanking_chars - 1) % mCharCols_R0;
+	//cout << "Hz blanking: " << dec << blanking_start_pos << " => " << blanking_end_pos << " for blanking of " << hz_blanking_chars << " (" << mCharCols_R0 << ")\n";
+	if (blanking_start_pos + hz_blanking_chars >= mCharCols_R0) {
+		// +-------------------------------------------------+
+		// |                 all characters                  |
+		// +------+-------------------+----------------------+
+		// | skew | active chars      | non-active chars     |
+		// +------+---+---------------+------------------+---+
+		//  SP (cont) |                                  | SP 
+		// -----------+----------------------------------+----
+		mLeftBorderChars = 0;
+		mRightBorderChars = max(0,non_active_chars - (mCharCols_R0 - blanking_start_pos));
+		int active_chars = mActiveRowChars_R1 + mCharSkew_R8 - max(blanking_end_pos, mCharSkew_R8);
+		mVisibleChars = mLeftBorderChars + active_chars + mRightBorderChars;
+	}
+
+	else if (blanking_start_pos >= mActiveRowChars_R1 + mCharSkew_R8) {
+		// +-------------------------------------------------+
+		// |                 all characters                  |
+		// +------+-------------------+----------------------+
+		// | skew | active chars      | non-active chars     |
+		// +------+-------------------+---+----+-------------+
+		// |                              | SP |             |
+		// +------------------------------+----+-------------+
+		mLeftBorderChars = mCharCols_R0 - (blanking_start_pos + hz_blanking_chars) + mCharSkew_R8;
+		mRightBorderChars = blanking_start_pos - (mActiveRowChars_R1 + mCharSkew_R8);
+		int active_chars = mActiveRowChars_R1;
+		mVisibleChars = mLeftBorderChars + active_chars + mRightBorderChars;
+	}
+	else if (blanking_start_pos + hz_blanking_chars >= mActiveRowChars_R1 + mCharSkew_R8) {
+		// +-------------------------------------------------+
+		// |                 all characters                  |
+		// +------+-------------------+----------------------+
+		// | skew | active chars      | non-active chars     |
+		// +-----------------------+--+-+--------------------+
+		// |                       | SP |                    |
+		// +-----------------------+----+--------------------+
+		mLeftBorderChars = mCharCols_R0 - (blanking_start_pos + hz_blanking_chars) + mCharSkew_R8;
+		mRightBorderChars = 0;
+		int active_chars = hz_blanking_chars - mCharSkew_R8;
+		mVisibleChars = mLeftBorderChars + active_chars + mRightBorderChars;
+	}
+	else { // blanking_start_pos + hz_blanking_chars < mActiveRowChars_R1 + mCharSkew_R8
+		// +-------------------------------------------------+
+		// |                 all characters                  |
+		// +------+-------------------+----------------------+
+		// | skew | active chars      | non-active chars     |
+		// +----+----+----------------+----------------------+
+		// |    | SP |                                       |
+		// +----+----+---------------------------------------+
+		mLeftBorderChars = 0;
+		mRightBorderChars = non_active_chars + mCharSkew_R8;
+		int active_chars = mActiveRowChars_R1 + mCharSkew_R8 - blanking_start_pos;
+		mVisibleChars = mLeftBorderChars + active_chars + mRightBorderChars;
+	}
+	mRetraceChars = 0;
+/*
 	mRetraceChars = mCharCols_R0 - mActiveRowChars_R1 - mHzSyncPulseW_R3 - 3;
 	mRightBorderChars = max(0,mHzSyncPos_R2 - (mActiveRowChars_R1 + mCharSkew_R8) - mRetraceChars / 2);				// chars after active ones and before HZ sync pulse
 	mLeftBorderChars = max(0, mCharSkew_R8 + mCharCols_R0 - (mHzSyncPos_R2 + mHzSyncPulseW_R3 ) - mRetraceChars / 2);	// chars after HZ sync pulse and before active ones
 	mVisibleChars = mLeftBorderChars + mActiveRowChars_R1 + mRightBorderChars;								// all chars except the sync pulse
-
+*/
 
 	// After power-on each writable register should have been updated to consider the
 	// CRTC as ready for operation
