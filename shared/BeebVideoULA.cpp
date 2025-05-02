@@ -117,16 +117,11 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	if (!validateInternalState(mControlRegister))
 		return true;
 
+	int hz_sync_pos = getHorizontalSyncPos();
+	int hz_sync_width = getHorizontalSyncWidth();
 	int chars_per_line = getCharsPerLine();
-	int visible_chars = getLeftBorderChars() + getActiveChars() + getRightBorderChars();
-	int active_chars = getActiveChars();
-	int top_border_lines = getTopBorderLines();
-	int active_lines = getActiveLines();
-	int bottom_border_lines = getBottomBorderLines();
-	int left_border_chars = getLeftBorderChars();
-	int right_border_chars = getRightBorderChars();
-	int disp_skew;
 	int cursor_skew;
+	int disp_skew;
 	if (mCRTC != NULL)
 		mCRTC->getSkew(disp_skew, cursor_skew);
 	else {
@@ -136,6 +131,46 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	int field = fieldScanLineOffset();
 	int adjusted_scanline = mScanLine - field;
+
+	// Calculate horizontal borders
+	double front_porch = 0.0258 * chars_per_line;
+	double back_porch = 0.0891 * chars_per_line;
+	//double sync_width = 0.0734 * chars_per_line;
+	double hz_blanking = 0.1883 * chars_per_line;
+	double hz_video_content = chars_per_line - hz_blanking;
+	double hz_visible_content = 0.8 * chars_per_line;
+	int hz_visible_chars = (int)round(hz_visible_content);
+	double hz_visible_offset = (hz_video_content - hz_visible_content) / 2;
+	int left_border_start_pos = (int)round(hz_sync_pos + hz_sync_width + back_porch + hz_visible_offset + chars_per_line) % chars_per_line;
+	int right_border_end_pos = (int)round(hz_sync_pos - front_porch - hz_visible_offset + chars_per_line) % chars_per_line;
+	//int hz_visible_chars = (right_border_end_pos - left_border_start_pos + 1 + chars_per_line) % chars_per_line;
+	//double hz_visible_chars = chars_per_line - front_porch - 2 * hz_visible_offset - back_porch - hz_sync_width;
+
+	int visible_char_pos_offset = (int) round(hz_sync_pos + hz_sync_width + back_porch + hz_visible_offset + chars_per_line) % chars_per_line;
+
+	if (adjusted_scanline == 100)
+		cout << "\n" <<
+		"chars per line: " << chars_per_line <<
+		", visible content: " << dec << hz_visible_content << " (" << (hz_visible_content / chars_per_line) << ")" <<
+		", visible chars: " << dec << hz_visible_chars << " (" << (hz_visible_chars / chars_per_line) << ")" <<
+		", video content: " << hz_video_content << " (" << (hz_video_content / chars_per_line) << ")" <<
+		", blanking: " << hz_blanking << " (" << (hz_blanking / chars_per_line) << ")" <<
+		", visible char pos offset: " << visible_char_pos_offset << 
+		"\n";
+
+	// Calculate vertical borders
+
+	int visible_chars = getLeftBorderChars() + getActiveChars() + getRightBorderChars();
+	int active_chars = getActiveChars();
+	int top_border_lines = getTopBorderLines();
+	int active_lines = getActiveLines();
+	int bottom_border_lines = getBottomBorderLines();
+	int left_border_chars = getLeftBorderChars();
+	int right_border_chars = getRightBorderChars();
+	
+
+
+	
 
 	int field_rate = (int)round(mCRTC->getFieldRate());
 	if (adjusted_scanline == 0) {
@@ -250,9 +285,17 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * (mScanLine + top_border_lines));
 
-	
 
 	for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {	
+	
+		int visible_char_pos = (char_pos - visible_char_pos_offset + chars_per_line) % chars_per_line;
+		int active_char_pos = (char_pos + disp_skew + chars_per_line) % chars_per_line;
+		if (adjusted_scanline == 100)
+			cout << dec << (visible_char_pos < hz_visible_chars ?"+":"") << visible_char_pos << "," <<
+			(char_pos>= disp_skew&&char_pos< disp_skew+active_chars?"+":"") <<
+			active_char_pos << "(" << (mDISPTMG ? "+" : "") << char_pos << ") ";
+		if (adjusted_scanline == 100 && char_pos == chars_per_line-1)
+			cout << "\n";
 
 		auto line_start = chrono::high_resolution_clock::now();
 
@@ -849,6 +892,14 @@ int BeebVideoULA::getRetraceChars()
 		return mCRTC->getRetraceChars();
 	else
 		return 10;
+}
+
+int BeebVideoULA::getHorizontalSyncWidth()
+{
+	if (mCRTC != NULL && mCRTC->initialised())
+		return mCRTC->getHorizontalSyncWidth();
+	else
+		return 2;
 }
 
 // Get pointer to other device to be able to call its methods

@@ -139,6 +139,7 @@ public:
 	inline int getCharScanLines();
 	inline int getVerticalSyncLine();
 	inline int getHorizontalSyncPos();
+	inline int getHorizontalSyncWidth();
 	inline int getCharsPerLine();
 	inline int getVisibleCharsPerLine();
 	inline int getScreenScanLine();
