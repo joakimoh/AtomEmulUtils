@@ -85,7 +85,10 @@ public:
 
 	uint8_t mPixelW = 1;
 	int mPixelRate = 1;
-	int mPixelsPerCharacter = 8;	// The no of pixels per byte for modes 0-6 (8 for 2-colour, 4 for 4-colour and 2 for 6-colour)
+	int mPixelsPerCharacter = 8;	// The no of "big" pixels per byte for modes 0-6 (8 for 2-colour, 4 for 4-colour and 2 for 6-colour)
+	int mHzPixelsPerSymbol = 8;		// The no of horizontal screen pixels per symbol (8 for mode 0-6, 16 for mode 7)
+	int mHzScreenPixelsPerChar = 8;	// The no of horizontal screen pixels per character column (8 for modes 0-3, 16 for modes 4-7)
+	int mVtPixelsPerRow = 8;		// The no of vertical screen pixels per character row (8 for modes 0-2,4-5, 10 for modes 3 and 6, 20 for mode 7)
 
 	bool mNewField = false;
 
@@ -141,11 +144,11 @@ public:
 	inline int getHorizontalSyncPos();
 	inline int getHorizontalSyncWidth();
 	inline int getCharsPerLine();
-	inline int getVisibleCharsPerLine();
+	inline int getActiveCharsPerLine();
 	inline int getScreenScanLine();
 	inline int getLeftBorderChars();
 	inline int getTopBorderLines();
-	inline int getActiveChars();
+	inline int getActiveCharRows();
 	inline int getActiveLines();
 	inline int getRightBorderChars();
 	inline int getBottomBorderLines();

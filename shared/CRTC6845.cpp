@@ -815,11 +815,6 @@ inline int CRTC6845::getCharsPerLine()
 	return mCharCols_R0;
 }
 
-inline int CRTC6845::getVisibleCharsPerLine()
-{
-	return mActiveRowChars_R1;
-}
-
 inline int CRTC6845::getLeftBorderChars()
 {
 	return mLeftBorderChars;
@@ -830,7 +825,7 @@ inline int CRTC6845::getTopBorderLines()
 	return mTopBorderLines;
 }
 
-inline int CRTC6845::getActiveChars()
+inline int CRTC6845::getActiveCharsPerLine()
 {
 	return mActiveRowChars_R1;
 }
@@ -838,6 +833,11 @@ inline int CRTC6845::getActiveChars()
 inline int CRTC6845::getActiveLines()
 {
 	return mScreenActiveLines;
+}
+
+inline int CRTC6845::getActiveCharRows()
+{
+	return mActiveRows_R6;
 }
 
 inline int CRTC6845::getRightBorderChars()

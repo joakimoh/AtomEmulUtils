@@ -128,6 +128,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		disp_skew = 0;
 		cursor_skew = 0;
 	}
+	int active_lines = getActiveLines();
+	int active_rows = getActiveCharRows();
+	int active_chars = getActiveCharsPerLine();
 
 	int field = fieldScanLineOffset();
 	int adjusted_scanline = mScanLine - field;
@@ -135,35 +138,57 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// Calculate horizontal borders
 	double front_porch = 0.0258 * chars_per_line;
 	double back_porch = 0.0891 * chars_per_line;
-	//double sync_width = 0.0734 * chars_per_line;
+	double sync_width = 0.0734 * chars_per_line;
 	double hz_blanking = 0.1883 * chars_per_line;
 	double hz_video_content = chars_per_line - hz_blanking;
-	double hz_visible_content = 0.8 * chars_per_line;
+	double hz_visible_content = 0.73 * chars_per_line; // 73% out of the liner duration is visible on a CRTC based on observation
 	int hz_visible_chars = (int)round(hz_visible_content);
 	double hz_visible_offset = (hz_video_content - hz_visible_content) / 2;
-	int left_border_start_pos = (int)round(hz_sync_pos + hz_sync_width + back_porch + hz_visible_offset + chars_per_line) % chars_per_line;
-	int right_border_end_pos = (int)round(hz_sync_pos - front_porch - hz_visible_offset + chars_per_line) % chars_per_line;
+	//int left_border_start_pos = (int)round(hz_sync_pos + hz_sync_width + back_porch + hz_visible_offset + chars_per_line) % chars_per_line;
+	//int right_border_end_pos = (int)round(hz_sync_pos - front_porch - hz_visible_offset + chars_per_line) % chars_per_line;
 	//int hz_visible_chars = (right_border_end_pos - left_border_start_pos + 1 + chars_per_line) % chars_per_line;
 	//double hz_visible_chars = chars_per_line - front_porch - 2 * hz_visible_offset - back_porch - hz_sync_width;
+	int visible_char_pos_offset = (int) round(hz_sync_pos + sync_width + back_porch + hz_visible_offset + chars_per_line) % chars_per_line;
 
-	int visible_char_pos_offset = (int) round(hz_sync_pos + hz_sync_width + back_porch + hz_visible_offset + chars_per_line) % chars_per_line;
+	// Calculate vertical borders
+	double vt_blanking = 0.08 * mScreenScanLines;
+	double vt_video_content = mScreenScanLines - vt_blanking;
+	double vt_visible_content = 0.85 * mScreenScanLines;
+	double vt_visible_offset = (vt_video_content - vt_visible_content) / 2;
+	int visible_line_offset = (int)round(mVerticalSyncPos + vt_blanking + vt_visible_offset + mScreenScanLines) % mScreenScanLines;
 
-	if (adjusted_scanline == 100)
-		cout << "\n" <<
-		"chars per line: " << chars_per_line <<
-		", visible content: " << dec << hz_visible_content << " (" << (hz_visible_content / chars_per_line) << ")" <<
-		", visible chars: " << dec << hz_visible_chars << " (" << (hz_visible_chars / chars_per_line) << ")" <<
-		", video content: " << hz_video_content << " (" << (hz_video_content / chars_per_line) << ")" <<
-		", blanking: " << hz_blanking << " (" << (hz_blanking / chars_per_line) << ")" <<
-		", visible char pos offset: " << visible_char_pos_offset << 
-		"\n";
+	// Calculate  resolution
+	int vt_visible_resolution = (int)round(vt_visible_content);
+	int vt_active_resolution = active_lines;
+	int hz_visible_resolution = (int)round(hz_visible_content * mPixelsPerCharacter * mPixelW);
+	int hz_active_resolution = active_chars * mPixelsPerCharacter * mPixelW;
+
+	int hz_unique_resolution = active_chars * mPixelsPerCharacter;
+	int vt_unique_resolution = vt_active_resolution;
+	int unique_active_chars = hz_unique_resolution / mHzPixelsPerSymbol;
+	int unique_active_rows = vt_active_resolution / mVtPixelsPerRow;
+
+	if (adjusted_scanline == 100 && mField  % 50 == 0) {
+		cout << "\n" << dec <<
+			"chars per line: " << chars_per_line << ", pixels/byte: " << mPixelsPerCharacter << ", pixel width: " << (int) mPixelW << 
+			", screen pixels per char col: " << mHzScreenPixelsPerChar << "\n";
+		cout << " visible resolution: " << hz_visible_resolution << " x " << vt_visible_resolution << "\n";
+		cout << " active resolution: " << hz_active_resolution << " x " << vt_active_resolution << " (" << active_chars << " x " << active_rows << ")\n";
+		cout << " unique active resolution: " << hz_unique_resolution << " x " << vt_unique_resolution << " (" << unique_active_chars << " x " << unique_active_rows << ")\n";
+		cout <<	", visible content: " << hz_visible_content << " (" << (hz_visible_content / chars_per_line) << ")" <<
+			", visible chars: " << hz_visible_chars << " (" << ((double) hz_visible_chars / chars_per_line) << ")" <<
+			", video content: " << hz_video_content << " (" << (hz_video_content / chars_per_line) << ")" <<
+			", blanking: " << hz_blanking << " (" << (hz_blanking / chars_per_line) << ")" <<
+			", visible char pos offset: " << visible_char_pos_offset <<
+			"\n";
+	}
 
 	// Calculate vertical borders
 
-	int visible_chars = getLeftBorderChars() + getActiveChars() + getRightBorderChars();
-	int active_chars = getActiveChars();
+	int visible_chars = getLeftBorderChars() + getActiveCharsPerLine() + getRightBorderChars();
+
 	int top_border_lines = getTopBorderLines();
-	int active_lines = getActiveLines();
+
 	int bottom_border_lines = getBottomBorderLines();
 	int left_border_chars = getLeftBorderChars();
 	int right_border_chars = getRightBorderChars();
@@ -290,13 +315,14 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	
 		int visible_char_pos = (char_pos - visible_char_pos_offset + chars_per_line) % chars_per_line;
 		int active_char_pos = (char_pos + disp_skew + chars_per_line) % chars_per_line;
+		/*
 		if (adjusted_scanline == 100)
 			cout << dec << (visible_char_pos < hz_visible_chars ?"+":"") << visible_char_pos << "," <<
 			(char_pos>= disp_skew&&char_pos< disp_skew+active_chars?"+":"") <<
 			active_char_pos << "(" << (mDISPTMG ? "+" : "") << char_pos << ") ";
 		if (adjusted_scanline == 100 && char_pos == chars_per_line-1)
 			cout << "\n";
-
+*/
 		auto line_start = chrono::high_resolution_clock::now();
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
@@ -615,7 +641,7 @@ void BeebVideoULA::updateScreenSz()
 
 	// resize screen when switching between teletext mode (500 x 480 + borders)  and non-telext modes (640 x 256)
 	if (pW != mScreenW || pH != mScreenH) {
-		int n_active_chars = mCRTC->getActiveChars();
+		int n_active_chars = mCRTC->getActiveCharsPerLine();
 		int n_active_lines = mCRTC->getActiveLines();
 		int n_active_W = n_active_chars * mPixelsPerCharacter;
 		if (mDM->debug(DBG_VERBOSE))
@@ -663,13 +689,27 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	if (teletext)
 		mPixelW = 1;
 
-	mPixelsPerCharacter = 8 * mNCols / getVisibleCharsPerLine();
+	// Unique "big" pixels per (column) memory byte (8 for modes 0, 3 and 4; 4 for modes and 5; 2 for mode 2; and 16 for mode 7)
+	mPixelsPerCharacter = 8 * mNCols / getActiveCharsPerLine();
+	mHzPixelsPerSymbol = 8;
 	if (mPixelsPerCharacter > 8) {
 		return false;
 	}
-	if (teletext)
-		mPixelsPerCharacter = 16; // as 12 pixels have been stretched to 16 by the TCG
 
+	// Drawn horizontal screen pixels per character symbol (8 for modes 0 to 3, 16 for modes 4-7)
+	mHzScreenPixelsPerChar = 128 * 8 / mCRTC->getCharsPerLine();
+
+	// Vertical pixels per character row is normally the same as twice no of raster lines
+	// except for the interlace video mode where it is identical to the raster lines
+	mVtPixelsPerRow = getCharScanLines();
+	if (!mCRTC->interlacedVideo())
+		mVtPixelsPerRow *= 2;
+
+	if (teletext) {
+		mPixelsPerCharacter = 16; // as 12 pixels have been stretched to 16 by the TCG
+		mHzPixelsPerSymbol = 16;
+		
+	}
 	if ((
 		((mControlRegister ^ newControlRegisterValue) & 0xfe) != 0 ||
 		mPixelsPerCharacter != p_pixels_per_byte ||
@@ -817,10 +857,10 @@ int BeebVideoULA::getCharsPerLine()
 		return 40;
 }
 
-int BeebVideoULA::getVisibleCharsPerLine()
+int BeebVideoULA::getActiveCharsPerLine()
 {
 	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getVisibleCharsPerLine();
+		return mCRTC->getActiveCharsPerLine();
 	else
 		return 40;
 }
@@ -846,20 +886,21 @@ int BeebVideoULA::getTopBorderLines()
 		return 0;
 }
 
-int BeebVideoULA::getActiveChars()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getActiveChars();
-	else
-		return 40;
-}
-
 int BeebVideoULA::getActiveLines()
 {
 	if (mCRTC != NULL && mCRTC->initialised())
 		return mCRTC->getActiveLines();
 	else
-		return 25;
+		return 200;
+}
+
+
+int BeebVideoULA::getActiveCharRows()
+{
+	if (mCRTC != NULL && mCRTC->initialised())
+		return mCRTC->getActiveCharRows();
+	else
+		return 20;
 }
 
 int BeebVideoULA::getRightBorderChars()

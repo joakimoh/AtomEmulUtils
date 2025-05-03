@@ -189,12 +189,12 @@ public:
 	inline int getHorizontalSyncPos();
 	inline int getHorizontalSyncWidth() { return mHzSyncPulseW_R3; }
 	inline int getCharsPerLine();
-	inline int getVisibleCharsPerLine();
 	inline int getScreenScanLine() { return mScanLine;  }
 
 	inline int getLeftBorderChars();
 	inline int getTopBorderLines();
-	inline int getActiveChars();
+	inline int getActiveCharsPerLine();
+	inline int getActiveCharRows();
 	inline int getActiveLines();
 	inline int getRightBorderChars();
 	inline int getBottomBorderLines();
@@ -208,6 +208,9 @@ public:
 
 	// Check if interlace is enabled (On)
 	inline bool interlaceOn();
+
+	// Check if video interlace is active
+	inline bool interlacedVideo() { return interlaced_video(mInterlaceMode_R8); }
 
 	// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
 	inline int fieldScanLineOffset();

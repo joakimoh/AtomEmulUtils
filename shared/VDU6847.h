@@ -196,12 +196,12 @@ public:
 	inline int getVerticalSyncLine() { return mTVBlkH;  }
 	inline int getHorizontalSyncPos() { return 0; }
 	inline int getCharsPerLine() { return 32; }
-	inline int getVisibleCharsPerLine() { return 32; }
 	inline int getScreenScanLine() { return mScanLine; }
 	inline int getLeftBorderChars() { return mLBrdW / 8; }
 	inline int getTopBorderLines() { return mTBrdH; }
-	inline int getActiveChars() { return mActScreenAreaW/8; }
+	inline int getActiveCharsPerLine() { return mActScreenAreaW/8; }
 	inline int getActiveLines() { return mActScreenAreaH; }
+	inline int getActiveCharRows() { return mActScreenAreaH / 8; }
 	inline int getRightBorderChars() { return mRBrdW / 8; }
 	inline int getBottomBorderLines() { return mBBrdH; }
 	inline int getRetraceLines() { return mTVBlkH + mBVBlkH; }
