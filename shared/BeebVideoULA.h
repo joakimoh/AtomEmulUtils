@@ -15,19 +15,20 @@ class BeebVideoULA : public VideoDisplayUnit {
 
 private:
 
-	void updateScreenSz();
+	void updateScreenSz(int fullW, int fullH, int activeW, int activeH);
 
 	int mDispUsCnt = 0;
 	int mVideoULACnt = 0;
 	int mCRTCnt = 0;
 	int mTTCnt = 0;
 	int mCharPixelCnt = 0;
-	int mTopBorderCnt = 0;
-	int mBottomBorderCnt = 0;
-	int mLeftBorderCnt = 0;
-	int mRightBorderCnt = 0;
+	int mBorderCnt = 0;
 	int mReadCnt = 0;
 	int mLineCnt = 0;
+
+	int mActiveLines = 200; // dummy init value
+
+	unsigned int* mMaxDisplayBitmap_p = NULL;
 
 public:
 
@@ -141,6 +142,7 @@ public:
 	inline double getFieldRate();
 	inline int getCharScanLines();
 	inline int getVerticalSyncLine();
+	inline int getVerticalSyncHeight();
 	inline int getHorizontalSyncPos();
 	inline int getHorizontalSyncWidth();
 	inline int getCharsPerLine();

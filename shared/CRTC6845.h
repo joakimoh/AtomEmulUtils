@@ -186,6 +186,7 @@ public:
 	inline double getFieldRate();
 	inline int getCharScanLines();
 	inline int getVerticalSyncLine();
+	inline int getVerticalSyncHeight() { return mScreenVSyncPulseH; }
 	inline int getHorizontalSyncPos();
 	inline int getHorizontalSyncWidth() { return mHzSyncPulseW_R3; }
 	inline int getCharsPerLine();

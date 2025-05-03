@@ -807,7 +807,7 @@ inline int CRTC6845::getVerticalSyncLine()
 
 inline int CRTC6845::getHorizontalSyncPos()
 {
-	return mVSyncRow_R7;
+	return mHzSyncPos_R2;
 }
 
 inline int CRTC6845::getCharsPerLine()
