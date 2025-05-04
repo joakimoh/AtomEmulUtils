@@ -118,8 +118,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		return true;
 
 	int hz_sync_pos = getHorizontalSyncPos();
-	int hz_sync_width = getHorizontalSyncWidth();
-	int vt_sync_height = getVerticalSyncHeight();
+	int hz_sync_width_cfg = getHorizontalSyncWidth();
+	int vt_sync_height_cfg = getVerticalSyncHeight();
 	int chars_per_line = getCharsPerLine();
 	int cursor_skew;
 	int disp_skew;
@@ -137,15 +137,15 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 
 	// Calculate horizontal borders
-	double front_porch = 0.0258 * chars_per_line;
-	double back_porch = 0.0891 * chars_per_line;
-	double sync_width = 0.0734 * chars_per_line;
-	double hz_blanking = 0.1883 * chars_per_line;
-	double hz_video_content = chars_per_line - hz_blanking;
+	double hz_front_porch_spec = 0.0258 * chars_per_line;
+	double hz_back_porch_spec = 0.0891 * chars_per_line;
+	double hz_sync_width_spec = 0.0734 * chars_per_line;
+	double hz_blanking_spec = 0.1883 * chars_per_line;
+	double hz_video_content = chars_per_line - hz_blanking_spec;
 	double hz_visible_content = 0.73 * chars_per_line; // 73% out of the liner duration is visible on a CRTC based on observation
 	int hz_visible_chars = (int)round(hz_visible_content);
 	double hz_visible_offset = (hz_video_content - hz_visible_content) / 2;
-	int visible_char_pos_offset = (int) round(hz_sync_pos + sync_width + back_porch + hz_visible_offset + chars_per_line) % chars_per_line;
+	int visible_char_pos_offset = (int) round(hz_sync_pos + hz_sync_width_spec + hz_back_porch_spec + hz_visible_offset + chars_per_line) % chars_per_line;
 
 	// Calculate vertical borders
 	double vt_blanking = 0.08 * mScreenScanLines;
@@ -155,9 +155,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int visible_line_offset = (int)round(mVerticalSyncPos + vt_blanking + vt_visible_offset + mScreenScanLines) % mScreenScanLines;
 
 	// Calculate  resolution
-	int vt_visible_resolution = (int)round(vt_visible_content);
+	int vt_visible_pixels = (int)round(vt_visible_content);
 	int vt_active_resolution = mActiveLines;
-	int hz_visible_resolution = (int)round(hz_visible_content * mPixelsPerCharacter * mPixelW);
+	int hz_visible_pixels = hz_visible_chars * mPixelsPerCharacter * mPixelW;
 	int hz_active_resolution = active_chars * mPixelsPerCharacter * mPixelW;
 	int hz_unique_resolution = active_chars * mPixelsPerCharacter;
 	int vt_unique_resolution = vt_active_resolution;
@@ -165,23 +165,23 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int unique_active_rows = vt_active_resolution / mVtPixelsPerRow;
 
 
-	int visible_scan_line = (int)round(adjusted_scanline - visible_line_offset + mScreenScanLines) % mScreenScanLines;
-	int active_scan_line = adjusted_scanline;
+	int visible_scan_line = (mScanLine - visible_line_offset + mScreenScanLines) % mScreenScanLines;
+	int active_scan_line = mScanLine;
 
 	// Update screen size if required
-	updateScreenSz(hz_visible_resolution, vt_visible_resolution, hz_active_resolution, vt_active_resolution);
+	updateScreenSz(hz_visible_pixels, vt_visible_pixels, hz_active_resolution, vt_active_resolution);
 
 	if (mDM->debug(DBG_VDU) && adjusted_scanline == 100 && mField % 50 == 0) {
 		cout << "\n" << dec <<
 			"chars per line: " << chars_per_line << ", pixels/byte: " << mPixelsPerCharacter << ", pixel width: " << (int) mPixelW << 
 			", screen pixels per char col: " << mHzScreenPixelsPerChar << "\n";
-		cout << " visible resolution: " << hz_visible_resolution << " x " << vt_visible_resolution << "\n";
+		cout << " visible resolution: " << hz_visible_pixels << " x " << vt_visible_pixels << "\n";
 		cout << " active resolution: " << hz_active_resolution << " x " << vt_active_resolution << " (" << active_chars << " x " << active_rows << ")\n";
 		cout << " unique active resolution: " << hz_unique_resolution << " x " << vt_unique_resolution << " (" << unique_active_chars << " x " << unique_active_rows << ")\n";
 		cout <<	", visible content: " << hz_visible_content << " (" << (hz_visible_content / chars_per_line) << ")" <<
 			", visible chars: " << hz_visible_chars << " (" << ((double) hz_visible_chars / chars_per_line) << ")" <<
 			", video content: " << hz_video_content << " (" << (hz_video_content / chars_per_line) << ")" <<
-			", blanking: " << hz_blanking << " (" << (hz_blanking / chars_per_line) << ")" <<
+			", blanking: " << hz_blanking_spec << " (" << (hz_blanking_spec / chars_per_line) << ")" <<
 			", visible char pos offset: " << visible_char_pos_offset <<
 			"\n";
 	}
@@ -215,7 +215,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	
 	if (mDM->debug(DBG_VDU))
 		cout << "\n\nFIELD #" << field << "(" << mField << "), SCAN LINE " << dec << mScanLine << " (adjusted to " << adjusted_scanline << ")" <<
-		", VISIBLE LINE " << visible_scan_line << " (" << vt_visible_resolution << ")" <<
+		", VISIBLE LINE " << visible_scan_line << " (" << vt_visible_pixels << ")" <<
 		", ACTIVE LINE " << active_scan_line << " (" << mActiveLines << ")" <<
 		")\n";
 
@@ -259,50 +259,59 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// on the screen and "Char" is actually one byte fetched from memory that only sometimes corresponds
 	// to the width of a screen char. 
 
-	unsigned int* bitmap_data_p = NULL;
+	unsigned int* line_bitmap_data_p = NULL;
 
-	if (visible_scan_line < vt_visible_resolution)
-		bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
+	if (visible_scan_line < vt_visible_pixels)
+		line_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
 
-	cout << "\n\n" << dec << setw(3) << mScanLine << " V" << hz_visible_chars << " A" << active_chars << " O" << visible_char_pos_offset << "\n";
-	if (visible_scan_line < vt_visible_resolution)
-		cout << "VISIBLE LINE " << dec << visible_scan_line << " (" << vt_visible_resolution << ")\n";
-	else
-		cout << "INVISIBLE LINE\n";
-	if (adjusted_scanline >= mVerticalSyncPos && adjusted_scanline < mVerticalSyncPos + vt_sync_height)
-		cout << "*** VERTICAL SYNC ***\n";
-	cout << "SYN:";
-	for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {
-		if (char_pos >= hz_sync_pos && char_pos < hz_sync_pos + hz_sync_width)
-			cout << "S";
+	if (true) {
+		cout << "\n\n" << dec << setw(3) << mScanLine << " V" << hz_visible_chars << " A" << active_chars << " O" << visible_char_pos_offset << "\n";
+		cout << "Pixels/char: " << mPixelsPerCharacter << ", pixel width: " << (int) mPixelW << "\n";
+		if (visible_scan_line < vt_visible_pixels)
+			cout << "VISIBLE LINE " << dec << visible_scan_line << " (" << vt_visible_pixels << ")\n";
 		else
-			cout << "_";
+			cout << "INVISIBLE LINE\n";
+		if (adjusted_scanline >= mVerticalSyncPos && adjusted_scanline < mVerticalSyncPos + vt_sync_height_cfg)
+			cout << "*** VERTICAL SYNC ***\n";
+		cout << "SYN:";
+		for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {
+			if (char_pos >= hz_sync_pos && char_pos < hz_sync_pos + hz_sync_width_cfg)
+				cout << "S";
+			else
+				cout << "_";
+		}
+		cout << "\nACT:";
+		for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {
+			int active_char_pos = (char_pos - disp_skew + chars_per_line) % chars_per_line;
+			if (active_char_pos < active_chars)
+				cout << "A";
+			else
+				cout << "_";
+		}
+		cout << "\n    ";
+		for (int char_pos = 0; char_pos < chars_per_line; cout << char_pos++ % 10);
+		cout << "\nVIS:";
+		for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {
+			int visible_char_pos = (char_pos - visible_char_pos_offset + chars_per_line) % chars_per_line;
+			if (visible_char_pos < hz_visible_chars)
+				cout << "+";
+			else
+				cout << "_";
+		}
+		cout << "\nDIS:";
 	}
-	cout << "\nACT:";
-	for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {
-		int active_char_pos = (char_pos - disp_skew + chars_per_line) % chars_per_line;
-		if (active_char_pos < active_chars)
-			cout << "A";
-		else
-			cout << "_";
-	}
-	cout << "\n    ";
-	for (int char_pos = 0; char_pos < chars_per_line; cout << char_pos++ % 10);
-	cout << "\nVIS:";
-	for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {
-		int visible_char_pos = (char_pos - visible_char_pos_offset + chars_per_line) % chars_per_line;
-		if (visible_char_pos < hz_visible_chars)
-			cout << "+";
-		else
-			cout << "_";
-	}
-	cout << "\nDIS:";
 
-
+	unsigned int* bitmap_data_p = line_bitmap_data_p;
 	for (int char_pos = 0; char_pos < chars_per_line; char_pos++) {	
-	
+
 		int visible_char_pos = (char_pos - visible_char_pos_offset + chars_per_line) % chars_per_line;
 		int active_char_pos = (char_pos - disp_skew + chars_per_line) % chars_per_line;
+
+		if (line_bitmap_data_p != NULL && visible_char_pos < hz_visible_chars)
+			bitmap_data_p = line_bitmap_data_p + visible_char_pos * mPixelsPerCharacter * mPixelW;
+		else
+			bitmap_data_p = NULL;	
+
 
 		auto line_start = chrono::high_resolution_clock::now();
 
@@ -488,7 +497,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		}
 
 		else {
-
+			
 			if (visible_char_pos < hz_visible_chars) {
 
 				auto border_start = chrono::high_resolution_clock::now();
@@ -805,7 +814,6 @@ int BeebVideoULA::getActiveLines()
 	else
 		return 200;
 }
-
 
 int BeebVideoULA::getActiveCharRows()
 {
