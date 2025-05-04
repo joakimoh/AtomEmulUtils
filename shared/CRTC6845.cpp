@@ -90,10 +90,13 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 
 	updateOutputs();
 
-	// If in the active display area, update the fetch address and cursor position
-	
-	if (mDISPTMG) {;
-		adr = mStartAdr_R12_R13 + mCharRow * mActiveRowChars_R1 + mCharCol - mCharSkew_R8;
+	// If in the active display area (excluding skew!), update the fetch address and cursor position
+	// -	skew is just used to delay the DISPTMG signal to adopt to delays in video character
+	//		generators like the SAA5050. The CRTC still needs to provide the video memory address
+	//		as normally (i.e. without skew) as the video memory data will be fed to the video
+	//		character generator.
+	if (mCharCol < mActiveRowChars_R1 && mCharRow < mActiveRows_R6) {
+		adr = mStartAdr_R12_R13 + mCharRow * mActiveRowChars_R1 + mCharCol;
 	}
 	
 	// Advance time corresponding to one character and check for HS, VS & DISPTMG

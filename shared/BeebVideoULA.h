@@ -124,6 +124,8 @@ public:
 	CRTC6845* mCRTC = NULL;
 	TT5050* mTGC = NULL;
 
+	vector<TT5050::TTColour> mTgcData;
+
 public:
 
 	bool getVisibleArea(int& w, int& h);
