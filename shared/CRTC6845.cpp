@@ -96,7 +96,7 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 	//		as normally (i.e. without skew) as the video memory data will be fed to the video
 	//		character generator.
 	if (mCharCol < mActiveRowChars_R1 && mCharRow < mActiveRows_R6) {
-		adr = mStartAdr_R12_R13 + mCharRow * mActiveRowChars_R1 + mCharCol;
+		adr = mStartAdr_R12_R13 + mCharRow * mActiveRowChars_R1 + mCharCol - mCharSkew_R8;
 	}
 	
 	// Advance time corresponding to one character and check for HS, VS & DISPTMG

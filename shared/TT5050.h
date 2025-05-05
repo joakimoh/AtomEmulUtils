@@ -33,6 +33,15 @@ private:
 
 	void createInterpolatedSymbols();
 
+	const int RASTER_LINES = 20;
+
+
+	uint8_t pGLR = 0x1;
+	uint8_t pDEW = 0x1;
+
+	bool mNewField = false;
+	bool mNewLine = false;
+
 public:
 
 	//
@@ -41,9 +50,14 @@ public:
 
 
 	// SA5050 Ports
-	int LOSE, CRS;
+	int LOSE, CRS, DEW, GLR;
 	uint8_t mLOSE = 0x0;	// INPUT - Load Output Shift register: Start of visible part of line (i.e., the display line)
-	uint8_t mCRS = 0x0;		// INPUT - Indicated whether current field is even (CRS=1) or odd (CRS=0)
+	uint8_t mCRS = 0x0;		// INPUT - Indicates whether current field is even (CRS=1) or odd (CRS=0)
+	uint8_t mDEW = 0x1;		// INPUT - Data Entry Window - resets the row adr counter prior to the display period (active low)
+	uint8_t mGLR = 0x1;		// INPUT - General Line reset (active low)
+
+
+
 
 
 	typedef struct TTSymbol_struct {
@@ -234,7 +248,7 @@ public:
 
 	// Called by the device that needs the RGB pixel data (screenData) that
 	// the TT5050 generates based on page memory data (pageData).
-	bool getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour> &screenData);
+	bool getScreenData(uint8_t pageData, vector <TTColour>& screenData);
 
 	bool initialised() { return true; }
 

@@ -125,6 +125,7 @@ public:
 	TT5050* mTGC = NULL;
 
 	vector<TT5050::TTColour> mTgcData;
+	bool mValidTgcData = false;
 
 public:
 

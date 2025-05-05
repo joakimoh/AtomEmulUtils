@@ -12,9 +12,13 @@ TT5050::TT5050(
 	if (mDM->debug(DBG_VERBOSE))
 		cout << "Teletext Character Generator SA5050 '" << name << "' added\n";
 
-	registerPort("LOSE",	IN_PORT, 0x1, LOSE, &mLOSE);
-	registerPort("RESET",	IN_PORT, 0x1, RESET, &mRESET);
-	registerPort("CRS",		IN_PORT, 0x1, CRS, &mCRS);
+	registerPort("LOSE",	IN_PORT, 0x1, LOSE,		&mLOSE);
+	registerPort("RESET",	IN_PORT, 0x1, RESET,	&mRESET);
+	registerPort("CRS",		IN_PORT, 0x1, CRS,		&mCRS);
+	registerPort("DEW",		IN_PORT, 0x1, DEW,		&mDEW); // Data Entry Window - resets the row adr counter prior to the display period
+	registerPort("GLR",		IN_PORT, 0x1, GLR,		&mGLR); // General Line Reset
+
+
 
 	createInterpolatedSymbols();
 
@@ -175,11 +179,10 @@ bool TT5050::advance(uint64_t stopCycle)
 //						- 12 x 20 pixel symbol interpolated from an 6 x 10 symbolc, or
 //						- 2 x 3 graphics encoded as 12 x 20 pixels
 // 
-//				
+// Returns true if data was enabled (LOSE active) and the TCG was properly initialised; otherwise false is returned	
 //
-bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour> &screenData)
+bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 {
-	const int n_raster_lines = 20;
 	vector <uint8_t> screenData12(12);
 
 	if (!initialised()) {
@@ -189,49 +192,6 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 
 	// Advance time 1 us
 	mCycleCount += max(1, (int) round(mCPUClock / 1.0));
-
-	bool even_field = (mCRS == 1);
-	
-	// start of field => reset scan line, raster line & char row counters
-	if (VS) { 
-		if (even_field) {
-			mScanLine = 0;
-			mCharRasterLine = 0;
-		}
-		else { // odd field
-			mScanLine = 1;
-			mCharRasterLine = 1;
-		}
-		mCharRowPos = 0;	
-		mDoubleHeightHalf = -1;
-	}
-	
-	// start of line => reset char pos
-	if (HS) {
-		mFlash = false;
-		mDoubleHeight = false;
-		mGraphicSymbols = false;
-		mGraphicsColour = mColours[TT_WHITE];
-		mAlpaNumericColour = mColours[TT_WHITE];
-		mBackgroundColour = mColours[TT_BLACK];
-		mCharRowPos = 0;
-		mHiddenText = false;
-		mSeparatedGraphics = false;
-		mHeldGraphics = false;
-		if (!VS) {
-			mCharRasterLine = (mCharRasterLine + 2) % n_raster_lines;
-			mScanLine += 2;
-		}
-		// start of double-height character half?
-		if (even_field && mCharRasterLine == 0 || !even_field && mCharRasterLine == 1) {
-			if (mDoubleHeightHalf == 0) // lower half starts
-				mDoubleHeightHalf = 1;
-			else if (mDoubleHeightHalf == 1) // double-height halfs completed => reset
-				mDoubleHeightHalf = -1;
-		}
-	}
-
-
 
 	// Only the lower 7 bits are connected to the TCG
 	uint8_t char_data = pageData & 0x7f;
@@ -414,7 +374,7 @@ bool TT5050::getScreenData(bool HS, bool VS, uint8_t pageData, vector <TTColour>
 
 	mCharRowPos++; // if it was the last char pos, this will be corrected at the next call of getScreenData() based on the HS input
 
-	return true;
+	return mLOSE;
 }
 
 // Process a port update directly (and not just next time the advance() method is called)
@@ -423,5 +383,54 @@ void  TT5050::processPortUpdate(int index)
 	if (index == RESET && mRESET == 0) {
 		cout << "TCG reset!\n";
 		reset();
+	}
+
+	else if (index == GLR && mGLR == 1 && mLOSE == 0) {
+		// General Line Reset - for a negative GLR pulse when LOSE is low
+		mNewLine = true;
+		mFlash = false;
+		mDoubleHeight = false;
+		mGraphicSymbols = false;
+		mGraphicsColour = mColours[TT_WHITE];
+		mAlpaNumericColour = mColours[TT_WHITE];
+		mBackgroundColour = mColours[TT_BLACK];
+		mCharRowPos = 0;
+		mHiddenText = false;
+		mSeparatedGraphics = false;
+		mHeldGraphics = false;
+		if (!mNewField) {
+			mCharRasterLine = (mCharRasterLine + 2) % RASTER_LINES;
+			mScanLine += 2;
+		}
+		// Start of double-height character half?
+		if (mCRS == 1 && mCharRasterLine == 0 || mCRS == 0 && mCharRasterLine == 1) {
+			if (mDoubleHeightHalf == 0) // lower half starts
+				mDoubleHeightHalf = 1;
+			else if (mDoubleHeightHalf == 1) // double-height halfs completed => reset
+				mDoubleHeightHalf = -1;
+		}
+		pGLR = mGLR;
+		mNewField = false;
+	}
+
+	else if (index == DEW && mDEW == 1) {
+		mNewField = true;
+		// Data Entry Window - high level
+		// Resets the row adr counter prior to the display period when inactive (high)
+		if (mCRS == 0) { // even field
+			mScanLine = 0;
+			mCharRasterLine = 0;
+		}
+		else { // odd field
+			mScanLine = 1;
+			mCharRasterLine = 1;
+		}
+		mCharRowPos = 0;
+		mDoubleHeightHalf = -1;
+		pDEW = mDEW;
+	}
+
+	else if (index == LOSE && mLOSE == 1) {	
+		mNewLine = false;
 	}
 }

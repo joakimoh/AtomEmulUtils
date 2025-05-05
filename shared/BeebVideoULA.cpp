@@ -399,16 +399,16 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		mReadCnt += mem_read_dur.count();
 
 		// For teletext modes, decode video memory data as videotext data
+		bool teletext_ena = false;
 		if (teletext) {
 			auto tt_start = chrono::high_resolution_clock::now();
 			// Feed video memory data to the CRTC. Result will be collected the next character column due to
 			// delay within the TCG
 			memcpy((char*)&tgc_data[0], (char*)&mTgcData[0], 16 * sizeof(tgc_data[0]));
-			if (!mTGC->getScreenData(char_pos == 0, adjusted_scanline == 0 && char_pos == 0, screen_data, mTgcData)) {
-				cout << "Failed to get teletext symbol at address 0x" << hex << screen_adr << "\n";
-				return false;
-			}
-			if (char_pos == 0) {
+			teletext_ena = mValidTgcData;
+			mValidTgcData = mTGC->getScreenData(screen_data, mTgcData);
+			/*
+			if (char_pos == hz_disp_skew) {
 				bool symbol = false;
 				for (int i = 0; i < 16; i++) {
 					if (mTgcData[i].B != 0 || mTgcData[i].G != 0 || mTgcData[i].R != 0)
@@ -425,14 +425,16 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					cerr << "\n";
 				}
 			}
+			*/
 			auto tt_stop = chrono::high_resolution_clock::now();
 			auto tt_dur = chrono::duration_cast<chrono::nanoseconds>(tt_stop - tt_start);
 			mTTCnt += tt_dur.count();
 		}
 
-			
-		if (dis_ena)
+	
+		if (dis_ena || teletext_ena)
 			// Active area of an active line
+			//
 		{
 
 			// Get cursor configuration
@@ -445,8 +447,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			uint8_t cursor_seg_ena = 0x0;
 			bool clk_2_Mhz = ((mControlRegister >> 4) & 0x1) != 0;
 			uint8_t cursor_segments = (mControlRegister >> 5) & 0x7;
-			if (teletext) // Emulate one character delay for teletext data by shifting the cursor segments one step left
-				cursor_segments = (cursor_segments << 1) & 0x7;
+			//if (teletext) // Emulate one character delay for teletext data by shifting the cursor segments one step left
+			//	cursor_segments = (cursor_segments << 1) & 0x7;
 			if (mCURSOR || mCursorSegment > 0 && (mCursorSegment <= 2 || !clk_2_Mhz && mCursorSegment <= 3)) {
 				if (mCursorSegment < 0)
 					mCursorSegment = 0;// char_skew; // start segment considers character skew (cursor skew already considered in CURSOR input)
