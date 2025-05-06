@@ -149,8 +149,6 @@ bool TT5050::reset()
 {
 	Device::reset();
 
-	mScanLine = 0;
-	mCharRowPos = 0;
 	mCharRasterLine = 0;
 
 	return true;
@@ -164,7 +162,6 @@ bool TT5050::advance(uint64_t stopCycle)
 
 	if (reset_transition)
 		reset();
-
 
 	return true;
 }
@@ -372,8 +369,6 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 		}
 	}
 
-	mCharRowPos++; // if it was the last char pos, this will be corrected at the next call of getScreenData() based on the HS input
-
 	return mLOSE;
 }
 
@@ -385,52 +380,47 @@ void  TT5050::processPortUpdate(int index)
 		reset();
 	}
 
-	else if (index == GLR && mGLR == 1 && mLOSE == 0) {
-		// General Line Reset - for a negative GLR pulse when LOSE is low
-		mNewLine = true;
-		mFlash = false;
-		mDoubleHeight = false;
-		mGraphicSymbols = false;
-		mGraphicsColour = mColours[TT_WHITE];
-		mAlpaNumericColour = mColours[TT_WHITE];
-		mBackgroundColour = mColours[TT_BLACK];
-		mCharRowPos = 0;
-		mHiddenText = false;
-		mSeparatedGraphics = false;
-		mHeldGraphics = false;
-		if (!mNewField) {
-			mCharRasterLine = (mCharRasterLine + 2) % RASTER_LINES;
-			mScanLine += 2;
-		}
-		// Start of double-height character half?
-		if (mCRS == 1 && mCharRasterLine == 0 || mCRS == 0 && mCharRasterLine == 1) {
-			if (mDoubleHeightHalf == 0) // lower half starts
-				mDoubleHeightHalf = 1;
-			else if (mDoubleHeightHalf == 1) // double-height halfs completed => reset
-				mDoubleHeightHalf = -1;
+	else if (index == GLR) {
+		if (mGLR == 1 && pGLR == 0 && mLOSE == 0) {
+			// General Line Reset - for a negative GLR pulse when LOSE is low
+			mFlash = false;
+			mDoubleHeight = false;
+			mGraphicSymbols = false;
+			mGraphicsColour = mColours[TT_WHITE];
+			mAlpaNumericColour = mColours[TT_WHITE];
+			mBackgroundColour = mColours[TT_BLACK];
+			mHiddenText = false;
+			mSeparatedGraphics = false;
+			mHeldGraphics = false;
+			if (!mNewField)
+				mCharRasterLine = (mCharRasterLine + 2) % RASTER_LINES;
+
+			// Start of double-height character half?
+			if (mCRS == 1 && mCharRasterLine == 0 || mCRS == 0 && mCharRasterLine == 1) {
+				if (mDoubleHeightHalf == 0) // lower half starts
+					mDoubleHeightHalf = 1;
+				else if (mDoubleHeightHalf == 1) // double-height halfs completed => reset
+					mDoubleHeightHalf = -1;
+			}
+			mNewField = false;
 		}
 		pGLR = mGLR;
-		mNewField = false;
 	}
 
-	else if (index == DEW && mDEW == 1) {
-		mNewField = true;
-		// Data Entry Window - high level
-		// Resets the row adr counter prior to the display period when inactive (high)
-		if (mCRS == 0) { // even field
-			mScanLine = 0;
-			mCharRasterLine = 0;
+	else if (index == DEW) {
+		if (mDEW == 0 && pDEW == 1) {
+			mNewField = true;
+			// Data Entry Window - high level
+			// Resets the row adr counter prior to the display period when inactive (high)
+			if (mCRS == 0) // even field
+				mCharRasterLine = 0;
+			else // odd field
+				mCharRasterLine = 1;
+			mDoubleHeightHalf = -1;
 		}
-		else { // odd field
-			mScanLine = 1;
-			mCharRasterLine = 1;
-		}
-		mCharRowPos = 0;
-		mDoubleHeightHalf = -1;
 		pDEW = mDEW;
 	}
 
 	else if (index == LOSE && mLOSE == 1) {	
-		mNewLine = false;
 	}
 }

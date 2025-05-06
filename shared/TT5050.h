@@ -40,7 +40,6 @@ private:
 	uint8_t pDEW = 0x1;
 
 	bool mNewField = false;
-	bool mNewLine = false;
 
 public:
 
@@ -183,8 +182,7 @@ public:
 	Stretch12 mStretchMatrix[16];
 
 
-	int mScanLine = 0;
-	int mCharRowPos = 0;
+
 	int mCharRasterLine = 0;
 
 	// Teletext control

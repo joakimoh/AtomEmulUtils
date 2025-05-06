@@ -283,7 +283,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	if (visible_scan_line < vt_visible_pixels)
 		line_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
 
-	if (true) {
+	if (false) {
 		cout << "\n\n" << dec << setw(3) << mScanLine << " V" << hz_visible_chars << " A" << hz_active_chars << " O" << hz_visible_char_poffset << "\n";
 		cout << "Pixels/char: " << mPixelsPerCharacter << ", pixel width: " << (int) mPixelW << "\n";
 		if (visible_scan_line < vt_visible_pixels)
@@ -355,12 +355,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		auto crtc_dur = chrono::duration_cast<chrono::nanoseconds>(crtc_stop - crtc_start);
 		mCRTCnt += crtc_dur.count();
 
-		// Is the screen (display) in the active area?	
-		uint8_t dis_ena;
+		// Is the screen (display) in the active area (for non-teletext modes; for teletext mode dis_ena will be updated later on	
+		uint8_t dis_ena = false;
 		if (!teletext)
 			dis_ena = ~(~mDISPTMG | ((mRA >> 3) & 0x1)); // RA3 shall never be set when not in teletext mode as there are only 8 raster lines for modes 0-6
-		else
-			dis_ena = mDISPTMG; // In teletext mode raster lines are 0-19
 
 		// Calculate screen address
 		if (!teletext) { // Normally modes 0-6 - raster address selected bytes within an 8 row byte block
@@ -379,11 +377,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			return false;
 		}
 
-		if (dis_ena)
-			cout << "D";
-		else
-			cout << "_";
-
 		// 
 		// Read video memory data
 		// Data shall be read from video memory even if the display is not yet enabled
@@ -399,40 +392,24 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		mReadCnt += mem_read_dur.count();
 
 		// For teletext modes, decode video memory data as videotext data
-		bool teletext_ena = false;
 		if (teletext) {
 			auto tt_start = chrono::high_resolution_clock::now();
 			// Feed video memory data to the CRTC. Result will be collected the next character column due to
 			// delay within the TCG
 			memcpy((char*)&tgc_data[0], (char*)&mTgcData[0], 16 * sizeof(tgc_data[0]));
-			teletext_ena = mValidTgcData;
+			dis_ena = mValidTgcData;
 			mValidTgcData = mTGC->getScreenData(screen_data, mTgcData);
-			/*
-			if (char_pos == hz_disp_skew) {
-				bool symbol = false;
-				for (int i = 0; i < 16; i++) {
-					if (mTgcData[i].B != 0 || mTgcData[i].G != 0 || mTgcData[i].R != 0)
-						symbol = true;
-				}
-				if (symbol) {
-					cerr << (int)char_pos << " " << adjusted_scanline << " ";
-					for (int i = 0; i < 16; i++) {
-						if (mTgcData[i].B != 0 || mTgcData[i].G != 0 || mTgcData[i].R != 0)
-							cerr << "x";
-						else
-							cerr << "_";
-					}
-					cerr << "\n";
-				}
-			}
-			*/
 			auto tt_stop = chrono::high_resolution_clock::now();
 			auto tt_dur = chrono::duration_cast<chrono::nanoseconds>(tt_stop - tt_start);
 			mTTCnt += tt_dur.count();
 		}
-
-	
-		if (dis_ena || teletext_ena)
+		/*
+		if (dis_ena)
+			cout << "D";
+		else
+			cout << "_";
+		*/
+		if (dis_ena)
 			// Active area of an active line
 			//
 		{
@@ -447,12 +424,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			uint8_t cursor_seg_ena = 0x0;
 			bool clk_2_Mhz = ((mControlRegister >> 4) & 0x1) != 0;
 			uint8_t cursor_segments = (mControlRegister >> 5) & 0x7;
-			//if (teletext) // Emulate one character delay for teletext data by shifting the cursor segments one step left
-			//	cursor_segments = (cursor_segments << 1) & 0x7;
 			if (mCURSOR || mCursorSegment > 0 && (mCursorSegment <= 2 || !clk_2_Mhz && mCursorSegment <= 3)) {
 				if (mCursorSegment < 0)
-					mCursorSegment = 0;// char_skew; // start segment considers character skew (cursor skew already considered in CURSOR input)
-				int shift = (mCursorSegment<=2? mCursorSegment:2);				
+					mCursorSegment = 0;
+				int shift = (mCursorSegment <= 2 ? mCursorSegment : 2);
 				cursor_seg_ena = (cursor_segments >> (2 - shift)) & 0x1;						
 				if (mDM->debug(DBG_VDU)) {
 					cout << "VDU CURSOR " << dec << (int) mCURSOR << ", cursor ena " << (cursor_seg_ena ? "enabled" : "disabled") <<
