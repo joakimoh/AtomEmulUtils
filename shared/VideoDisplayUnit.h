@@ -31,8 +31,6 @@ public:
 
 	virtual ~VideoDisplayUnit() {};
 
-	virtual bool getVisibleArea(int& w, int& h) = 0;
-
 	bool setVideoRam(RAM* ram);
 	uint16_t getVideoMemAdr();
 

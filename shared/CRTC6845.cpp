@@ -178,7 +178,7 @@ bool CRTC6845::advanceChar()
 
 				updatePort(RA, (mRA + 1) % mCharLines_R9);
 				if (mRA == 0)
-					mCharRow = (mCharRow + 1) % mCharRows_R4;
+					mCharRow++; // Row no will be reset when a new field starts => no need to limit here
 			}
 			else {
 				
@@ -186,7 +186,7 @@ bool CRTC6845::advanceChar()
 
 				updatePort(RA, (mRA + 2) % mCharLines_R9);
 				if ((mField % 2 == 0 && mRA == 0) || (mField % 2 == 1 && mRA == 1)) { // new character row
-					mCharRow = (mCharRow + 1) % mCharRows_R4;
+					mCharRow++; // Row no will be reset when a new field starts => no need to limit here
 					if (mField % 2 == 0)
 						updatePort(RA, 0); // Even field and new character row => start raster line at 0
 					else
@@ -345,47 +345,8 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 }
 
 //
-// Update CRTC parametrs based on the register settings.
+// Update CRTC parameters based on the register settings.
 // 
-// 
-// The visible part of a scan line is determined by the hz sync pulse location,
-// the no of chars/row and the retrace time (that time is not configured but 
-// rather a property of the connected monitor - we will assume 10% of the line
-// duration for this). The hz sync pulse starts a new line but time for
-// retracing needs to be considered before content can be displayed.
-// 
-// A border is displayed when DISPTMG is low
-// 
-// Visible part of a row:
-//			              ,____________.								   ,__
-// DISPTMG  ______________|            |___________________________________|
-//			,_________.							           ,___________.
-// HSYNC    |         |____________________________________|           |____________
-// 
-//			<left border*><active area ><  right border    >< left border* >
-//			                 (R1)                             
-//			<------------------------------------------------------------->
-//                                       (R0)
-// 
-// * Including sync pulse & retrace
-//
-// The visible part of a field  is determined by the vertical sync pulse location,
-// the no of scan lines and the retrace time (that time is not configured but 
-// rather a property of the connected monitor - we will assume 5% of the field
-// duration for this). The vertical sync pulse starts a new field but time for
-// retracing needs to be considered before content can be displayed.
-// 
-// 			               ,________________________.					               ,__
-// DISPTMG  _______________|XXXXXXXXXXXXXXXXXXXXXXXX|__________________________________|XX
-//			,_____.								                       ,_____.
-// VSYNC    |     |____________________________________________________|     |________________________
-// 
-//          <top border** ><      active area       >< bottom border  ><top border**  ><active area
-//									R6*(R9+1/2)	
-//          <--------------------------------------------------------->
-//                          R4*(R9+1/2)+R5
-// 
-// ** Including sync pulse & retrace
 // 
 void CRTC6845::updateSettings(uint8_t reg)
 {
@@ -494,183 +455,6 @@ void CRTC6845::updateSettings(uint8_t reg)
 
 	}
 
-	//
-	// Borders and active area for the scan lines visible on a screen
-	// 
-
-	// Make assumptions about retracing (10% vertical and 30% horizontal)
-	mRetraceChars = mActiveRowChars_R1 * 0.3;
-	if (mRetraceChars % 2 == 1)
-		mRetraceChars++;
-	mRetraceLines = (int)round(mScreenScanLines * 0.1);
-	if (mRetraceLines % 2 == 1) // Make sure no of retrace lines is even
-		mRetraceLines++;
-	
-	//
-	// Vertical lines are normally split as below. If the vertical synchronisation pulse is inserted in the active lines
-	// area it would look much different (and strange with some part of the active lines visible at then end of the screen,
-	// some others at the top of the screen, and a blank area inbetween).
-	// 
-	// |------------------------------------------------|---------------------------------------------------|-----------------|
-	// | visible content (cont)                         |                                                   | visible content |
-	// |------------------------------|-----------------|          blanking (retrace)                       |-----------------|
-	// | active lines                 |                 |                                                   |                 |
-	// |------------------------------| bottom border   |-----------------|---------------|-----------------|   top border    |
-	// | active area (visible lines)  |                 | invisible lines | VS sync pulse | invisible lines |                 |
-	// |------------------------------|-----------------|-----------------|---------------|-----------------------------------|
-	// 0                     active-1 [R6xR9]                              VS [R7xR9,R3]                            total-1 [R4xR9+R5]
-	//
-	// About 3 blanking character rows are visible on the screen it seems. This was observed on a BBC Micro Model B. Let's
-	// emulate this by removing 3 character rows  from the retrace scan lines.
-	//
-	int non_active_lines = mScreenScanLines - mScreenActiveLines;
-	int vt_blanking_lines = round(0.08* mScreenScanLines);
-	int bottom_active_lines, top_active_lines, top_non_active_lines, bottom_non_active_lines;
-	
-	if (mScreenVSyncLine + mScreenVSyncPulseH >= mScreenScanLines) {
-		// +-------------------------------------+
-		// |             all lines               |
-		// +--------------+----------------------+
-		// | active lines | non-active lines     |
-		// +----------+---+------------------+---+
-		//  SP (cont) |                      | SP 
-		// -----------+----------------------+----
-		top_active_lines = mScreenActiveLines - (mScreenVSyncLine + mScreenVSyncPulseH) % mScreenActiveLines ;
-		top_non_active_lines = non_active_lines - (mScreenScanLines - mScreenVSyncLine);
-		bottom_non_active_lines = 0;
-		bottom_active_lines = 0;
-	}
-
-	else if (mScreenVSyncLine >= mScreenActiveLines) {
-		// +-------------------------------------+
-		// |             all lines               |
-		// +--------------+----------------------+
-		// | active lines | non-active lines     |
-		// +--------------+--+----+--------------+
-		// |                 | SP |              |
-		// +-----------------+----+--------------+
-		top_active_lines = 0;
-		top_non_active_lines = mScreenScanLines - (mScreenVSyncLine + mScreenVSyncPulseH);
-		bottom_non_active_lines = 0;
-		bottom_active_lines = mScreenActiveLines;
-	}
-	else if (mScreenVSyncLine + mScreenVSyncPulseH >= mScreenActiveLines) {
-		// +-------------------------------------+
-		// |             all lines               |
-		// +--------------+----------------------+
-		// | active lines | non-active lines     |
-		// +------------+----+-------------------+
-		// |            | SP |                   |
-		// +------------+----+-------------------+
-		top_active_lines = 0;
-		top_non_active_lines = mScreenScanLines - (mScreenVSyncLine + mScreenVSyncPulseH);
-		bottom_active_lines = mScreenVSyncLine;
-		bottom_active_lines = 0;
-	}
-	else { // mScreenVSyncLine + mScreenVSyncPulseH < mScreenActiveLines
-		// +-------------------------------------+
-		// |             all lines               |
-		// +--------------+----------------------+
-		// | active lines | non-active lines     |
-		// +-------+----+-+----------------------+
-		// |       | SP |                        |
-		// +-------+----+------------------------+
-		top_active_lines = mScreenActiveLines - (mScreenVSyncLine + mScreenVSyncPulseH);
-		top_non_active_lines = mScreenScanLines - mScreenActiveLines;
-		bottom_active_lines = mScreenActiveLines - mScreenVSyncLine;
-	}
-	mRetraceLines = mScreenScanLines - mScreenActiveLines - 3 * mScreenRasterLines;
-	mBottomBorderLines = max(0,mScreenVSyncLine - mScreenActiveLines - mRetraceLines / 2);
-	mTopBorderLines = max(0,mScreenScanLines - (mScreenVSyncLine + mScreenVSyncPulseH) - mRetraceLines / 2);
-	mVisibleScanLines = mTopBorderLines + mScreenActiveLines + mBottomBorderLines;
-
-	//
-	// Horizontal characters are normally split as below. If the horizontal synchronisation pulse is inserted in the active characters
-	// area it would look much different (and strange with some part of the active characters visible to the right of the screen
-	// , some others to the left of the screen, and a blank area inbetween).
-	// 
-	// |-------------------------------------------------------|------------------------------------------------------------------|
-	// |                                                       | blanking (retrace)                                               |
-	// |                     visible content                   |------------------------------|------------|----------------------|
-	// |                                                       | left porch                   | sync pulse |      back porch      |
-	// |------------------------|------------------------------|-----------------|------------|------------|--------|-------------|
-	// | left border            | active content               | right border    | invisible                        | left border |
-	// |------------------------|------------------------------|-----------------|-------------------------|--------|-------------|
-	// | skew (visible chars)   | active area (visible chars)  | visible chars   | invis.     | sync pulse | invis. | visible     |
-	// |------------------------|------------------------------|------------------------------|------------|----------------------|
-	// 0                    skew [R8]              active+skew-1 [R1+R8]                        HS [R2, R3]                  total-1 [R0]
-	//
-	// About 3 blanking characters are visible on the screen it seems. This was observed on a BBC Micro Model B. Let's
-	// emulate this by removing 3 characters from the retrace characters.
-	//
-	int non_active_chars = max(0,mCharCols_R0 - (mActiveRowChars_R1 + mCharSkew_R8));
-	int hz_half_blanking_chars = min((int) round(0.16 * mCharCols_R0 / 2), non_active_chars);
-	int hz_blanking_chars = 2 * hz_half_blanking_chars;
-	int hz_sync_mid_point = round(mHzSyncPos_R2 + mHzSyncPulseW_R3 / 2.0);
-	int blanking_start_pos = (hz_sync_mid_point - hz_half_blanking_chars + mCharCols_R0) % mCharCols_R0;
-	int blanking_end_pos = (hz_sync_mid_point + hz_half_blanking_chars - 1) % mCharCols_R0;
-	//cout << "Hz blanking: " << dec << blanking_start_pos << " => " << blanking_end_pos << " for blanking of " << hz_blanking_chars << " (" << mCharCols_R0 << ")\n";
-	if (blanking_start_pos + hz_blanking_chars >= mCharCols_R0) {
-		// +-------------------------------------------------+
-		// |                 all characters                  |
-		// +------+-------------------+----------------------+
-		// | skew | active chars      | non-active chars     |
-		// +------+---+---------------+------------------+---+
-		//  SP (cont) |                                  | SP 
-		// -----------+----------------------------------+----
-		mLeftBorderChars = 0;
-		mRightBorderChars = max(0,non_active_chars - (mCharCols_R0 - blanking_start_pos));
-		int active_chars = mActiveRowChars_R1 + mCharSkew_R8 - max(blanking_end_pos, mCharSkew_R8);
-		mVisibleChars = mLeftBorderChars + active_chars + mRightBorderChars;
-	}
-
-	else if (blanking_start_pos >= mActiveRowChars_R1 + mCharSkew_R8) {
-		// +-------------------------------------------------+
-		// |                 all characters                  |
-		// +------+-------------------+----------------------+
-		// | skew | active chars      | non-active chars     |
-		// +------+-------------------+---+----+-------------+
-		// |                              | SP |             |
-		// +------------------------------+----+-------------+
-		mLeftBorderChars = mCharCols_R0 - (blanking_start_pos + hz_blanking_chars) + mCharSkew_R8;
-		mRightBorderChars = blanking_start_pos - (mActiveRowChars_R1 + mCharSkew_R8);
-		int active_chars = mActiveRowChars_R1;
-		mVisibleChars = mLeftBorderChars + active_chars + mRightBorderChars;
-	}
-	else if (blanking_start_pos + hz_blanking_chars >= mActiveRowChars_R1 + mCharSkew_R8) {
-		// +-------------------------------------------------+
-		// |                 all characters                  |
-		// +------+-------------------+----------------------+
-		// | skew | active chars      | non-active chars     |
-		// +-----------------------+--+-+--------------------+
-		// |                       | SP |                    |
-		// +-----------------------+----+--------------------+
-		mLeftBorderChars = mCharCols_R0 - (blanking_start_pos + hz_blanking_chars) + mCharSkew_R8;
-		mRightBorderChars = 0;
-		int active_chars = hz_blanking_chars - mCharSkew_R8;
-		mVisibleChars = mLeftBorderChars + active_chars + mRightBorderChars;
-	}
-	else { // blanking_start_pos + hz_blanking_chars < mActiveRowChars_R1 + mCharSkew_R8
-		// +-------------------------------------------------+
-		// |                 all characters                  |
-		// +------+-------------------+----------------------+
-		// | skew | active chars      | non-active chars     |
-		// +----+----+----------------+----------------------+
-		// |    | SP |                                       |
-		// +----+----+---------------------------------------+
-		mLeftBorderChars = 0;
-		mRightBorderChars = non_active_chars + mCharSkew_R8;
-		int active_chars = mActiveRowChars_R1 + mCharSkew_R8 - blanking_start_pos;
-		mVisibleChars = mLeftBorderChars + active_chars + mRightBorderChars;
-	}
-	mRetraceChars = 0;
-/*
-	mRetraceChars = mCharCols_R0 - mActiveRowChars_R1 - mHzSyncPulseW_R3 - 3;
-	mRightBorderChars = max(0,mHzSyncPos_R2 - (mActiveRowChars_R1 + mCharSkew_R8) - mRetraceChars / 2);				// chars after active ones and before HZ sync pulse
-	mLeftBorderChars = max(0, mCharSkew_R8 + mCharCols_R0 - (mHzSyncPos_R2 + mHzSyncPulseW_R3 ) - mRetraceChars / 2);	// chars after HZ sync pulse and before active ones
-	mVisibleChars = mLeftBorderChars + mActiveRowChars_R1 + mRightBorderChars;								// all chars except the sync pulse
-*/
-
 	// After power-on each writable register should have been updated to consider the
 	// CRTC as ready for operation
 	if (reg < 16) {
@@ -741,23 +525,11 @@ void CRTC6845::printSettings()
 	cout << "Start address [R12:R13]:                            0x" << hex << mStartAdr_R12_R13 << dec << "\n";
 	cout << "Cursor position [R14:R15]:                          0x" << hex << ((mReg[R14_CursorH] << 8) | mReg[R15_CursorL]) << dec << "\n";
 	cout << "Field Rate [CLK,R0,R4,R9,R5]:                       " << getFieldRate() << "\tHz\n";
-	cout << "Retrace lines:                                      " << mRetraceLines << "\tlines\n";
-	cout << "Top border lines:                                   " << mTopBorderLines << "\tlines\n";
-	cout << "Bottom border lines:                                " << mBottomBorderLines << "\tlines\n";
-	cout << "Retrace characters per line:                        " << mRetraceChars << "\tchars\n";
-	cout << "Left border chars:                                  " << mLeftBorderChars << "\tchars\n";
-	cout << "Right border chars:                                 " << mRightBorderChars << "\tchars\n";
 	int cursor_disp_mode = (mReg[R10_CursorStart] >> 5) & 0x3; // 00: Non-blink,  01: non-display, 10: blink 16-field, 11: blink 32-field
 	cout << "Cursor mode:                                        " << (cursor_disp_mode==0?"Fixed":(cursor_disp_mode==1?"None":(cursor_disp_mode==2?"Blink-16":"Blink-32"))) <<
 		"\n";
 }
 
-bool CRTC6845::getVisibleCharArea(int &charsPerLine, int &lines)
-{
-	charsPerLine = mLeftBorderChars + mActiveRowChars_R1 + mRightBorderChars;
-	lines = mVisibleScanLines;
-	return true;
-}
 
 inline double CRTC6845::getScanLineDuration()
 {

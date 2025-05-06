@@ -178,8 +178,6 @@ public:
 
 public:
 
-	bool getVisibleArea(int& w, int& h) { w = mScreenW; h = mScreenH; return true; }
-
 	ALLEGRO_COLOR green, black;
 
 	VDU6847(string name, uint16_t adr, double clockSpeed, uint8_t wait_states, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager);

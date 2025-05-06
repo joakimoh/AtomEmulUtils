@@ -129,8 +129,6 @@ public:
 
 public:
 
-	bool getVisibleArea(int& w, int& h);
-
 	ALLEGRO_COLOR green, black;
 
 	BeebVideoULA(string name, uint16_t adr, double cpuclock, uint8_t waitStates, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager);

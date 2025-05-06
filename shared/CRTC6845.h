@@ -119,33 +119,23 @@ public:
 
 
 	// Vertical scan lines: top border, active lines, sync pulse, bottom border (all in unit 'line')
-	int mTopBorderRows = 0;
-	int mTopBorderLines = 0;
 	int mActiveLines_R6xR9 = 1; // A multiple of mCharLines_R9
 	int mScreenActiveLines = 1;
 	int mActiveRows_R6 = 1;
 	int mVSyncRow_R7 = 1;
 	int mVSyncLine_R7xR9 = 1;
 	int mVSyncPulseH_R3 = 1;
-	int mBottomBorderLines = 0;
-	int mVisibleScanLines = 1; // mTopBorderLines + mActiveLines_R6xR9 + mBottomBorderLines
 	int mCharRows_R4 = 1;
 
 	int mScreenVSyncLine = 1;
 	int mScreenVSyncPulseH = 1;
 
 	int mScreenScanLines = 1; // the no of scan lines that are unique per pair of field (ie. one frame) (should be ~625 for PAL and ~525 for NTSC)
-	int mRetraceLines = 1;
 
-	// Horizontal line: left border, active chars, sync pulse, right border (all in unit 'char')
-	int mLeftBorderChars = 0;
 	int mActiveRowChars_R1 = 1;
 	int mHzSyncPos_R2 = 1;
 	int mHzSyncPulseW_R3 = 1;
-	int mRightBorderChars = 0;
-	int mVisibleChars = 1; // mLeftBorderChars + mActiveChars + mRightBorderChars
 	int mCharCols_R0 = 1;
-	int mRetraceChars = 1;
 	int mCharSkew_R8 = 0;
 	int mCursSkew_R8 = 0;
 	int mField = 0;
@@ -160,12 +150,6 @@ public:
 	int mInitialised = false;
 
 public:
-
-	bool getVisibleCharArea(int& charsPerLine, int& lines);
-	bool getVisibleArea(int& w, int& h) {
-		// Not supported as cannot be calculated by the M6845 iself
-		return false;
-	}
 
 	void updateSettings(uint8_t reg);
 	void printSettings();

@@ -186,6 +186,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	int visible_scan_line = (mScanLine - vt_visible_line_offset + mScreenScanLines) % mScreenScanLines;
 	int active_scan_line = mScanLine;
+	int field_scan_line = (mScanLine - mVerticalSyncPos + mScreenScanLines) % mScreenScanLines;
 
 	// Update screen size if required
 	updateScreenSz(hz_visible_pixels, vt_visible_pixels, hz_active_resolution, mActiveLines);
@@ -202,10 +203,11 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			", video content: " << hz_video_content << " (" << (hz_video_content / hz_chars) << ")" <<
 			", blanking: " << hz_blanking_spec << " (" << (hz_blanking_spec / hz_chars) << ")" <<
 			", visible char pos offset: " << hz_visible_char_poffset <<
+			", visible line offset: " << vt_visible_line_offset <<
 			"\n";
 	}
 
-	int field_rate = (int)round(mCRTC->getFieldRate());
+	int field_rate = (int)round(getFieldRate());
 	if (adjusted_scanline == 0) {
 
 		if (mDM->debug(DBG_TIME) && mField == 0) {
@@ -283,13 +285,18 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	if (visible_scan_line < vt_visible_pixels)
 		line_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
 
-	if (false) {
-		cout << "\n\n" << dec << setw(3) << mScanLine << " V" << hz_visible_chars << " A" << hz_active_chars << " O" << hz_visible_char_poffset << "\n";
+	if (true) {
+		cout << "\n\n" << dec << setw(3) << mScanLine << " (F" << field_scan_line << ",R" << mCRTC->mCharRow << ") V" << hz_visible_chars << " A" << hz_active_chars << " O" << hz_visible_char_poffset << "\n";
 		cout << "Pixels/char: " << mPixelsPerCharacter << ", pixel width: " << (int) mPixelW << "\n";
+		
 		if (visible_scan_line < vt_visible_pixels)
 			cout << "VISIBLE LINE " << dec << visible_scan_line << " (" << vt_visible_pixels << ")\n";
 		else
 			cout << "INVISIBLE LINE\n";
+		if (field_scan_line > vt_blanking)
+			cout << "VIDEO LINE\n";
+		else
+			cout << "NO VIDEO LINE\n";
 		if (adjusted_scanline >= mVerticalSyncPos && adjusted_scanline < mVerticalSyncPos + vt_sync_height_cfg)
 			cout << "*** VERTICAL SYNC ***\n";
 		cout << "SYN:";
@@ -302,7 +309,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		cout << "\nACT:";
 		for (int char_pos = 0; char_pos < hz_chars; char_pos++) {
 			int active_char_pos = (char_pos - hz_disp_skew + hz_chars) % hz_chars;
-			if (active_char_pos < hz_active_chars)
+			if (active_char_pos < hz_active_chars && active_scan_line < mActiveLines)
 				cout << "A";
 			else
 				cout << "_";
@@ -398,12 +405,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			auto tt_dur = chrono::duration_cast<chrono::nanoseconds>(tt_stop - tt_start);
 			mTTCnt += tt_dur.count();
 		}
-		/*
+		
 		if (dis_ena)
 			cout << "D";
 		else
 			cout << "_";
-		*/
+		
 		if (dis_ena)
 			// Active area of an active line
 			//
@@ -595,11 +602,11 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 		return false;
 	}
 
-	mScanLine = mCRTC->getScreenScanLine();
-	mScreenScanLines = mCRTC->getScreenScanLines();
-	mVerticalSyncPos = mCRTC->getVerticalSyncLine();
+	mScanLine = getScreenScanLine();
+	mScreenScanLines = getScreenScanLines();
+	mVerticalSyncPos = getVerticalSyncLine();
 
-	mActiveLines = mCRTC->getActiveLines();
+	mActiveLines = getActiveLines();
 
 	if (getCRField(CR_CLOCK_RATE) == 1)
 		updatePort(CRTC_CLK, 2);
@@ -623,7 +630,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	}
 
 	// Drawn horizontal screen pixels per character symbol (8 for modes 0 to 3, 16 for modes 4-7)
-	mHzScreenPixelsPerChar = 128 * 8 / mCRTC->getCharsPerLine();
+	mHzScreenPixelsPerChar = 128 * 8 / getCharsPerLine();
 
 	// Vertical pixels per character row is normally the same as twice no of raster lines
 	// except for the interlace video mode where it is identical to the raster lines
@@ -711,12 +718,6 @@ void BeebVideoULA::unlockDisplay()
 	al_restore_state(&mAllegroState);
 }
 
-bool BeebVideoULA::getVisibleArea(int& w, int& h)
-{
-	w = mScreenW;
-	h = mScreenH;
-	return true;
-}
 
 double BeebVideoULA::getScanLineDuration()
 {
