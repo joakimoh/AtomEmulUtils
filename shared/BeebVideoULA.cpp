@@ -285,7 +285,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	if (visible_scan_line < vt_visible_pixels)
 		line_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
 
-	if (true) {
+	if (false) {
 		cout << "\n\n" << dec << setw(3) << mScanLine << " (F" << field_scan_line << ",R" << mCRTC->mCharRow << ") V" << hz_visible_chars << " A" << hz_active_chars << " O" << hz_visible_char_poffset << "\n";
 		cout << "Pixels/char: " << mPixelsPerCharacter << ", pixel width: " << (int) mPixelW << "\n";
 		
@@ -406,10 +406,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			mTTCnt += tt_dur.count();
 		}
 		
-		if (dis_ena)
-			cout << "D";
-		else
-			cout << "_";
+		if (false) {
+			if (dis_ena)
+				cout << "D";
+			else
+				cout << "_";
+		}
 		
 		if (dis_ena)
 			// Active area of an active line
