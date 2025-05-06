@@ -172,8 +172,8 @@ bool TT5050::advance(uint64_t stopCycle)
 // Called by the display unit fetching the data from the page memory on 1 us character basis
 // 
 // pageData:			Data read from the page memory
-// screenData:			One scan line of one of the following:
-//						- 12 x 20 pixel symbol interpolated from an 6 x 10 symbolc, or
+// screenData:			One character column of a scan line made up of one of the following:
+//						- 12 x 20 pixel symbol interpolated from an 6 x 10 symbolic, or
 //						- 2 x 3 graphics encoded as 12 x 20 pixels
 // 
 // Returns true if data was enabled (LOSE active) and the TCG was properly initialised; otherwise false is returned	
@@ -277,7 +277,10 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 
 		if (draw_sixels) {
 
-			// Create one scan line of two "big" pixels (sixels) occupying 2 x 6 actual pixels
+			//
+			// Create one raster line made up of a graphical symbol that is made up of two "big" pixels (sixels) occupying 2 x 6 actual pixels
+			//
+
 			uint8_t left_sixel, right_sixel;
 
 			if (mCharRasterLine < 6) { // 6 raster lines for top sixels
@@ -325,7 +328,11 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 		}
 
 		else {
-			
+
+			//
+			// Create one raster line of a symbol
+			//
+
 			// Create 12 pixels of the correct colour
 			int raster_line = mCharRasterLine;
 			if (mDoubleHeight) {
@@ -349,8 +356,11 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 			}
 		}
 
-
+		//
 		// Stretch 12-pixel wide sixel/character raster line into 16 pixels
+		// Also scale the BGR values from the initial range 0:1 to the range 0:255
+		//
+
 		for (int i = 0; i < 16; i++) {
 			uint8_t val = screenData12[mStretchMatrix[i].srcLeftPixel] * mStretchMatrix[i].leftFactor +
 				screenData12[mStretchMatrix[i].srcRightPixel] * mStretchMatrix[i].rightFactor;
@@ -421,6 +431,4 @@ void  TT5050::processPortUpdate(int index)
 		pDEW = mDEW;
 	}
 
-	else if (index == LOSE && mLOSE == 1) {	
-	}
 }

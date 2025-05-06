@@ -134,7 +134,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	mCycleCount += cycle_count;
 	endCycle = mCycleCount;
 
-	// Make sure internal state is up-to-date and synchonised with that of the CRTC
+	// Make sure internal state is up-to-date and synchronised with that of the CRTC
 	if (!validateInternalState(mControlRegister))
 		return true;
 
@@ -370,11 +370,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		if (screen_adr >= 0x8000) {
 			//cout << "SCROLLING - subtracting 0x" << hex << screen_adr << " by 0x" << mHwScrollSub << " for C1:C0 = " << Utility::int2binStr(mC,2) << "\n";
 			screen_adr -= mHwScrollSub; // correct for wrap around when hardware scrolling		
-		}
-
-		if (adjusted_scanline < mActiveLines && char_pos >= hz_disp_skew && char_pos < hz_active_chars + hz_disp_skew && (screen_adr >= 0x8000 || screen_adr < 0x3000)) { // exit if the CRTC hasn't been properly initialised yet!
-			//cout << "CRTC not ready - got address " << hex << (crtc_adr * 8 + (mRA & 0x7)) << " for line " << dec << mScanLine << ", pos " << char_pos << " and for #active chars of " << hz_active_chars << "\n";
-			return false;
 		}
 
 		// 
@@ -809,22 +804,6 @@ int BeebVideoULA::getScreenScanLine()
 	return mCRTC->getScreenScanLine();
 }
 
-int BeebVideoULA::getLeftBorderChars()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getLeftBorderChars();
-	else
-		return 0;
-}
-
-int BeebVideoULA::getTopBorderLines()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getTopBorderLines();
-	else
-		return 0;
-}
-
 int BeebVideoULA::getActiveLines()
 {
 	if (mCRTC != NULL && mCRTC->initialised())
@@ -839,38 +818,6 @@ int BeebVideoULA::getActiveCharRows()
 		return mCRTC->getActiveCharRows();
 	else
 		return 20;
-}
-
-int BeebVideoULA::getRightBorderChars()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getRightBorderChars();
-	else
-		return 10;
-}
-
-int BeebVideoULA::getBottomBorderLines()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getBottomBorderLines();
-	else
-		return 10;
-}
-
-int BeebVideoULA::getRetraceLines()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getRetraceLines();
-	else
-		return 10;
-}
-
-int BeebVideoULA::getRetraceChars()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getRetraceChars();
-	else
-		return 10;
 }
 
 int BeebVideoULA::getHorizontalSyncWidth()
@@ -888,11 +835,9 @@ bool BeebVideoULA::connectDevice(Device* dev)
 
 	if (dev != NULL && dev->devType == CRTC6845_DEV) {
 		mCRTC = (CRTC6845*)dev;
-		//cout << "CRTC connected!\n";
 	}
 	if (dev != NULL && dev->devType == TT_5050_DEV) {
 		mTGC = (TT5050*)dev;
-		//cout << "TGC connected!\n";
 	}
 
 	return true;

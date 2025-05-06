@@ -192,15 +192,10 @@ public:
 	inline int getCharsPerLine();
 	inline int getScreenScanLine() { return mScanLine;  }
 
-	inline int getLeftBorderChars();
-	inline int getTopBorderLines();
 	inline int getActiveCharsPerLine();
 	inline int getActiveCharRows();
 	inline int getActiveLines();
-	inline int getRightBorderChars();
-	inline int getBottomBorderLines();
-	inline int getRetraceLines();
-	inline int getRetraceChars();
+
 	inline void getSkew(int& displaySkew, int& cursorSkew) { displaySkew = mCharSkew_R8; cursorSkew = mCursSkew_R8; }
 
 	//

@@ -249,7 +249,6 @@ int main(int argc, const char* argv[])
             int screen_scan_line = vdu->getScreenScanLine();
             int field = vdu->fieldScanLineOffset();
             int active_lines = vdu->getActiveLines();
-            int bottom_border_lines = vdu->getBottomBorderLines();
             int adjusted_scanline = screen_scan_line - field;
             int n_screen_scan_lines = vdu->getScreenScanLines();
             bool interlaced_mode = vdu->interlaceOn();

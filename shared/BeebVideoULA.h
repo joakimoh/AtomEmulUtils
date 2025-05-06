@@ -151,15 +151,11 @@ public:
 	inline int getCharsPerLine();
 	inline int getActiveCharsPerLine();
 	inline int getScreenScanLine();
-	inline int getLeftBorderChars();
-	inline int getTopBorderLines();
 	inline int getActiveCharRows();
-	inline int getActiveLines();
-	inline int getRightBorderChars();
-	inline int getBottomBorderLines();
-	inline int getRetraceLines();
-	inline int getRetraceChars();
 	inline int getScreenScanLines();
+	inline int getActiveLines();
+
+
 
 	//
 	// Interlace-related methods

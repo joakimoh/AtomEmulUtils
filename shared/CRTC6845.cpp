@@ -814,16 +814,6 @@ inline int CRTC6845::getCharsPerLine()
 	return mCharCols_R0;
 }
 
-inline int CRTC6845::getLeftBorderChars()
-{
-	return mLeftBorderChars;
-}
-
-inline int CRTC6845::getTopBorderLines()
-{
-	return mTopBorderLines;
-}
-
 inline int CRTC6845::getActiveCharsPerLine()
 {
 	return mActiveRowChars_R1;
@@ -839,25 +829,6 @@ inline int CRTC6845::getActiveCharRows()
 	return mActiveRows_R6;
 }
 
-inline int CRTC6845::getRightBorderChars()
-{
-	return mRightBorderChars;
-}
-
-inline int CRTC6845::getBottomBorderLines()
-{
-	return mBottomBorderLines;
-}
-
-inline int CRTC6845::getRetraceLines()
-{
-	return mRetraceLines;
-}
-
-inline int CRTC6845::getRetraceChars()
-{
-	return mRetraceChars;
-}
 
 // Check if interlace is enabled (On)
 inline bool CRTC6845::interlaceOn()

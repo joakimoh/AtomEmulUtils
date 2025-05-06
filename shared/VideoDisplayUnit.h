@@ -70,14 +70,8 @@ public:
 	virtual int getCharsPerLine() = 0;
 	virtual int getActiveCharsPerLine() = 0;
 	virtual int getScreenScanLine() = 0;
-	virtual inline int getLeftBorderChars() = 0;
-	virtual inline int getRightBorderChars() = 0;
-	virtual inline int getTopBorderLines() = 0;
-	virtual inline int getBottomBorderLines() = 0;
 	virtual inline int getActiveLines() = 0;
 	virtual inline int getActiveCharRows() = 0;
-	virtual inline int getRetraceLines() = 0;
-	virtual inline int getRetraceChars() = 0;
 	virtual inline int getScreenScanLines() = 0;
 	virtual inline int fieldScanLineOffset() = 0;
 
