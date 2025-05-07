@@ -375,7 +375,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			screen_adr = crtc_adr + (0x7400 ^ 0x2000); // CRTC MA13 is used to select the SA5050 and is cleared by 0x2000
 		}
 		if (screen_adr >= 0x8000) {
-			//cout << "SCROLLING - subtracting 0x" << hex << screen_adr << " by 0x" << mHwScrollSub << " for C1:C0 = " << Utility::int2binStr(mC,2) << "\n";
+			if (false)
+				cout << "SCROLLING - subtracting 0x" << hex << screen_adr << " by 0x" << mHwScrollSub << " for char pos " << dec << 
+					char_pos << " and C1:C0 = " << Utility::int2binStr(mC,2) << "\n";
 			screen_adr -= mHwScrollSub; // correct for wrap around when hardware scrolling		
 		}
 
