@@ -190,47 +190,49 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 	// Advance time 1 us
 	mCycleCount += max(1, (int) round(mCPUClock / 1.0));
 
-	// Only the lower 7 bits are connected to the TCG
-	uint8_t char_data = pageData & 0x7f;
-	bool draw_sixels = mGraphicSymbols && (char_data & 0x20) != 0;
-	// Check for teletext control codes	
-	if (char_data < 0x20) {
-		switch (char_data) {
-		case TT_NULL:
-			break;
-		case TT_ALPHA_RED:			mAlpaNumericColour = mColours[TT_RED];			mHiddenText = false;			mGraphicSymbols = false;			break; 		case TT_ALPHA_GREEN:			mAlpaNumericColour = mColours[TT_GREEN];			mHiddenText = false;			mGraphicSymbols = false;			break; 		case TT_ALPHA_YELLOW:			mAlpaNumericColour = mColours[TT_YELLOW];			mHiddenText = false;			mGraphicSymbols = false;			break; 		case TT_ALPHA_BLUE:
-			mAlpaNumericColour = mColours[TT_BLUE];
-			mHiddenText = false;
-			mGraphicSymbols = false;
-			break;
-		case TT_ALPHA_MAGENTA:			mAlpaNumericColour = mColours[TT_MAGENTA];			mHiddenText = false;			mGraphicSymbols = false;			break; 		case TT_ALPHA_CYAN:			mAlpaNumericColour = mColours[TT_CYAN];			mHiddenText = false;			mGraphicSymbols = false;			break; 		case TT_ALPHA_WHITE:
-			mAlpaNumericColour = mColours[TT_WHITE];
-			mHiddenText = false;
-			mGraphicSymbols = false;
-			break;
-		case TT_FLASH:			/*			// Flash characters with 0.75 Hz (3:1 on/off ratio).			// The foreground and background colours are interchanged when flashing.			*/			mFlash = true;			break; 		case TT_STEADY:
-			mFlash = false;
-			break;
-			// These codes are not used
-		case TT_END_BOX: 		case TT_START_BOX:			break;
-		case TT_NORMAL_HEIGHT:			mDoubleHeight = false;			break; 		case TT_DOUBLE_HEIGHT:			/*			// Double-height characters are split onto rows where the first row			// contains the upper half of the double-height character and the second			// row contains the lower half ot the same double-height character.			// The first row of a pair of double-height characters can mix single			// and double-height characters whereas the second row cannt (if mixed			// the single-height ones will become invisible).			*/			mDoubleHeight = true;			if (mDoubleHeightHalf == -1)				mDoubleHeightHalf = 0;			break;
-			// These codes are not used
-		case TT_S0: 		case TT_S1:	
-		case TT_DLE:			break;
-		case TT_GRAPHICS_RED:			mGraphicsColour = mColours[TT_RED];			mHiddenText = false;			mGraphicSymbols = true;			break; 		case TT_GRAPHICS_GREEN:			mGraphicsColour = mColours[TT_GREEN];			mHiddenText = false;			mGraphicSymbols = true;			break; 		case TT_GRAPHICS_YELLOW:			mGraphicsColour = mColours[TT_YELLOW];			mHiddenText = false;			mGraphicSymbols = true;			break; 		case TT_GRAPHICS_BLUE:			mGraphicsColour = mColours[TT_BLUE];			mHiddenText = false;			mGraphicSymbols = true;			break;
-		case TT_GRAPHICS_MAGENTA:			mGraphicsColour = mColours[TT_MAGENTA];			mHiddenText = false;			mGraphicSymbols = true;			break; 		case TT_GRAPHICS_CYAN:			mGraphicsColour = mColours[TT_CYAN];			mHiddenText = false;			mGraphicSymbols = true;			break; 		case TT_GRAPHICS_WHITE:			mGraphicsColour = mColours[TT_WHITE];			mHiddenText = false;			mGraphicSymbols = true;			break;
-		case TT_CONCEAL:			/*			// Subsequent text in the row will be hidden (displayed as spaces in the current background colour) until			// the next text colour or graphics colour control code is encountered.			*/			mHiddenText = true;			break; 		case TT_CONTIGUOUS_GRAPHICS:			mSeparatedGraphics = false;			break; 		case TT_SEPARATED_GRAPHICS:			mSeparatedGraphics = true;			break;
-		case TT_ESC:			break; 		case TT_BLACK_BACKGROUND:			mBackgroundColour = mColours[TT_BLACK];			break; 		case TT_NEW_BACKGROUND:			mBackgroundColour = mAlpaNumericColour;			break;
-		case TT_HOLD_GRAPHICS:			// In the held graphics mode, control codes are displayed as a copy of the most recently displayed graphics symbol.			mHeldGraphics = true;			break;		case TT_RELEASE_GRAPHICS:
-			mHeldGraphics = false;
-			break;
-		default:
-			break;
-		}
-	}
-
-	// Generate output
 	if (mLOSE) {
+
+		// Only the lower 7 bits are connected to the TCG
+		uint8_t char_data = pageData & 0x7f;
+		bool draw_sixels = mGraphicSymbols && (char_data & 0x20) != 0;
+		// Check for teletext control codes	
+		if (char_data < 0x20) {
+			switch (char_data) {
+			case TT_NULL:
+				break;
+			case TT_ALPHA_RED:				mAlpaNumericColour = mColours[TT_RED];				mHiddenText = false;				mGraphicSymbols = false;				break;			case TT_ALPHA_GREEN:				mAlpaNumericColour = mColours[TT_GREEN];				mHiddenText = false;				mGraphicSymbols = false;				break;			case TT_ALPHA_YELLOW:				mAlpaNumericColour = mColours[TT_YELLOW];				mHiddenText = false;				mGraphicSymbols = false;				break;			case TT_ALPHA_BLUE:
+				mAlpaNumericColour = mColours[TT_BLUE];
+				mHiddenText = false;
+				mGraphicSymbols = false;
+				break;
+			case TT_ALPHA_MAGENTA:				mAlpaNumericColour = mColours[TT_MAGENTA];				mHiddenText = false;				mGraphicSymbols = false;				break;			case TT_ALPHA_CYAN:				mAlpaNumericColour = mColours[TT_CYAN];				mHiddenText = false;				mGraphicSymbols = false;				break;			case TT_ALPHA_WHITE:
+				mAlpaNumericColour = mColours[TT_WHITE];
+				mHiddenText = false;
+				mGraphicSymbols = false;
+				break;
+			case TT_FLASH:				/*				// Flash characters with 0.75 Hz (3:1 on/off ratio).				// The foreground and background colours are interchanged when flashing.				*/				mFlash = true;				break;			case TT_STEADY:
+				mFlash = false;
+				break;
+				// These codes are not used
+			case TT_END_BOX:			case TT_START_BOX:				break;
+			case TT_NORMAL_HEIGHT:				mDoubleHeight = false;				break;			case TT_DOUBLE_HEIGHT:				/*				// Double-height characters are split onto rows where the first row				// contains the upper half of the double-height character and the second				// row contains the lower half ot the same double-height character.				// The first row of a pair of double-height characters can mix single				// and double-height characters whereas the second row cannt (if mixed				// the single-height ones will become invisible).				*/				mDoubleHeight = true;				if (mDoubleHeightHalf == -1)					mDoubleHeightHalf = 0;				break;
+				// These codes are not used
+			case TT_S0:			case TT_S1:
+			case TT_DLE:				break;
+			case TT_GRAPHICS_RED:				mGraphicsColour = mColours[TT_RED];				mHiddenText = false;				mGraphicSymbols = true;				break;			case TT_GRAPHICS_GREEN:				mGraphicsColour = mColours[TT_GREEN];				mHiddenText = false;				mGraphicSymbols = true;				break;			case TT_GRAPHICS_YELLOW:				mGraphicsColour = mColours[TT_YELLOW];				mHiddenText = false;				mGraphicSymbols = true;				break;			case TT_GRAPHICS_BLUE:				mGraphicsColour = mColours[TT_BLUE];				mHiddenText = false;				mGraphicSymbols = true;				break;
+			case TT_GRAPHICS_MAGENTA:				mGraphicsColour = mColours[TT_MAGENTA];				mHiddenText = false;				mGraphicSymbols = true;				break;			case TT_GRAPHICS_CYAN:				mGraphicsColour = mColours[TT_CYAN];				mHiddenText = false;				mGraphicSymbols = true;				break;			case TT_GRAPHICS_WHITE:				mGraphicsColour = mColours[TT_WHITE];				mHiddenText = false;				mGraphicSymbols = true;				break;
+			case TT_CONCEAL:				/*				// Subsequent text in the row will be hidden (displayed as spaces in the current background colour) until				// the next text colour or graphics colour control code is encountered.				*/				mHiddenText = true;				break;			case TT_CONTIGUOUS_GRAPHICS:				mSeparatedGraphics = false;				break;			case TT_SEPARATED_GRAPHICS:				mSeparatedGraphics = true;				break;
+			case TT_ESC:				break;			case TT_BLACK_BACKGROUND:				mBackgroundColour = mColours[TT_BLACK];				break;			case TT_NEW_BACKGROUND:				mBackgroundColour = mAlpaNumericColour;				break;
+			case TT_HOLD_GRAPHICS:				// In the held graphics mode, control codes are displayed as a copy of the most recently displayed graphics symbol.				mHeldGraphics = true;				break;			case TT_RELEASE_GRAPHICS:
+				mHeldGraphics = false;
+				break;
+			default:
+				break;
+			}
+		}
+
+		// Generate output
+
 		uint8_t symbol_index = 0x0;
 
 		TTColour background_colour = mBackgroundColour;
@@ -244,10 +246,11 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 			else { // draw control char as last graphics symbol
 				foreground_colour = mGraphicsColour;
 				symbol_index = mLastGraphicsSymbolIndex;
+				if (!mGraphicSymbols)					cout << "HELD GRAPHICS!\N";
 				mGraphicSymbols = true;
 			}
-		} 
-			
+		}
+
 		// Character or graphical symbol to be displayed
 		else {
 
@@ -296,7 +299,7 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 				if (mSeparatedGraphics && (mCharRasterLine == 6 || mCharRasterLine == 13)) {
 					left_sixel = right_sixel = 0;
 				}
-				else { 
+				else {
 					left_sixel = (char_data >> 2) & 0x1;
 					right_sixel = (char_data >> 3) & 0x1;
 				}
@@ -313,17 +316,17 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 			if (mSeparatedGraphics) {
 				screenData12[0] = 0;
 				for (int p = 1; p < 5; p++)
-					screenData12[p]= left_sixel;
+					screenData12[p] = left_sixel;
 				screenData12[6] = screenData12[7] = 0;
 				for (int p = 1; p < 5; p++)
-					screenData12[p+6]= right_sixel;
+					screenData12[p + 6] = right_sixel;
 				screenData12[11] = 0;
 			}
 			else {
 				for (int p = 0; p < 6; p++)
 					screenData12[p] = left_sixel;
 				for (int p = 0; p < 6; p++)
-					screenData12[p+6] = right_sixel;
+					screenData12[p + 6] = right_sixel;
 			}
 		}
 
@@ -362,21 +365,22 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 		//
 
 		for (int i = 0; i < 16; i++) {
-			uint8_t val = screenData12[mStretchMatrix[i].srcLeftPixel] * mStretchMatrix[i].leftFactor +
-				screenData12[mStretchMatrix[i].srcRightPixel] * mStretchMatrix[i].rightFactor;
-			TTColour pixel_colour = background_colour;
-			if (val > 0) {
-				pixel_colour.B = val * foreground_colour.B;
-				pixel_colour.G = val * foreground_colour.G;
-				pixel_colour.R = val * foreground_colour.R;
+				uint8_t val = screenData12[mStretchMatrix[i].srcLeftPixel] * mStretchMatrix[i].leftFactor +
+					screenData12[mStretchMatrix[i].srcRightPixel] * mStretchMatrix[i].rightFactor;
+				TTColour pixel_colour = background_colour;
+				if (val > 0) {
+					pixel_colour.B = val * foreground_colour.B;
+					pixel_colour.G = val * foreground_colour.G;
+					pixel_colour.R = val * foreground_colour.R;
+				}
+				else {
+					pixel_colour.B = 255 * background_colour.B;
+					pixel_colour.G = 255 * background_colour.G;
+					pixel_colour.R = 255 * background_colour.R;
+				}
+				screenData[i] = pixel_colour;
 			}
-			else {
-				pixel_colour.B = 255 * background_colour.B;
-				pixel_colour.G = 255 * background_colour.G;
-				pixel_colour.R = 255 * background_colour.R;
-			}
-			screenData[i] = pixel_colour;
-		}
+
 	}
 
 	return mLOSE;
