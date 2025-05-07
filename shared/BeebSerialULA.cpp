@@ -2,6 +2,7 @@
 #include "ACIA6850.h"
 #include "Device.h"
 #include "Utility.h"
+#include <cmath>
 
 BeebSerialULA::BeebSerialULA(
 	string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugManager* debugManager, ConnectionManager* connectionManager) :
