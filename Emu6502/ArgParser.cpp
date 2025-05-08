@@ -55,11 +55,11 @@ void ArgParser::printUsage(const char* name)
 	cout << "-dbg <string with one or more of the letters below>: Debugging of different detail.\n";
 	cout << "\t'e' errors\n";
 	cout << "\t'w' warnings\n";
-	cout << "\t'u' microprocessor execution\n";
+	cout << "\t'u' microprocessor execution (can also be enabled at run-time with <CRTL-D>)\n";
 	cout << "\t'p' device port updates\n";
 	cout << "\t'i' interrupts\n";
 	cout << "\t'k' keyboard\n";
-	cout << "\t'v' video display units\n";
+	cout << "\t'v' video display units (can also be enabled at run time with <CTRL-V>)\n";
 	cout << "\t's' serial/parallel I/O peripherals\n";
 	cout << "\t'd' device execution in general\n";
 	cout << "\t't' triggering on R/W accesses\n";

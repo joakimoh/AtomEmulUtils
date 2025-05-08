@@ -6,6 +6,10 @@
 #include <chrono>
 #include <cmath>
 #include <bitset>
+#include <iostream>
+#include <string>
+
+using namespace std;
 
 // 
 // The Video ULA sets up the 6847 CRTC.
@@ -156,14 +160,13 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int field_offset = fieldScanLineOffset();
 	int adjusted_scanline = mScanLine - field_offset;
 
-
 	// Calculate horizontal borders
 	double hz_front_porch_spec = 0.0258 * hz_chars;
 	double hz_back_porch_spec = 0.0891 * hz_chars;
 	double hz_sync_width_spec = 0.0734 * hz_chars;
 	double hz_blanking_spec = 0.1883 * hz_chars;
 	double hz_video_content = hz_chars - hz_blanking_spec;
-	double hz_visible_content = 0.73 * hz_chars; // 73% out of the liner duration is visible on a CRTC based on observation
+	double hz_visible_content = 0.73 * hz_chars; // 73% out of the line duration is visible on a CRTC based on observation
 	int hz_visible_chars = (int)round(hz_visible_content);
 	double hz_visible_offset = (hz_video_content - hz_visible_content) / 2;
 	int hz_visible_char_poffset = (int) round(hz_sync_pos + hz_sync_width_spec + hz_back_porch_spec + hz_visible_offset + hz_chars) % hz_chars;
@@ -171,7 +174,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// Calculate vertical borders
 	double vt_blanking = 0.08 * mScreenScanLines;
 	double vt_video_content = mScreenScanLines - vt_blanking;
-	double vt_visible_content = 0.9 * mScreenScanLines;
+	double vt_visible_content = 0.9 * mScreenScanLines;// 90% out of the field duration is visible on a CRTC based on observation
 	double vt_visible_offset = (vt_video_content - vt_visible_content) / 2;
 	int vt_visible_line_offset = (int)round(mVerticalSyncPos + vt_blanking + vt_visible_offset + mScreenScanLines) % mScreenScanLines;
 

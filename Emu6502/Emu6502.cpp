@@ -426,9 +426,19 @@ int main(int argc, const char* argv[])
                 arg_parser.debugManager.toggleCondition();
                 key_pressed = true;
             }
+
+            // Start video display unit tracing if user presses <CTRL-V>
+            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_V)) {
+                arg_parser.debugManager.setDebugLevel(DBG_VDU);
+                key_pressed = true;
+            }
         }
         else {
-            if (!al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && !al_key_down(&keyboard_state, ALLEGRO_KEY_D) && !al_key_down(&keyboard_state, ALLEGRO_KEY_T)) {
+            if (!al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) &&
+                !al_key_down(&keyboard_state, ALLEGRO_KEY_D) &&
+                !al_key_down(&keyboard_state, ALLEGRO_KEY_T) &&
+                !al_key_down(&keyboard_state, ALLEGRO_KEY_V)
+             ) {
                 key_pressed = false;
             }
         }
