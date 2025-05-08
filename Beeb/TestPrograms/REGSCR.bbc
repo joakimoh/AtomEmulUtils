@@ -1,0 +1,66 @@
+10 REM Intro to CRTC Registers by Kieran Connell.
+20 REM Hardware scrolling example.
+30 REM Use cursor keys to change start address.
+40 REM Use 0-3 to change wrap around address.
+50 REM Use T to toggle address markers.
+60 REM Press R to reset to default.
+70 DIM setsize 100
+80 FOR pass=0 TO 3 STEP 3
+90 P%=setsize
+100 [OPT pass
+110 SEI
+120 LDA #&0F:STA &FE42
+130 LDA &70:AND #1:ASL A:ASL A:ASL A:ORA #4:STA &FE40
+140 LDA &70:AND #2:ASL A:ASL A:ORA #5:STA &FE40
+150 CLI
+160 RTS
+170 ]
+180 NEXT
+190 MODE 1
+200 VDU 19,0,4;0;
+210 *FX4,1
+220 ON ERROR REPORT:PRINT;" at line ";ERL:END
+230 DIM ADDRS(3)
+240 FOR I%=0 TO 3:READ ADDRS(I%):NEXT
+250 FOR Y%=0 TO 31:PRINT TAB(0,Y%);Y%;:NEXT
+260 FOR X%=0 TO 39:PRINT TAB(X%,0);X%MOD10;:NEXT
+270 COLOUR 1
+280 FOR Y%=1 TO 30:PRINT TAB(38,Y%);Y%;:NEXT
+290 FOR X%=2 TO 38:PRINT TAB(X%,31);X%MOD10;:NEXT
+300 COLOUR 3
+310 PRINT TAB(6,11);"Use cursor keys to scroll";TAB(6,12);"0-3 to change wrap address";TAB(6,13);"T to toggle address markers";TAB(6,14);"Press R to reset to default"
+320 ?&7FFF=&10
+330 M%=&8000:S%=&280:T%=FALSE
+340 PROCresetaddr
+350 REPEAT
+360 PRINT TAB(8,4);"SCREEN ADDRESS: &";~A%;"    "
+370 PRINT TAB(8,5);"  CRTC R13/R12: &";~C%;"    ";
+380 PRINT TAB(8,8);"  WRAP ADDRESS: &";~ADDRS(?&70);"    ";TAB(8,5);
+390 K=GET
+400 *FX19
+410 IF K=139 AND A%>=S% THEN PROCsetaddr(A%-S%)
+420 IF K=138 AND A%<=M%-S% THEN PROCsetaddr(A%+S%)
+430 IF K=136 AND A%>=8 THEN PROCsetaddr(A%-8)
+440 IF K=137 AND A%<=M%-8 THEN PROCsetaddr(A%+8)
+450 IF K>=48 AND K<=51 THEN PROCsetsize(K-48)
+460 IF K=ASC("R") THEN PROCresetaddr
+470 IF K=ASC("T") THEN PROCtoggleaddrs(NOT T%)
+480 UNTIL FALSE
+490 END
+500 DEF PROCresetaddr
+510 PROCsetaddr(&3000)
+520 PROCsetsize(2)
+530 ENDPROC
+540 DEF PROCsetaddr(V%)
+550 A%=V%:C%=A% DIV 8
+560 ?&FE00=12:?&FE01=C%DIV256 : REM R12 = Screen start address HI
+570 ?&FE00=13:?&FE01=C%MOD256 : REM R13 = Screen start address LO
+580 ENDPROC
+590 DEF PROCsetsize(V%)
+600 ?&70=V%:CALL setsize
+610 ENDPROC
+620 DEF PROCtoggleaddrs(V%)
+630 T%=V%
+640 IF T%=TRUE THEN COLOUR 2:PRINT TAB(0,0);"<= &3000";TAB(16,6);"<= &4000";TAB(0,16);"<= &5800";TAB(8,19);"<= &6000":COLOUR 3 ELSE COLOUR 3:PRINT TAB(0,0);"01234567";TAB(16,6);"        ";TAB(0,16);"16      ";TAB(8,19);"        "
+650 ENDPROC
+660 DATA &4000,&6000,&3000,&5800
