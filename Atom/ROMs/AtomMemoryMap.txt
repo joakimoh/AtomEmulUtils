@@ -30,7 +30,7 @@ ADD	SRAM	GRAPHICS	8000	1800		0			// Graphics RAM - 6K
 ADD	ROM	WILLOW		A000	1000 		0	Willow.rom	// Willow Utility ROM
 ADD	PIA8255	PIA		b000	0004 		0			// PIA 8255
 ADD	VIA6522	VIA		b800	0010		0	1.0 		// VIA 6522
-ADD	ROM	BASIC		c000	1000 		0	Atom_basic.rom	// BASIC ROM
+ADD	ROM	BASIC		c000	1000 		0	Atom_Basic.rom	// BASIC ROM
 ADD	ROM	FP		d000	1000 		0	Atom_FloatingPoint.rom	// Floating-point ROM
 ADD	ROM	KERNEL		f000	1000 		0	Atom_Kernel.rom	// CAS ROM
 ADD	ATOMKB	ATOMKB								// Acorn Atom keyboard
