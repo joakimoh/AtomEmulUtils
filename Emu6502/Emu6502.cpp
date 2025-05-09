@@ -23,6 +23,7 @@
 #include <cmath>
 
 
+
 using namespace std;
 
 ALLEGRO_MENU_INFO main_menu[] = {
@@ -123,6 +124,10 @@ int main(int argc, const char* argv[])
     ALLEGRO_DISPLAY* disp = al_create_display(disp_w, disp_h); // Just an initial size - will be resized to fit the video display unit's preference later on!
     al_set_window_title(disp, "6502 System Emulator");
     ALLEGRO_BITMAP* disp_bm = al_get_target_bitmap();
+	if (al_get_bitmap_format(disp_bm) != ALLEGRO_PIXEL_FORMAT_ARGB_8888) {
+		cout << "Unsupported bitmap format!\n";
+		return -1;
+	}
 
     al_register_event_source(queue, al_get_display_event_source(disp));
    

@@ -28,7 +28,8 @@ private:
 
 	int mActiveLines = 200; // dummy init value
 
-	unsigned int* mMaxDisplayBitmap_p = NULL;
+	//unsigned int* mMaxDisplayBitmap_p = NULL;
+	uint32_t * mMaxDisplayBitmap_p = NULL;
 
 public:
 

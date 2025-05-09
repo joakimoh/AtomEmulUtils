@@ -90,6 +90,8 @@ BeebVideoULA::BeebVideoULA(
 
 	// Create 640 x 256 display bitmap and clear it
 	mDisplayBitmap = al_create_bitmap(640, 512);
+	al_set_new_bitmap_flags(ALLEGRO_NO_PRESERVE_TEXTURE);
+	al_clear_to_color(black);
 
 	lockDisplay();
 
@@ -255,7 +257,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		unlockDisplay();
 
-		// Scale the display bitmap including borders to match the size of the display
+		// Draw the display bitmap including borders to fill the complete screen  display
 		//al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mScreenW, mScreenH, 0, 0, mDisplayWidth, mDisplayHeight, 0);
 		int width = mScreenW;
 		int height = mScreenH;
@@ -266,7 +268,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		al_flip_display();
 
 		// Clear the display
-		al_clear_to_color(black);
+		//al_clear_to_color(black);
 
 		lockDisplay();
 
@@ -283,10 +285,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// on the screen and "Char" is actually one byte fetched from memory that only sometimes corresponds
 	// to the width of a screen char. 
 
-	unsigned int* line_bitmap_data_p = NULL;
+	//unsigned int* line_bitmap_data_p = NULL;
+	uint32_t * line_bitmap_data_p = NULL;
 
 	if (visible_scan_line < vt_visible_pixels)
-		line_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
+		//line_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
+		line_bitmap_data_p = (uint32_t *)(mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
 
 	if (false) {
 		cout << "\n\n" << dec << setw(3) << mScanLine << " (F" << field_scan_line << ",R" << mCRTC->mCharRow << ") V" << hz_visible_chars << " A" << hz_active_chars << " O" << hz_visible_char_poffset << "\n";
@@ -330,7 +334,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		cout << "\nDIS:";
 	}
 
-	unsigned int* bitmap_data_p = line_bitmap_data_p;
+	//unsigned int* bitmap_data_p = line_bitmap_data_p;
+	uint32_t * bitmap_data_p = line_bitmap_data_p;
 	for (int char_pos = 0; char_pos < hz_chars; char_pos++) {	
 
 		int visible_char_pos = (char_pos - hz_visible_char_poffset + hz_chars) % hz_chars;
@@ -577,7 +582,7 @@ bool BeebVideoULA::dump(uint16_t adr, uint8_t& data)
 	return false;
 }
 
-// Resize screen if it deons't already have the correct size
+// Resize screen if it doesn't already have the correct size
 void BeebVideoULA::updateScreenSz(int fullW, int fullH, int activeW, int activeH)
 {
 	if (fullW != mScreenW || fullH != mScreenH) {
@@ -589,8 +594,11 @@ void BeebVideoULA::updateScreenSz(int fullW, int fullH, int activeW, int activeH
 		unlockDisplay();
 		al_destroy_bitmap(mDisplayBitmap);	
 		mDisplayBitmap = al_create_bitmap(mScreenW, mScreenH);
+		al_set_new_bitmap_flags(ALLEGRO_NO_PRESERVE_TEXTURE);
+		al_clear_to_color(black);
 		lockDisplay();
-		mMaxDisplayBitmap_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
+		//mMaxDisplayBitmap_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
+		mMaxDisplayBitmap_p = (uint32_t *)(mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
 	}
 }
 

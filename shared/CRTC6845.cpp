@@ -336,8 +336,8 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 			mRegWriteCnt[written_reg]++;
 	}
 
-	//if (written_reg == R12_StartAddressH || written_reg == R13_StartAddressL)
-	//	cout << "\n*** START ADDRESS = 0x" << hex << ((mReg[R12_StartAddressH] << 8) | mReg[R13_StartAddressL]) << " ***\n";
+	//if (written_reg < 10)
+	//	cout << "\n CRTC register R" << dec << written_reg << " = 0x " << hex << (int) mReg[written_reg] << "\n";
 
 	// Update internal state based on the register update
 	updateSettings(written_reg);
