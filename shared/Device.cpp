@@ -681,7 +681,6 @@ Devices::Devices(
 				DevicePort *dev_port = port_sel.port;
 				Device *dev = dev_port->dev;
 				*(dev_port->val) = port_val;
-				cout << "Device " << dev->name << ":" << dev_port->name << " = " << dec << (int) *(dev_port->val) << "\n";
 			}
 
 			else {

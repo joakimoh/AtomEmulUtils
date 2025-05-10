@@ -88,9 +88,15 @@ BeebVideoULA::BeebVideoULA(
 	mTgcData.resize(16);
 	for (int i = 0; i < 16; mTgcData[i++] = { 0, 0, 0 });
 
+	mBitMapFlags = al_get_bitmap_flags(dispBitmap);
+	if (mBitMapFlags & ALLEGRO_VIDEO_BITMAP == 0)
+		mBitMapFlags = ALLEGRO_MEMORY_BITMAP | ALLEGRO_NO_PRESERVE_TEXTURE;
+	else
+		mBitMapFlags = ALLEGRO_NO_PRESERVE_TEXTURE;
+
 	// Create 640 x 256 display bitmap and clear it
 	mDisplayBitmap = al_create_bitmap(640, 512);
-	al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP | ALLEGRO_NO_PRESERVE_TEXTURE);
+	al_set_new_bitmap_flags(mBitMapFlags);
 	al_clear_to_color(black);
 
 	lockDisplay();
@@ -616,7 +622,7 @@ void BeebVideoULA::updateScreenSz(int fullW, int fullH, int activeW, int activeH
 		unlockDisplay();
 		al_destroy_bitmap(mDisplayBitmap);	
 		mDisplayBitmap = al_create_bitmap(mScreenW, mScreenH);
-		al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP | ALLEGRO_NO_PRESERVE_TEXTURE);
+		al_set_new_bitmap_flags(mBitMapFlags);
 		al_clear_to_color(black);
 		lockDisplay();
 		//mMaxDisplayBitmap_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);

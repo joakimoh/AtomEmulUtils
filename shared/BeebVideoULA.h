@@ -31,6 +31,8 @@ private:
 	//unsigned int* mMaxDisplayBitmap_p = NULL;
 	uint32_t * mMaxDisplayBitmap_p = NULL;
 
+	int mBitMapFlags = 0;
+
 public:
 
 	//

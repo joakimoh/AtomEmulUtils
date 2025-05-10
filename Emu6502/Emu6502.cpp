@@ -186,6 +186,11 @@ int main(int argc, const char* argv[])
         cout << "Unsupported bitmap format " << get_format_name(disp_fmt) << " (" << dec << disp_fmt << ")\n";
 		return -1;
 	}
+    //int disp_bitmap_flags = al_get_bitmap_flags(disp_bm);
+    //cout << "ALLEGRO_MEMORY_BITMAP = 0x" << hex << ALLEGRO_MEMORY_BITMAP << "\n";
+    //cout << "ALLEGRO_NO_PRESERVE_TEXTURE = 0x" << hex << ALLEGRO_NO_PRESERVE_TEXTURE << "\n";
+    //cout << "ALLEGRO_VIDEO_BITMAP = 0x" << hex << ALLEGRO_VIDEO_BITMAP << "\n";
+    //cout << "Display bitmap flags = 0x" << hex << disp_bitmap_flags << "\n";
 
     al_register_event_source(queue, al_get_display_event_source(disp));
    
