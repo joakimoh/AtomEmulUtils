@@ -109,7 +109,7 @@ void TT5050::createInterpolatedSymbols()
 
 	}
 
-	if (true && mDM->debug(DBG_VERBOSE)) {
+	if (false && mDM->debug(DBG_VERBOSE)) {
 		cout << "Teletext stretch Matrix:\n\n";
 		for (int i = 0; i < 16; i++)
 			cout << i << ", " << mStretchMatrix[i].srcLeftPixel << ", " << (int)mStretchMatrix[i].leftFactor << ", " <<
@@ -214,7 +214,9 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 				mFlash = false;
 				break;
 				// These codes are not used
-			case TT_END_BOX:			case TT_START_BOX:				break;
+			case TT_END_BOX:
+			case TT_START_BOX:
+				break;
 			case TT_NORMAL_HEIGHT:				mDoubleHeight = false;				break;			case TT_DOUBLE_HEIGHT:				/*				// Double-height characters are split onto rows where the first row				// contains the upper half of the double-height character and the second				// row contains the lower half ot the same double-height character.				// The first row of a pair of double-height characters can mix single				// and double-height characters whereas the second row cannt (if mixed				// the single-height ones will become invisible).				*/				mDoubleHeight = true;				if (mDoubleHeightHalf == -1)					mDoubleHeightHalf = 0;				break;
 				// These codes are not used
 			case TT_S0:			case TT_S1:
@@ -246,7 +248,6 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 			else { // draw control char as last graphics symbol
 				foreground_colour = mGraphicsColour;
 				symbol_index = mLastGraphicsSymbolIndex;
-				if (!mGraphicSymbols)					cout << "HELD GRAPHICS!\N";
 				mGraphicSymbols = true;
 			}
 		}

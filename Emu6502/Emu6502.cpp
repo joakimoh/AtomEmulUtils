@@ -66,6 +66,63 @@ int field_cnt = 0;
 
 ALLEGRO_KEYBOARD_STATE keyboard_state;
 
+/*
+ *    Simple (incomplete) test of pixel format conversions.
+ *
+ *    This should be made comprehensive.
+ */
+typedef struct FORMAT
+{
+    int format;
+    char const* name;
+} FORMAT;
+
+const FORMAT formats[ALLEGRO_NUM_PIXEL_FORMATS] = {
+   {ALLEGRO_PIXEL_FORMAT_ANY, "any"},
+   {ALLEGRO_PIXEL_FORMAT_ANY_NO_ALPHA, "no alpha"},
+   {ALLEGRO_PIXEL_FORMAT_ANY_WITH_ALPHA, "alpha"},
+   {ALLEGRO_PIXEL_FORMAT_ANY_15_NO_ALPHA, "15"},
+   {ALLEGRO_PIXEL_FORMAT_ANY_16_NO_ALPHA, "16"},
+   {ALLEGRO_PIXEL_FORMAT_ANY_16_WITH_ALPHA, "16 alpha"},
+   {ALLEGRO_PIXEL_FORMAT_ANY_24_NO_ALPHA, "24"},
+   {ALLEGRO_PIXEL_FORMAT_ANY_32_NO_ALPHA, "32"},
+   {ALLEGRO_PIXEL_FORMAT_ANY_32_WITH_ALPHA, "32 alpha"},
+   {ALLEGRO_PIXEL_FORMAT_ARGB_8888, "ARGB8888"},
+   {ALLEGRO_PIXEL_FORMAT_RGBA_8888, "RGBA8888"},
+   {ALLEGRO_PIXEL_FORMAT_ARGB_4444, "ARGB4444"},
+   {ALLEGRO_PIXEL_FORMAT_RGB_888, "RGB888"},
+   {ALLEGRO_PIXEL_FORMAT_RGB_565, "RGB565"},
+   {ALLEGRO_PIXEL_FORMAT_RGB_555, "RGB555"},
+   {ALLEGRO_PIXEL_FORMAT_RGBA_5551, "RGBA5551"},
+   {ALLEGRO_PIXEL_FORMAT_ARGB_1555, "ARGB1555"},
+   {ALLEGRO_PIXEL_FORMAT_ABGR_8888, "ABGR8888"},
+   {ALLEGRO_PIXEL_FORMAT_XBGR_8888, "XBGR8888"},
+   {ALLEGRO_PIXEL_FORMAT_BGR_888, "BGR888"},
+   {ALLEGRO_PIXEL_FORMAT_BGR_565, "BGR565"},
+   {ALLEGRO_PIXEL_FORMAT_BGR_555, "BGR555"},
+   {ALLEGRO_PIXEL_FORMAT_RGBX_8888, "RGBX8888"},
+   {ALLEGRO_PIXEL_FORMAT_XRGB_8888, "XRGB8888"},
+   {ALLEGRO_PIXEL_FORMAT_ABGR_F32, "ABGR32F"},
+   {ALLEGRO_PIXEL_FORMAT_ABGR_8888_LE, "ABGR(LE)"},
+   {ALLEGRO_PIXEL_FORMAT_RGBA_4444, "RGBA4444"}
+};
+
+#define NUM_FORMATS ALLEGRO_NUM_PIXEL_FORMATS
+
+
+const char* get_format_name(int format)
+{
+    for (unsigned i = 0; i < NUM_FORMATS; i++) {
+        if (formats[i].format == format)
+            return formats[i].name;
+    }
+    return "unknown";
+}
+
+
+
+
+
 
 int main(int argc, const char* argv[])
 {
@@ -124,8 +181,9 @@ int main(int argc, const char* argv[])
     ALLEGRO_DISPLAY* disp = al_create_display(disp_w, disp_h); // Just an initial size - will be resized to fit the video display unit's preference later on!
     al_set_window_title(disp, "6502 System Emulator");
     ALLEGRO_BITMAP* disp_bm = al_get_target_bitmap();
-	if (al_get_bitmap_format(disp_bm) != ALLEGRO_PIXEL_FORMAT_ARGB_8888) {
-		cout << "Unsupported bitmap format!\n";
+    int disp_fmt = al_get_bitmap_format(disp_bm);
+	if (disp_fmt != ALLEGRO_PIXEL_FORMAT_ARGB_8888 && disp_fmt != ALLEGRO_PIXEL_FORMAT_XRGB_8888) {
+        cout << "Unsupported bitmap format " << get_format_name(disp_fmt) << " (" << dec << disp_fmt << ")\n";
 		return -1;
 	}
 

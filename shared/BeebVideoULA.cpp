@@ -124,6 +124,8 @@ bool BeebVideoULA::advance(uint64_t stopCycle)
 bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 {
 
+	bool sync_debug = false;
+	bool mem_debug = true;
 
 
 	auto video_start = chrono::high_resolution_clock::now();
@@ -285,15 +287,19 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// on the screen and "Char" is actually one byte fetched from memory that only sometimes corresponds
 	// to the width of a screen char. 
 
-	//unsigned int* line_bitmap_data_p = NULL;
-	uint32_t * line_bitmap_data_p = NULL;
+	unsigned int* line_bitmap_data_p = NULL;
+	//uint32_t * line_bitmap_data_p = NULL;
+
 
 	if (visible_scan_line < vt_visible_pixels)
-		//line_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
-		line_bitmap_data_p = (uint32_t *)(mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
+		line_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
+		//line_bitmap_data_p = (uint32_t *)((uint32_t*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
 
-	if (false) {
-		cout << "\n\n" << dec << setw(3) << mScanLine << " (F" << field_scan_line << ",R" << mCRTC->mCharRow << ") V" << hz_visible_chars << " A" << hz_active_chars << " O" << hz_visible_char_poffset << "\n";
+	if (sync_debug || mem_debug)
+		cout << "\n\n";
+
+	if (sync_debug) {
+		cout << dec << setw(3) << mScanLine << " (F" << field_scan_line << ",R" << mCRTC->mCharRow << ") V" << hz_visible_chars << " A" << hz_active_chars << " O" << hz_visible_char_poffset << "\n";
 		cout << "Pixels/char: " << mPixelsPerCharacter << ", pixel width: " << (int) mPixelW << "\n";
 		
 		if (visible_scan_line < vt_visible_pixels)
@@ -334,8 +340,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		cout << "\nDIS:";
 	}
 
-	//unsigned int* bitmap_data_p = line_bitmap_data_p;
-	uint32_t * bitmap_data_p = line_bitmap_data_p;
+	unsigned int* bitmap_data_p = line_bitmap_data_p;
+	//uint32_t * bitmap_data_p = line_bitmap_data_p;
 	for (int char_pos = 0; char_pos < hz_chars; char_pos++) {	
 
 		int visible_char_pos = (char_pos - hz_visible_char_poffset + hz_chars) % hz_chars;
@@ -415,8 +421,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			auto tt_dur = chrono::duration_cast<chrono::nanoseconds>(tt_stop - tt_start);
 			mTTCnt += tt_dur.count();
 		}
+
+		if (mem_debug) {
+			cout << setfill('0') << setw(2) << dec << char_pos << ":" << setw(4) << hex << screen_adr << ":" << setw(2) << (int)screen_data << " ";
+		}
 		
-		if (false) {
+		if (sync_debug) {
 			if (dis_ena)
 				cout << "D";
 			else
@@ -598,7 +608,7 @@ void BeebVideoULA::updateScreenSz(int fullW, int fullH, int activeW, int activeH
 		al_clear_to_color(black);
 		lockDisplay();
 		//mMaxDisplayBitmap_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
-		mMaxDisplayBitmap_p = (uint32_t *)(mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
+		mMaxDisplayBitmap_p = (uint32_t *)((uint32_t*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
 	}
 }
 
