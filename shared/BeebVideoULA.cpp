@@ -90,7 +90,7 @@ BeebVideoULA::BeebVideoULA(
 
 	// Create 640 x 256 display bitmap and clear it
 	mDisplayBitmap = al_create_bitmap(640, 512);
-	al_set_new_bitmap_flags(ALLEGRO_NO_PRESERVE_TEXTURE);
+	al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP | ALLEGRO_NO_PRESERVE_TEXTURE);
 	al_clear_to_color(black);
 
 	lockDisplay();
@@ -125,7 +125,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 {
 
 	bool sync_debug = false;
-	bool mem_debug = true;
+	bool mem_debug = false;
 
 
 	auto video_start = chrono::high_resolution_clock::now();
@@ -616,7 +616,7 @@ void BeebVideoULA::updateScreenSz(int fullW, int fullH, int activeW, int activeH
 		unlockDisplay();
 		al_destroy_bitmap(mDisplayBitmap);	
 		mDisplayBitmap = al_create_bitmap(mScreenW, mScreenH);
-		al_set_new_bitmap_flags(ALLEGRO_NO_PRESERVE_TEXTURE);
+		al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP | ALLEGRO_NO_PRESERVE_TEXTURE);
 		al_clear_to_color(black);
 		lockDisplay();
 		//mMaxDisplayBitmap_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
