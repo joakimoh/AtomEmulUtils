@@ -89,10 +89,14 @@ BeebVideoULA::BeebVideoULA(
 	for (int i = 0; i < 16; mTgcData[i++] = { 0, 0, 0 });
 
 	mBitMapFlags = al_get_bitmap_flags(dispBitmap);
-	if (mBitMapFlags & ALLEGRO_VIDEO_BITMAP == 0)
+	if (mBitMapFlags & ALLEGRO_VIDEO_BITMAP == 0) {
 		mBitMapFlags = ALLEGRO_MEMORY_BITMAP | ALLEGRO_NO_PRESERVE_TEXTURE;
-	else
+		//cout << "No video hardware acceleration!\n";
+	}
+	else {
 		mBitMapFlags = ALLEGRO_NO_PRESERVE_TEXTURE;
+		//cout << "Video hardware acceleration supported.\n";
+	}
 
 	// Create display bitmap and clear it
 	Resolution vis_res = videoSettings.getVisibleResolution();
