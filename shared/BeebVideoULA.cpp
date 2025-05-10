@@ -14,7 +14,7 @@ using namespace std;
 // 
 // The Video ULA sets up the 6847 CRTC.
 // 
-// The 6847 R12/R13 value is set as follows:
+// The 6845 R12/R13 value is set as follows:
 // MODE 0 - 6:	screen address / 8 <=> 0,1,2: 0x3000 => 0x600, 3: 0x4000 => 0x800, 4-5: 0xb00, 6: 0x6000 => 0xc00
 // MODE 7:		screen address - (0x7400 ^ 0x2000) => 0x2800 for actual memory address of 0x7c00
 // The same logic applies to setting R14/R15 (cursor position)
