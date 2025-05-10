@@ -172,13 +172,13 @@ int main(int argc, const char* argv[])
 #endif
 
    // Some optimisation tried to speed up the al_flip_display()  operation.
-   // Doesnt' seem to have any effect though...
+   // Doesn't seem to have any effect though...
    //al_set_new_display_option(ALLEGRO_SINGLE_BUFFER, true, ALLEGRO_REQUIRE);
    //al_set_new_display_option(ALLEGRO_VSYNC, 1, ALLEGRO_REQUIRE);
 
-    int disp_w = 960;
-    int disp_h = 600;
-    ALLEGRO_DISPLAY* disp = al_create_display(disp_w, disp_h); // Just an initial size - will be resized to fit the video display unit's preference later on!
+    VideoSettings video_settings(arg_parser.videoFormat);
+    Resolution disp_res = video_settings.getVisibleResolution();
+    ALLEGRO_DISPLAY* disp = al_create_display(disp_res.width, disp_res.height);
     al_set_window_title(disp, "6502 System Emulator");
     ALLEGRO_BITMAP* disp_bm = al_get_target_bitmap();
     int disp_fmt = al_get_bitmap_format(disp_bm);
@@ -200,15 +200,16 @@ int main(int argc, const char* argv[])
 
     ConnectionManager connection_manager(&arg_parser.debugManager);
 
-    VideoDisplayUnit* vdu = NULL;
+     VideoDisplayUnit* vdu = NULL;
     vector<Device*> field_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices;
     P6502 * microprocessor = NULL;
     double CPU_clock = 1.0; // MHz
     Devices devices(
+        arg_parser.videoFormat,
         arg_parser.mapFileName,
         CPU_clock,            // CPU Clock frequency in MHz
         32000,                      // audio sample rate corresponding to a rate of at least twice per scan line
-        disp, disp_bm, disp_w, disp_h,
+        disp, disp_bm, disp_res,
         &arg_parser.debugManager, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu,
         field_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices
 

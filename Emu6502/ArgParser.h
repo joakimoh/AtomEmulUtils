@@ -5,6 +5,7 @@
 #include <vector>
 #include "../shared/DebugManager.h"
 #include "../shared/Device.h"
+#include "../shared/VideoSettings.h"
 
 using namespace std;
 
@@ -19,10 +20,13 @@ public:
 
 	double emulationSpeed = 100; // %
 
+	VideoFormat videoFormat = PAL_FMT;
+
 
 private:
 
 	void printUsage(const char*);
+	void printInfo();
 
 	bool mParseSuccess = false;
 

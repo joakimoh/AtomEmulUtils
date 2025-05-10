@@ -280,7 +280,8 @@ string Devices::getFileName(string &path, stringstream& sin)
 }
 
 Devices::Devices(
-	string memMapFile, double &cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager,
+	VideoSettings videoSettings,
+	string memMapFile, double &cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, Resolution disRes, DebugManager  *debugManager,
 	Program program, Program data, ConnectionManager& connection_manager, P6502* &microprocessor, VideoDisplayUnit * &mainVDU,
 	vector<Device*>& fieldScheduledDevices, vector<Device*>& halflineScheduledDevices, vector<Device*>& instrScheduledDevices) :mDM(debugManager)
 {
@@ -496,7 +497,7 @@ Devices::Devices(
 					uint16_t dev_sz = getHexVal(sin);
 					uint16_t video_mem_adr = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					mainVDU = new VDU6847(dev_name, dev_adr, cpuClock, wait_states, disp, dispBitmap, dispW, dispH, video_mem_adr, mDM, &connection_manager);
+					mainVDU = new VDU6847(dev_name, dev_adr, videoSettings, cpuClock, wait_states, disp, dispBitmap, video_mem_adr, mDM, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 
@@ -507,7 +508,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, cpuClock, wait_states, dispBitmap, dispW, dispH, mDM, &connection_manager);
+					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, videoSettings, cpuClock, wait_states, dispBitmap, mDM, &connection_manager);
 					mDevices.push_back(crtc);
 					vdus.push_back(crtc);
 				}
@@ -523,7 +524,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					mainVDU = new BeebVideoULA(dev_name, dev_adr, cpuClock, wait_states, disp, dispBitmap, dispW, dispH, mDM, &connection_manager);
+					mainVDU = new BeebVideoULA(dev_name, dev_adr, videoSettings, cpuClock, wait_states, disp, dispBitmap, mDM, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 				}

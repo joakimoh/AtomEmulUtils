@@ -33,8 +33,8 @@
 // R16, R17   Light pen position				-     -     -     -     -     -     -     -
 //
 CRTC6845::CRTC6845(
-	string name, uint16_t adr, double cpuclock, uint8_t waitStates, ALLEGRO_BITMAP* disp, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
-) : VideoDisplayUnit(name, CRTC6845_DEV, cpuclock, waitStates, adr, 0x2, disp, dispW, dispH, 0x0 /* dummy adr as not used by the 6845 */, debugManager, connectionManager)
+	string name, uint16_t adr, VideoSettings videoSettings, double cpuclock, uint8_t waitStates, ALLEGRO_BITMAP* disp, DebugManager  *debugManager, ConnectionManager* connectionManager
+) : VideoDisplayUnit(name, CRTC6845_DEV, videoSettings, cpuclock, waitStates, adr, 0x2, disp, 0x0 /* dummy adr as not used by the 6845 */, debugManager, connectionManager)
 {
 
 	registerPort("CLK",			IN_PORT,  0x3,	CLK,		&mCLK);
@@ -124,7 +124,7 @@ bool CRTC6845::advanceChar()
 
 		// A new character row
 
-		if (mDM->debug(DBG_VDU))
+		if (false && mDM->debug(DBG_VDU))
 			cout << "CRTC SCAN LINE = " << dec << mScanLine << ", RASTER LINE = " << (int) mRA << ", CHAR ROW = " << mCharRow << 
 			" (" << mActiveRows_R6 << ")\n";
 		
@@ -241,7 +241,7 @@ bool CRTC6845::updateOutputs()
 		(cursor_disp_mode == 0x3 && mField % 32 < 16)
 		) && mRA >= cursor_first_line && mRA <= cursor_last_line && mDISPTMG;
 	if (cursor_on && mStartAdr_R12_R13 + mCharRow * mActiveRowChars_R1 + mCharCol + mCharSkew_R8 == mCursorLocation_R14_R15 + mCursSkew_R8) {
-		if (mDM->debug(DBG_VDU)) {
+		if (false && mDM->debug(DBG_VDU)) {
 			cout << "Cursor active for CRTC scan line " << dec << mScanLine << ", raster line " <<
 				(int) mRA << ", char row " << mCharRow << ", char col " << mCharCol <<
 				", start address 0x" << hex << mStartAdr_R12_R13 <<

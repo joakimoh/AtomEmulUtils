@@ -28,8 +28,8 @@ private:
 
 	int mActiveLines = 200; // dummy init value
 
-	//unsigned int* mMaxDisplayBitmap_p = NULL;
-	uint32_t * mMaxDisplayBitmap_p = NULL;
+	unsigned int* mMaxDisplayBitmap_p = NULL;
+	//uint32_t * mMaxDisplayBitmap_p = NULL;
 
 	int mBitMapFlags = 0;
 
@@ -134,7 +134,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	BeebVideoULA(string name, uint16_t adr, double cpuclock, uint8_t waitStates, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	BeebVideoULA(string name, uint16_t adr, VideoSettings videoSettings, double cpuclock, uint8_t waitStates, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap,DebugManager  *debugManager, ConnectionManager* connectionManager);
 	~BeebVideoULA();
 
 	bool read(uint16_t adr, uint8_t& data);

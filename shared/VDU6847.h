@@ -180,7 +180,8 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	VDU6847(string name, uint16_t adr, double clockSpeed, uint8_t wait_states, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	VDU6847(string name, uint16_t adr, VideoSettings videoSettings, double clockSpeed, uint8_t wait_states, ALLEGRO_DISPLAY* disp,
+		ALLEGRO_BITMAP* dispBitmap, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager);
 	~VDU6847();
 
 	bool read(uint16_t adr, uint8_t& data);

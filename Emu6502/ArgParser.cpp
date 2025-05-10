@@ -11,7 +11,7 @@ bool ArgParser::failed()
 	return !mParseSuccess;
 }
 
-void ArgParser::printUsage(const char* name)
+void  ArgParser::printInfo()
 {
 	cout << "Emulates 6502-based microcontroller systems of the 1980's.\n";
 	cout << "\nAny microcontroller system that uses the emulated hardware devices should in theory be possible\n";
@@ -32,7 +32,12 @@ void ArgParser::printUsage(const char* name)
 	cout << "\t- Custom Acorn Atom hardware: Cassette Interface, Keyboard amd Speaker\n";
 	cout << "\t- Custom BBC Micro hardware: Serial ULA, Keyboard, ROM Selection and Video ULA\n";
 	cout << "\n";
-	cout << "Usage:\t" << name << " -map <memory map file> [-pgm <program> <hex adr>] [-speed <emulation speed>] [-v] <advanced options>\n\n";
+}
+
+void ArgParser::printUsage(const char* name)
+{
+	cout << "Usage:\t" << name << " -map <memory map file> [-fmt <video format>] [-pgm <program> <hex adr>] [-speed <emulation speed>] [-v] <advanced options>\n\n";
+	cout << "<video format>:\nEither 'PAL' or 'NTSC'. If not specified, PAL is assumed\n\n";
 	cout << "<emulation speed>:\nEmulation speed in %. If not specified, 100% (real time) is assumed\n\n";
 	cout << "<memory map file>:\n\tFile which defines devices and their memory mapping.\n\n";
 	cout << "<program> <hex adr>:\n\tBinary file with (program) data to be loaded into RAM at address <hex adr>.\n\n";
@@ -71,6 +76,7 @@ ArgParser::ArgParser(int argc, const char* argv[])
 {
 
 	if (argc <= 1) {
+		printInfo();
 		printUsage(argv[0]);
 		return;
 	}
@@ -78,13 +84,27 @@ ArgParser::ArgParser(int argc, const char* argv[])
 	int a = 1;
 	bool genFiles = false;
 	while (a < argc) {
-		if(strcmp(argv[a], "-speed") == 0) {
+		if (strcmp(argv[a], "-speed") == 0) {
 			emulationSpeed = stod(argv[a + 1]);
 			a++;
 		}
 		else if (strcmp(argv[a], "-log") == 0) {
 			debugManager.enableLogging(stoi(argv[a + 1], 0, 16));
 			a++;
+		}
+		else if (strcmp(argv[a], "-fmt") == 0) {
+			a++;
+			if (a >= argc) {
+				printUsage(argv[0]);
+				return;
+			}
+			if (strcmp(argv[a], "NTSC") == 0)
+			videoFormat = NTSC_FMT;
+			else if (strcmp(argv[a], "PAL") != 0) {
+				cout << "Illegal video format '" << argv[a] << "'\n";
+				printUsage(argv[0]);
+				return;
+			}
 		}
 		else if (strcmp(argv[a], "-mlog") == 0) {
 			debugManager.setMemLogAdr(stoi(argv[a + 1], 0, 16));

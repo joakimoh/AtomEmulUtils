@@ -8,6 +8,7 @@
 #include "DebugManager.h"
 #include <allegro5/allegro_primitives.h>
 #include <iostream>
+#include "VideoSettings.h"
 
 
 using namespace std;
@@ -207,7 +208,8 @@ private:
 public:
 
 	Devices(
-		string memMapFile, double &cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager,
+		VideoSettings videoSettings,
+		string memMapFile, double &cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, Resolution disRes, DebugManager  *debugManager,
 		Program program, Program data, ConnectionManager &connectionManager, P6502* &microprocessor, VideoDisplayUnit* &vdu,
 		vector<Device *> &fieldScheduledDevices, vector<Device*> &halfLineScheduledDevices, vector<Device*> &instructionScheduledDevices
 	);

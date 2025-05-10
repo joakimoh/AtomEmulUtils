@@ -6,7 +6,7 @@ add_library(
 	"Codec6502.h" "P6502.h" "VIA6522.h" "AtomKeyboardDevice.h" "MemoryMappedDevice.h" "AtomCUTSInterface.h" "CSWCodec.h" "SoundDevice.h" "BeebVideoULA.h"
 	 "VDU6847.h"  "PIA8255.h"  "ROM.h"  "RAM.h" "Device.h" "Tokeniser.h" "DebugManager.h" "GUI.h" "TapeRecorder.h" "AtomSpeaker.h" "VideoDisplayUnit.h"
  "VideoDisplayUnit.h" "VideoDisplayUnit.cpp" "SoundDevice.h" "BeebVideoULA.cpp" "BeebKeyboard.cpp" "BeebKeyboard.h" "CRTC6845.h" "TT5050.h"
- "BeebRomSel.h"  "ACIA6850.h" "Utility.h" "Utility.cpp" "BeebSerialULA.h")
+ "BeebRomSel.h"  "ACIA6850.h" "Utility.h" "Utility.cpp" "BeebSerialULA.h" "VideoSettings.h" "VideoSettings.cpp")
 
 # Locate zlib
 find_package(ZLIB REQUIRED)

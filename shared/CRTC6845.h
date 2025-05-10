@@ -156,7 +156,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	CRTC6845(string name, uint16_t adr, double cpuclock, uint8_t waitStates, ALLEGRO_BITMAP* disp, int dispW, int dispH,
+	CRTC6845(string name, uint16_t adr, VideoSettings videoSettings, double cpuclock, uint8_t waitStates, ALLEGRO_BITMAP* disp,
 		DebugManager  *debugManager, ConnectionManager* connectionManager);
 	~CRTC6845() {}
 

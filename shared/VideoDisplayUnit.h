@@ -8,6 +8,7 @@
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include "Device.h"
+#include "VideoSettings.h"
 
 using namespace std;
 
@@ -22,12 +23,12 @@ protected:
 
 	int mScanLine = 0;
 
-	int mDisplayWidth = 0;
-	int mDisplayHeight = 0;
+	VideoSettings mVideoSettings;
 
 public:
 
-	VideoDisplayUnit(string name, DeviceId devId, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz, ALLEGRO_BITMAP* disp, int dispW, int dispH, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	VideoDisplayUnit(string name, DeviceId devId, VideoSettings videoSettings, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz,
+		ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
 	virtual ~VideoDisplayUnit() {};
 

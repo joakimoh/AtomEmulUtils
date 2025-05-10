@@ -73,8 +73,8 @@ using namespace std;
 //						 -´     `-´     `-´     `-´     `-´     `-´
 
 BeebVideoULA::BeebVideoULA(
-	string name, uint16_t adr, double cpuclock, uint8_t waitStates, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, int dispW, int dispH, DebugManager  *debugManager, ConnectionManager* connectionManager
-) : VideoDisplayUnit(name, BEEB_VDU_DEV, cpuclock, waitStates, adr, 0x10, dispBitmap, dispW, dispH, 0x0 /* dummy adr */, debugManager, connectionManager), mDisplay(disp)
+	string name, uint16_t adr, VideoSettings videoSettings, double cpuclock, uint8_t waitStates, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, DebugManager  *debugManager, ConnectionManager* connectionManager
+) : VideoDisplayUnit(name, BEEB_VDU_DEV, videoSettings, cpuclock, waitStates, adr, 0x10, dispBitmap,0x0 /* dummy adr */, debugManager, connectionManager), mDisplay(disp)
 {
 	registerPort("SCROLL_CTRL",	IN_PORT,	0x0f, SCROLL_CTRL,	&mSCROLL_CTRL);
 	registerPort("DISEN",		IN_PORT,	0x01, DISPTMG,		&mDISPTMG);
@@ -94,12 +94,20 @@ BeebVideoULA::BeebVideoULA(
 	else
 		mBitMapFlags = ALLEGRO_NO_PRESERVE_TEXTURE;
 
-	// Create 640 x 256 display bitmap and clear it
-	mDisplayBitmap = al_create_bitmap(640, 512);
+	// Create display bitmap and clear it
+	Resolution vis_res = videoSettings.getVisibleResolution();
+	mDisplayBitmap = al_create_bitmap(vis_res.width, vis_res.height);
 	al_set_new_bitmap_flags(mBitMapFlags);
 	al_clear_to_color(black);
 
+	if (mDM->debug(DBG_VERBOSE))
+		cout << "create display bitmap " << dec << vis_res.width << " x " << vis_res.height << "\n";
+
 	lockDisplay();
+
+	// Define the max bitmap pointer value for later use when updating the bitmap
+	mMaxDisplayBitmap_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * vis_res.height);
+
 
 }
 
@@ -171,57 +179,51 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int adjusted_scanline = mScanLine - field_offset;
 
 	// Calculate horizontal borders
-	double hz_front_porch_spec = 0.0258 * hz_chars;
-	double hz_back_porch_spec = 0.0891 * hz_chars;
-	double hz_sync_width_spec = 0.0734 * hz_chars;
-	double hz_blanking_spec = 0.1883 * hz_chars;
-	double hz_video_content = hz_chars - hz_blanking_spec;
-	double hz_visible_content = 0.73 * hz_chars; // 73% out of the line duration is visible on a CRTC based on observation
-	int hz_visible_chars = (int)round(hz_visible_content);
-	double hz_visible_offset = (hz_video_content - hz_visible_content) / 2;
-	int hz_visible_char_poffset = (int) round(hz_sync_pos + hz_sync_width_spec + hz_back_porch_spec + hz_visible_offset + hz_chars) % hz_chars;
+	Resolution total_res = mVideoSettings.getTotalResolution();
+	Resolution video_res = mVideoSettings.getVideoResolution();
+	Resolution visible_res = mVideoSettings.getVisibleResolution();
+	Resolution visible_offset = mVideoSettings.getVisibleOffset();
+	Resolution blanking = mVideoSettings.getBlanking();
+	int hz_blanking_spec = (int) round((double)hz_chars * blanking.width / total_res.width);
+	int hz_visible_pixels = visible_res.width;
+	int vt_visible_pixels = visible_res.height;
+	int hz_visible_chars = (int)round((double)hz_chars * visible_res.width / total_res.width);
+	int vt_blanking = blanking.height;
+
+	int hz_visible_char_offset = (int)round((double)hz_sync_pos + hz_chars * visible_offset.width / total_res.width) % hz_chars;
+
+	int hz_video_content = (int)round((double)hz_chars * video_res.width / total_res.width);
 
 	// Calculate vertical borders
-	double vt_blanking = 0.08 * mScreenScanLines;
-	double vt_video_content = mScreenScanLines - vt_blanking;
-	double vt_visible_content = 0.9 * mScreenScanLines;// 90% out of the field duration is visible on a CRTC based on observation
-	double vt_visible_offset = (vt_video_content - vt_visible_content) / 2;
-	int vt_visible_line_offset = (int)round(mVerticalSyncPos + vt_blanking + vt_visible_offset + mScreenScanLines) % mScreenScanLines;
-
-	// Calculate  resolution
-	int vt_visible_pixels = (int)round(vt_visible_content);
-	int hz_visible_pixels = hz_visible_chars * mPixelsPerCharacter * mPixelW;
-	int hz_active_resolution = hz_active_chars * mPixelsPerCharacter * mPixelW;
 	int hz_unique_resolution = hz_active_chars * mPixelsPerCharacter;
+	int hz_active_resolution = hz_active_chars * mPixelsPerCharacter * mPixelW;
 	int unique_active_chars = hz_unique_resolution / mHzPixelsPerSymbol;
 	int unique_active_rows = mActiveLines / mVtPixelsPerRow;
 
-
+	int vt_visible_line_offset = (mVerticalSyncPos + visible_offset.height) % mScreenScanLines;
 	int visible_scan_line = (mScanLine - vt_visible_line_offset + mScreenScanLines) % mScreenScanLines;
 	int active_scan_line = mScanLine;
 	int field_scan_line = (mScanLine - mVerticalSyncPos + mScreenScanLines) % mScreenScanLines;
-
-	// Update screen size if required
-	updateScreenSz(hz_visible_pixels, vt_visible_pixels, hz_active_resolution, mActiveLines);
-
+	
 	if (mDM->debug(DBG_VDU) && adjusted_scanline == 100 && mField % 50 == 0) {
 		cout << "\n" << dec <<
 			"chars per line: " << hz_chars << ", pixels/byte: " << mPixelsPerCharacter << ", pixel width: " << (int) mPixelW << 
 			", screen pixels per char col: " << mHzScreenPixelsPerChar << "\n";
-		cout << " visible resolution: " << hz_visible_pixels << " x " << vt_visible_pixels << "\n";
-		cout << " active resolution: " << hz_active_resolution << " x " << mActiveLines << " (" << hz_active_chars << " x " << hz_active_rows << ")\n";
-		cout << " unique active resolution: " << hz_unique_resolution << " x " << mActiveLines << " (" << unique_active_chars << " x " << unique_active_rows << ")\n";
-		cout <<	", visible content: " << hz_visible_content << " (" << (hz_visible_content / hz_chars) << ")" <<
-			", visible chars: " << hz_visible_chars << " (" << ((double) hz_visible_chars / hz_chars) << ")" <<
-			", video content: " << hz_video_content << " (" << (hz_video_content / hz_chars) << ")" <<
-			", blanking: " << hz_blanking_spec << " (" << (hz_blanking_spec / hz_chars) << ")" <<
-			", visible char pos offset: " << hz_visible_char_poffset <<
-			", visible line offset: " << vt_visible_line_offset <<
-			"\n";
+		cout << "duration of a line and a field expressed in pixels: " << total_res.width << " x " << total_res.height << "\n";
+		cout << "visible resolution: " << hz_visible_pixels << " x " << vt_visible_pixels << "\n";
+		cout << "active resolution: " << hz_active_resolution << " x " << mActiveLines << " (" << hz_active_chars << " x " << hz_active_rows << ")\n";
+		cout << "unique active resolution: " << hz_unique_resolution << " x " << mActiveLines << " (" << unique_active_chars << " x " << unique_active_rows << ")\n";
+		cout << "video chars: " << hz_video_content << " (" << ((double)hz_video_content / hz_chars) << ")" << "\n";
+		cout << "visible chars: " << hz_visible_chars << " (" << ((double)hz_visible_chars / hz_chars) << ")" << "\n";
+		cout << "active chars: " << hz_active_chars << " (" << ((double)hz_active_chars / hz_chars) << ")" << "\n";
+		cout << "hz blanking: " << hz_blanking_spec << " (" << ((double)hz_blanking_spec / hz_chars) << ")" << "\n";
+		cout << "hz visible char pos offset: " << hz_visible_char_offset << "\n";
+		cout << "visible line offset: " << vt_visible_line_offset << "\n";
+		cout <<	"\n";
 	}
-
+	
 	int field_rate = (int)round(getFieldRate());
-	if (adjusted_scanline == 0) {
+	if (adjusted_scanline == mVerticalSyncPos) {
 
 		if (mDM->debug(DBG_TIME) && mField == 0) {
 			cout << dec << "\n";
@@ -247,7 +249,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	}
 
 	
-	if (mDM->debug(DBG_VDU))
+	if (false && mDM->debug(DBG_VDU))
 		cout << "\n\nFIELD #" << field_offset << "(" << mField << "), SCAN LINE " << dec << mScanLine << " (adjusted to " << adjusted_scanline << ")" <<
 		", VISIBLE LINE " << visible_scan_line << " (" << vt_visible_pixels << ")" <<
 		", ACTIVE LINE " << active_scan_line << " (" << mActiveLines << ")" <<
@@ -265,18 +267,16 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		unlockDisplay();
 
-		// Draw the display bitmap including borders to fill the complete screen  display
-		//al_draw_scaled_bitmap(mDisplayBitmap, 0, 0, mScreenW, mScreenH, 0, 0, mDisplayWidth, mDisplayHeight, 0);
-		int width = mScreenW;
-		int height = mScreenH;
 
+		// Clear the display
+		al_clear_to_color(black);
+
+		// Draw the display bitmap including borders to fill the complete screen  display
 		al_draw_bitmap(mDisplayBitmap, 0, 0, 0);
 
 		// Make the updates visible on the display	
 		al_flip_display();
 
-		// Clear the display
-		//al_clear_to_color(black);
 
 		lockDisplay();
 
@@ -294,16 +294,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// to the width of a screen char. 
 
 	unsigned int* line_bitmap_data_p = NULL;
-	//uint32_t * line_bitmap_data_p = NULL;
-
-
 	if (visible_scan_line < vt_visible_pixels)
 		line_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
-		//line_bitmap_data_p = (uint32_t *)((uint32_t*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
 
 	if (sync_debug || mem_debug) {
 		cout << "\n\n";
-		cout << dec << setw(3) << mScanLine << " (F" << field_scan_line << ",R" << mCRTC->mCharRow << ") V" << hz_visible_chars << " A" << hz_active_chars << " O" << hz_visible_char_poffset << "\n";
+		cout << dec << setw(3) << mScanLine << " (F" << field_scan_line << ",R" << mCRTC->mCharRow << ") V" << hz_visible_chars << " A" << hz_active_chars << " O" << hz_visible_char_offset << "\n";
 		cout << "Pixels/char: " << mPixelsPerCharacter << ", pixel width: " << (int) mPixelW << "\n";
 		bool active_line = false;
 		for (int char_pos = 0; char_pos < hz_chars; char_pos++) {
@@ -349,7 +345,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		for (int char_pos = 0; char_pos < hz_chars; cout << char_pos++ % 10);
 		cout << "\nVIS:";
 		for (int char_pos = 0; char_pos < hz_chars; char_pos++) {
-			int visible_char_pos = (char_pos - hz_visible_char_poffset + hz_chars) % hz_chars;
+			int visible_char_pos = (char_pos - hz_visible_char_offset + hz_chars) % hz_chars;
 			if (visible_char_pos < hz_visible_chars)
 				cout << "+";
 			else
@@ -359,10 +355,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	}
 
 	unsigned int* bitmap_data_p = line_bitmap_data_p;
-	//uint32_t * bitmap_data_p = line_bitmap_data_p;
 	for (int char_pos = 0; char_pos < hz_chars; char_pos++) {	
 
-		int visible_char_pos = (char_pos - hz_visible_char_poffset + hz_chars) % hz_chars;
+		int visible_char_pos = (char_pos - hz_visible_char_offset + hz_chars) % hz_chars;
 		int active_char_pos = (char_pos - hz_disp_skew + hz_chars) % hz_chars;
 
 		if (line_bitmap_data_p != NULL && visible_char_pos < hz_visible_chars)
@@ -378,7 +373,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		
 		vector<TT5050::TTColour> tgc_data(16);
 
-		if (char_pos == 0 && mDM->debug(DBG_VDU))
+		if (false && char_pos == 0 && mDM->debug(DBG_VDU))
 			cout << "VDU RA = " << dec << (int)mRA << "\n";
 
 		// Advance the CRT one character at a time
@@ -471,7 +466,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					mCursorSegment = 0;
 				int shift = (mCursorSegment <= 2 ? mCursorSegment : 2);
 				cursor_seg_ena = (cursor_segments >> (2 - shift)) & 0x1;						
-				if (mDM->debug(DBG_VDU)) {
+				if (false && mDM->debug(DBG_VDU)) {
 					cout << "VDU CURSOR " << dec << (int) mCURSOR << ", cursor ena " << (cursor_seg_ena ? "enabled" : "disabled") <<
 						", cursor segments '" << setw(3) << bitset<3>(cursor_segments) << "', cursor segment #" << dec << mCursorSegment << 
 						", char col " << char_pos << "\n";
@@ -625,8 +620,8 @@ void BeebVideoULA::updateScreenSz(int fullW, int fullH, int activeW, int activeH
 		al_set_new_bitmap_flags(mBitMapFlags);
 		al_clear_to_color(black);
 		lockDisplay();
-		//mMaxDisplayBitmap_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
-		mMaxDisplayBitmap_p = (uint32_t *)((uint32_t*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
+		mMaxDisplayBitmap_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
+		//mMaxDisplayBitmap_p = (uint32_t *)((uint32_t*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
 	}
 }
 
@@ -993,7 +988,7 @@ void BeebVideoULA::processPortUpdate(int port)
 		mode = 7;
 	}
 
-	if (mDM->debug(DBG_VDU) && mHwScrollSub != p_HW_scroll_sub)
+	if (false && mDM->debug(DBG_VDU) && mHwScrollSub != p_HW_scroll_sub)
 		cout << "New HW Scroll constant 0x" << hex << mHwScrollSub << " (0x" << p_HW_scroll_sub << ") for mode " << dec << mode << "\n";
 
 }

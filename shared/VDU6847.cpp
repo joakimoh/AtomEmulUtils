@@ -71,8 +71,9 @@ using namespace std;
 // 1	1	1	1	7		256 x 192	2			6kB					resolution graphics six (RG6)		Yes - Graphics mode 4
 //
 
-VDU6847::VDU6847(string name, uint16_t adr, double cpuClock, uint8_t waitStates, ALLEGRO_DISPLAY *disp, ALLEGRO_BITMAP* dispBitMap, int dispW, int dispH, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager) :
-	VideoDisplayUnit(name, VDU6847_DEV, cpuClock, waitStates, adr, 0x100, dispBitMap, dispW, dispH, videoMemAdr, debugManager, connectionManager), mN60HzCycles((int)round(cpuClock * 1e6 / 60))
+VDU6847::VDU6847(string name, uint16_t adr, VideoSettings videoSettings, double cpuClock, uint8_t waitStates, ALLEGRO_DISPLAY *disp, 
+	ALLEGRO_BITMAP* dispBitMap, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager) :
+	VideoDisplayUnit(name, VDU6847_DEV, videoSettings, cpuClock, waitStates, adr, 0x100, dispBitMap, videoMemAdr, debugManager, connectionManager), mN60HzCycles((int)round(cpuClock * 1e6 / 60))
 {
 	// Specify ports that can be connectde to other devices
 	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
