@@ -31,6 +31,7 @@ BeebKeyboard::BeebKeyboard(string name, double cpuClock, uint8_t startupOptions,
 	Device(name, BEEB_KEYBOARD_DEV, KEYBOARD_DEVICE, cpuClock, debugManager, connectionManager)
 {
 	// Specify ports that can be connected to other devices	
+	registerPort("SW",			IN_PORT,	0xf, SW,		&mSW);
 	registerPort("CTRL",		IN_PORT,	0xf, CTRL,		&mCTRL);
 	registerPort("COL_SEL",		IN_PORT,	0xf, COL_SEL,	&mCOL_SEL);
 	registerPort("ROW_SEL",		IN_PORT,	0x7, ROW_SEL,	&mROW_SEL);

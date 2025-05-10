@@ -139,20 +139,20 @@ public:
 	bool dump(uint16_t adr, uint8_t& data) override;
 	bool write(uint16_t adr, uint8_t data);
 
-	inline double getScanLineDuration();
-	inline double getScanLinesPerField();
-	inline double getFieldRate();
-	inline int getCharScanLines();
-	inline int getVerticalSyncLine();
-	inline int getVerticalSyncHeight();
-	inline int getHorizontalSyncPos();
-	inline int getHorizontalSyncWidth();
-	inline int getCharsPerLine();
-	inline int getActiveCharsPerLine();
-	inline int getScreenScanLine();
-	inline int getActiveCharRows();
-	inline int getScreenScanLines();
-	inline int getActiveLines();
+	double getScanLineDuration();
+	double getScanLinesPerField();
+	double getFieldRate();
+	int getCharScanLines();
+	int getVerticalSyncLine();
+	int getVerticalSyncHeight();
+	int getHorizontalSyncPos();
+	int getHorizontalSyncWidth();
+	int getCharsPerLine();
+	int getActiveCharsPerLine();
+	int getScreenScanLine();
+	int getActiveCharRows();
+	int getScreenScanLines();
+	int getActiveLines();
 
 
 
@@ -161,7 +161,7 @@ public:
 	//
 
 	// Check if interlace is enabled (On)
-	inline bool interlaceOn();
+	bool interlaceOn();
 
 	// Advance 1/2 scan line - required for interlace modes as
 	// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines
@@ -174,7 +174,7 @@ public:
 	bool advanceLine(uint64_t& endCycle);
 
 	// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
-	inline int fieldScanLineOffset();
+	int fieldScanLineOffset();
 
 	// Reset device
 	bool reset();

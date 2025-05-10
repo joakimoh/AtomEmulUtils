@@ -295,13 +295,22 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		line_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
 		//line_bitmap_data_p = (uint32_t *)((uint32_t*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
 
-	if (sync_debug || mem_debug)
+	if (sync_debug || mem_debug) {
 		cout << "\n\n";
-
-	if (sync_debug) {
 		cout << dec << setw(3) << mScanLine << " (F" << field_scan_line << ",R" << mCRTC->mCharRow << ") V" << hz_visible_chars << " A" << hz_active_chars << " O" << hz_visible_char_poffset << "\n";
 		cout << "Pixels/char: " << mPixelsPerCharacter << ", pixel width: " << (int) mPixelW << "\n";
-		
+		bool active_line = false;
+		for (int char_pos = 0; char_pos < hz_chars; char_pos++) {
+			int active_char_pos = (char_pos - hz_disp_skew + hz_chars) % hz_chars;
+			if (active_char_pos < hz_active_chars && active_scan_line < mActiveLines) {
+				active_line = true;
+				break;
+			}
+		}
+		if (active_line)
+			cout << "ACTIVE LINE\n";
+		else
+			cout << "INACTIVE LINE\n";
 		if (visible_scan_line < vt_visible_pixels)
 			cout << "VISIBLE LINE " << dec << visible_scan_line << " (" << vt_visible_pixels << ")\n";
 		else
@@ -312,6 +321,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			cout << "NO VIDEO LINE\n";
 		if (adjusted_scanline >= mVerticalSyncPos && adjusted_scanline < mVerticalSyncPos + vt_sync_height_cfg)
 			cout << "*** VERTICAL SYNC ***\n";
+	}
+
+	if (sync_debug) {
 		cout << "SYN:";
 		for (int char_pos = 0; char_pos < hz_chars; char_pos++) {
 			if (char_pos >= hz_sync_pos && char_pos < hz_sync_pos + hz_sync_width_cfg)

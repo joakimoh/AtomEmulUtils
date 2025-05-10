@@ -164,36 +164,36 @@ public:
 	bool dump(uint16_t adr, uint8_t& data) override;
 	bool write(uint16_t adr, uint8_t data);
 
-	inline double getScanLineDuration();
-	inline double getScanLinesPerField();
-	inline int getScreenScanLines();
-	inline double getFieldRate();
-	inline int getCharScanLines();
-	inline int getVerticalSyncLine();
-	inline int getVerticalSyncHeight() { return mScreenVSyncPulseH; }
-	inline int getHorizontalSyncPos();
-	inline int getHorizontalSyncWidth() { return mHzSyncPulseW_R3; }
-	inline int getCharsPerLine();
-	inline int getScreenScanLine() { return mScanLine;  }
+	double getScanLineDuration();
+	double getScanLinesPerField();
+	int getScreenScanLines();
+	double getFieldRate();
+	int getCharScanLines();
+	int getVerticalSyncLine();
+	int getVerticalSyncHeight() { return mScreenVSyncPulseH; }
+	int getHorizontalSyncPos();
+	int getHorizontalSyncWidth() { return mHzSyncPulseW_R3; }
+	int getCharsPerLine();
+	int getScreenScanLine() { return mScanLine;  }
 
-	inline int getActiveCharsPerLine();
-	inline int getActiveCharRows();
-	inline int getActiveLines();
+	int getActiveCharsPerLine();
+	int getActiveCharRows();
+	int getActiveLines();
 
-	inline void getSkew(int& displaySkew, int& cursorSkew) { displaySkew = mCharSkew_R8; cursorSkew = mCursSkew_R8; }
+	void getSkew(int& displaySkew, int& cursorSkew) { displaySkew = mCharSkew_R8; cursorSkew = mCursSkew_R8; }
 
 	//
 	// Interlace-related methods
 	//
 
 	// Check if interlace is enabled (On)
-	inline bool interlaceOn();
+	bool interlaceOn();
 
 	// Check if video interlace is active
-	inline bool interlacedVideo() { return interlaced_video(mInterlaceMode_R8); }
+	bool interlacedVideo() { return interlaced_video(mInterlaceMode_R8); }
 
 	// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
-	inline int fieldScanLineOffset();
+	int fieldScanLineOffset();
 
 	// Advance 1/2 scan line - required for interlace modes as
 	// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines

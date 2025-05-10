@@ -68,17 +68,17 @@ public:
 	virtual int getCharsPerLine() = 0;
 	virtual int getActiveCharsPerLine() = 0;
 	virtual int getScreenScanLine() = 0;
-	virtual inline int getActiveLines() = 0;
-	virtual inline int getActiveCharRows() = 0;
-	virtual inline int getScreenScanLines() = 0;
-	virtual inline int fieldScanLineOffset() = 0;
+	virtual int getActiveLines() = 0;
+	virtual int getActiveCharRows() = 0;
+	virtual int getScreenScanLines() = 0;
+	virtual int fieldScanLineOffset() = 0;
 
 	//
 	// Interlace-related methods
 	//
 
 	// Check if interlace is enabled (On)
-	virtual inline bool interlaceOn() = 0;
+	virtual bool interlaceOn() = 0;
 
 	// Advance 1/2 scan line - required for interlace modes as
 	// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines

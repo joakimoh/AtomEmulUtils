@@ -275,13 +275,13 @@ private:
 	map<Device*, map<int,DevicePort*>>	mDevicePorts;	// device port to global index mapping
 	int									mDevicePortIndex = 0;
 
-	bool extractPort(string name, PortSelection& port);
 
 	DebugManager *mDM = NULL;
 	
 
 public:
 
+	bool extractPort(string name, PortSelection& port);
 	void printRouting();
 	string printDevicePort(DevicePort * device_port);
 	string printPortSelection(PortSelection & port_selection);

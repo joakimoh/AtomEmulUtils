@@ -669,6 +669,21 @@ Devices::Devices(
 					throw runtime_error("Syntax error");
 				}
 			}
+			else if (cmd == "INIT") {
+				string port_s;
+				sin >> port_s;
+				uint8_t port_val = (uint8_t)(getIntVal(sin) & 0xff);
+				PortSelection port_sel;
+    			if (!connection_manager.extractPort(port_s, port_sel) || port_s.find(";")!=string::npos) {
+        			cout << "Invalid port '" << port_s << "' in INIT statement!\n";
+					throw runtime_error("Syntax error");
+    			}
+				DevicePort *dev_port = port_sel.port;
+				Device *dev = dev_port->dev;
+				*(dev_port->val) = port_val;
+				cout << "Device " << dev->name << ":" << dev_port->name << " = " << dec << (int) *(dev_port->val) << "\n";
+			}
+
 			else {
 				cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
 				throw runtime_error("Syntax error");

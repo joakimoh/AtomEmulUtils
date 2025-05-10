@@ -187,34 +187,34 @@ public:
 	bool dump(uint16_t adr, uint8_t& data) override;
 	bool write(uint16_t adr, uint8_t data);
 
-	inline double getScanLineDuration() { return (1.0/60) / 262.5;  }
-	inline double getScanLinesPerField() { return 262.5; }
-	inline double getFieldRate() { return 60; }
-	inline int getCharScanLines() { return 12;}
-	inline int getVerticalSyncLine() { return mTVBlkH;  }
-	inline int getHorizontalSyncPos() { return 0; }
-	inline int getCharsPerLine() { return 32; }
-	inline int getScreenScanLine() { return mScanLine; }
-	inline int getLeftBorderChars() { return mLBrdW / 8; }
-	inline int getTopBorderLines() { return mTBrdH; }
-	inline int getActiveCharsPerLine() { return mActScreenAreaW/8; }
-	inline int getActiveLines() { return mActScreenAreaH; }
-	inline int getActiveCharRows() { return mActScreenAreaH / 8; }
-	inline int getRightBorderChars() { return mRBrdW / 8; }
-	inline int getBottomBorderLines() { return mBBrdH; }
-	inline int getRetraceLines() { return mTVBlkH + mBVBlkH; }
-	inline int getRetraceChars() { return mLBlkW + mRBlkW; }
-	inline int getScreenScanLines() { return 524;  }
+	double getScanLineDuration() { return (1.0/60) / 262.5;  }
+	double getScanLinesPerField() { return 262.5; }
+	double getFieldRate() { return 60; }
+	int getCharScanLines() { return 12;}
+	int getVerticalSyncLine() { return mTVBlkH;  }
+	int getHorizontalSyncPos() { return 0; }
+	int getCharsPerLine() { return 32; }
+	int getScreenScanLine() { return mScanLine; }
+	int getLeftBorderChars() { return mLBrdW / 8; }
+	int getTopBorderLines() { return mTBrdH; }
+	int getActiveCharsPerLine() { return mActScreenAreaW/8; }
+	int getActiveLines() { return mActScreenAreaH; }
+	int getActiveCharRows() { return mActScreenAreaH / 8; }
+	int getRightBorderChars() { return mRBrdW / 8; }
+	int getBottomBorderLines() { return mBBrdH; }
+	int getRetraceLines() { return mTVBlkH + mBVBlkH; }
+	int getRetraceChars() { return mLBlkW + mRBlkW; }
+	int getScreenScanLines() { return 524;  }
 
 	//
 	// Interlace-related methods
 	//
 
 	// Check if interlace is enabled (On)
-	inline bool interlaceOn();
+	bool interlaceOn();
 
 	// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
-	inline int fieldScanLineOffset();
+	int fieldScanLineOffset();
 
 	// Advance 1/2 scan line - required for interlace modes as
 	// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines

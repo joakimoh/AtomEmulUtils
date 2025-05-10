@@ -118,7 +118,7 @@ private:
 	Key mBreakKey = { ALLEGRO_KEY_PAUSE, "BREAK" };
 
 	// Ports that can be connected to other devices
-	int  CTRL, COL_SEL, ROW_SEL, ROW, BREAK, PRESSED;
+	int  SW,CTRL, COL_SEL, ROW_SEL, ROW, BREAK, PRESSED;
 	uint8_t mCTRL = 0xf;			// CTRL input; b3: data; b2:b0 selects #3 KB:ENA, #6: LED2_CAPS_LOCK & #7: LED1_SHIFT_LOCK
 	uint8_t mKB_ENA = 0x1;			// Not a port but updated based on the CTRL input
 	uint8_t pKB_ENA = 0x1;
@@ -135,6 +135,17 @@ private:
 	// Keyboard DIP swithes (link 1 to 8)
 	// Mode 7 is set by having Links 6-8 OFF (LOW)
 	//
+	uint8_t mSW = 
+		//												column		bit		LOW (OFF)					HIGH (ON)
+		(0 << 7) ||	// Link 1 Default filing system		2			b7		DFS							NFS
+		(0 << 6) ||	// Link 2 Not used					3			b6
+		(0 << 5) ||	// Link 3 Disc drive timings		4			b5
+		(0 << 4) ||	// Link 4 Disc drive timings		5			b4
+		(0 << 3) ||	// Link 5 Boot						6			b3		SHIFT - BREAK to boot		BREAK to boot
+		(0 << 2) ||	// Link 6 Screen mode				7			b2		+4							+0
+		(0 << 1) || // Link 7 Screen mode				8			b1		+2							+0
+		(0 << 0);	// Link 8 Screen mode				9			b0		+1							+0
+/*
 	uint8_t mSWlink[8] = {
 		//									column		bit		LOW (OFF)					HIGH (ON)
 		0,	// Link 1 Default filing system		2		b7		DFS							NFS
@@ -142,11 +153,13 @@ private:
 		0,	// Link 3 Disc drive timings		4		b5
 		0,	// Link 4 Disc drive timings		5		b4
 		0,	// Link 5 Boot						6		b3		SHIFT - BREAK to boot		BREAK to boot
-		0,	// Link 6 Screen mode				7		b2		+4							+0
-		0,	// Link 7 Screen mode				8		b1		+2							+0
-		0	// Link 8 Screen mode				9		b0		+1							+0
+		1,	// Link 6 Screen mode				7		b2		+4							+0
+		1,	// Link 7 Screen mode				8		b1		+2							+0
+		1	// Link 8 Screen mode				9		b0		+1							+0
 	};
-	inline bool linkSet(uint8_t col) { return col >= 2 && col <= 9 && mSWlink[col-2] != 0; }
+*/
+	//inline bool linkSet(uint8_t col) { return col >= 2 && col <= 9 && mSWlink[col-2] != 0; }
+	inline bool linkSet(uint8_t col) { return col >= 2 && col <= 9 && (mSW & (1 << (7-(col -2)))) != 0;}
 
 	uint8_t mColCounter = 0;
 
