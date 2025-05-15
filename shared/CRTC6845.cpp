@@ -1,11 +1,9 @@
 #include "CRTC6845.h"
 #include <iomanip>
 
-//No of character rows per field
-// Note:
-// The video memory address provided will not be used as the start address of the memory (and size) is programmed (R12 & R13 for the start address)
-// 
+
 //
+// Emulation of the Hitachi 6845 Video Display Unit
 //
 // Register settings for the BBC Micro Model B (from https://beebwiki.mdfs.net/CRTC):
 // Register  Description                             Default value for MODE

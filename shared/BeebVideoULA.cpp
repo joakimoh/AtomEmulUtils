@@ -12,6 +12,8 @@
 using namespace std;
 
 // 
+// Emulation of the BBC Micro Video ULA.
+// 
 // The Video ULA sets up the 6847 CRTC.
 // 
 // The 6845 R12/R13 value is set as follows:
@@ -89,7 +91,7 @@ BeebVideoULA::BeebVideoULA(
 	for (int i = 0; i < 16; mTgcData[i++] = { 0, 0, 0 });
 
 	// Create display bitmap and clear it
-	Resolution vis_res = videoSettings.getVisibleResolution();
+	Resolution vis_res = mVideoSettings.getVisibleResolution();
 	mDisplayBitmap = al_create_bitmap(vis_res.width, vis_res.height);
 	al_clear_to_color(black);
 
@@ -180,7 +182,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int hz_blanking_spec = (int) round((double)hz_chars * blanking.width / total_res.width);
 	int hz_visible_pixels = visible_res.width;
 	int vt_visible_pixels = visible_res.height;
-	int hz_visible_chars = (int)round((double)hz_chars * visible_res.width / total_res.width);
+	int hz_visible_chars = (int)trunc((double)hz_chars * visible_res.width / total_res.width);
 	int vt_blanking = blanking.height;
 
 	int hz_visible_char_offset = (int)round((double)hz_sync_pos + hz_chars * visible_offset.width / total_res.width) % hz_chars;
@@ -348,16 +350,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	}
 
 	unsigned int* bitmap_data_p = line_bitmap_data_p;
-	for (int char_pos = 0; char_pos < hz_chars; char_pos++) {	
+	for (int visible_char_pos = 0; visible_char_pos < hz_chars; visible_char_pos++) {
 
-		int visible_char_pos = (char_pos - hz_visible_char_offset + hz_chars) % hz_chars;
+		int char_pos = (visible_char_pos + hz_visible_char_offset) % hz_chars;
 		int active_char_pos = (char_pos - hz_disp_skew + hz_chars) % hz_chars;
-
-		if (line_bitmap_data_p != NULL && visible_char_pos < hz_visible_chars)
-			bitmap_data_p = line_bitmap_data_p + visible_char_pos * mPixelsPerCharacter * mPixelW;
-		else
-			bitmap_data_p = NULL;	
-
 
 		auto line_start = chrono::high_resolution_clock::now();
 
@@ -565,12 +561,22 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			}
 
 		}
-
 		auto line_stop = chrono::high_resolution_clock::now();
 		auto line_dur = chrono::duration_cast<chrono::nanoseconds>(line_stop - line_start);
 		mLineCnt += line_dur.count();
 		
 	}
+	// Clear remaining  right-most pixels that are "left-over" when the hz res is not a multiple of the visible characters per raster line
+	if (line_bitmap_data_p != NULL) {
+		uint32_t colour = 0xff0ff000;
+		if (field_offset == 1)
+			colour = 0xffff0000;
+		Resolution vis_res = mVideoSettings.getVisibleResolution();
+		int n_left_over_pixels = vis_res.width - hz_visible_chars * mPixelsPerCharacter * mPixelW;
+		for (int p = 0; p < n_left_over_pixels && bitmap_data_p < mMaxDisplayBitmap_p;p++)
+			*bitmap_data_p++ = colour;
+	}
+
 
 	auto video_stop = chrono::high_resolution_clock::now();
 	auto video_dur = chrono::duration_cast<chrono::nanoseconds>(video_stop - video_start);
