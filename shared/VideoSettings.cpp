@@ -1,10 +1,11 @@
 #include "VideoSettings.h"
 #include <iostream>
 #include <string>
+#include <cmath>
 
 using namespace std;
 
-VideoSettings::VideoSettings(VideoFormat fmt)
+VideoSettings::VideoSettings(VideoFormat fmt, bool hwAcc): mHwAcc(hwAcc)
 {
 	int screen_scan_lines;
 	int total_hz_pixels;

@@ -176,7 +176,7 @@ int main(int argc, const char* argv[])
    //al_set_new_display_option(ALLEGRO_SINGLE_BUFFER, true, ALLEGRO_REQUIRE);
    //al_set_new_display_option(ALLEGRO_VSYNC, 1, ALLEGRO_REQUIRE);
 
-    VideoSettings video_settings(arg_parser.videoFormat);
+    VideoSettings video_settings(arg_parser.videoFormat, arg_parser.hwAcc);
     Resolution disp_res = video_settings.getVisibleResolution();
     ALLEGRO_DISPLAY* disp = al_create_display(disp_res.width, disp_res.height);
     al_set_window_title(disp, "6502 System Emulator");
@@ -186,11 +186,15 @@ int main(int argc, const char* argv[])
         cout << "Unsupported bitmap format " << get_format_name(disp_fmt) << " (" << dec << disp_fmt << ")\n";
 		return -1;
 	}
-    //int disp_bitmap_flags = al_get_bitmap_flags(disp_bm);
+    int disp_bitmap_flags = al_get_bitmap_flags(disp_bm);
     //cout << "ALLEGRO_MEMORY_BITMAP = 0x" << hex << ALLEGRO_MEMORY_BITMAP << "\n";
     //cout << "ALLEGRO_NO_PRESERVE_TEXTURE = 0x" << hex << ALLEGRO_NO_PRESERVE_TEXTURE << "\n";
     //cout << "ALLEGRO_VIDEO_BITMAP = 0x" << hex << ALLEGRO_VIDEO_BITMAP << "\n";
     //cout << "Display bitmap flags = 0x" << hex << disp_bitmap_flags << "\n";
+	if (!video_settings.hwAccelerationEnabled()) {
+		al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP);
+		cout << "HW graphics acceleration disabled...\n";
+	}
 
     al_register_event_source(queue, al_get_display_event_source(disp));
    
@@ -205,7 +209,7 @@ int main(int argc, const char* argv[])
     P6502 * microprocessor = NULL;
     double CPU_clock = 1.0; // MHz
     Devices devices(
-        arg_parser.videoFormat,
+        video_settings,
         arg_parser.mapFileName,
         CPU_clock,            // CPU Clock frequency in MHz
         32000,                      // audio sample rate corresponding to a rate of at least twice per scan line

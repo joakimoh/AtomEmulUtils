@@ -43,6 +43,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "<program> <hex adr>:\n\tBinary file with (program) data to be loaded into RAM at address <hex adr>.\n\n";
 	cout << "-v:\n\tVerbose output\n\n";
 	cout << "\nADVANCED OPTIONS:\n";
+	cout << "-nHA: Turn off Graphics hardware acceleration.\n\n";
 	cout << "-stop <hex address>: stop execution at this address\n\n";
 	cout << "-dump <hex address> <hex size>: dump memory content address to address+size-1 after stopping execution\n\n";
 	cout << "-trace <hex address> <pre trace len> <post trace len>: debug around a certain fetch address\n";
@@ -87,6 +88,9 @@ ArgParser::ArgParser(int argc, const char* argv[])
 		if (strcmp(argv[a], "-speed") == 0) {
 			emulationSpeed = stod(argv[a + 1]);
 			a++;
+		}
+		else if (strcmp(argv[a], "-nHA") == 0) {
+			hwAcc = false;
 		}
 		else if (strcmp(argv[a], "-log") == 0) {
 			debugManager.enableLogging(stoi(argv[a + 1], 0, 16));

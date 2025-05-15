@@ -22,6 +22,8 @@ public:
 
 	VideoFormat videoFormat = PAL_FMT;
 
+	bool hwAcc = true;
+
 
 private:
 

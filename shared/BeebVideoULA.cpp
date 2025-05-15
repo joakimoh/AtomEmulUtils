@@ -88,20 +88,9 @@ BeebVideoULA::BeebVideoULA(
 	mTgcData.resize(16);
 	for (int i = 0; i < 16; mTgcData[i++] = { 0, 0, 0 });
 
-	mBitMapFlags = al_get_bitmap_flags(dispBitmap);
-	if (mBitMapFlags & ALLEGRO_VIDEO_BITMAP == 0) {
-		mBitMapFlags = ALLEGRO_MEMORY_BITMAP | ALLEGRO_NO_PRESERVE_TEXTURE;
-		//cout << "No video hardware acceleration!\n";
-	}
-	else {
-		mBitMapFlags = ALLEGRO_NO_PRESERVE_TEXTURE;
-		//cout << "Video hardware acceleration supported.\n";
-	}
-
 	// Create display bitmap and clear it
 	Resolution vis_res = videoSettings.getVisibleResolution();
 	mDisplayBitmap = al_create_bitmap(vis_res.width, vis_res.height);
-	al_set_new_bitmap_flags(mBitMapFlags);
 	al_clear_to_color(black);
 
 	if (mDM->debug(DBG_VERBOSE))

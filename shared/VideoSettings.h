@@ -15,10 +15,11 @@ private:
 	Resolution mBlanking = { 0 };
 	Resolution mVideoPixels = { 0 };
 
+	bool mHwAcc = true;
 
 public:
 
-	VideoSettings(VideoFormat fmt);
+	VideoSettings(VideoFormat fmt, bool hwAcc);
 
 	Resolution getVisibleResolution() { return mVisiblePixels;  }
 
@@ -29,6 +30,8 @@ public:
 	Resolution getBlanking() { return mBlanking; }
 
 	Resolution getVideoResolution() { return mVideoPixels; }
+
+	bool hwAccelerationEnabled() { return mHwAcc; }
 
 };
 
