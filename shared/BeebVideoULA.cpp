@@ -350,12 +350,17 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	}
 
 	unsigned int* bitmap_data_p = line_bitmap_data_p;
-	for (int visible_char_pos = 0; visible_char_pos < hz_chars; visible_char_pos++) {
+	for (int char_pos = 0; char_pos < hz_chars; char_pos++) {
 
-		int char_pos = (visible_char_pos + hz_visible_char_offset) % hz_chars;
+		int visible_char_pos = (char_pos - hz_visible_char_offset + hz_chars) % hz_chars;
 		int active_char_pos = (char_pos - hz_disp_skew + hz_chars) % hz_chars;
 
 		auto line_start = chrono::high_resolution_clock::now();
+
+		if (line_bitmap_data_p != NULL && visible_char_pos < hz_visible_chars)
+			bitmap_data_p = line_bitmap_data_p + visible_char_pos * mPixelsPerCharacter * mPixelW;
+		else
+			bitmap_data_p = NULL;
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
 		// the TGC character is only 12 pixels wide (well 16 bit after being extended) whereas the CRTC one is 8 pixels wide!
@@ -572,6 +577,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		if (field_offset == 1)
 			colour = 0xffff0000;
 		Resolution vis_res = mVideoSettings.getVisibleResolution();
+		bitmap_data_p = line_bitmap_data_p + hz_visible_chars * mPixelsPerCharacter * mPixelW;
 		int n_left_over_pixels = vis_res.width - hz_visible_chars * mPixelsPerCharacter * mPixelW;
 		for (int p = 0; p < n_left_over_pixels && bitmap_data_p < mMaxDisplayBitmap_p;p++)
 			*bitmap_data_p++ = colour;
