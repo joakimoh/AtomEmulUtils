@@ -217,7 +217,7 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 			case TT_END_BOX:
 			case TT_START_BOX:
 				break;
-			case TT_NORMAL_HEIGHT:				mDoubleHeight = false;				break;			case TT_DOUBLE_HEIGHT:				/*				// Double-height characters are split onto rows where the first row				// contains the upper half of the double-height character and the second				// row contains the lower half ot the same double-height character.				// The first row of a pair of double-height characters can mix single				// and double-height characters whereas the second row cannt (if mixed				// the single-height ones will become invisible).				*/				mDoubleHeight = true;				if (mDoubleHeightHalf == -1)					mDoubleHeightHalf = 0;				break;
+			case TT_NORMAL_HEIGHT:				mDoubleHeight = false;				break;			case TT_DOUBLE_HEIGHT:				/*				// Double-height characters are split onto rows where the first row				// contains the upper half of the double-height character and the second				// row contains the lower half ot the same double-height character.				// The first row of a pair of double-height characters can mix single				// and double-height characters whereas the second row cannt (if mixed				// the single-height ones will become invisible).				*/				mDoubleHeight = true;				mDoubleHeightLine = true;				break;
 				// These codes are not used
 			case TT_S0:			case TT_S1:
 			case TT_DLE:				break;
@@ -340,14 +340,14 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 			// Create 12 pixels of the correct colour
 			int raster_line = mCharRasterLine;
 			if (mDoubleHeight) {
-				if (mDoubleHeightHalf == 0)
+				if (!mSecondDoubleHeightRow )
 					raster_line = mCharRasterLine / 2;
-				else // mDoubleHeightHalf == 1
+				else // mSecondDoubleHeightRow
 					raster_line = 10 + mCharRasterLine / 2;
 			}
 
 			// Normal-height characters on the second half of a double-height pair of rows are invisible
-			if (mDoubleHeightHalf == 1 && !mDoubleHeight)
+			if (mSecondDoubleHeightRow && !mDoubleHeight)
 				symbol_index = 0; // space <=> invisible character
 
 			for (int p = 0; p < 12; p++) {
@@ -412,12 +412,14 @@ void  TT5050::processPortUpdate(int index)
 
 			// Start of double-height character half?
 			if (mCRS == 1 && mCharRasterLine == 0 || mCRS == 0 && mCharRasterLine == 1) {
-				if (mDoubleHeightHalf == 0) // lower half starts
-					mDoubleHeightHalf = 1;
-				else if (mDoubleHeightHalf == 1) // double-height halfs completed => reset
-					mDoubleHeightHalf = -1;
+				if (mDoubleHeightLine && !mSecondDoubleHeightRow) // upper half completed => switch to lower half
+					mSecondDoubleHeightRow = true; 
+				else {// potential start of upper half
+					mSecondDoubleHeightRow = false;
+				}
 			}
 			mNewField = false;
+			mDoubleHeightLine = false;
 		}
 		pGLR = mGLR;
 	}
@@ -431,7 +433,6 @@ void  TT5050::processPortUpdate(int index)
 				mCharRasterLine = 0;
 			else // odd field
 				mCharRasterLine = 1;
-			mDoubleHeightHalf = -1;
 		}
 		pDEW = mDEW;
 	}
