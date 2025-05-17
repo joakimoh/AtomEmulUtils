@@ -10,6 +10,8 @@
 #include <chrono>
 
 
+#define BITMAP_PTR unsigned int *
+#define LOCKED_BITMAP_PTR char *
 
 class BeebVideoULA : public VideoDisplayUnit {
 
@@ -28,8 +30,7 @@ private:
 
 	int mActiveLines = 200; // dummy init value
 
-	unsigned int* mMaxDisplayBitmap_p = NULL;
-	//uint32_t * mMaxDisplayBitmap_p = NULL;
+	BITMAP_PTR mMaxDisplayBitmap_p = NULL;
 
 	int mBitMapFlags = 0;
 

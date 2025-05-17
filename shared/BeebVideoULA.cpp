@@ -101,7 +101,7 @@ BeebVideoULA::BeebVideoULA(
 	lockDisplay();
 
 	// Define the max bitmap pointer value for later use when updating the bitmap
-	mMaxDisplayBitmap_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * vis_res.height);
+	mMaxDisplayBitmap_p = (BITMAP_PTR) ((LOCKED_BITMAP_PTR) mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * vis_res.height);
 
 
 }
@@ -134,7 +134,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 {
 
 	bool sync_debug = false;
-	bool mem_debug = false;
+	bool mem_debug = true;
 
 
 	auto video_start = chrono::high_resolution_clock::now();
@@ -172,6 +172,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	int field_offset = fieldScanLineOffset();
 	int adjusted_scanline = mScanLine - field_offset;
+	int field_unique_lines = mScreenScanLines / 2;
+	int field_unique_line = adjusted_scanline / 2;
 
 	// Calculate horizontal borders
 	Resolution total_res = mVideoSettings.getTotalResolution();
@@ -199,6 +201,8 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int visible_scan_line = (mScanLine - vt_visible_line_offset + mScreenScanLines) % mScreenScanLines;
 	int active_scan_line = mScanLine;
 	int field_scan_line = (mScanLine - mVerticalSyncPos + mScreenScanLines) % mScreenScanLines;
+	int video_line = (field_scan_line - vt_blanking + mScreenScanLines) % mScreenScanLines;
+	int vt_video_lines = mScreenScanLines - vt_blanking;
 	
 	if (mDM->debug(DBG_VDU) && adjusted_scanline == 100 && mField % 50 == 0) {
 		cout << "\n" << dec <<
@@ -287,10 +291,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// Each char is not necessarily the same as character on the screen. "Big Char" is the char visible
 	// on the screen and "Char" is actually one byte fetched from memory that only sometimes corresponds
 	// to the width of a screen char. 
-
-	unsigned int* line_bitmap_data_p = NULL;
+	BITMAP_PTR line_bitmap_data_p = NULL;
 	if (visible_scan_line < vt_visible_pixels)
-		line_bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
+		line_bitmap_data_p = (BITMAP_PTR) ((LOCKED_BITMAP_PTR) mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
 
 	if (sync_debug || mem_debug) {
 		cout << "\n\n";
@@ -304,18 +307,22 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				break;
 			}
 		}
+		cout << "FIELD " << dec << mField %2 << "\n";
+		cout << "FIELD LINE " << dec << field_unique_line << " (" << field_unique_lines << ")\n";
+		cout << "SCAN LINE " << dec << mScanLine << " (" << mScreenScanLines << ")\n";
+		cout << "ADJUSTED SCAN LINE " << dec << adjusted_scanline << "\n";
 		if (active_line)
-			cout << "ACTIVE LINE\n";
+			cout << "ACTIVE LINE " << dec << active_scan_line << " (" << mActiveLines << ")\n";
 		else
-			cout << "INACTIVE LINE\n";
+			cout << "INACTIVE LINE " << dec << active_scan_line << " (" << mActiveLines << ")\n";
 		if (visible_scan_line < vt_visible_pixels)
 			cout << "VISIBLE LINE " << dec << visible_scan_line << " (" << vt_visible_pixels << ")\n";
 		else
-			cout << "INVISIBLE LINE\n";
+			cout << "INVISIBLE LINE " << dec << visible_scan_line << " (" << vt_visible_pixels << ")\n";
 		if (field_scan_line > vt_blanking)
-			cout << "VIDEO LINE\n";
+			cout << "VIDEO LINE " << dec << video_line << " (" << vt_video_lines << ")\n";
 		else
-			cout << "NO VIDEO LINE\n";
+			cout << "NON-VIDEO (BLANKING) LINE " << dec << video_line << " (" << vt_video_lines << ")\n";
 		if (adjusted_scanline >= mVerticalSyncPos && adjusted_scanline < mVerticalSyncPos + vt_sync_height_cfg)
 			cout << "*** VERTICAL SYNC ***\n";
 	}
@@ -349,7 +356,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		cout << "\nDIS:";
 	}
 
-	unsigned int* bitmap_data_p = line_bitmap_data_p;
+	BITMAP_PTR bitmap_data_p = line_bitmap_data_p;
 	for (int char_pos = 0; char_pos < hz_chars; char_pos++) {
 
 		int visible_char_pos = (char_pos - hz_visible_char_offset + hz_chars) % hz_chars;
@@ -625,8 +632,7 @@ void BeebVideoULA::updateScreenSz(int fullW, int fullH, int activeW, int activeH
 		al_set_new_bitmap_flags(mBitMapFlags);
 		al_clear_to_color(black);
 		lockDisplay();
-		mMaxDisplayBitmap_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
-		//mMaxDisplayBitmap_p = (uint32_t *)((uint32_t*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
+		mMaxDisplayBitmap_p = (BITMAP_PTR) ((LOCKED_BITMAP_PTR) mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mScreenH);
 	}
 }
 
