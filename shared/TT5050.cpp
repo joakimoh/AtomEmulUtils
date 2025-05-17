@@ -350,14 +350,9 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 			if (mSecondDoubleHeightRow && !mDoubleHeight)
 				symbol_index = 0; // space <=> invisible character
 
-			for (int p = 0; p < 12; p++) {
-				if (mInterpolatedSymbolRasterBits[symbol_index][raster_line][p]) {
-					screenData12[p] = 1;
-				}
-				else {
-					screenData12[p] = 0;
-				}
-			}
+			for (int p = 0; p < 12; p++)
+				screenData12[p] = mInterpolatedSymbolRasterBits[symbol_index][raster_line][p];
+
 		}
 
 		//
@@ -368,7 +363,7 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 		for (int i = 0; i < 16; i++) {
 				uint8_t val = screenData12[mStretchMatrix[i].srcLeftPixel] * mStretchMatrix[i].leftFactor +
 					screenData12[mStretchMatrix[i].srcRightPixel] * mStretchMatrix[i].rightFactor;
-				TTColour pixel_colour = background_colour;
+				TTColour pixel_colour;
 				if (val > 0) {
 					pixel_colour.B = val * foreground_colour.B;
 					pixel_colour.G = val * foreground_colour.G;
@@ -418,10 +413,14 @@ void  TT5050::processPortUpdate(int index)
 					mSecondDoubleHeightRow = false;
 				}
 			}
-			mNewField = false;
 			mDoubleHeightLine = false;
 		}
 		pGLR = mGLR;
+	}
+
+	else if (index == LOSE) {
+		if (mLOSE == 1)
+			mNewField = false;
 	}
 
 	else if (index == DEW) {

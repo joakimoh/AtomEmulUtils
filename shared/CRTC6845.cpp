@@ -70,7 +70,6 @@ bool CRTC6845::reset()
 	updatePort(VS, mVS);
 
 	// Internal registers are not affected by the RESET - only the internal logic is...
-	//for (int i = 0; i < 18; mReg[i++] = 0);
 	
 	updateSettings(0);
 	

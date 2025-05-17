@@ -162,7 +162,7 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 
 	
 		// Arbitrate with 'AND' logic between the new source port-based value and and other source port-based values
-		// Example: The IRQ line on the 6502 CPU receives is updated from several devices but shall remain low as long as at least
+		// Example: The IRQ line on the 6502 CPU is updated from several devices but shall remain low as long as at least
 		//			one device requests the IRQ line to be low even if another device requests it to be high.
 		if (dstPort.port->arbitration) {
 
