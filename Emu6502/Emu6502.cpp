@@ -166,7 +166,7 @@ int main(int argc, const char* argv[])
 	ALLEGRO_MENU *pmenu = NULL;
 
 #ifdef ALLEGRO_GTK_TOPLEVEL
-   al_set_new_display_flags(ALLEGRO_RESIZABLE | ALLEGRO_GTK_TOPLEVEL | ALLEGRO_WINDOWED);
+   //al_set_new_display_flags(ALLEGRO_RESIZABLE | ALLEGRO_GTK_TOPLEVEL | ALLEGRO_WINDOWED);
    al_set_new_display_flags(ALLEGRO_GTK_TOPLEVEL | ALLEGRO_WINDOWED);
 #else
    al_set_new_display_flags(ALLEGRO_RESIZABLE);
@@ -192,6 +192,7 @@ int main(int argc, const char* argv[])
     //cout << "ALLEGRO_NO_PRESERVE_TEXTURE = 0x" << hex << ALLEGRO_NO_PRESERVE_TEXTURE << "\n";
     //cout << "ALLEGRO_VIDEO_BITMAP = 0x" << hex << ALLEGRO_VIDEO_BITMAP << "\n";
     //cout << "Display bitmap flags = 0x" << hex << disp_bitmap_flags << "\n";
+    al_set_new_bitmap_flags(ALLEGRO_NO_PRESERVE_TEXTURE); // Greatly improves performance for Windows!!!
 	if (!video_settings.hwAccelerationEnabled()) {
 		al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP);
 		cout << "HW graphics acceleration disabled...\n";
