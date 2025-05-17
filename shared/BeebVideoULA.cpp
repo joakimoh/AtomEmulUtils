@@ -292,8 +292,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// on the screen and "Char" is actually one byte fetched from memory that only sometimes corresponds
 	// to the width of a screen char. 
 	BITMAP_PTR line_bitmap_data_p = NULL;
-	if (visible_scan_line < vt_visible_pixels)
+	if (visible_scan_line < vt_visible_pixels) {
 		line_bitmap_data_p = (BITMAP_PTR) ((LOCKED_BITMAP_PTR) mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
+	}
+
 
 	if (sync_debug || mem_debug) {
 		cout << "\n\n";
@@ -364,10 +366,16 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		auto line_start = chrono::high_resolution_clock::now();
 
-		if (line_bitmap_data_p != NULL && visible_char_pos < hz_visible_chars)
+		int pos_X = -1;
+		int pos_Y = -1;
+		if (line_bitmap_data_p != NULL && visible_char_pos < hz_visible_chars) {
 			bitmap_data_p = line_bitmap_data_p + visible_char_pos * mPixelsPerCharacter * mPixelW;
-		else
+			pos_X = visible_char_pos * mPixelsPerCharacter * mPixelW;
+			pos_Y = visible_scan_line;
+		}
+		else {
 			bitmap_data_p = NULL;
+		}
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
 		// the TGC character is only 12 pixels wide (well 16 bit after being extended) whereas the CRTC one is 8 pixels wide!
@@ -437,8 +445,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		}
 
 		if (mem_debug) {
-			cout << setfill('0') << setw(2) << dec << char_pos << ":" << setw(4) << hex << screen_adr << ":" << setw(2) << (int)screen_data << " ";
+			cout << setfill('0') << setw(2) << dec << char_pos << ":" << setw(4) << hex << screen_adr << ":" << setw(2) << (int)screen_data << ":" <<
+			"(" << dec << pos_X << "," << pos_Y << ") ";
 		}
+
 		
 		if (sync_debug) {
 			if (dis_ena)
