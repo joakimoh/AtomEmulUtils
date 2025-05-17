@@ -134,7 +134,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 {
 
 	bool sync_debug = false;
-	bool mem_debug = true;
+	bool mem_debug = false;
 
 
 	auto video_start = chrono::high_resolution_clock::now();
@@ -264,19 +264,20 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		mDM->log(this, DBG_VDU, "UPDATE SCREEN\n");
 
+		// Unlock the screen display (bitmap) so it can be written to
 		unlockDisplay();
 
-
-		// Clear the display
+		// Clear the screen display
 		al_clear_to_color(black);
 
-		// Draw the display bitmap including borders to fill the complete screen  display
+		// Draw the display bitmap including borders to fill the complete screen display
 		al_draw_bitmap(mDisplayBitmap, 0, 0, 0);
 
-		// Make the updates visible on the display	
+		// Make the updates visible on the screen display	
 		al_flip_display();
 
 
+		// Lock the screen display (bitmap) again
 		lockDisplay();
 
 		auto disp_stop = chrono::high_resolution_clock::now();

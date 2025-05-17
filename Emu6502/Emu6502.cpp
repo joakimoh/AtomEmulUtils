@@ -166,7 +166,8 @@ int main(int argc, const char* argv[])
 	ALLEGRO_MENU *pmenu = NULL;
 
 #ifdef ALLEGRO_GTK_TOPLEVEL
-   al_set_new_display_flags(ALLEGRO_RESIZABLE | ALLEGRO_GTK_TOPLEVEL);
+   al_set_new_display_flags(ALLEGRO_RESIZABLE | ALLEGRO_GTK_TOPLEVEL | ALLEGRO_WINDOWED);
+   al_set_new_display_flags(ALLEGRO_GTK_TOPLEVEL | ALLEGRO_WINDOWED);
 #else
    al_set_new_display_flags(ALLEGRO_RESIZABLE);
 #endif
