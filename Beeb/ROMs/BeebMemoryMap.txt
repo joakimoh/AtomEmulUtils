@@ -20,6 +20,7 @@ ADD	VIA6522		SYS_VIA		fe40	0020	1		1.0		// IC3	fe40 -	fe4f; 1 Mhz Clock
 ADD	BEEBKB		KB		00						// startup options (DIP switches)
 ADD	UC6502		UC								// Microcontroller 6502
 ADD	TAPREC	TAPREC									// Standard Tape Recorder
+//ADD	SOUND	TI4689	
 
 //
 //	Device connections

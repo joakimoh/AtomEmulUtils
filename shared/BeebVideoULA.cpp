@@ -206,8 +206,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	
 	if (mDM->debug(DBG_VDU) && adjusted_scanline == 100 && mField % 50 == 0) {
 		cout << "\n" << dec <<
-			"chars per line: " << hz_chars << ", pixels/byte: " << mPixelsPerCharacter << ", pixel width: " << (int) mPixelW << 
-			", screen pixels per char col: " << mHzScreenPixelsPerChar << "\n";
+			"chars per line: " << hz_chars << ", pixels/byte: " << mPixelsPerCharacter << ", pixel width: " << (int)mPixelW << "\n";
 		cout << "duration of a line and a field expressed in pixels: " << total_res.width << " x " << total_res.height << "\n";
 		cout << "visible resolution: " << hz_visible_pixels << " x " << vt_visible_pixels << "\n";
 		cout << "active resolution: " << hz_active_resolution << " x " << mActiveLines << " (" << hz_active_chars << " x " << hz_active_rows << ")\n";
@@ -711,10 +710,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	if (teletext)
 		mHzPixelsPerSymbol = 16;
 
-	// Drawn horizontal screen pixels per character symbol (8 for modes 0 to 3, 16 for modes 4-7)
-	mHzScreenPixelsPerChar = 128 * 8 / getCharsPerLine();
-
-	// Vertical pixels per character row is normally the same as twice no of raster lines
+	// Vertical pixels per character row is normally the same as twice the no of raster lines
 	// except for the interlace video mode where it is identical to the raster lines
 	mVtPixelsPerRow = getCharScanLines();
 	if (!mCRTC->interlacedVideo())

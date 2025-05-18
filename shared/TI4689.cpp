@@ -1,35 +1,35 @@
-#include "AtomSpeaker.h"
+#include "TI4689.h"
 #include <cmath>
 
 //
-// Model of the Speaker Interface implemented by the Acorn Atom
-//
+// Model of the TI4689 Sound Chip from the 1980's
+// 
 //
 
 
-AtomSpeaker::AtomSpeaker(string name, double cpuClock, int sampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager) :
-	SoundDevice(name, ATOM_SPEAKER_DEV, cpuClock, sampleFreq, debugManager, connectionManager)
+TI4689::TI4689(string name, double cpuClock, int sampleFreq, DebugManager* debugManager, ConnectionManager* connectionManager) :
+	SoundDevice(name, TI4689_DEV, cpuClock, sampleFreq, debugManager, connectionManager)
 {
 	registerPort("OUT", IN_PORT, 0x01, OUT, &mOUT);	// From PIA PC2
 
-	mUpdateFreqCount = (int)round(mCPUClock *1e6 / sampleFreq); // limit updates to sampleFreq
+	mUpdateFreqCount = (int)round(mCPUClock * 1e6 / sampleFreq); // limit updates to sampleFreq
 
 	al_reserve_samples(0);
 
-	
+
 }
 
-AtomSpeaker::~AtomSpeaker()
+TI4689::~TI4689()
 {
 	al_drain_audio_stream(mAudioStream);
 	al_destroy_audio_stream(mAudioStream);
 }
 
-void AtomSpeaker::setFieldRate(int fieldRate)
+void TI4689::setFieldRate(int fieldRate)
 {
 	SoundDevice::setFieldRate(fieldRate);
 
-	int mSamplesPerFragment = (int) round(1.0 * mSampleRate / mFieldRate); // 2 frames of audio
+	int mSamplesPerFragment = (int)round(1.0 * mSampleRate / mFieldRate); // 2 frames of audio
 	int mNFragments = 8;
 
 	// Create audio stream
@@ -46,7 +46,7 @@ void AtomSpeaker::setFieldRate(int fieldRate)
 	}
 
 	// Create and output silence that lasts one field
-	void* buf;	
+	void* buf;
 	while ((buf = al_get_audio_stream_fragment(mAudioStream))) {
 		al_fill_silence(buf, mSamplesPerFragment, ALLEGRO_AUDIO_DEPTH_UINT8, ALLEGRO_CHANNEL_CONF_1);
 		al_set_audio_stream_fragment(mAudioStream, buf);
@@ -63,7 +63,7 @@ void AtomSpeaker::setFieldRate(int fieldRate)
 }
 
 
-bool AtomSpeaker::advance(uint64_t stopCycle)
+bool TI4689::advance(uint64_t stopCycle)
 {
 
 	updateAudio(mOUT << 7);
@@ -76,13 +76,13 @@ bool AtomSpeaker::advance(uint64_t stopCycle)
 	return true;
 }
 
-bool AtomSpeaker::updateAudio(uint8_t val)
+bool TI4689::updateAudio(uint8_t val)
 {
 	mSamples.push_back(val);
 
 	if (mSamples.size() >= mSamplesPerFragment)
 
-	// Samples corresponding to a complete fragment exists => audio output possible
+		// Samples corresponding to a complete fragment exists => audio output possible
 	{
 
 		if (mSoundCnt > 0) {
@@ -106,16 +106,16 @@ bool AtomSpeaker::updateAudio(uint8_t val)
 
 				if (!al_set_audio_stream_fragment(mAudioStream, buf)) {
 					return false;
-				}							
+				}
 			}
-			al_destroy_event_queue(queue);			
-			
+			al_destroy_event_queue(queue);
+
 		}
 		mSamples.clear();
 		mSoundCnt = 0;
-		
+
 	}
-	
-	
+
+
 	return true;
 }
