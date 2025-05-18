@@ -26,7 +26,7 @@ using namespace std;
 // 0		 0x600 -  0xfff		0x3000 - 0x7fff		20k		640x256		80x32		2		312			256			128			1		16 MHz	8
 // 1		 0x600 -  0xfff		0x3000 - 0x7fff		20k		320x256		40x32		4		312			256			128			2		 8 MHz	4
 // 2		 0x600 -  0xfff		0x3000 - 0x7fff		20k		160x256		20x32		16		312			256			128			4		 4 MHz	2
-// 3		 0x800 -  0xfff		0x4000 - 0x7fff		16k		N/A			80x25		2		312			256			64			1		16 MHz	8
+// 3		 0x800 -  0xfff		0x4000 - 0x7fff		16k		N/A			80x25		2		312			256			128			1		16 MHz	8
 // 4		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		320x256		40x32		2		312			256			64			2		 8 MHz	8
 // 5		 0xb00 -  0xfff		0x5800 - 0x7fff		10k		160x256		20x32		4		312			256			64			4		 4 MHz	4
 // 6		 0xc00 -  0xfff		0x6000 - 0x7fff		8k		N/A			40x25		2		312			256			64			2		 8 MHz	8
@@ -678,16 +678,38 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 
 	bool teletext = getCRField(CR_TELETEXT) == 1;
 
-	mPixelW = 16 / mPixelRate; // pixel width in "actual pixels" for a 640 pixel wide screen
+	//
+	//	Pixels per memory byte (mPixelsPerCharacter), "big" pixels per column symbol (mHzPixelsPerSymbol) and size of "big" pixel (mPixelW)
+	//
+	//	As configured by the Video ULA Control Register	(CR)							Given by Video ULA PR and additional CRTC configuration
+	//	===================================================								==========================================================
+	//	No of cols	Pixel rate	Pixels/Byte				CRTC Clk		Colours			Total columns	Pixels/symb				Pixel size	Scr.pix./symb	Modes
+	//							(mPixelsPerCharacter)													(mHzPixelsPerSymbol)	(mPixelW)
+	//	==========	==========	=====================	========		=======			=============	====================	==========	==============	=====
+	//	10			2 MHz		1						
+	//	20			4 MHz		2:2 5:4					0-3:2 4-7:1		2:16 5:4		2:128,5:64		8						4			8				2,5
+	//	40			8 MHz		1:4 4,6:8 7:N/A			0-3:2 4-7:1		1:4 4,6:2 7:N/A	1:128 4,6,7:64	8 (7:16)				2 (7:1)		8 (7:16)		1,4,6,7
+	//	80			16 MHz		8						0-3:2 4-7:1		0,3:2			128				8						1			8				0,3
+	//
+
+	// Pixel width in "actual pixels" for a 640-pixel wide screen
+	mPixelW = 16 / mPixelRate; 
 	if (teletext)
 		mPixelW = 1;
 
-	// Unique "big" pixels per (column) memory byte (8 for modes 0, 3 and 4; 4 for modes and 5; 2 for mode 2; and 16 for mode 7)
-	mPixelsPerCharacter = 8 * mNCols / getActiveCharsPerLine();
-	mHzPixelsPerSymbol = 8;
+	// Pixels per memory byte
+	// Round to consider subtle changes in displayed characters per line
+	mPixelsPerCharacter = (int)round(8.0 * mNCols / getActiveCharsPerLine());
 	if (mPixelsPerCharacter > 8) {
 		return false;
 	}
+	if (teletext)
+		mPixelsPerCharacter = 16; // as 12 pixels have been stretched to 16 by the TCG
+
+	// "big" pixels per symbol
+	mHzPixelsPerSymbol = 8;
+	if (teletext)
+		mHzPixelsPerSymbol = 16;
 
 	// Drawn horizontal screen pixels per character symbol (8 for modes 0 to 3, 16 for modes 4-7)
 	mHzScreenPixelsPerChar = 128 * 8 / getCharsPerLine();
@@ -698,11 +720,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	if (!mCRTC->interlacedVideo())
 		mVtPixelsPerRow *= 2;
 
-	if (teletext) {
-		mPixelsPerCharacter = 16; // as 12 pixels have been stretched to 16 by the TCG
-		mHzPixelsPerSymbol = 16;
-		
-	}
+
 	if ((
 		((mControlRegister ^ newControlRegisterValue) & 0xfe) != 0 ||
 		mPixelsPerCharacter != p_pixels_per_byte ||
