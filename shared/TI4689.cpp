@@ -13,6 +13,44 @@ TI4689::TI4689(string name, int sampleFreq, double cpuClock, DebugManager* debug
 	registerPort("CLK", IN_PORT, 0x1, CLK,	&mCLK);
 	registerPort("D",	IN_PORT, 0xff, D,	&mD);
 	registerPort("WE", IN_PORT, 0x1, WE, &mWE);
+
+	mVoice = al_create_voice(44100, ALLEGRO_AUDIO_DEPTH_INT16, ALLEGRO_CHANNEL_CONF_2);
+
+	mMixer = al_create_mixer(44100, ALLEGRO_AUDIO_DEPTH_FLOAT32,ALLEGRO_CHANNEL_CONF_2);
+
+	mChannel1Stream = al_create_audio_stream(
+		mNFragments,					// #fragments
+		mSamplesPerFragment,			// size of a fragment
+		mSampleRate,					// sample frequency
+		ALLEGRO_AUDIO_DEPTH_UINT8,
+		ALLEGRO_CHANNEL_CONF_1
+	);
+	mChannel2Stream = al_create_audio_stream(
+		mNFragments,					// #fragments
+		mSamplesPerFragment,			// size of a fragment
+		mSampleRate,					// sample frequency
+		ALLEGRO_AUDIO_DEPTH_UINT8,
+		ALLEGRO_CHANNEL_CONF_1
+	);
+	mChannel3Stream = al_create_audio_stream(
+		mNFragments,					// #fragments
+		mSamplesPerFragment,			// size of a fragment
+		mSampleRate,					// sample frequency
+		ALLEGRO_AUDIO_DEPTH_UINT8,
+		ALLEGRO_CHANNEL_CONF_1
+	);
+	mNoiseChannelStream = al_create_audio_stream(
+		mNFragments,					// #fragments
+		mSamplesPerFragment,			// size of a fragment
+		mSampleRate,					// sample frequency
+		ALLEGRO_AUDIO_DEPTH_UINT8,
+		ALLEGRO_CHANNEL_CONF_1
+	);
+
+	al_attach_audio_stream_to_mixer(mChannel1Stream, mMixer);
+	al_attach_audio_stream_to_mixer(mChannel2Stream, mMixer);
+	al_attach_audio_stream_to_mixer(mChannel3Stream, mMixer);
+	al_attach_audio_stream_to_mixer(mNoiseChannelStream, mMixer);
 }
 
 TI4689::~TI4689()
@@ -30,14 +68,20 @@ bool TI4689::advance(uint64_t stopCycle)
 // Process input port changes directly (i.e. don't wait until the next call of the advance() method)
 void TI4689::processPortUpdate(int index)
 {
-	if (index == D) {
-		//cout << "Data = 0x" << hex << (int) mD << "\n";
+
+	if (index == CLK) {
+
 	}
 
+	else if (index == D) {
+
+	}
+		
 	else if (index == WE) {
-		if (mWE == 0 && pWE == 1)
+
+		if (mWE == 1 && mWE != pWE) // Sample data on WE low to high transition
 		{
-			// Write to a device register
+			// Write configuration for a channel 
 
 
 			int reg_no = TI4689_REG_NO(mD);
@@ -56,14 +100,17 @@ void TI4689::processPortUpdate(int index)
 			{
 				if (first_byte) {
 					mGenSrc[src].freq = (mGenSrc[src].freq & 0x3f0) | TI4689_LSB_FREQ(mD);
-					
-					cout << "Set LSB of Tone Generator " << dec << src << " to 0x" << hex << TI4689_LSB_FREQ(mD) << " => Frequency " <<
-						dec << (2.0e6 * mCLK / (32 * mGenSrc[src].freq)) << " Hz (0x" << hex << mGenSrc[src].freq << ")\n";
+					if (mDM->debug(DBG_AUDIO)) {
+						cout << "Set LSB of Tone Generator " << dec << src << " to 0x" << hex << TI4689_LSB_FREQ(mD) << " => Frequency " <<
+							dec << (2.0e6 * mCLK / (32 * mGenSrc[src].freq)) << " Hz (0x" << hex << mGenSrc[src].freq << ")\n";
+					}
 				}
 				else {
 					mGenSrc[src].freq = (mGenSrc[src].freq & 0x00f) | (TI4689_MSB_FREQ(mD) << 4);
-					cout << "Set MSB of Tone Generator " << dec << src << " to 0x" << hex << TI4689_MSB_FREQ(mD) << " => Frequency " <<
-						dec << (2.0e6 * mCLK / (32 * mGenSrc[src].freq)) << " Hz (0x" << hex << mGenSrc[src].freq << ")\n";
+					if (mDM->debug(DBG_AUDIO)) {
+						cout << "Set MSB of Tone Generator " << dec << src << " to 0x" << hex << TI4689_MSB_FREQ(mD) << " => Frequency " <<
+							dec << (2.0e6 * mCLK / (32 * mGenSrc[src].freq)) << " Hz (0x" << hex << mGenSrc[src].freq << ")\n";
+					}
 				}
 				break;
 			}
@@ -79,12 +126,14 @@ void TI4689::processPortUpdate(int index)
 					mGenSrc[src].att = ATT_OFF;
 				else
 					mGenSrc[src].att = Attenuation(a);
-				if (reg_no == R7_Noise_Att)
-					cout << "Set Attenuation for Noise Generator to 0x" << hex << a << " => Attenuation " <<
-					_TI6847_ATTENUATION(mGenSrc[src].att) << "\n";
-				else
-					cout << "Set Attenuation for Tone Generator " << dec << src << " to 0x" << hex << a << " => Attenuation " <<
-					_TI6847_ATTENUATION(mGenSrc[src].att) << "\n";
+				if (mDM->debug(DBG_AUDIO)) {
+					if (reg_no == R7_Noise_Att)
+						cout << "Set Attenuation for Noise Generator to 0x" << hex << a << " => Attenuation " <<
+							_TI6847_ATTENUATION(mGenSrc[src].att) << "\n";
+					else
+						cout << "Set Attenuation for Tone Generator " << dec << src << " to 0x" << hex << a << " => Attenuation " <<
+							_TI6847_ATTENUATION(mGenSrc[src].att) << "\n";
+				}
 				break;
 			}
 
@@ -94,19 +143,18 @@ void TI4689::processPortUpdate(int index)
 				mGenSrc[src].noiseType = TI4689_NOISE_TYPE(mD);
 				mGenSrc[src].shiftRate = TI4689_NOISE_RATE(mD);
 
-				cout << "Set Noise Generator Type to " << _TI6847_NOISE_TYPE(mGenSrc[src].noiseType) <<
-					" and noise rate to " << _TI6847_NOISE_RATE(mGenSrc[src].shiftRate) << "\n";
+				if (mDM->debug(DBG_AUDIO)) {
+					cout << "Set Noise Generator Type to " << _TI6847_NOISE_TYPE(mGenSrc[src].noiseType) <<
+						" and noise rate to " << _TI6847_NOISE_RATE(mGenSrc[src].shiftRate) << "\n";
+				}
 				break;
 			}
 
 			default:
 				break;
 			}
-	}
+		}
 		pWE = mWE;
 	}
 
-	else if (index == CLK) {
-
-	}
 }

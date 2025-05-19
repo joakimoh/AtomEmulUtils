@@ -12,24 +12,19 @@ class TI4689 : public SoundDevice {
 
 private:
 
+	ALLEGRO_VOICE* mVoice = NULL;
+	ALLEGRO_MIXER* mMixer = NULL;
+	ALLEGRO_AUDIO_STREAM* mAudioStream = NULL;
+	ALLEGRO_AUDIO_STREAM* mChannel1Stream = NULL;
+	ALLEGRO_AUDIO_STREAM* mChannel2Stream = NULL;
+	ALLEGRO_AUDIO_STREAM* mChannel3Stream = NULL;
+	ALLEGRO_AUDIO_STREAM* mNoiseChannelStream = NULL;
+
 	uint8_t mCLK = 4;
 	uint8_t mD = 0x0;	// Data in
 	uint8_t mWE = 0x1;	// Write Enable (active low)
-	uint8_t pWE = 0x1;
+	uint8_t pWE = 0x0;
 	int CLK, D, WE;
-
-	int mUpdateFreqCount = 0;
-	int mSamplesPerFragment = 512;
-	int mNFragments = 8;
-
-
-	bool updateAudio(uint8_t val);
-
-	ALLEGRO_AUDIO_STREAM* mAudioStream = NULL;
-
-	vector<uint8_t> mSamples;
-	int mSoundCnt = 0;
-
 
 	enum Attenuation {
 		ATT_2dB = 0x1,

@@ -67,10 +67,11 @@ void ArgParser::printUsage(const char* name)
 	cout << "\t'k' keyboard\n";
 	cout << "\t'v' video display units (can also be enabled at run time with <CTRL-V>)\n";
 	cout << "\t's' serial/parallel I/O peripherals\n";
+	cout << "\t'a' audio\n";
 	cout << "\t'd' device execution in general\n";
 	cout << "\t't' triggering on R/W accesses\n";
 	cout << "\t'x' measuring execution time of the different components\n";
-	cout << "\t'a' all the above\n\n";
+	cout << "\t'A' all the above\n\n";
 }
 
 ArgParser::ArgParser(int argc, const char* argv[])
@@ -213,6 +214,8 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			if (strstr(argv[a], "x") != NULL)
 				debugManager.setDebugLevel(DBG_TIME);
 			if (strstr(argv[a], "a") != NULL)
+				debugManager.setDebugLevel(DBG_AUDIO);
+			if (strstr(argv[a], "A") != NULL)
 				debugManager.setDebugLevel(DBG_ALL);
 		}
 		else if (strcmp(argv[a], "-port") == 0) {
