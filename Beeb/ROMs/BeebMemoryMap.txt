@@ -20,7 +20,8 @@ ADD	VIA6522		SYS_VIA		fe40	0020	1		1.0		// IC3	fe40 -	fe4f; 1 Mhz Clock
 ADD	BEEBKB		KB		00						// startup options (DIP switches)
 ADD	UC6502		UC								// Microcontroller 6502
 ADD	TAPREC	TAPREC									// Standard Tape Recorder
-//ADD	SOUND	TI4689	
+ADD	TI4689	SOUND
+ADD	BEEBVIALATCH	VIAL
 
 //
 //	Device connections
@@ -31,28 +32,41 @@ ADD	TAPREC	TAPREC									// Standard Tape Recorder
 //	to be connected shall be specified unless all bits shall be
 //	connected.
 //
-CONNECT:I	CRTC:RA;0	TCG:CRS
-CONNECT:P	CRTC:VS		TCG:DEW
-CONNECT:IP	CRTC:HS		TCG:GLR
-CONNECT:P		CRTC:DISPTMG	TCG:LOSE
+
+// Sound chip connections
+CONNECT:P 	SYS_VIA:PB;3;0	VIAL:CTRL
+CONNECT:P	VIAL:Q;0		SOUND:WE
+CONNECT:P	SYS_VIA:PA		SOUND:D
+
+// Video Display Unit connections
+CONNECT:I	CRTC:RA;0		TCG:CRS
+CONNECT:P	CRTC:VS			TCG:DEW
+CONNECT:IP	CRTC:HS			TCG:GLR
+CONNECT:P	CRTC:DISPTMG	TCG:LOSE
 CONNECT		CRTC:DISPTMG	VDU:DISEN
-CONNECT		CRTC:CUDISP	VDU:CURSOR
-CONNECT		CRTC:RA;3;0	VDU:RA
-CONNECT		CRTC:VS		SYS_VIA:CA;0	// VS => CA1
-CONNECT 	ROMSel:NW	BASIC:CS
-CONNECT:P 	SYS_VIA:PB;3;0	KB:CTRL		// PB3:0 => CTRL
+CONNECT		CRTC:CUDISP		VDU:CURSOR
+CONNECT		CRTC:RA;3;0		VDU:RA
+CONNECT		CRTC:VS			SYS_VIA:CA;0	// VS => CA1
+CONNECT 	ROMSel:NW		BASIC:CS
 CONNECT:P 	SYS_VIA:PB;3;0	VDU:SCROLL_CTRL	// PB3:0 => SCROLL_CTRL
+CONNECT 	VDU:CRTC_CLK	CRTC:CLK
+
+// VIA IRQ
+CONNECT 	SYS_VIA:IRQ		UC:IRQ		// VIA generates 100 Hz timer interrupts and more
+
+// Keyboard connections
+CONNECT:P 	SYS_VIA:PB;3;0	KB:CTRL		// PB3:0 => CTRL
 CONNECT 	SYS_VIA:PA;3;0	KB:COL_SEL	// PA3:0 => COL_SEL
 CONNECT 	SYS_VIA:PA;6;4	KB:ROW_SEL	// PA6:4 => ROW_SEL
-CONNECT 	SYS_VIA:IRQ	UC:IRQ		// VIA generates 100 Hz timer interrupts and more
-CONNECT 	KB:ROW		SYS_VIA:PA;7	// ROW => PA7
-CONNECT 	KB:PRESSED	SYS_VIA:CA;1	// PRESSED = CA2
-CONNECT:P 	KB:BREAK	UC:RESET	// Connect BREAK key to uC RESET input with direct processing on update
-CONNECT:P 	KB:BREAK	SYS_VIA:RESET	// Connect BREAK key to System VIA RESET input with direct processing on update
-CONNECT:P 	KB:BREAK	CRTC:RESET	// Connect BREAK key to CRTC RESET input with direct processing on update	
-CONNECT:P 	KB:BREAK	TCG:RESET	// Connect BREAK key to TCG RESET input with direct processing on update
-CONNECT:P 	KB:BREAK	VDU:RESET	// Connect BREAK key to VDU RESET input with direct processing on update
-CONNECT 	VDU:CRTC_CLK	CRTC:CLK
+CONNECT 	KB:ROW			SYS_VIA:PA;7	// ROW => PA7
+CONNECT 	KB:PRESSED		SYS_VIA:CA;1	// PRESSED = CA2
+CONNECT:P 	KB:BREAK		UC:RESET	// Connect BREAK key to uC RESET input with direct processing on update
+CONNECT:P 	KB:BREAK		SYS_VIA:RESET	// Connect BREAK key to System VIA RESET input with direct processing on update
+CONNECT:P 	KB:BREAK		CRTC:RESET	// Connect BREAK key to CRTC RESET input with direct processing on update	
+CONNECT:P 	KB:BREAK		TCG:RESET	// Connect BREAK key to TCG RESET input with direct processing on update
+CONNECT:P 	KB:BREAK		VDU:RESET	// Connect BREAK key to VDU RESET input with direct processing on update
+
+
 
 // CUTS <=> Tape Recorder Connections
 CONNECT 	TAPREC:CAS_IN		SerialULA:CAS_IN	// connect Serial ULA (CUTS) and tape recorder - CAS IN
@@ -67,17 +81,18 @@ CONNECT		ACIA:IRQ		UC:IRQ
 //
 //	Device scheduling
 //
-TRIGGER KB	MEM	OS	READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release)
-SCHED	KB	FIELD				// Also schedule the keyboard on field basis (for RESET release)
-TRIGGER	KB	MEM	SYS_VIA	WRITE	fe4f	// Beeb selects keyboard row & col by writing to VIA Port A (address fe4f)
-TRIGGER	CRTC	CALL	VDU			// Trigger the CRTC explictly by VDU function calls
-TRIGGER	TCG	CALL	VDU			// Trigger the TCG explictly by VDU function calls
-TRIGGER ACIA	CALL	SerialULA		// Trigger the ACIA explictly by Serial ULA function calls
-SCHED	TCG		NONE
+TRIGGER KB			MEM		OS			READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release)
+SCHED	KB			FIELD								// Also schedule the keyboard on field basis (for RESET release)
+TRIGGER	KB			MEM		SYS_VIA		WRITE	fe4f	// Beeb selects keyboard row & col by writing to VIA Port A (address fe4f)
+TRIGGER	CRTC		CALL	VDU							// Trigger the CRTC explictly by VDU function calls
+TRIGGER	TCG			CALL	VDU							// Trigger the TCG explictly by VDU function calls
+TRIGGER ACIA		CALL	SerialULA					// Trigger the ACIA explictly by Serial ULA function calls
+SCHED	TCG			NONE
 SCHED	CRTC		NONE
 SCHED	ACIA		INSTR
-SCHED	KB		HLINE
+SCHED	KB			HLINE
 SCHED	SerialULA	INSTR
-SCHED	VDU	NONE
+SCHED	VDU			NONE
+SCHED	VIAL		NONE
 
 INIT	KB:SW	0

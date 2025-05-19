@@ -24,6 +24,8 @@
 #include "BeebRomSel.h"
 #include "ACIA6850.h"
 #include "BeebSerialULA.h"
+#include "TI4689.h"
+#include "BeebViaLatch.h"
 
 using namespace std;
 
@@ -367,6 +369,14 @@ Devices::Devices(
 
 				}
 
+				else if (dev_type == "TI4689") {
+
+					TI4689* sd = new TI4689(dev_name, cpuClock, audioSampleFreq, mDM, &connection_manager);
+					mDevices.push_back(sd);
+					sound_device = sd;
+
+				}
+
 				//
 				// Tape Devices
 				//
@@ -527,6 +537,16 @@ Devices::Devices(
 					mainVDU = new BeebVideoULA(dev_name, dev_adr, videoSettings, cpuClock, wait_states, disp, dispBitmap, mDM, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
+				}
+
+				//
+				// Misc. devices
+				//
+
+				// Emulation of BBC Micro IC31 & IC32
+				else if (dev_type == "BEEBVIALATCH") {
+					BeebViaLatch* latch = new BeebViaLatch(dev_name, cpuClock, mDM, &connection_manager);
+					mDevices.push_back(latch);
 				}
 
 				else {
