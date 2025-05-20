@@ -12,13 +12,18 @@ class TI4689 : public SoundDevice {
 
 private:
 
-	ALLEGRO_VOICE* mVoice = NULL;
 	ALLEGRO_MIXER* mMixer = NULL;
-	ALLEGRO_AUDIO_STREAM* mAudioStream = NULL;
-	ALLEGRO_AUDIO_STREAM* mChannel1Stream = NULL;
-	ALLEGRO_AUDIO_STREAM* mChannel2Stream = NULL;
-	ALLEGRO_AUDIO_STREAM* mChannel3Stream = NULL;
-	ALLEGRO_AUDIO_STREAM* mNoiseChannelStream = NULL;
+	ALLEGRO_AUDIO_STREAM* mChannelStream[4] = { NULL };
+	int mSamplesPerFragment = 512;
+	int mNFragments = 8;
+	vector<uint8_t> mSamples[4];
+	int mChannelSampleCnt[4] = { 0 };
+	int mChannelCycle[4] = { 0 };
+	int mChannelCyclePeriod[4] = { 0 };
+	int mChannelLevel[4] = { 0 };
+	int mChannelLevelMax = 32767;
+	uint16_t mNoiseShiftRegister = 0; // 15-bit shift register for noise generation
+
 
 	uint8_t mCLK = 4;
 	uint8_t mD = 0x0;	// Data in
@@ -79,7 +84,7 @@ private:
 
 public:
 
-	TI4689(string name, int sampleFreq, double cpuClock, DebugManager* debugManager, ConnectionManager* connectionManager);
+	TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, DebugManager* debugManager, ConnectionManager* connectionManager);
 	~TI4689();
 
 	// Advance until clock cycle stopcycle has been reached

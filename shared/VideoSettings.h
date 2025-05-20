@@ -33,6 +33,10 @@ public:
 
 	bool hwAccelerationEnabled() { return mHwAcc; }
 
+	int getFieldRate() {
+		return mFieldrate;
+	}
+
 };
 
 

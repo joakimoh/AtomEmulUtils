@@ -371,7 +371,7 @@ Devices::Devices(
 
 				else if (dev_type == "TI4689") {
 
-					TI4689* sd = new TI4689(dev_name, cpuClock, audioSampleFreq, mDM, &connection_manager);
+					TI4689* sd = new TI4689(dev_name, cpuClock, videoSettings.getFieldRate(), audioSampleFreq, mDM, &connection_manager);
 					mDevices.push_back(sd);
 					sound_device = sd;
 

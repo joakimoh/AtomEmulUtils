@@ -29,8 +29,8 @@ void AtomSpeaker::setFieldRate(int fieldRate)
 {
 	SoundDevice::setFieldRate(fieldRate);
 
-	int mSamplesPerFragment = (int) round(1.0 * mSampleRate / mFieldRate); // 2 frames of audio
-	int mNFragments = 8;
+	mSamplesPerFragment = (int) round(1.0 * mSampleRate / mFieldRate); // 2 frames of audio
+	mNFragments = 8;
 
 	// Create audio stream
 	mAudioStream = al_create_audio_stream(
@@ -41,8 +41,8 @@ void AtomSpeaker::setFieldRate(int fieldRate)
 		ALLEGRO_CHANNEL_CONF_1
 	);
 	if (!mAudioStream) {
-		throw runtime_error("Could not create audio stream");
 		cout << "Could not create audio stream\n";
+		throw runtime_error("Could not create audio stream");
 	}
 
 	// Create and output silence that lasts one field
@@ -53,8 +53,8 @@ void AtomSpeaker::setFieldRate(int fieldRate)
 	}
 
 	if (!al_attach_audio_stream_to_mixer(mAudioStream, al_get_default_mixer())) {
-		throw runtime_error("Could not attach audio stream to audio mixer");
 		cout << "Could not attach audio stream to audio mixer\n";
+		throw runtime_error("Could not attach audio stream to audio mixer");
 	}
 
 	// Add one field of silence
