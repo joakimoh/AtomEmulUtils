@@ -16,13 +16,15 @@ private:
 	ALLEGRO_AUDIO_STREAM* mChannelStream[4] = { NULL };
 	int mSamplesPerFragment = 512;
 	int mNFragments = 8;
-	vector<uint8_t> mSamples[4];
+	vector<int16_t> mSamples[4];
 	int mChannelSampleCnt[4] = { 0 };
 	int mChannelCycle[4] = { 0 };
 	int mChannelCyclePeriod[4] = { 0 };
 	int mChannelLevel[4] = { 0 };
 	int mChannelLevelMax = 32767;
 	uint16_t mNoiseShiftRegister = 0; // 15-bit shift register for noise generation
+
+	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
 
 
 	uint8_t mCLK = 4;

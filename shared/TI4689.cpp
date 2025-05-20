@@ -22,38 +22,42 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 	mSamplesPerFragment = (int)round(1.0 * mSampleRate / mFieldRate); // 2 fields of audio
 	mNFragments = 8;
 
-	cout << "Field rate: " << dec << mFieldRate << "\n";
-	cout << "Sample rate: " << dec << mSampleRate << "\n";
+	for (int channel = 0; channel < 4; channel++) {
 
-	for (int i = 0; i < 4; i++) {
-		mChannelStream[i] = al_create_audio_stream(
+		cout << "Channel " << dec << channel << "\n";
+
+		mChannelStream[channel] = al_create_audio_stream(
 			mNFragments,					// #fragments
 			mSamplesPerFragment,			// size of a fragment
 			mSampleRate,					// sample frequency
 			ALLEGRO_AUDIO_DEPTH_INT16,
 			ALLEGRO_CHANNEL_CONF_2
 		);
-		if (!mChannelStream[i]) {
-			cout << "Could not create audio stream " << dec << i << "\n";
+		if (!mChannelStream[channel]) {
+			cout << "Could not create audio stream " << dec << channel << "\n";
 			throw runtime_error("Could not create audio stream");
 
 		}
 		// Create and output silence that lasts one field
 		void* buf;
-		while ((buf = al_get_audio_stream_fragment(mChannelStream[i]))) {
+		while ((buf = al_get_audio_stream_fragment(mChannelStream[channel]))) {
 			al_fill_silence(buf, mSamplesPerFragment, ALLEGRO_AUDIO_DEPTH_INT16, ALLEGRO_CHANNEL_CONF_2);
-			al_set_audio_stream_fragment(mChannelStream[i], buf);
+			al_set_audio_stream_fragment(mChannelStream[channel], buf);
 		}
 
-		if (!al_attach_audio_stream_to_mixer(mChannelStream[i], mMixer)) {
-			cout << "Could not attach audio stream " << dec << i << " to audio mixer\n";
+		if (!al_attach_audio_stream_to_mixer(mChannelStream[channel], mMixer)) {
+			cout << "Could not attach audio stream " << dec << channel << " to audio mixer\n";
 			throw runtime_error("Could not attach audio stream to audio mixer");
 		}
 
 		// Add one field of silence
 		for (int i = 0; i < mSamplesPerFragment; i++)
-			mSamples[i].push_back(0x0);
+			mSamples[channel].push_back(0x0);
+
+		al_register_event_source(mQueue, al_get_audio_stream_event_source(mChannelStream[channel]));
 	}
+
+	cout << "DONE!\n";
 }
 
 TI4689::~TI4689()
@@ -121,52 +125,46 @@ bool TI4689::advance(uint64_t stopCycle)
 			// Add one sinusoidal sample of the current selected level
 
 			int phase = mChannelCycle[i] % mChannelCyclePeriod[i];
-			int16_t val = mChannelLevel[i] * sin(2 * 3.14 * phase / mChannelCyclePeriod[i]);
+			val = mChannelLevel[i] * sin(2 * 3.14 * phase / mChannelCyclePeriod[i]);
 
 
 		}
 
-		if (i < 4) {
-			mSamples[i].push_back(val);
-			mChannelSampleCnt[i]++;
-			{
-				if (mSamples[i].size() >= mSamplesPerFragment)
+		// Add sample
+		mSamples[i].push_back(val);
+		mChannelSampleCnt[i]++;
 
-					// Samples corresponding to a complete fragment exists => audio output possible
-				{
+		// Output samples when samples corresponding to a complete fragment exists
+		if (mSamples[i].size() >= mSamplesPerFragment)
+		{
+			if (mChannelSampleCnt[i] > 0) {
 
-					if (mChannelSampleCnt[i] > 0) {
+				ALLEGRO_EVENT event;
 
-						ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
-						al_register_event_source(queue, al_get_audio_stream_event_source(mChannelStream[i]));
+				al_wait_for_event(mQueue, &event);
 
-						ALLEGRO_EVENT event;
+				if (event.type == ALLEGRO_EVENT_AUDIO_STREAM_FRAGMENT) {
 
-						al_wait_for_event(queue, &event);
-
-						if (event.type == ALLEGRO_EVENT_AUDIO_STREAM_FRAGMENT) {
-
-							int8_t* buf = (int8_t*)al_get_audio_stream_fragment(mChannelStream[i]);
-							if (!buf) {
-								/* Buffer is full */
-								return true;
-							}
-
-							memcpy(buf, &mSamples[0], mSamplesPerFragment);
-
-							if (!al_set_audio_stream_fragment(mChannelStream[i], buf)) {
-								return false;
-							}
-						}
-						al_destroy_event_queue(queue);
-
+					int8_t* buf = (int8_t*)al_get_audio_stream_fragment(mChannelStream[i]);
+					if (!buf) {
+						/* Buffer is full */
+						return true;
 					}
-					mSamples[i].clear();
-					mChannelSampleCnt[i] = 0;
 
+					memcpy(buf, &mSamples[i][0], mSamplesPerFragment);
+
+					if (!al_set_audio_stream_fragment(mChannelStream[i], buf)) {
+						return false;
+					}
 				}
+
 			}
+			mSamples[i].clear();
+			mChannelSampleCnt[i] = 0;
+
 		}
+
+		
 	}
 
 	mCycleCount = stopCycle;
