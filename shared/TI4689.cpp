@@ -142,8 +142,9 @@ bool TI4689::advance(uint64_t stopCycle)
 					// A Square Wave Tone generator
 					//
 
-					if (mSampleCount % mChannelHalfCycleSamples[channel] == 0)
+					if (mSampleCount % mChannelHalfCycleSamples[channel] == 0) {
 						mOutput[channel] = -mOutput[channel];
+					}
 
 					val = mOutput[channel];
 
@@ -172,7 +173,7 @@ bool TI4689::advance(uint64_t stopCycle)
 							// mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / mGenSrc[channel].freq);
 							double freq = 0.5 * mSampleRate / mChannelHalfCycleSamples[channel];
 							string generator = (channel < 3 ? "Tone Generator " + to_string(channel + 1) : "Noise Generator");
-							cout << dec << mSamplesPerFragment << " samples (" << mSampleRate/freq << " cycles)" << 
+							cout << dec << mSamplesPerFragment << " samples (" << ((double) mSampleRate/freq) << " cycles)" << 
 								" of frequency " << dec << freq <<
 								" and max volume " << mChannelLevel[channel] <<
 								" generated for " << generator << "\n";
@@ -249,13 +250,19 @@ void TI4689::processPortUpdate(int index)
 							cout << "Set MSB of " << generator << " to 0x" << hex << TI4689_MSB_FREQ(mD);
 						}
 					}
-					if (mGenSrc[channel].freq > 0)
-						mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / mGenSrc[channel].freq);
-					else
-						mChannelHalfCycleSamples[channel] = 0;
+					double freq = 0;
+					
+					if (mGenSrc[channel].freq > 0) {
+						freq = 1e6 * mCLK / (32 * mGenSrc[channel].freq);
+						mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / freq);
+						mOutput[channel] = mChannelLevelMax;
+					}
+					else {
+						mChannelHalfCycleSamples[channel] = 0;			
+					}
 					if (mDM->debug(DBG_AUDIO)) {
 						cout << " <=> Frequency " <<
-							dec << (mGenSrc[channel].freq > 0 ? (1e6 * mCLK / (32 * mGenSrc[channel].freq)) : 0) << " Hz (0x" <<
+							dec << freq << " Hz (0x" <<
 							hex << mGenSrc[channel].freq << ")" << " and " << mChannelHalfCycleSamples[channel] << " samples per tone 1/2 cycle " << 
 							"\n";
 
@@ -300,24 +307,28 @@ void TI4689::processPortUpdate(int index)
 				mGenSrc[channel].noiseType = TI4689_NOISE_TYPE(mD);
 				mGenSrc[channel].shiftRate = TI4689_NOISE_RATE(mD);
 
+				double freq = 0;
+				mOutput[channel] = mChannelLevelMax;
 				switch (mGenSrc[channel].shiftRate) {
 				case DIV_512:
-					mChannelHalfCycleSamples[channel] = (int) round(0.5 * 512 * mSampleRate / mCLK);
+					freq = 1e6 * mCLK / 512;
 					break;
 				case DIV_1024:
-					mChannelHalfCycleSamples[channel] = (int)round(0.5 * 1024 * mSampleRate / mCLK);
+					freq = 1e6 * mCLK / 1024;
 					break;
 				case DIV_2048:
-					mChannelHalfCycleSamples[channel] = (int)round(0.5 * 2048 * mSampleRate / mCLK);
+					freq = 1e6 * mCLK / 2048;;
 					break;
 				case GEN_3_OUT:
-					mChannelHalfCycleSamples[channel] = -1;
 					break;
 				default:
-					mChannelHalfCycleSamples[channel] = 0;
+					mOutput[channel] = 0;
 					break;
 				}
-				 
+				if (freq > 0)
+					mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / freq);
+				else
+					mChannelHalfCycleSamples[channel] = -1;
 
 				if (mDM->debug(DBG_AUDIO)) {
 					cout << "Set Noise Generator Type to " << _TI6847_NOISE_TYPE(mGenSrc[channel].noiseType) <<
