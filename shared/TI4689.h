@@ -78,6 +78,8 @@ private:
 #define TI4689_NOISE_RATE(x)	NoiseRate(x & 0x3)
 #define TI4689_NOISE_TYPE(x)	NoiseType((x >> 2) & 0x1)
 
+	uint8_t mFirstByte = 0xff;
+
 public:
 
 	TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, DebugManager* debugManager, ConnectionManager* connectionManager);

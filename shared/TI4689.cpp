@@ -204,6 +204,13 @@ void TI4689::processPortUpdate(int index)
 			uint8_t channel = TI4689_GEN_SRC(mD);
 			bool first_byte = TI4689_FIRST_BYTE(mD);
 
+			if (!first_byte) {
+				reg_no = TI4689_REG_NO(mFirstByte);
+				channel = TI4689_GEN_SRC(mFirstByte);
+			}
+			else
+				mFirstByte = mD;
+
 			string generator = (channel < 3 ? "Tone Generator " + to_string(channel+1) : "Noise Generator");
 
 
