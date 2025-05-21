@@ -33,15 +33,9 @@ private:
 	uint8_t pWE = 0x0;
 	int CLK, D, WE;
 
-	enum Attenuation {
-		ATT_2dB = 0x1,
-		ATT_4dB = 0x2,
-		ATT_8dB = 0x4,
-		ATT_16dB = 0x8,
-		ATT_OFF = 0xf
-	};
-#define TI4689_INVALID_ATT(x) (x != ATT_2dB && x != ATT_4dB && x != ATT_8dB && x != ATT_16dB && x != ATT_OFF)
-#define _TI6847_ATTENUATION(x) (x==ATT_2dB?"2dB":(x==ATT_4dB?"4dB":(x==ATT_8dB?"8dB":(x==ATT_16dB?"16dB":"Off"))))
+#define TI4689_ATT_OFF(x) (x == 0xf)
+#define TI4689_ATTENUATION(x) (x & 0xf)
+#define _TI6847_ATTENUATION(x) (x==0xf?"Off":("-"+to_string(x*2)+"dB"))
 
 	enum NoiseType { PERIODIC_NOISE = 0, WHITE_NOISE = 1, NO_NOISE = 3};
 #define _TI6847_NOISE_TYPE(x) (x==PERIODIC_NOISE?"Periodic":(x==WHITE_NOISE?"White noise":"Undefined"))
@@ -52,7 +46,7 @@ private:
 		uint16_t		freq = 0;				// 10-bit frequency - from bits b3:b0 (LSB) of first data byte written to register and b7:b0 (MSB) of second data byte
 		NoiseType		noiseType = NO_NOISE;	// Only used for the noise generator source: Noise type - from bit b2 of data byte written to register
 		NoiseRate		shiftRate = NO_RATE;	//  Only used for for the noise generator source: Shift rate for noise - from bits b1:b0 of data byte written to register
-		Attenuation		att;					// 4-bit attenuation - from bits b3:b0 of data byte written to register
+		int				att;					// 4-bit attenuation in dB (0xf <=> OFF) - from bits b3:b0 of data byte written to register
 	} SndGenSrc;
 
 	enum GenSrc { GEN_1 = 0, GEN_2 = 1, GEN_3 = 2, NOISE_GEN = 3};

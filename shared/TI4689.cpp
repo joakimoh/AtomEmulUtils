@@ -14,8 +14,13 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 	registerPort("D",	IN_PORT, 0xff, D,	&mD);
 	registerPort("WE", IN_PORT, 0x1, WE, &mWE);
 
-	al_reserve_samples(4);
+	// Create a default allegro Mixer and connect it to an allegro Voice
+	al_reserve_samples(0);
 
+	// Create a queue for audio stream events
+	mQueue = al_create_event_queue();
+
+	// Get a handle to the previously created Mixer
 	mMixer = al_get_default_mixer();
 	
 	mFieldRate = fieldRate;
@@ -23,8 +28,6 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 	mNFragments = 8;
 
 	for (int channel = 0; channel < 4; channel++) {
-
-		cout << "Channel " << dec << channel << "\n";
 
 		mChannelStream[channel] = al_create_audio_stream(
 			mNFragments,					// #fragments
@@ -38,26 +41,29 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 			throw runtime_error("Could not create audio stream");
 
 		}
-		// Create and output silence that lasts one field
+
+		// Fill the channel with silence that lasts one CRTC field
 		void* buf;
 		while ((buf = al_get_audio_stream_fragment(mChannelStream[channel]))) {
 			al_fill_silence(buf, mSamplesPerFragment, ALLEGRO_AUDIO_DEPTH_INT16, ALLEGRO_CHANNEL_CONF_2);
 			al_set_audio_stream_fragment(mChannelStream[channel], buf);
 		}
 
+		// Connect the channel to the default mixer
 		if (!al_attach_audio_stream_to_mixer(mChannelStream[channel], mMixer)) {
 			cout << "Could not attach audio stream " << dec << channel << " to audio mixer\n";
 			throw runtime_error("Could not attach audio stream to audio mixer");
 		}
 
-		// Add one field of silence
+		// Add one field of silence to the initial samples
 		for (int i = 0; i < mSamplesPerFragment; i++)
 			mSamples[channel].push_back(0x0);
+		mChannelSampleCnt[channel] = mSamplesPerFragment;
 
 		al_register_event_source(mQueue, al_get_audio_stream_event_source(mChannelStream[channel]));
+
 	}
 
-	cout << "DONE!\n";
 }
 
 TI4689::~TI4689()
@@ -71,11 +77,15 @@ TI4689::~TI4689()
 // Advance until clock cycle stopcycle has been reached
 bool TI4689::advance(uint64_t stopCycle)
 {
-	for (int i = 0; i < 4; i++) {
+	for (int channel = 0; channel < 4; channel++) {
+
+		//
+		// Generate one sample
+		//
 
 		int16_t val; // sample to be generated
 
-		if (i == 3) {
+		if (channel == 3) {
 
 			//
 			// The Noise Generator
@@ -95,15 +105,15 @@ bool TI4689::advance(uint64_t stopCycle)
 			// For periodic noise, the feedback network is just bit b0
 			// 
 			// Shifting is made either based on the input clock (CLK) with three dividers (512, 1024 & 2048) 
-			// ((mChannelCyclePeriod[i] > 0) or
-			// based on the output of Tone Generator 3 ((mChannelCyclePeriod[i] == -1).
+			// ((mChannelCyclePeriod[channel] > 0) or
+			// based on the output of Tone Generator 3 ((mChannelCyclePeriod[channel] == -1).
 			//
 			if (
-				(mChannelCyclePeriod[i] > 0 && mChannelCycle[i] % mChannelCyclePeriod[i] == 0) ||
-				(mChannelCyclePeriod[i] == -1 && mChannelCycle[3] % mChannelCyclePeriod[3] == 0)
+				(mChannelCyclePeriod[channel] > 0 && mChannelCycle[channel] % mChannelCyclePeriod[channel] == 0) ||
+				(mChannelCyclePeriod[channel] == -1 && mChannelCycle[3] % mChannelCyclePeriod[3] == 0)
 				) {
 				uint8_t feedback_network;
-				if (mGenSrc[i].noiseType == WHITE_NOISE)
+				if (mGenSrc[channel].noiseType == WHITE_NOISE)
 					feedback_network = ((mNoiseShiftRegister >> 1) & 0x1) ^ (mNoiseShiftRegister & 0x1);
 				else // PERIODIC_NOISE
 					feedback_network = mNoiseShiftRegister & 0x1;
@@ -111,12 +121,12 @@ bool TI4689::advance(uint64_t stopCycle)
 			}
 			uint8_t out = (1 - (mNoiseShiftRegister & 0x1));
 			if (out == 0)
-				val = -mChannelLevel[i];
+				val = -mChannelLevel[channel];
 			else
-				val = mChannelLevel[i];
+				val = mChannelLevel[channel];
 		}
 
-		else if (i < 3 && mChannelCyclePeriod[i] != 0) {
+		else if (channel < 3 && mChannelCyclePeriod[channel] != 0) {
 
 			//
 			// A Tone generator
@@ -124,43 +134,43 @@ bool TI4689::advance(uint64_t stopCycle)
 
 			// Add one sinusoidal sample of the current selected level
 
-			int phase = mChannelCycle[i] % mChannelCyclePeriod[i];
-			val = mChannelLevel[i] * sin(2 * 3.14 * phase / mChannelCyclePeriod[i]);
+			int phase = mChannelCycle[channel] % mChannelCyclePeriod[channel];
+			val = mChannelLevel[channel] * sin(2 * 3.14 * phase / mChannelCyclePeriod[channel]);
 
 
 		}
 
 		// Add sample
-		mSamples[i].push_back(val);
-		mChannelSampleCnt[i]++;
+		mSamples[channel].push_back(val);
+		mChannelSampleCnt[channel]++;
 
-		// Output samples when samples corresponding to a complete fragment exists
-		if (mSamples[i].size() >= mSamplesPerFragment)
+		//
+		// Output samples when samples corresponding to a complete fragment exist
+		//
+
+		if (mSamples[channel].size() >= mSamplesPerFragment)
 		{
-			if (mChannelSampleCnt[i] > 0) {
+			// Check if the stream is ready for new data
+			int8_t* buf = (int8_t*)al_get_audio_stream_fragment(mChannelStream[channel]);
 
-				ALLEGRO_EVENT event;
-
-				al_wait_for_event(mQueue, &event);
-
-				if (event.type == ALLEGRO_EVENT_AUDIO_STREAM_FRAGMENT) {
-
-					int8_t* buf = (int8_t*)al_get_audio_stream_fragment(mChannelStream[i]);
-					if (!buf) {
-						/* Buffer is full */
-						return true;
-					}
-
-					memcpy(buf, &mSamples[i][0], mSamplesPerFragment);
-
-					if (!al_set_audio_stream_fragment(mChannelStream[i], buf)) {
-						return false;
-					}
+			if (buf) {
+				// Stream was ready for new data - add the current samples to it!
+				memcpy(buf, &mSamples[channel][0], mSamplesPerFragment);
+				if (!al_set_audio_stream_fragment(mChannelStream[channel], buf)) {
+					return false;
 				}
 
+				if (false && mChannelLevel[channel] > 0 && mChannelCyclePeriod[channel] > 0 && mDM->debug(DBG_AUDIO)) {
+					string generator = (channel < 3 ? "Tone Generator " + to_string(channel + 1) : "Noise Generator");
+					cout << dec << mSamplesPerFragment << " samples of frequency " << dec <<
+						(2e6 * mCPUClock / mChannelCyclePeriod[channel]) << " and max volume " << mChannelLevel[channel] <<
+						" generated for " << generator << "\n";
+				}
+
+				// Clear samples
+				mSamples[channel].clear();
+				mChannelSampleCnt[channel] = 0;
 			}
-			mSamples[i].clear();
-			mChannelSampleCnt[i] = 0;
 
 		}
 
@@ -191,8 +201,11 @@ void TI4689::processPortUpdate(int index)
 
 
 			int reg_no = TI4689_REG_NO(mD);
-			uint8_t src = TI4689_GEN_SRC(mD);
+			uint8_t channel = TI4689_GEN_SRC(mD);
 			bool first_byte = TI4689_FIRST_BYTE(mD);
+
+			string generator = (channel < 3 ? "Tone Generator " + to_string(channel+1) : "Noise Generator");
+
 
 			//cout << "Write 0x" << hex << (int) mD << dec << " to Sound Chip\n";
 
@@ -204,27 +217,30 @@ void TI4689::processPortUpdate(int index)
 			case R4_Tone_3_Freq:
 				// Tone Generator 1/2/3 Frequency
 			{
-				if (src < 3) {
+				if (channel < 3) {
 					if (first_byte) {
-						mGenSrc[src].freq = (mGenSrc[src].freq & 0x3f0) | TI4689_LSB_FREQ(mD);
+						mGenSrc[channel].freq = (mGenSrc[channel].freq & 0x3f0) | TI4689_LSB_FREQ(mD);
 						if (mDM->debug(DBG_AUDIO)) {
-							cout << "Set LSB of Tone Generator " << dec << src << " to 0x" << hex << TI4689_LSB_FREQ(mD) << " => Frequency " <<
-								dec << (2.0e6 * mCLK / (32 * mGenSrc[src].freq)) << " Hz (0x" << hex << mGenSrc[src].freq << ")\n";
+							cout << "Set LSB of " << generator << " to 0x" << hex << TI4689_LSB_FREQ(mD) << " => Frequency " <<
+								dec << (mGenSrc[channel].freq>0?(1e6 * mCLK / (32 * mGenSrc[channel].freq)):0) << " Hz (0x" << hex << mGenSrc[channel].freq << ")\n";
 						}
 					}
 					else {
-						mGenSrc[src].freq = (mGenSrc[src].freq & 0x00f) | (TI4689_MSB_FREQ(mD) << 4);
+						mGenSrc[channel].freq = (mGenSrc[channel].freq & 0x00f) | (TI4689_MSB_FREQ(mD) << 4);
 						if (mDM->debug(DBG_AUDIO)) {
-							cout << "Set MSB of Tone Generator " << dec << src << " to 0x" << hex << TI4689_MSB_FREQ(mD) << " => Frequency " <<
-								dec << (2.0e6 * mCLK / (32 * mGenSrc[src].freq)) << " Hz (0x" << hex << mGenSrc[src].freq << ")\n";
+							cout << "Set MSB of " << generator << " to 0x" << hex << TI4689_MSB_FREQ(mD) << " => Frequency " <<
+								dec << (mGenSrc[channel].freq > 0 ? (1e6 * mCLK / (32 * mGenSrc[channel].freq)) : 0) << " Hz (0x" << hex << mGenSrc[channel].freq << ")\n";
 						}
 					}
-					mChannelCyclePeriod[src] = (int)round(mCPUClock * 2e6 / mGenSrc[src].freq);
-					mSamples[src].clear();
-					mChannelSampleCnt[src] = 0;
+					if (mGenSrc[channel].freq > 0)
+						mChannelCyclePeriod[channel] = (int)round(mCPUClock * 2e6 / mGenSrc[channel].freq);
+					else
+						mChannelCyclePeriod[channel] = 0;
+					mSamples[channel].clear();
+					mChannelSampleCnt[channel] = 0;
 				}
 				else {
-					cout << "Invalid channel " << dec << src << "!\n";
+					cout << "Invalid channel " << dec << channel << "!\n";
 				}
 				break;
 			}
@@ -234,33 +250,22 @@ void TI4689::processPortUpdate(int index)
 			case R5_Tone_3_Att:
 			case R7_Noise_Att:
 				// Tone Generator 1/2/3 Attenuation
+				// Attenuation is - 1dB x value unless value is 0xf (then volume is off completely)
 			{
-				if (src < 4) {
+				if (channel < 4) {
 					int a = TI4689_ATTENUATION(mD);
-					if (TI4689_INVALID_ATT(a))
-						mGenSrc[src].att = ATT_OFF;
+					mGenSrc[channel].att = a;
+					if (TI4689_ATT_OFF(a))
+						mChannelLevel[channel] = 0;
 					else
-						mGenSrc[src].att = Attenuation(a);
+						mChannelLevel[channel] = (int) round (mChannelLevelMax * pow(10, - a / 2.0));
 					if (mDM->debug(DBG_AUDIO)) {
-						if (reg_no == R7_Noise_Att)
-							cout << "Set Attenuation for Noise Generator to 0x" << hex << a << " => Attenuation " <<
-							_TI6847_ATTENUATION(mGenSrc[src].att) << "\n";
-						else
-							cout << "Set Attenuation for Tone Generator " << dec << src << " to 0x" << hex << a << " => Attenuation " <<
-							_TI6847_ATTENUATION(mGenSrc[src].att) << "\n";
-					}
-					if (mGenSrc[src].att == ATT_OFF)
-						mChannelLevel[src] = 0;
-					else {
-						// Attenuation = 2 x value [dB]
-						int att_dB = mGenSrc[src].att;
-						double att = pow(10, att_dB);
-						double att_scaling = mChannelLevelMax / pow(10,16);
-						mChannelLevel[src] = (int) round(att_scaling * att);
+						cout << "Set Attenuation for " << generator <<  " to 0x" << hex << a << " = > Attenuation " <<
+							_TI6847_ATTENUATION(a) << " => Volume " << dec << mChannelLevel[channel] << "\n";
 					}
 				}
 				else {
-					cout << "Invalid channel " << dec << src << "!\n";
+					cout << "Invalid channel " << dec << (int)channel << "!\n";
 				}
 
 				break;
@@ -269,31 +274,31 @@ void TI4689::processPortUpdate(int index)
 			case R6_Noise_Control:
 				// Noise Control
 			{
-				mGenSrc[src].noiseType = TI4689_NOISE_TYPE(mD);
-				mGenSrc[src].shiftRate = TI4689_NOISE_RATE(mD);
+				mGenSrc[channel].noiseType = TI4689_NOISE_TYPE(mD);
+				mGenSrc[channel].shiftRate = TI4689_NOISE_RATE(mD);
 
-				switch (mGenSrc[src].shiftRate) {
+				switch (mGenSrc[channel].shiftRate) {
 				case DIV_512:
-					mChannelCyclePeriod[src] = (int) round(512.0 * mCPUClock / mCLK);
+					mChannelCyclePeriod[channel] = (int) round(512.0 * mCPUClock / mCLK);
 					break;
 				case DIV_1024:
-					mChannelCyclePeriod[src] = (int)round(1024.0 * mCPUClock / mCLK);
+					mChannelCyclePeriod[channel] = (int)round(1024.0 * mCPUClock / mCLK);
 					break;
 				case DIV_2048:
-					mChannelCyclePeriod[src] = (int)round(2048.0 * mCPUClock / mCLK);
+					mChannelCyclePeriod[channel] = (int)round(2048.0 * mCPUClock / mCLK);
 					break;
 				case GEN_3_OUT:
-					mChannelCyclePeriod[src] = -1;
+					mChannelCyclePeriod[channel] = -1;
 					break;
 				default:
-					mChannelCyclePeriod[src] = 0;
+					mChannelCyclePeriod[channel] = 0;
 					break;
 				}
 				 
 
 				if (mDM->debug(DBG_AUDIO)) {
-					cout << "Set Noise Generator Type to " << _TI6847_NOISE_TYPE(mGenSrc[src].noiseType) <<
-						" and noise rate to " << _TI6847_NOISE_RATE(mGenSrc[src].shiftRate) << "\n";
+					cout << "Set Noise Generator Type to " << _TI6847_NOISE_TYPE(mGenSrc[channel].noiseType) <<
+						" and noise rate to " << _TI6847_NOISE_RATE(mGenSrc[channel].shiftRate) << "\n";
 				}
 				break;
 			}
