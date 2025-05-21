@@ -49,7 +49,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "-trace <hex address> <pre trace len> <post trace len>: debug around a certain fetch address\n";
 	cout << "-xtrace <hex address> <pre trace len> <post trace len>: same as -trace but with more information (and therefoe slower)\n";
 	cout << "-ctrace <hex address> <pre trace len> <post trace len>: as trace but the debugging will be repeated every time the fetch address is encountered\n";
-	cout << "-ctrace <hex address> <pre trace len> <post trace len>: as trace but the debugging condition only checked for after user presses <CTRL-T>\n";
+	cout << "-ktrace <hex address> <pre trace len> <post trace len>: as trace but the debugging condition only checked for after user presses <CTRL-T>\n";
 	cout << "\tor written to. The tracing starts <pre trace len> instructions prior to the trigger and lasts <post trace len>\n";
 	cout << "\tinstructions after the trigger.\n\n";
 	cout << "-log <hex adr>:\n\tStart logging instruction execution after execution reaches the specified address\n";

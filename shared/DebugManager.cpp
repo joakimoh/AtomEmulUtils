@@ -177,22 +177,26 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 			else {
 				int read_pos = mBufferInstrReadIndex;
 				for (int i = 0; i < mBufferInstrSize; i++) {
-					printInstrLogData(mBufferedInstrLog[i]);
+					printInstrLogData(mBufferedInstrLog[read_pos]);
 					read_pos = (read_pos + 1) % mPreTraceLen;
 				}
 				mBufferInstrSize = 0;
 				mBufferInstrReadIndex = 0;				
 			}
 			mEndofPrebufferingReached = true;
+			cout << "****\n";
 		}
 
 		if (mEndofPrebufferingReached && mTraceCount > mPostTraceLen) {
-			mDbgLevel &= ~DBG_6502;
-			mDelayed = false;
+
 			if (mRecurringTracing) {
+				//mEndOfTracingReached = true;
 				mEndofPrebufferingReached = false;
-			}
-			else {
+				//mDbgLevel |= DBG_6502;
+			} else
+			{
+				mDbgLevel &= ~DBG_6502;
+				mDelayed = false;
 				mEndOfTracingReached = true;
 				mEndofPrebufferingReached = true;
 			}
@@ -229,6 +233,8 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 
 void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 {
+
+
 	if (mFetchAdr != mCyclicLogAdr && ((mDbgLevel & level) == 0 || mDelayed))
 		return;
 
@@ -243,18 +249,21 @@ void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 		instrLogData.memContent = (int)data;
 	}
 
-	// Update circular buffer
-	mBufferedInstrLog[mBufferInstrWriteIndex] = instrLogData;
-	mBufferInstrWriteIndex = (mBufferInstrWriteIndex + 1) % mPreTraceLen;
-	if (mBufferInstrWriteIndex == mBufferInstrReadIndex)
-		mBufferInstrReadIndex = (mBufferInstrReadIndex + 1) % mPreTraceLen;
-	if (mBufferInstrSize < mPreTraceLen)
-		mBufferInstrSize++;
+	if (mTraceAdr > 0) {
+		// Update circular buffer
+		mBufferedInstrLog[mBufferInstrWriteIndex] = instrLogData;
+		if (mBufferInstrWriteIndex == mBufferInstrReadIndex)
+			mBufferInstrReadIndex = (mBufferInstrReadIndex + 1) % mPreTraceLen;
+		mBufferInstrWriteIndex = (mBufferInstrWriteIndex + 1) % mPreTraceLen;
+		if (mBufferInstrSize < mPreTraceLen)
+			mBufferInstrSize++;
+	}
 
-	if ((mDbgLevel & level) != 0 && (mTraceAdr <= 0 || (mEndofPrebufferingReached && !mEndOfTracingReached))) {
+	if ((mDbgLevel & level) != 0 && (mTraceAdr <= 0 || (mEndofPrebufferingReached && !mEndOfTracingReached ))) {
 		printInstrLogData(instrLogData);
 		mTraceCount++;
 	}
+	
 
 }
 
