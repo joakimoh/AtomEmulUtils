@@ -258,7 +258,7 @@ void TI4689::processPortUpdate(int index)
 					if (TI4689_ATT_OFF(a))
 						mChannelLevel[channel] = 0;
 					else
-						mChannelLevel[channel] = (int) round (mChannelLevelMax * pow(10, - a / 2.0));
+						mChannelLevel[channel] = (int) round (mChannelLevelMax * pow(10, - a / 10.0));
 					if (mDM->debug(DBG_AUDIO)) {
 						cout << "Set Attenuation for " << generator <<  " to 0x" << hex << a << " = > Attenuation " <<
 							_TI6847_ATTENUATION(a) << " => Volume " << dec << mChannelLevel[channel] << "\n";

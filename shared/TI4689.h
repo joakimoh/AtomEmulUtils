@@ -74,7 +74,7 @@ private:
 #define TI4689_SECOND_BYTE(x)	((x & 0x80) == 0)
 #define TI4689_LSB_FREQ(x)		(x & 0xf)
 #define TI4689_MSB_FREQ(x)		(x & 0x3f)
-#define TI4689_ATTENUATION(x)	(x & 0x7)
+#define TI4689_ATTENUATION(x)	(x & 0xf)
 #define TI4689_NOISE_RATE(x)	NoiseRate(x & 0x3)
 #define TI4689_NOISE_TYPE(x)	NoiseType((x >> 2) & 0x1)
 

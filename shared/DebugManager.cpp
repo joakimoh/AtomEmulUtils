@@ -206,7 +206,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 
 void DebugManager::log(Device * dev, DebugLevel level, string line)
 {
-	if ((mDbgLevel & level) == 0 || mDelayed)
+	if (mFetchAdr != mCyclicLogAdr && ((mDbgLevel & level) == 0 || mDelayed))
 		return;
 
 	double t = dev->getCycleCount() / (dev->mCPUClock * 1e6);
@@ -229,8 +229,13 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 
 void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 {
-	if ((mDbgLevel & level) == 0 || mDelayed)
+	if (mFetchAdr != mCyclicLogAdr && ((mDbgLevel & level) == 0 || mDelayed))
 		return;
+
+	if (mFetchAdr == mCyclicLogAdr) {
+		printInstrLogData(instrLogData);
+		return;
+	}
 
 	if (mMemLogAdr > 0 && mDevices != NULL) {
 		uint8_t data;
