@@ -134,6 +134,7 @@ bool TI4689::advance(uint64_t stopCycle)
 						val = -mChannelLevel[channel];
 					else
 						val = mChannelLevel[channel];
+
 				}
 
 				else if (channel < 3 && mChannelHalfCycleSamples[channel] != 0) {
@@ -149,6 +150,9 @@ bool TI4689::advance(uint64_t stopCycle)
 					val = mOutput[channel];
 
 				}
+
+				if (mChannelLevel[channel] == 0)
+					val = 0;
 
 				// Add sample
 				mSamples[channel].push_back(val);
@@ -258,7 +262,8 @@ void TI4689::processPortUpdate(int index)
 						mOutput[channel] = mChannelLevelMax;
 					}
 					else {
-						mChannelHalfCycleSamples[channel] = 0;			
+						mChannelHalfCycleSamples[channel] = 0;		
+						mOutput[channel] = 0;
 					}
 					if (mDM->debug(DBG_AUDIO)) {
 						cout << " <=> Frequency " <<
@@ -285,8 +290,10 @@ void TI4689::processPortUpdate(int index)
 				if (channel < 4) {
 					int a = TI4689_ATTENUATION(mD);
 					mGenSrc[channel].att = a;
-					if (TI4689_ATT_OFF(a))
+					if (TI4689_ATT_OFF(a)) {
 						mChannelLevel[channel] = 0;
+						mOutput[channel] = 0;
+					}
 					else
 						mChannelLevel[channel] = (int) round (mChannelLevelMax * pow(10, - a / 10.0));
 					if (mDM->debug(DBG_AUDIO)) {
