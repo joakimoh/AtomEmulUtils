@@ -25,7 +25,12 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 	
 	mFieldRate = fieldRate;
 	mSamplesPerFragment = (int)round(1.0 * mSampleRate / mFieldRate); // 2 fields of audio
+	mCpuCyclesPerSample = (int) round(1e6 * cpuClock / mSampleRate);
 	mNFragments = 8;
+
+	if (mDM->debug(DBG_AUDIO)) {
+		cout << "Sample rate: " << dec << mSampleRate << "\n";
+	}
 
 	for (int channel = 0; channel < 4; channel++) {
 
@@ -58,7 +63,6 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 		// Add one field of silence to the initial samples
 		for (int i = 0; i < mSamplesPerFragment; i++)
 			mSamples[channel].push_back(0x0);
-		mChannelSampleCnt[channel] = mSamplesPerFragment;
 
 		al_register_event_source(mQueue, al_get_audio_stream_event_source(mChannelStream[channel]));
 
@@ -77,107 +81,115 @@ TI4689::~TI4689()
 // Advance until clock cycle stopcycle has been reached
 bool TI4689::advance(uint64_t stopCycle)
 {
-	for (int channel = 0; channel < 4; channel++) {
+	while (mCycleCount < stopCycle) {
 
-		//
-		// Generate one sample
-		//
+		if (mCycleCount % mCpuCyclesPerSample == 0) {
 
-		int16_t val; // sample to be generated
+			mSampleCount++;
 
-		if (channel == 3) {
+			for (int channel = 0; channel < 4; channel++) {
 
-			//
-			// The Noise Generator
-			// 
-	
-			// The noise generator uses a shift register with a feedback network according to below for white noise:
-			//																			 .__
-			//																			 |  \  __
-			//				+-------------------------------------------------------+	 |   \/  \
-			//		+------>|b14|b13|b13|b10|b09|b08|b07|b06|b05|b04|b03|b02|b01|b00|----|NOT|	  |---> OUT
-			//		|		+-------------------------------------------------------+	 |   /\__/
-			//		|								_______ 				   |   |	 |__/
-			//		|______________________________/      //-------------------+   |
-			//									  |  XOR ||________________________+
-			//									   \______\\ 
-			//
-			// For periodic noise, the feedback network is just bit b0
-			// 
-			// Shifting is made either based on the input clock (CLK) with three dividers (512, 1024 & 2048) 
-			// ((mChannelCyclePeriod[channel] > 0) or
-			// based on the output of Tone Generator 3 ((mChannelCyclePeriod[channel] == -1).
-			//
-			if (
-				(mChannelCyclePeriod[channel] > 0 && mChannelCycle[channel] % mChannelCyclePeriod[channel] == 0) ||
-				(mChannelCyclePeriod[channel] == -1 && mChannelCycle[3] % mChannelCyclePeriod[3] == 0)
-				) {
-				uint8_t feedback_network;
-				if (mGenSrc[channel].noiseType == WHITE_NOISE)
-					feedback_network = ((mNoiseShiftRegister >> 1) & 0x1) ^ (mNoiseShiftRegister & 0x1);
-				else // PERIODIC_NOISE
-					feedback_network = mNoiseShiftRegister & 0x1;
-				mNoiseShiftRegister = ((mNoiseShiftRegister >> 1) | (feedback_network << 14)) & 0x7fff;			
-			}
-			uint8_t out = (1 - (mNoiseShiftRegister & 0x1));
-			if (out == 0)
-				val = -mChannelLevel[channel];
-			else
-				val = mChannelLevel[channel];
-		}
+				//
+				// Generate one sample
+				//
 
-		else if (channel < 3 && mChannelCyclePeriod[channel] != 0) {
+				int16_t val; // sample to be generated
 
-			//
-			// A Tone generator
-			//
+				if (channel == 3) {
 
-			// Add one sinusoidal sample of the current selected level
+					//
+					// The Noise Generator
+					// 
 
-			int phase = mChannelCycle[channel] % mChannelCyclePeriod[channel];
-			val = mChannelLevel[channel] * sin(2 * 3.14 * phase / mChannelCyclePeriod[channel]);
-
-
-		}
-
-		// Add sample
-		mSamples[channel].push_back(val);
-		mChannelSampleCnt[channel]++;
-
-		//
-		// Output samples when samples corresponding to a complete fragment exist
-		//
-
-		if (mSamples[channel].size() >= mSamplesPerFragment)
-		{
-			// Check if the stream is ready for new data
-			int8_t* buf = (int8_t*)al_get_audio_stream_fragment(mChannelStream[channel]);
-
-			if (buf) {
-				// Stream was ready for new data - add the current samples to it!
-				memcpy(buf, &mSamples[channel][0], mSamplesPerFragment);
-				if (!al_set_audio_stream_fragment(mChannelStream[channel], buf)) {
-					return false;
+					// The noise generator uses a shift register with a feedback network according to below for white noise:
+					//																			 .__
+					//																			 |  \  __
+					//				+-------------------------------------------------------+	 |   \/  \
+					//		+------>|b14|b13|b13|b10|b09|b08|b07|b06|b05|b04|b03|b02|b01|b00|----|NOT|	  |---> OUT
+					//		|		+-------------------------------------------------------+	 |   /\__/
+					//		|								_______ 				   |   |	 |__/
+					//		|______________________________/      //-------------------+   |
+					//									  |  XOR ||________________________+
+					//									   \______\\ 
+					//
+					// For periodic noise, the feedback network is just bit b0
+					// 
+					// Shifting is made either based on the input clock (CLK) with three dividers (512, 1024 & 2048) 
+					// ((mChannelHalfCycleSamples[channel] > 0) or
+					// based on the output of Tone Generator 3 ((mChannelHalfCycleSamples[channel] == -1).
+					//
+					if (
+						(mChannelHalfCycleSamples[channel] > 0 && mSampleCount % mChannelHalfCycleSamples[channel] == 0) ||
+						(mChannelHalfCycleSamples[channel] == -1 && mSampleCount % mChannelHalfCycleSamples[3] == 0)
+						) {
+						uint8_t feedback_network;
+						if (mGenSrc[channel].noiseType == WHITE_NOISE)
+							feedback_network = ((mNoiseShiftRegister >> 1) & 0x1) ^ (mNoiseShiftRegister & 0x1);
+						else // PERIODIC_NOISE
+							feedback_network = mNoiseShiftRegister & 0x1;
+						mNoiseShiftRegister = ((mNoiseShiftRegister >> 1) | (feedback_network << 14)) & 0x7fff;
+					}
+					uint8_t out = (1 - (mNoiseShiftRegister & 0x1));
+					if (out == 0)
+						val = -mChannelLevel[channel];
+					else
+						val = mChannelLevel[channel];
 				}
 
-				if (false && mChannelLevel[channel] > 0 && mChannelCyclePeriod[channel] > 0 && mDM->debug(DBG_AUDIO)) {
-					string generator = (channel < 3 ? "Tone Generator " + to_string(channel + 1) : "Noise Generator");
-					cout << dec << mSamplesPerFragment << " samples of frequency " << dec <<
-						(2e6 * mCPUClock / mChannelCyclePeriod[channel]) << " and max volume " << mChannelLevel[channel] <<
-						" generated for " << generator << "\n";
+				else if (channel < 3 && mChannelHalfCycleSamples[channel] != 0) {
+
+					//
+					// A Square Wave Tone generator
+					//
+
+					if (mSampleCount % mChannelHalfCycleSamples[channel] == 0)
+						mOutput[channel] = -mOutput[channel];
+
+					val = mOutput[channel];
+
 				}
 
-				// Clear samples
-				mSamples[channel].clear();
-				mChannelSampleCnt[channel] = 0;
-			}
+				// Add sample
+				mSamples[channel].push_back(val);
 
+				//
+				// Output samples when samples corresponding to a complete fragment exist
+				//
+
+				if (mSamples[channel].size() >= mSamplesPerFragment)
+				{
+					// Check if the stream is ready for new data
+					int8_t* buf = (int8_t*)al_get_audio_stream_fragment(mChannelStream[channel]);
+
+					if (buf) {
+						// Stream was ready for new data - add the current samples to it!
+						memcpy(buf, &mSamples[channel][0], mSamplesPerFragment);
+						if (!al_set_audio_stream_fragment(mChannelStream[channel], buf)) {
+							return false;
+						}
+
+						if (mChannelLevel[channel] > 0 && mChannelHalfCycleSamples[channel] > 0 && mDM->debug(DBG_AUDIO)) {
+							// mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / mGenSrc[channel].freq);
+							double freq = 0.5 * mSampleRate / mChannelHalfCycleSamples[channel];
+							string generator = (channel < 3 ? "Tone Generator " + to_string(channel + 1) : "Noise Generator");
+							cout << dec << mSamplesPerFragment << " samples (" << mSampleRate/freq << " cycles)" << 
+								" of frequency " << dec << freq <<
+								" and max volume " << mChannelLevel[channel] <<
+								" generated for " << generator << "\n";
+						}
+
+						// Clear samples
+						mSamples[channel].clear();
+					}
+
+				}
+
+
+			}
 		}
 
-		
+		mCycleCount++;
 	}
-
-	mCycleCount = stopCycle;
 	return true;
 }
 
@@ -228,23 +240,27 @@ void TI4689::processPortUpdate(int index)
 					if (first_byte) {
 						mGenSrc[channel].freq = (mGenSrc[channel].freq & 0x3f0) | TI4689_LSB_FREQ(mD);
 						if (mDM->debug(DBG_AUDIO)) {
-							cout << "Set LSB of " << generator << " to 0x" << hex << TI4689_LSB_FREQ(mD) << " => Frequency " <<
-								dec << (mGenSrc[channel].freq>0?(1e6 * mCLK / (32 * mGenSrc[channel].freq)):0) << " Hz (0x" << hex << mGenSrc[channel].freq << ")\n";
+							cout << "Set LSB of " << generator << " to 0x" << hex << TI4689_LSB_FREQ(mD);
 						}
 					}
 					else {
 						mGenSrc[channel].freq = (mGenSrc[channel].freq & 0x00f) | (TI4689_MSB_FREQ(mD) << 4);
 						if (mDM->debug(DBG_AUDIO)) {
-							cout << "Set MSB of " << generator << " to 0x" << hex << TI4689_MSB_FREQ(mD) << " => Frequency " <<
-								dec << (mGenSrc[channel].freq > 0 ? (1e6 * mCLK / (32 * mGenSrc[channel].freq)) : 0) << " Hz (0x" << hex << mGenSrc[channel].freq << ")\n";
+							cout << "Set MSB of " << generator << " to 0x" << hex << TI4689_MSB_FREQ(mD);
 						}
 					}
 					if (mGenSrc[channel].freq > 0)
-						mChannelCyclePeriod[channel] = (int)round(mCPUClock * 2e6 / mGenSrc[channel].freq);
+						mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / mGenSrc[channel].freq);
 					else
-						mChannelCyclePeriod[channel] = 0;
+						mChannelHalfCycleSamples[channel] = 0;
+					if (mDM->debug(DBG_AUDIO)) {
+						cout << " <=> Frequency " <<
+							dec << (mGenSrc[channel].freq > 0 ? (1e6 * mCLK / (32 * mGenSrc[channel].freq)) : 0) << " Hz (0x" <<
+							hex << mGenSrc[channel].freq << ")" << " and " << mChannelHalfCycleSamples[channel] << " samples per tone 1/2 cycle " << 
+							"\n";
+
+					}
 					mSamples[channel].clear();
-					mChannelSampleCnt[channel] = 0;
 				}
 				else {
 					cout << "Invalid channel " << dec << channel << "!\n";
@@ -286,19 +302,19 @@ void TI4689::processPortUpdate(int index)
 
 				switch (mGenSrc[channel].shiftRate) {
 				case DIV_512:
-					mChannelCyclePeriod[channel] = (int) round(512.0 * mCPUClock / mCLK);
+					mChannelHalfCycleSamples[channel] = (int) round(0.5 * 512 * mSampleRate / mCLK);
 					break;
 				case DIV_1024:
-					mChannelCyclePeriod[channel] = (int)round(1024.0 * mCPUClock / mCLK);
+					mChannelHalfCycleSamples[channel] = (int)round(0.5 * 1024 * mSampleRate / mCLK);
 					break;
 				case DIV_2048:
-					mChannelCyclePeriod[channel] = (int)round(2048.0 * mCPUClock / mCLK);
+					mChannelHalfCycleSamples[channel] = (int)round(0.5 * 2048 * mSampleRate / mCLK);
 					break;
 				case GEN_3_OUT:
-					mChannelCyclePeriod[channel] = -1;
+					mChannelHalfCycleSamples[channel] = -1;
 					break;
 				default:
-					mChannelCyclePeriod[channel] = 0;
+					mChannelHalfCycleSamples[channel] = 0;
 					break;
 				}
 				 

@@ -17,12 +17,14 @@ private:
 	int mSamplesPerFragment = 512;
 	int mNFragments = 8;
 	vector<int16_t> mSamples[4];
-	int mChannelSampleCnt[4] = { 0 };
-	int mChannelCycle[4] = { 0 };
-	int mChannelCyclePeriod[4] = { 0 };
+	int16_t mOutput[4] = { 0 };					// Current value of a tone or noise
+	int mChannelHalfCycleSamples[4] = { 0 };	// No of samples during one 1/2 cycle of a tone (generator 1-3) or samples between shifts (noise)
 	int mChannelLevel[4] = { 0 };
 	int mChannelLevelMax = 32767;
-	uint16_t mNoiseShiftRegister = 0; // 15-bit shift register for noise generation
+	uint16_t mNoiseShiftRegister = 0;		// 15-bit shift register for noise generation
+
+	int mCpuCyclesPerSample = 0;
+	int mSampleCount = 0;
 
 	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
 
