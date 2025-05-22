@@ -93,17 +93,19 @@ bool TI4689::advance(uint64_t stopCycle)
 				// Generate one sample
 				//
 
-				int16_t val; // sample to be generated
+				int16_t val = 0; // sample to be generated
 
-				if (channel == 3) {
+				if (channel == TI4689_NOISE_GENERATOR) {
 
 					//
 					// The Noise Generator
 					// 
 
 					// The noise generator uses a shift register with a feedback network according to below for white noise:
-					//																			 .__
-					//																			 |  \  __
+					//
+					//				 set to '1' when R6 is written to
+					//				  |															 .__
+					//				  V															 |  \  __
 					//				+-------------------------------------------------------+	 |   \/  \
 					//		+------>|b14|b13|b13|b10|b09|b08|b07|b06|b05|b04|b03|b02|b01|b00|----|NOT|	  |---> OUT
 					//		|		+-------------------------------------------------------+	 |   /\__/
@@ -114,45 +116,49 @@ bool TI4689::advance(uint64_t stopCycle)
 					//
 					// For periodic noise, the feedback network is just bit b0
 					// 
+					// When the Noise Control Register (R6) is written to, all bits in the shift regsiter will be cleared except
+					// b14 that will be set.
+					// 
 					// Shifting is made either based on the input clock (CLK) with three dividers (512, 1024 & 2048) 
 					// ((mChannelHalfCycleSamples[channel] > 0) or
 					// based on the output of Tone Generator 3 ((mChannelHalfCycleSamples[channel] == -1).
 					//
+
+
+					// Shift register based on each '0'->'1' transition of either
+					// - the reference clock (CLK) divided by 512/1204/2048 (mNoiseShiftSamples > 0) OR
+					// - the Tone Generator 3 (mNoiseShiftSamples == -1)
 					if (
-						(mChannelHalfCycleSamples[channel] > 0 && mSampleCount % mChannelHalfCycleSamples[channel] == 0) ||
-						(mChannelHalfCycleSamples[channel] == -1 && mSampleCount % mChannelHalfCycleSamples[3] == 0)
-						) {
-						uint8_t feedback_network;
-						if (mGenSrc[channel].noiseType == WHITE_NOISE)
-							feedback_network = ((mNoiseShiftRegister >> 1) & 0x1) ^ (mNoiseShiftRegister & 0x1);
-						else // PERIODIC_NOISE
-							feedback_network = mNoiseShiftRegister & 0x1;
-						mNoiseShiftRegister = ((mNoiseShiftRegister >> 1) | (feedback_network << 14)) & 0x7fff;
+						(mNoiseShiftSamples > 0 && mSampleCount % mChannelHalfCycleSamples[channel] == 0) ||
+						(mNoiseShiftSamples == -1 && pOutput[TI4689_TONE_GENERATOR_3] == 0 && mOutput[TI4689_TONE_GENERATOR_3] == 1)
+						)
+					{
+								uint8_t feedback_network;
+								if (mGenSrc[channel].noiseType == WHITE_NOISE)
+									feedback_network = ((mNoiseShiftRegister >> 1) & 0x1) ^ (mNoiseShiftRegister & 0x1);
+								else // PERIODIC_NOISE
+									feedback_network = mNoiseShiftRegister & 0x1;
+								mNoiseShiftRegister = ((mNoiseShiftRegister >> 1) | (feedback_network << 14)) & 0x7fff;
 					}
-					uint8_t out = (1 - (mNoiseShiftRegister & 0x1));
-					if (out == 0)
-						val = -mChannelLevel[channel];
-					else
-						val = mChannelLevel[channel];
+
+					mOutput[channel] = (1 - (mNoiseShiftRegister & 0x1)); // output should be inverted
 
 				}
 
-				else if (channel < 3 && mChannelHalfCycleSamples[channel] != 0) {
+				else if (channel <= TI4689_TONE_GENERATOR_3 && mChannelHalfCycleSamples[channel] > 0) {
 
 					//
 					// A Square Wave Tone generator
 					//
 
 					if (mSampleCount % mChannelHalfCycleSamples[channel] == 0) {
-						mOutput[channel] = -mOutput[channel];
+						mOutput[channel] = 1 - mOutput[channel];
 					}
-
-					val = mOutput[channel];
 
 				}
 
-				if (mChannelLevel[channel] == 0)
-					val = 0;
+				// Change value range [0,1] to range [-1,+1] x channel volume
+				val = ((mOutput[channel] << 1) - 1) * mChannelVolume[channel];
 
 				// Add sample
 				mSamples[channel].push_back(val);
@@ -173,13 +179,13 @@ bool TI4689::advance(uint64_t stopCycle)
 							return false;
 						}
 
-						if (mChannelLevel[channel] > 0 && mChannelHalfCycleSamples[channel] > 0 && mDM->debug(DBG_AUDIO)) {
+						if (mChannelVolume[channel] > 0 && mChannelHalfCycleSamples[channel] > 0 && mDM->debug(DBG_AUDIO)) {
 							// mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / mGenSrc[channel].freq);
 							double freq = 0.5 * mSampleRate / mChannelHalfCycleSamples[channel];
-							string generator = (channel < 3 ? "Tone Generator " + to_string(channel + 1) : "Noise Generator");
+							string generator = _TI4689_GENERATOR(channel);
 							cout << dec << mSamplesPerFragment << " samples (" << ((double) mSampleRate/freq) << " cycles)" << 
 								" of frequency " << dec << freq <<
-								" and max volume " << mChannelLevel[channel] <<
+								" and max volume " << mChannelVolume[channel] <<
 								" generated for " << generator << "\n";
 						}
 
@@ -190,6 +196,8 @@ bool TI4689::advance(uint64_t stopCycle)
 				}
 
 
+				// Save output value for transition detection in upcoming rounds
+				pOutput[channel] = mOutput[channel];
 			}
 		}
 
@@ -217,24 +225,24 @@ void TI4689::processPortUpdate(int index)
 			// Write configuration for a channel 
 
 
-			int reg_no = TI4689_REG_NO(mD);
+			int reg_addr = TI4689_REG_NO(mD);
 			uint8_t channel = TI4689_GEN_SRC(mD);
 			bool first_byte = TI4689_FIRST_BYTE(mD);
 
 			if (!first_byte) {
-				reg_no = TI4689_REG_NO(mFirstByte);
+				reg_addr = TI4689_REG_NO(mFirstByte);
 				channel = TI4689_GEN_SRC(mFirstByte);
 			}
 			else
 				mFirstByte = mD;
 
-			string generator = (channel < 3 ? "Tone Generator " + to_string(channel+1) : "Noise Generator");
+			string generator = _TI4689_GENERATOR(channel);
 
 
 			//cout << "Write 0x" << hex << (int) mD << dec << " to Sound Chip\n";
 
 
-			switch (reg_no) {
+			switch (reg_addr) {
 
 			case R0_Tone_1_Freq:
 			case R2_Tone_2_Freq:
@@ -259,7 +267,7 @@ void TI4689::processPortUpdate(int index)
 					if (mGenSrc[channel].freq > 0) {
 						freq = 1e6 * mCLK / (32 * mGenSrc[channel].freq);
 						mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / freq);
-						mOutput[channel] = mChannelLevelMax;
+						mOutput[channel] = 1;
 					}
 					else {
 						mChannelHalfCycleSamples[channel] = 0;		
@@ -291,14 +299,14 @@ void TI4689::processPortUpdate(int index)
 					int a = TI4689_ATTENUATION(mD);
 					mGenSrc[channel].att = a;
 					if (TI4689_ATT_OFF(a)) {
-						mChannelLevel[channel] = 0;
+						mChannelVolume[channel] = 0;
 						mOutput[channel] = 0;
 					}
 					else
-						mChannelLevel[channel] = (int) round (mChannelLevelMax * pow(10, - a / 10.0));
+						mChannelVolume[channel] = (int) round (mChannelLevelMax * pow(10, - a / 10.0));
 					if (mDM->debug(DBG_AUDIO)) {
 						cout << "Set Attenuation for " << generator <<  " to 0x" << hex << a << " = > Attenuation " <<
-							_TI6847_ATTENUATION(a) << " => Volume " << dec << mChannelLevel[channel] << "\n";
+							_TI6847_ATTENUATION(a) << " => Volume " << dec << mChannelVolume[channel] << "\n";
 					}
 				}
 				else {
@@ -313,9 +321,10 @@ void TI4689::processPortUpdate(int index)
 			{
 				mGenSrc[channel].noiseType = TI4689_NOISE_TYPE(mD);
 				mGenSrc[channel].shiftRate = TI4689_NOISE_RATE(mD);
+				mNoiseShiftRegister = 0x4000; // clear all 15 bits except bit 14 that shall be set when Register R6 is written to
 
 				double freq = 0;
-				mOutput[channel] = mChannelLevelMax;
+				mOutput[channel] = 1;
 				switch (mGenSrc[channel].shiftRate) {
 				case DIV_512:
 					freq = 1e6 * mCLK / 512;
@@ -333,9 +342,9 @@ void TI4689::processPortUpdate(int index)
 					break;
 				}
 				if (freq > 0)
-					mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / freq);
+					mNoiseShiftSamples = (int)round(mSampleRate / freq); // shift only once per low to high transition of the freq
 				else
-					mChannelHalfCycleSamples[channel] = -1;
+					mNoiseShiftSamples = -1;
 
 				if (mDM->debug(DBG_AUDIO)) {
 					cout << "Set Noise Generator Type to " << _TI6847_NOISE_TYPE(mGenSrc[channel].noiseType) <<

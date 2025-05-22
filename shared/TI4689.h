@@ -17,9 +17,11 @@ private:
 	int mSamplesPerFragment = 512;
 	int mNFragments = 8;
 	vector<int16_t> mSamples[4];
-	int16_t mOutput[4] = { 0 };					// Current value of a tone or noise
-	int mChannelHalfCycleSamples[4] = { 0 };	// No of samples during one 1/2 cycle of a tone (generator 1-3) or samples between shifts (noise)
-	int mChannelLevel[4] = { 0 };
+	int16_t mOutput[4] = { 0 };					// Current value of a tone or noise generator
+	int16_t pOutput[4] = { 0 };					// Previous value of a tone or noise generator
+	int mChannelHalfCycleSamples[3] = { 0 };	// No of samples during one 1/2 cycle of a tone (generator 1-3)
+	int mNoiseShiftSamples = 0;					// No of samples between shifts for the Noise Generator
+	int mChannelVolume[4] = { 0 };
 	int mChannelLevelMax = 32767;
 	uint16_t mNoiseShiftRegister = 0;		// 15-bit shift register for noise generation
 
@@ -38,6 +40,11 @@ private:
 #define TI4689_ATT_OFF(x) (x == 0xf)
 #define TI4689_ATTENUATION(x) (x & 0xf)
 #define _TI6847_ATTENUATION(x) (x==0xf?"Off":("-"+to_string(x*2)+"dB"))
+#define TI4689_TONE_GENERATOR_1	0
+#define TI4689_TONE_GENERATOR_2	1
+#define TI4689_TONE_GENERATOR_3	2
+#define TI4689_NOISE_GENERATOR 3
+#define _TI4689_GENERATOR(x) (x <= TI4689_TONE_GENERATOR_3 ? "Tone Generator " + to_string(x+1) : "Noise Generator")
 
 	enum NoiseType { PERIODIC_NOISE = 0, WHITE_NOISE = 1, NO_NOISE = 3};
 #define _TI6847_NOISE_TYPE(x) (x==PERIODIC_NOISE?"Periodic":(x==WHITE_NOISE?"White noise":"Undefined"))
