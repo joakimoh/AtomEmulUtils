@@ -11,6 +11,7 @@
 class TI4689 : public SoundDevice {
 
 private:
+	int mHalfCycleCount[4] = { 0 };
 
 	ALLEGRO_MIXER* mMixer = NULL;
 	ALLEGRO_AUDIO_STREAM* mChannelStream[4] = { NULL };
