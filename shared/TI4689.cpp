@@ -24,11 +24,14 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 	mMixer = al_get_default_mixer();
 	
 	mFieldRate = fieldRate;
-	mSamplesPerFragment = 512;// (int)round(1.0 * mSampleRate / mFieldRate); // 2 fields of audio
+	mSamplesPerFragment = (int)round(1.0 * mSampleRate / mFieldRate); // 2 fields of audio
 	mCpuCyclesPerSample = (int) round(1e6 * cpuClock / mSampleRate);
 	mNFragments = 8;
 
-	if (mDM->debug(DBG_AUDIO)) {
+	;
+
+
+	if (mDM->debug(DBG_VERBOSE)) {
 		cout << "CPU Clock:                    " << dec << cpuClock << " MHz\n";
 		cout << "Field rate:                   " << dec << mFieldRate << "\n";
 		cout << "Sample rate:                  " << dec << mSampleRate << "\n";
@@ -43,8 +46,8 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 			mNFragments,					// #fragments
 			mSamplesPerFragment,			// size of a fragment
 			mSampleRate,					// sample frequency
-			ALLEGRO_AUDIO_DEPTH_INT16,
-			ALLEGRO_CHANNEL_CONF_2
+			ALLEGRO_AUDIO_DEPTH_INT16,		// int16_t samples
+			ALLEGRO_CHANNEL_CONF_2			// Stereo => pair of int16_t samples
 		);
 		if (!mChannelStream[channel]) {
 			cout << "Could not create audio stream " << dec << channel << "\n";
@@ -162,8 +165,9 @@ bool TI4689::advance(uint64_t stopCycle)
 				// Change value range [0,1] to range [-1,+1] x channel volume
 				val = ((mOutput[channel] << 1) - 1) * mChannelVolume[channel];
 
-				// Add sample
-				mSamples[channel].push_back(val);
+				// Add stereo sample
+				mSamples[channel].push_back(val); // left channel
+				mSamples[channel].push_back(val); // right channel 
 
 				//
 				// Output samples when samples corresponding to a complete fragment exist

@@ -209,12 +209,16 @@ int main(int argc, const char* argv[])
      VideoDisplayUnit* vdu = NULL;
     vector<Device*> field_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices;
     P6502 * microprocessor = NULL;
-    double CPU_clock = 1.0; // MHz
+    double CPU_clock = 1.0; // Dummy assignment - CPU clock [MHz] will be set by Devices() below
+
+    // Set the audio sampling rate to rate to the rate of 1/2 a scan line (usually 1/32us = 31.25 kHz)
+    Resolution res = video_settings.getTotalResolution();
+    int sample_rate = (int)round(res.height * video_settings.getFieldRate());
     Devices devices(
         video_settings,
         arg_parser.mapFileName,
         CPU_clock,            // CPU Clock frequency in MHz
-        32000,                      // audio sample rate corresponding to a rate of at least twice per scan line
+        sample_rate,          // audio sample rate corresponding to a rate of at least twice per scan line
         disp, disp_bm, disp_res,
         &arg_parser.debugManager, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu,
         field_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices
