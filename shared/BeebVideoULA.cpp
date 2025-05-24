@@ -78,7 +78,8 @@ BeebVideoULA::BeebVideoULA(
 	string name, uint16_t adr, VideoSettings videoSettings, double cpuclock, uint8_t waitStates, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, DebugManager  *debugManager, ConnectionManager* connectionManager
 ) : VideoDisplayUnit(name, BEEB_VDU_DEV, videoSettings, cpuclock, waitStates, adr, 0x10, dispBitmap,0x0 /* dummy adr */, debugManager, connectionManager), mDisplay(disp)
 {
-	registerPort("SCROLL_CTRL",	IN_PORT,	0x0f, SCROLL_CTRL,	&mSCROLL_CTRL);
+	//registerPort("SCROLL_CTRL",	IN_PORT,	0x0f, SCROLL_CTRL,	&mSCROLL_CTRL);
+	registerPort("C",			IN_PORT,	0x03, C,			&mC);
 	registerPort("DISEN",		IN_PORT,	0x01, DISPTMG,		&mDISPTMG);
 	registerPort("CURSOR",		IN_PORT,	0x01, CURSOR,		&mCURSOR);	
 	registerPort("INV",			IN_PORT,	0x01, INV,			&mINV);
@@ -955,7 +956,7 @@ void BeebVideoULA::processPortUpdate(int port)
 		reset();
 	}
 
-	if (port != SCROLL_CTRL)
+	if (port != C)//SCROLL_CTRL)
 		return;
 
 
@@ -978,7 +979,7 @@ void BeebVideoULA::processPortUpdate(int port)
 	// and the most significant bit is the value to assign to C0 or C1.
 	// mC = C(1:0) below with C1 as the most significant bit and C0 as the least significant bit.
 	//
-
+	/*
 	uint8_t ctrl_sel = mSCROLL_CTRL & 0x7;
 	uint8_t ctrl_val = (mSCROLL_CTRL >> 3) & 0x1;
 	uint8_t p_C = mC;
@@ -992,7 +993,7 @@ void BeebVideoULA::processPortUpdate(int port)
 	default:
 		break;
 	}
-
+	*/
 	uint16_t p_HW_scroll_sub = mHwScrollSub;
 	int mode = 0;
 	mHwScrollSub = 0x0;
@@ -1024,7 +1025,8 @@ void BeebVideoULA::processPortUpdate(int port)
 		mode = 7;
 	}
 
-	if (false && mDM->debug(DBG_VDU) && mHwScrollSub != p_HW_scroll_sub)
+	//if (false && mDM->debug(DBG_VDU) && mHwScrollSub != p_HW_scroll_sub)
 		cout << "New HW Scroll constant 0x" << hex << mHwScrollSub << " (0x" << p_HW_scroll_sub << ") for mode " << dec << mode << "\n";
+		cout << "Video ULA CR = 0x" << hex << (int) mControlRegister << "\n";
 
 }

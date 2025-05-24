@@ -19,7 +19,7 @@ private:
 
 	int CTRL, Q;
 	uint8_t mCTRL = 0x0;	// Latch Selection & Data In
-	uint8_t mQ = 0xf;		// Latch outputs
+	uint8_t mQ = 0xff;		// Latch outputs
 
 public:
 

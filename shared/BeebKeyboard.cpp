@@ -17,7 +17,7 @@
 // 
 // 
 // Connector pins	Direction		Name	Connected to					Active level				Description
-// PL4				IN				KB_ENA	PB2:0 as BCD 3;PB3 has val		Low (load), High (count)	Enables column scanning counter
+// PL4				IN				ENA	PB2:0 as BCD 3;PB3 has val		Low (load), High (count)	Enables column scanning counter
 //																										Counts upwards from COL_SEL
 // PL5:7			IN				ROW_SEL	PA4:6							BCD							Selected keyboard row (0-7)
 // PL8:11			IN				COL_SEL	PA0:3							BCD							Selected keyboard column (0-9)
@@ -32,7 +32,7 @@ BeebKeyboard::BeebKeyboard(string name, double cpuClock, uint8_t startupOptions,
 {
 	// Specify ports that can be connected to other devices	
 	registerPort("SW",			IN_PORT,	0xf, SW,		&mSW);
-	registerPort("CTRL",		IN_PORT,	0xf, CTRL,		&mCTRL);
+	registerPort("ENA",			IN_PORT,	0xf, ENA,		&mENA);
 	registerPort("COL_SEL",		IN_PORT,	0xf, COL_SEL,	&mCOL_SEL);
 	registerPort("ROW_SEL",		IN_PORT,	0x7, ROW_SEL,	&mROW_SEL);
 	registerPort("ROW",			OUT_PORT,	0x1, ROW,		&mROW);
@@ -43,25 +43,58 @@ BeebKeyboard::BeebKeyboard(string name, double cpuClock, uint8_t startupOptions,
 
 void BeebKeyboard::processPortUpdate(int index)
 {
-	if (index != CTRL)
-		return;
 
-	uint8_t ctrl_sel = mCTRL & 0x7;
-	uint8_t ctrl_val = (mCTRL >> 3) & 0x1;
-	switch (ctrl_sel) {
-	case 3:	// Disable Keyboard auto scanning
-		mKB_ENA = ctrl_val; break;
-	case 6:	// Turn on CAPS LOCK LED
-		mLED2_CAPS_LOCK = ctrl_val; break;
-	case 7:	// Turn on SHIFT LOCK LED
-		mLED1_SHIFT_LOCK = ctrl_val; break;
-	case 0:	// Enable sound chip
-	case 1:	// Enable Read Speech
-	case 2:	// Enable Write Speech
-	case 4:	// Hardware scrolling - set C0 (See below)
-	case 5:	// Hardware scrolling - set C1 (See below)
-	default:
-		break;
+	if (index == COL_SEL || index == ROW_SEL) {
+
+		al_get_keyboard_state(&mKeyboardState);
+
+		//
+		// Need to process changes to column/row directly so that the PRESSED and ROW outputs (connected to the System VIA)
+		// will make the System VIA update its flag and A registers before the processor checks it immedialtely with a BIT instruction
+		// 
+		// There are two sequences in the MOS related to this:
+		// 1) Checking for any key in a column being pressed (PRESSED output fed to VIA CA2 input):
+		//		Instruction "STX .systemVIARegisterANoHandshake " at address f0fa followed by "BIT .systemVIAInterruptFlagRegister"
+		// 2) Checking for a specific key for a selected row and column (ROW otuput fed to VIA input PA7):
+		//		Instruction "STA .systemVIARegisterANoHandshake" at address f108 followed by " BIT .systemVIARegisterANoHandshake"
+
+		bool column_key_pressed = false;
+		bool selected_key_pressed = false;
+
+		// Check for any key being pressed for a selected column
+		if (mCOL_SEL <= 9)
+		{
+			for (int row = 1; row <= 7; row++) {
+
+				Key& key = mKeyboardMatrix[row][mCOL_SEL];
+				if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
+					column_key_pressed = true;
+					mDM->log(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!\n");
+					break;
+				}
+			}
+		}
+
+		// Check for key at the selected row and column being pressed as well as DIP switches being ON <=> LOW
+		if (mCOL_SEL <= 9 && mROW_SEL <= 7) {
+			vector<Key>& key_vec = mKeyboardMatrix[mROW_SEL];
+			Key& key = key_vec[mCOL_SEL];
+			if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode) || (mROW_SEL == 0 && linkSet(mCOL_SEL))) {
+				//cout << "Key '" << key.keyName << "' detected at ROW " << (int)mROW_SEL << ", " << (int)mCOL_SEL << "\n";
+				selected_key_pressed = true;
+			}
+		}
+
+		if (column_key_pressed)
+			updatePort(PRESSED, 0x1);
+		else
+			updatePort(PRESSED, 0x0);
+
+		// Only the key in a selected row and column pressed
+		if (selected_key_pressed)
+			updatePort(ROW, 0x1);
+		else
+			updatePort(ROW, 0x0);
 	}
 
 }
@@ -96,35 +129,13 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 	}
 
 	uint8_t oROW = mROW;
-
-	bool selected_key_pressed = false;
 	bool column_key_pressed = false;
 
-	// Check for keys only if row and column are valid
-	if (mCOL_SEL <= 9 && mROW_SEL <= 7) {
-
-		// Check for key at the selected row and column being pressed as well as DIP switches being ON <=> LOW
-		vector<Key>& key_vec = mKeyboardMatrix[mROW_SEL];
-		Key& key = key_vec[mCOL_SEL];
-		if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode) || (mROW_SEL == 0 && linkSet(mCOL_SEL))) {
-			//cout << "Key '" << key.keyName << "' detected at ROW " << (int)mROW_SEL << ", " << (int)mCOL_SEL << "\n";
-			selected_key_pressed = true;
-		}
-	}
 	
-	// Check for any key in a selected column (or all columns if KB_ENA is High) being pressed (row 0 with SHIFT, CTRL & DIP switches is excluded)
-	int start_col, end_col;
-	if (mKB_ENA) { // Auto scanning of keyboard - keys in all columns are checked
-		start_col = 0;
-		end_col = 9;
-	}
-	else if (mCOL_SEL <= 9) { // No auto scanning - only keys in the currently selected column are checked (column needs to be valid <=> <=9)
-		start_col = end_col = mCOL_SEL;
-	}
-	if (mKB_ENA || mCOL_SEL <= 9)
-	{
+	// Auto scanning of keyboard - keys in all columns are checked
+	if (mENA) {
 		for (int row = 1; row <= 7; row++) {
-			for (int col = start_col; col <= end_col; col++) {
+			for (int col = 0; col <= 9; col++) {
 				Key& key = mKeyboardMatrix[row][col];
 				if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
 					column_key_pressed = true;
@@ -144,23 +155,16 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 	else
 		updatePort(PRESSED, 0x0);
 
-	// Only the key in a selected row and column pressed
-	if (selected_key_pressed)
-		updatePort(ROW, 0x1);
-	else
-		updatePort(ROW, 0x0);
 
-
-
-	if (mDM->debug(DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mKB_ENA != pKB_ENA || mPRESSED != old_pressed)) {
-		mDM->log(this, DBG_KEYBOARD, "KB_ENA = " + to_string(mKB_ENA) + ",COL_SEL = " + to_string(mCOL_SEL) + 
+	if (mDM->debug(DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mENA != pENA || mPRESSED != old_pressed)) {
+		mDM->log(this, DBG_KEYBOARD, "ENA = " + to_string(mENA) + ",COL_SEL = " + to_string(mCOL_SEL) + 
 			", ROW_SEL = " + to_string(mROW_SEL) + ", PRESSED = " + to_string(mPRESSED) + ", ROW = " + to_string(mROW) + "\n");
 	}
 
 	oROW = mROW;
 	pCOL_SEL = mCOL_SEL;
 	pROW_SEL = mROW_SEL;
-	pKB_ENA = mKB_ENA;
+	pENA = mENA;
 
 	return true;
 }

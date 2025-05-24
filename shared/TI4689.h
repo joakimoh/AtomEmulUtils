@@ -17,7 +17,10 @@ private:
 	ALLEGRO_AUDIO_STREAM* mChannelStream[4] = { NULL };
 	int mSamplesPerFragment = 512;
 	int mNFragments = 8;
-	vector<int16_t> mSamples[4];
+	typedef  struct struct_SoundSample { int16_t left; int16_t right; } SoundSample;
+	vector<SoundSample> mSamples[4];
+	int mSamplesSize[4] = { 0 };
+
 	int16_t mOutput[4] = { 0 };					// Current value of a tone or noise generator
 	int16_t pOutput[4] = { 0 };					// Previous value of a tone or noise generator
 	int mChannelHalfCycleSamples[3] = { 0 };	// No of samples during one 1/2 cycle of a tone (generator 1-3)

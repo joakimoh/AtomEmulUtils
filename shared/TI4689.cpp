@@ -24,7 +24,7 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 	mMixer = al_get_default_mixer();
 	
 	mFieldRate = fieldRate;
-	mSamplesPerFragment = (int)round(1.0 * mSampleRate / mFieldRate); // 2 fields of audio
+	mSamplesPerFragment = (int)round(0.5 * mSampleRate / mFieldRate); // one field of audio
 	mCpuCyclesPerSample = (int) round(1e6 * cpuClock / mSampleRate);
 	mNFragments = 8;
 
@@ -41,6 +41,8 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 	}
 
 	for (int channel = 0; channel < 4; channel++) {
+
+		mSamples[channel].resize(mSamplesPerFragment);
 
 		mChannelStream[channel] = al_create_audio_stream(
 			mNFragments,					// #fragments
@@ -166,14 +168,14 @@ bool TI4689::advance(uint64_t stopCycle)
 				val = ((mOutput[channel] << 1) - 1) * mChannelVolume[channel];
 
 				// Add stereo sample
-				mSamples[channel].push_back(val); // left channel
-				mSamples[channel].push_back(val); // right channel 
-
+				if (mSamplesSize[channel] < mSamplesPerFragment) {
+					mSamples[channel][mSamplesSize[channel]++] = { val, val };
+				}
 				//
 				// Output samples when samples corresponding to a complete fragment exist
 				//
 
-				if (mSamples[channel].size() >= mSamplesPerFragment)
+				if (mSamplesSize[channel] >= mSamplesPerFragment)
 				{
 					// Check if the stream is ready for new data
 					int16_t* buf = (int16_t*)al_get_audio_stream_fragment(mChannelStream[channel]);
@@ -183,14 +185,14 @@ bool TI4689::advance(uint64_t stopCycle)
 						// Stream was ready for new data
 
 						//  Add the samples to the stream
-						memcpy(buf, (char *)  &mSamples[channel][0], sizeof(int16_t) * mSamplesPerFragment);
+						memcpy(buf, (char *)  &mSamples[channel][0], sizeof(SoundSample) * mSamplesPerFragment);
 						if (!al_set_audio_stream_fragment(mChannelStream[channel], buf)) {
 							return false;
 						}
 
 						if (mDM->debug(DBG_AUDIO) && mChannelVolume[channel] > 0 && mChannelHalfCycleSamples[channel] > 0) {
 							double freq = 0.5 * mSampleRate / mChannelHalfCycleSamples[channel];
-							cout << dec << mSamplesPerFragment << "/" << mSamples[channel].size() << " samples" <<
+							cout << dec << mSamplesPerFragment << "/" << mSamplesSize[channel] << " samples" <<
 								" (" << ((double)mSamplesPerFragment/(mSampleRate/freq)) << " cycles)" <<
 								" of frequency " << dec << freq <<
 								" and max volume " << mChannelVolume[channel] <<
@@ -198,7 +200,7 @@ bool TI4689::advance(uint64_t stopCycle)
 						}
 
 						// Clear samples
-						mSamples[channel].clear();
+						mSamplesSize[channel] = 0;
 					}
 
 				}
@@ -290,7 +292,7 @@ void TI4689::processPortUpdate(int index)
 							"\n";
 
 					}
-					mSamples[channel].clear();
+					mSamplesSize[channel] = 0;
 				}
 				else {
 					cout << "Invalid channel " << dec << channel << "!\n";

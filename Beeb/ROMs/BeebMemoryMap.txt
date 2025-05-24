@@ -1,27 +1,30 @@
 CLOCK	2.0	// CPU clock in MHz
 
-//	Device	Unique name		Addr	Size	Wait		Misc
-//							States		
-//							[CPU Cycles]
-ADD	DRAM		RAM32K		0000	8000	0				// 32kB RAM	0000 -	7fff
-ADD	ROM 		BASIC		8000	4000	0		BASIC2.rom	// Paged ROM #15 (IC52 NW)	8000 - bfff
-ADD	ROM		OS		c000	4000	0		OS12.rom	// OS		 		c000 -	ffff
-GAP			OS		fc00	0300					// Gap in OS ROM space between fc00-ff00	
-											// SHEILA	fe00 -	feff
-ADD	CRTC6845	CRTC		fe00	0008	1				// H6845SP CRTC
-ADD	TT5050		TCG				1				// Teletext Character Generator			
-ADD	ACIA6850	ACIA		fe08	0008	1		1.0		// ACIA 6850
-ADD	BeebSerULA	SerialULA	fe10	0010	1				// Beeb Serial ULA
-ADD	BeebVideoULA	VDU		fe20	0010	1				// Beeb Video ULA
-ADD	BeebRomSel	ROMSel		fe30	0010	0
-ADD	VIA6522		SYS_VIA		fe40	0020	1		1.0		// IC3	fe40 -	fe4f; 1 Mhz Clock
-//ADD	VIA6522		USER_VIA	fe60	0020	1		1.0		// IC69	fe60 -	fe6f; 1 MHz Clock
-//ADD	ADC7002		ADC		fec0	0003	1				// ADC Converter
-ADD	BEEBKB		KB		00						// startup options (DIP switches)
-ADD	UC6502		UC								// Microcontroller 6502
-ADD	TAPREC	TAPREC									// Standard Tape Recorder
-ADD	TI4689	SOUND
-ADD	BEEBVIALATCH	VIAL
+//	Device			Name		Addr	Size	Wait		Misc		Comment
+//												States		
+//												[CPU Cycles]
+ADD	DRAM			RAM32K		0000	8000	0						// 32kB RAM	0000 -	7fff
+ADD	ROM 			BASIC		8000	4000	0			BASIC2.rom	// Paged ROM #15 (IC52 NW)	8000 - bfff
+ADD	ROM				OS			c000	4000	0			OS12.rom	// OS		 		c000 -	ffff
+GAP					OS			fc00	0300							// Gap in OS ROM space between fc00-ff00	
+//
+// SHEILA	fe00 -	feff
+//
+ADD	CRTC6845		CRTC		fe00	0008	1						// H6845SP CRTC
+ADD	TT5050			TCG				1									// Teletext Character Generator			
+ADD	ACIA6850		ACIA		fe08	0008	1			1.0			// ACIA 6850
+ADD	BeebSerULA		SerialULA	fe10	0010	1						// Beeb Serial ULA
+ADD	BeebVideoULA	VDU			fe20	0010	1						// Beeb Video ULA
+ADD	BeebRomSel		ROMSel		fe30	0010	0
+ADD	VIA6522			SYS_VIA		fe40	0020	1			1.0			// IC3	fe40 -	fe4f; 1 Mhz Clock
+//ADD	VIA6522		USER_VIA	fe60	0020	1			1.0			// IC69	fe60 -	fe6f; 1 MHz Clock
+//ADD	ADC7002		ADC			fec0	0003	1						// ADC Converter
+
+ADD	BEEBKB			KB		00											// startup options (DIP switches)
+ADD	UC6502			UC													// Microcontroller 6502
+ADD	TAPREC			TAPREC												// Standard Tape Recorder
+ADD	TI4689			SOUND
+ADD	BEEBVIALATCH	VIAL												// System VIA Latch with 8 outputs, each updated by writing to Port B bits 3:0
 
 //
 //	Device connections
@@ -39,61 +42,62 @@ CONNECT:P	VIAL:Q;0		SOUND:WE	// Q0 => WE
 CONNECT:P	SYS_VIA:PA		SOUND:D		// PA7:0 => D
 
 // Video Display Unit connections
-CONNECT:I	CRTC:RA;0		TCG:CRS
-CONNECT:P	CRTC:VS			TCG:DEW
-CONNECT:IP	CRTC:HS			TCG:GLR
-CONNECT:P	CRTC:DISPTMG	TCG:LOSE
-CONNECT		CRTC:DISPTMG	VDU:DISEN
-CONNECT		CRTC:CUDISP		VDU:CURSOR
-CONNECT		CRTC:RA;3;0		VDU:RA
-CONNECT		CRTC:VS			SYS_VIA:CA;0	// VS => CA1
-CONNECT 	ROMSel:NW		BASIC:CS
-CONNECT:P 	SYS_VIA:PB;3;0	VDU:SCROLL_CTRL	// PB3:0 => SCROLL_CTRL
-CONNECT 	VDU:CRTC_CLK	CRTC:CLK
+CONNECT:I	CRTC:RA;0			TCG:CRS
+CONNECT:P	CRTC:VS				TCG:DEW
+CONNECT:IP	CRTC:HS				TCG:GLR
+CONNECT:P	CRTC:DISPTMG		TCG:LOSE
+CONNECT		CRTC:DISPTMG		VDU:DISEN
+CONNECT		CRTC:CUDISP			VDU:CURSOR
+CONNECT		CRTC:RA;3;0			VDU:RA
+CONNECT		CRTC:VS				SYS_VIA:CA;0	// VS => CA1
+CONNECT 	ROMSel:NW			BASIC:CS
+//CONNECT:P 	SYS_VIA:PB;3;0		VDU:SCROLL_CTRL	// PB3:0 => SCROLL_CTRL
+CONNECT:P	VIAL:Q;5;4			VDU:C
+CONNECT 	VDU:CRTC_CLK		CRTC:CLK
 
 // VIA IRQ
-CONNECT 	SYS_VIA:IRQ		UC:IRQ		// VIA generates 100 Hz timer interrupts and more
+CONNECT 	SYS_VIA:IRQ			UC:IRQ			// VIA generates 100 Hz timer interrupts and more
 
 // Keyboard connections
-CONNECT:P 	SYS_VIA:PB;3;0	KB:CTRL		// PB3:0 => CTRL
-CONNECT 	SYS_VIA:PA;3;0	KB:COL_SEL	// PA3:0 => COL_SEL
-CONNECT 	SYS_VIA:PA;6;4	KB:ROW_SEL	// PA6:4 => ROW_SEL
-CONNECT 	KB:ROW			SYS_VIA:PA;7	// ROW => PA7
-CONNECT 	KB:PRESSED		SYS_VIA:CA;1	// PRESSED = CA2
-CONNECT:P 	KB:BREAK		UC:RESET	// Connect BREAK key to uC RESET input with direct processing on update
-CONNECT:P 	KB:BREAK		SYS_VIA:RESET	// Connect BREAK key to System VIA RESET input with direct processing on update
-CONNECT:P 	KB:BREAK		CRTC:RESET	// Connect BREAK key to CRTC RESET input with direct processing on update	
-CONNECT:P 	KB:BREAK		TCG:RESET	// Connect BREAK key to TCG RESET input with direct processing on update
-CONNECT:P 	KB:BREAK		VDU:RESET	// Connect BREAK key to VDU RESET input with direct processing on update
+CONNECT:P	VIAL:Q;3			KB:ENA			// Connect System VIA Latch Q3 (value set by writing to System VIA Port B) to KB ENA
+CONNECT:P 	SYS_VIA:PA;3;0		KB:COL_SEL		// PA3:0 => COL_SEL
+CONNECT:P 	SYS_VIA:PA;6;4		KB:ROW_SEL		// PA6:4 => ROW_SEL
+CONNECT 	KB:ROW				SYS_VIA:PA;7	// ROW => PA7
+CONNECT 	KB:PRESSED			SYS_VIA:CA;1	// PRESSED = CA2
+CONNECT:P 	KB:BREAK			UC:RESET		// Connect BREAK key to uC RESET input with direct processing on update
+CONNECT:P 	KB:BREAK			SYS_VIA:RESET	// Connect BREAK key to System VIA RESET input with direct processing on update
+CONNECT:P 	KB:BREAK			CRTC:RESET		// Connect BREAK key to CRTC RESET input with direct processing on update	
+CONNECT:P 	KB:BREAK			TCG:RESET		// Connect BREAK key to TCG RESET input with direct processing on update
+CONNECT:P 	KB:BREAK			VDU:RESET		// Connect BREAK key to VDU RESET input with direct processing on update
 
 
 
 // CUTS <=> Tape Recorder Connections
-CONNECT 	TAPREC:CAS_IN		SerialULA:CAS_IN	// connect Serial ULA (CUTS) and tape recorder - CAS IN
-CONNECT 	SerialULA:CAS_OUT	TAPREC:CAS_OUT		// connect Serial ULA (CUTS)and tape recorder - CAS OUT
-CONNECT:P	ACIA:TxD		SerialULA:TxD		// connect the ACIA Tx data to the Serial ULA with direct processing on update
-CONNECT:P	ACIA:RTS		SerialULA:RTSI		// connect the ACIA RTS to the Serial ULA with direct processing on update
-CONNECT		SerialULA:RxD		ACIA:RxD		// connect the Serial ULA Rx data to the ACIA
-CONNECT:P	SerialULA:CTSO		ACIA:CTS		// connect the Serial ULA CTS to the ACIA with direct processing on update
-CONNECT:P	SerialULA:DCD		ACIA:DCD		// connect the Serial ULA DCD to the ACIA with direct processing on update
-CONNECT		ACIA:IRQ		UC:IRQ
+CONNECT 	TAPREC:CAS_IN		SerialULA:CAS_IN	// Connect Serial ULA (CUTS) and tape recorder - CAS IN
+CONNECT 	SerialULA:CAS_OUT	TAPREC:CAS_OUT		// Connect Serial ULA (CUTS)and tape recorder - CAS OUT
+CONNECT:P	ACIA:TxD			SerialULA:TxD		// Connect the ACIA Tx data to the Serial ULA with direct processing on update
+CONNECT:P	ACIA:RTS			SerialULA:RTSI		// Connect the ACIA RTS to the Serial ULA with direct processing on update
+CONNECT		SerialULA:RxD		ACIA:RxD			// Connect the Serial ULA Rx data to the ACIA
+CONNECT:P	SerialULA:CTSO		ACIA:CTS			// Connect the Serial ULA CTS to the ACIA with direct processing on update
+CONNECT:P	SerialULA:DCD		ACIA:DCD			// Connect the Serial ULA DCD to the ACIA with direct processing on update
+CONNECT		ACIA:IRQ			UC:IRQ
 
 //
 //	Device scheduling
 //
-TRIGGER KB			MEM		OS			READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release)
-SCHED	KB			FIELD								// Also schedule the keyboard on field basis (for RESET release)
-TRIGGER	KB			MEM		SYS_VIA		WRITE	fe4f	// Beeb selects keyboard row & col by writing to VIA Port A (address fe4f)
+SCHED	KB			HLINE
+SCHED	CRTC		NONE
 TRIGGER	CRTC		CALL	VDU							// Trigger the CRTC explictly by VDU function calls
+SCHED	TCG			NONE
 TRIGGER	TCG			CALL	VDU							// Trigger the TCG explictly by VDU function calls
 TRIGGER ACIA		CALL	SerialULA					// Trigger the ACIA explictly by Serial ULA function calls
-SCHED	TCG			NONE
-SCHED	CRTC		NONE
 SCHED	ACIA		INSTR
-SCHED	KB			HLINE
 SCHED	SerialULA	INSTR
 SCHED	VDU			NONE
 SCHED	VIAL		NONE
 SCHED	SOUND		HLINE
 
-INIT	KB:SW	0
+//
+// Initialisation of external ports
+//
+INIT	KB:SW	0										// Keyboard switches; set to start with Mode 7
