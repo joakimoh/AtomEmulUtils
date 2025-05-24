@@ -123,7 +123,7 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 
 		if (updateDstPortValue(port, input,val)) { // update destination port on change or always for a bidirectional port
 
-			// Call direct processing on the receing device - if specified by configuration
+			// Call direct processing on the receiving device - if specified by configuration
 			if (input.process)
 				input.port->dev->processPortUpdate(input.port->localIndex);
 
@@ -200,7 +200,7 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 				shift_s = "((src >> shifts) & mask)";
 			else
 				shift_s = "((src << shifts) & mask)";
-			cout << this->name << ":" << srcPort->name << " = 0x" << (int)srcVal << " => " <<
+			cout << this->name << ":" << srcPort->name << " = 0x" << hex << (int)srcVal << " => " <<
 				dstPort.port->dev->name << ":" << dstPort.port->name << " = " <<
 				dstPort.port->name << " &  ~mask | " << shift_s << " = 0x" << hex <<
 				(int)pval << " & 0x" << hex << setfill('0') << setw(2) << (int)(uint8_t)(~dst_sel_mask) << " | ((0x" << hex << (int)nval <<

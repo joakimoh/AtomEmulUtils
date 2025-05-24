@@ -67,7 +67,11 @@ public:
 		{0xe, 5, CR_CURSOR_SEGMENT}
 	};
 	inline uint8_t getCRField(CRFieldEnum field) {
-		return (mControlRegister >> mCRField[field].lowBit) & mCRField[field].mask; }
+		return (getCRField(mControlRegister, field));
+	}
+	inline uint8_t getCRField(uint8_t regVal, CRFieldEnum field) {
+		return (regVal >> mCRField[field].lowBit) & mCRField[field].mask;
+	}
 	uint8_t mPaletteMem[16] = { 0 };	// 16 x 4 bit palette memory
 
 	//
@@ -120,6 +124,7 @@ public:
 	bool readGraphicsMem(uint16_t adr, uint8_t& data);
 
 	bool validateInternalState(uint8_t newControlRegisterValue);
+	void updateHwScrollConstant();
 
 	void lockDisplay();
 	void unlockDisplay();

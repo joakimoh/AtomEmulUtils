@@ -649,11 +649,22 @@ void BeebVideoULA::updateScreenSz(int fullW, int fullH, int activeW, int activeH
 
 bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 {
+	uint8_t old_control_register_val = mControlRegister;
+	mControlRegister = newControlRegisterValue;
 
 	int p_scan_line = mScanLine;
 	int p_scan_lines = mScreenScanLines;
 	int p_vertical_syn_pos = mVerticalSyncPos;
 	int p_pixels_per_byte = mPixelsPerCharacter;
+
+	bool teletext = getCRField(CR_TELETEXT) == 1;
+	bool p_teletext = getCRField(old_control_register_val, CR_TELETEXT);
+
+	// Although the scroll context is updated based on C1C0 input changes in processPortUpdate() it could have the wrong value for any mode
+	// if the C1C0 inputs are updated BEFORE the Control Register bit for teletext is changed. Therefore update the constant again
+	// if the teletext bit was changed.
+	if (teletext != p_teletext)
+		updateHwScrollConstant();
 
 	if (!initialised()) {
 		mScanLine = 0;
@@ -676,7 +687,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	mNCols = (1 << getCRField(CR_N_COLS)) * 10;
 	mPixelRate = 1 << (getCRField(CR_N_COLS) + 1); // pixel rate: 2, 4, 8 or 16 MHz
 
-	bool teletext = getCRField(CR_TELETEXT) == 1;
+
 
 	//
 	//	Pixels per memory byte (mPixelsPerCharacter), "big" pixels per column symbol (mHzPixelsPerSymbol) and size of "big" pixel (mPixelW)
@@ -758,7 +769,6 @@ bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 
 	if (a == 0) {
 
-		mControlRegister = data;
 		validateInternalState(data);
 
 	}
@@ -956,44 +966,33 @@ void BeebVideoULA::processPortUpdate(int port)
 		reset();
 	}
 
-	if (port != C)//SCROLL_CTRL)
-		return;
-
-
-	//
-	// Hardware scrolling
-	// 
-	// The values of C0 and C1 together determine the value to subtract from the current
-	// address when it exceeds 8000
-	//      MA12	C1   C0     CRTC address	Screen				Mem		Hz			subract
-	//		(a15)								Address   Modes		Sz		Res			const
-	//		------------------------------------------------------------------------------------
-	//		0		x	x		2800			7c00		7		1k					0400
-	//		1		0   0		800				4000		3		16k					4000
-	//		1		0   1		c00				6000		6		8k					2000
-	//		1		1	0		600				3000		0,1,2	20k		80 bytes	5000
-	//		1		1   1		b00				5800		4,5		10k					2800
-	//
-	// The System VIA's PB(3:0) are connected to the Video ULA's SCROLL_CTRL(3:0) where
-	// The three least significant bits selects whether to update C0 (4) or C1 (5)
-	// and the most significant bit is the value to assign to C0 or C1.
-	// mC = C(1:0) below with C1 as the most significant bit and C0 as the least significant bit.
-	//
-	/*
-	uint8_t ctrl_sel = mSCROLL_CTRL & 0x7;
-	uint8_t ctrl_val = (mSCROLL_CTRL >> 3) & 0x1;
-	uint8_t p_C = mC;
-	switch (ctrl_sel) {
-	case 4:	// Hardware scrolling - set C0 (See below)
-		mC = (mC & 2) | ctrl_val;
-		break;
-	case 5:	// Hardware scrolling - set C1 (See below)
-		mC = (mC & 1) | (ctrl_val << 1);
-		break;
-	default:
-		break;
+	if (port == C) {
+		updateHwScrollConstant();
 	}
-	*/
+
+}
+
+//
+// Hardware scrolling
+// 
+// The values of C0 and C1 together determine the value to subtract from the current
+// address when it exceeds 8000
+//      MA12	C1   C0     CRTC address	Screen				Mem		Hz			subract
+//		(a15)								Address   Modes		Sz		Res			const
+//		------------------------------------------------------------------------------------
+//		0		x	x		2800			7c00		7		1k					0400
+//		1		0   0		800				4000		3		16k					4000
+//		1		0   1		c00				6000		6		8k					2000
+//		1		1	0		600				3000		0,1,2	20k		80 bytes	5000
+//		1		1   1		b00				5800		4,5		10k					2800
+//
+// The System VIA's PB(3:0) are connected to the Video ULA's SCROLL_CTRL(3:0) where
+// The three least significant bits selects whether to update C0 (4) or C1 (5)
+// and the most significant bit is the value to assign to C0 or C1.
+// mC = C(1:0) below with C1 as the most significant bit and C0 as the least significant bit.
+//
+void BeebVideoULA::updateHwScrollConstant() {
+	
 	uint16_t p_HW_scroll_sub = mHwScrollSub;
 	int mode = 0;
 	mHwScrollSub = 0x0;
@@ -1007,11 +1006,11 @@ void BeebVideoULA::processPortUpdate(int port)
 		mHwScrollSub = 0x2000;
 		break;
 	case 2:// Modes 0,1,2 - start address 0x3000
-		mode = 12;
+		mode = 210;
 		mHwScrollSub = 0x5000;
 		break;
 	case 3:// Modes 4,5 - start address 0x5800
-		mode = 45;
+		mode = 54;
 		mHwScrollSub = 0x2800;
 		break;
 	default:
@@ -1025,8 +1024,9 @@ void BeebVideoULA::processPortUpdate(int port)
 		mode = 7;
 	}
 
-	//if (false && mDM->debug(DBG_VDU) && mHwScrollSub != p_HW_scroll_sub)
-		cout << "New HW Scroll constant 0x" << hex << mHwScrollSub << " (0x" << p_HW_scroll_sub << ") for mode " << dec << mode << "\n";
-		cout << "Video ULA CR = 0x" << hex << (int) mControlRegister << "\n";
+	if (false && mDM->debug(DBG_VDU) && mHwScrollSub != p_HW_scroll_sub) {
+		cout << "Teletext=" << (int)teletext << ", C1C0=0x" << hex << (int)mC << " => new HW Scroll constant 0x" << hex << mHwScrollSub << " (0x" << p_HW_scroll_sub << ") for mode " << dec << mode << "\n";
+		cout << "Video ULA CR = 0x" << hex << (int)mControlRegister << "\n";
+	}
 
 }
