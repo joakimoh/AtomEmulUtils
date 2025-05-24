@@ -71,16 +71,17 @@ CONNECT ATOMKB:COL_H;1	VDU:RESET	// BREAK key => RESET of VDU 6847
 CONNECT VIA:IRQ		UC:IRQ
 
 // PIA <=> CUTS Connections
-CONNECT PIA:PortC;0	CUTS:TAPE_OUT	// tape out
-CONNECT PIA:PortC;1	CUTS:ENA_TONE	// enable tone to cassette output
-CONNECT CUTS:TONE	PIA:PortC;4	// 2.4 Khz tone
-CONNECT CUTS:TAPE_IN	PIA:PortC;5	// cassette input
+CONNECT PIA:PortC;0		CUTS:TAPE_OUT	// tape out
+CONNECT PIA:PortC;1		CUTS:ENA_TONE	// enable tone to cassette output
+CONNECT CUTS:TONE		PIA:PortC;4		// 2.4 Khz tone
+CONNECT CUTS:TAPE_IN	PIA:PortC;5		// cassette input
 
 // CUTS <=> Tape Recorder Connections
 CONNECT TAPREC:CAS_IN	CUTS:CAS_IN	// connect CUTS and tape recorder - CAS IN
 CONNECT CUTS:CAS_OUT	TAPREC:CAS_OUT	// connect CUTS and tape recorder - CAS OUT
+
 // PIA <=> Speaker Connections
-CONNECT	PIA:PortC;2	SPEAKER:OUT
+CONNECT	PIA:PortC;2		SPEAKER:OUT
 
 // Device scheduling based on read or write access to another memory-mapped peripheral
 // rather then periodically. Only peripherals with registers (and not memory devices)
@@ -92,8 +93,7 @@ CONNECT	PIA:PortC;2	SPEAKER:OUT
 //
 // SCHEDULING IS ONE OF FIELD, HLINE, INSTR, NONE
 //
-// A device scheduled like this will not also be scheduled periodically.
-TRIGGER	ATOMKB	MEM	PIA	READ	b001	// Acorn Atom polls keyboard by reading from PIA Port B
+TRIGGER	ATOMKB	MEM	PIA		READ	b001	// Acorn Atom polls keyboard by reading from PIA Port B
 TRIGGER ATOMKB	MEM	KERNEL	READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release)
-SCHED	ATOMKB	FIELD
+SCHED	ATOMKB	HLINE
 SCHED	SPEAKER	HLINE

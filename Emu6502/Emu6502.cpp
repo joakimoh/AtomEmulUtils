@@ -332,7 +332,7 @@ int main(int argc, const char* argv[])
             int n_screen_scan_lines = vdu->getScreenScanLines();
             bool interlaced_mode = vdu->interlaceOn();
 
-            // Scan one field screen_scan_line and save time passed in target cycle count to be used as reference
+            // Scan one field screen scan line and save time passed in target cycle count to be used as reference
             // target time for the 6502 and the other devices (PIA, VIA, Sound, Tape Recorder, RAM & ROM). This
             // is required to keep execution synchronised with the field updating.
             uint64_t target_cycle_count;

@@ -62,7 +62,6 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugManage
 bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 {
 	mCnt += stopCycle - mCycleCount;
-
 	mCycleCount = stopCycle;
 
 	auto kb_start = chrono::high_resolution_clock::now();
@@ -98,7 +97,7 @@ bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 
 
 	// Get BREAK key
-	if (al_key_down(&mKeyboardState, mBreakKeyCode))
+	if (al_key_down(&mKeyboardState, mBreakKeyCode))  
 		column_H &= ~0x2;
 
 	// Update outputs "COL" and "RPT"

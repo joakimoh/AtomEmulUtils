@@ -352,7 +352,7 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 				return false;
 			}
 
-			if (mDM->debug( DBG_DEVICE)) {
+			if (true || mDM->debug(DBG_DEVICE)) {
 				cout << "I/O Mode: ";
 				cout << " PortSelection A " << (mCR & 0x40 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2"));
 				cout << " " << (mCR & 0x10 ? "IN" : "OUT");
