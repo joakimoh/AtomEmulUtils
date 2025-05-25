@@ -51,7 +51,7 @@ bool CRTC6845::reset()
 
 	mField = 0;
 
-	mCycleCount = 0;
+
 	mCharRow = 0;
 	mScanLine = 0;
 	mCharCol = 0;

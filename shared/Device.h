@@ -115,6 +115,8 @@ private:
 
 protected:
 
+	bool mPowerOnReset = true;
+
 	DebugManager *mDM = NULL;
 
 	uint64_t mCycleCount = 0;
@@ -150,6 +152,12 @@ public:
 
 	// Reset device
 	virtual bool reset() {
+
+		if (mPowerOnReset) {
+			mCycleCount = 0;
+			mPowerOnReset = false;
+		}
+
 		if (mDM->debug(DBG_VERBOSE)) {
 			cout << "'" << this->name << "' RESET\n";
 			//pRESET = mRESET;

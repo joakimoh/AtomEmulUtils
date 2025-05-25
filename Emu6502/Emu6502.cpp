@@ -319,12 +319,10 @@ int main(int argc, const char* argv[])
         // 
         // For interlaced modes, only every second scan line will be processed...
         //
-
         bool end_of_field = false;
         bool add_half_line = false;
         //cout << "\n\n*** START OF FIELD\n";
         while (!end_of_field) {
-
             int screen_scan_line = vdu->getScreenScanLine();
             int field = vdu->fieldScanLineOffset();
             int active_lines = vdu->getActiveLines();
@@ -375,7 +373,6 @@ int main(int argc, const char* argv[])
 
                 // update devices scheduled on instruction basis in a tight loop
                 while (cycle_count < half_line_target) {
-
                     // Execute one microprocessor instruction and advance time accordingly (cycle_count updated)
                     auto uc_start = chrono::high_resolution_clock::now();
                     if (!microprocessor->advanceInstr(cycle_count)) {

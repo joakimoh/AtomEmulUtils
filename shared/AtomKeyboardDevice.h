@@ -138,10 +138,8 @@ public:
 	AtomKeyboardDevice(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
 	// Reset device
-	bool reset() { mCycleCount = 0; return true; }
+	bool power() { mCycleCount = 0; return true; }
 
-	// Device power on
-	bool power() { return reset(); }
 
 	//  Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);

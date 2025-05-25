@@ -139,15 +139,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	auto video_start = chrono::high_resolution_clock::now();
 
-	bool reset_transition = mRESET != pRESET;
-	pRESET = mRESET;
-
-	if (reset_transition && mDM->debug(DBG_RESET))
-		mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
-
-	if (mRESET == 0 && reset_transition)
-		reset();
-
 	uint64_t pCycleCount = mCycleCount;
 	double scan_line_duration = getScanLineDuration();
 	int cycle_count = max(1, (int)round(scan_line_duration * mCPUClock));

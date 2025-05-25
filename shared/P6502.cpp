@@ -109,8 +109,6 @@ bool P6502::reset()
 
 	mLastPgmDevice = NULL;
 
-	mCycleCount = 0;
-
 	// Fetch RESET vector
 	uint8_t adr_L, adr_H;
 	if (!readProgramMem(0xfffc, adr_L) || !readProgramMem(0xfffd, adr_H))
