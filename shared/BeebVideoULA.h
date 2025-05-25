@@ -20,6 +20,7 @@ private:
 	void updateScreenSz(int fullW, int fullH, int activeW, int activeH);
 
 	int mDispUsCnt = 0;
+	int mPreludeUsCnt = 0;
 	int mVideoULACnt = 0;
 	int mCRTCnt = 0;
 	int mTTCnt = 0;

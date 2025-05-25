@@ -138,6 +138,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 
 	auto video_start = chrono::high_resolution_clock::now();
+	auto prelude_start = video_start;
 
 	uint64_t pCycleCount = mCycleCount;
 	double scan_line_duration = getScanLineDuration();
@@ -221,13 +222,15 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			cout << dec << "\n";
 			cout << "Field Rate: " << dec << field_rate << "\n";
 			cout << "Video ULA total (including CRTC & TCG) - ms per sec: " << mVideoULACnt / 1e6 << "\n";
+			cout << "Display prelude - ms per sec: " << mPreludeUsCnt / 1e6 << "\n";
 			cout << "Display update - ms per sec: " << mDispUsCnt / 1e6 << "\n";
 			cout << "Memory read - ms per sec: " << mReadCnt / 1e6 << "\n";
 			cout << "CRTC update - ms per sec: " << mCRTCnt / 1e6 << "\n";
 			cout << "TT update - ms per sec: " << mTTCnt / 1e6 << "\n";
-			cout << "Line update - ms per sec: " << mLineCnt / 1e6 << "\n";
+			cout << "Line update - ms per sec: " << (mLineCnt- mTTCnt- mCRTCnt- mReadCnt) / 1e6 << "\n";
 			cout << "Border update - ms per sec: " << mBorderCnt / 1e6 << "\n";
 			mVideoULACnt = 0;
+			mPreludeUsCnt = 0;
 			mDispUsCnt = 0;
 			mCRTCnt = 0;
 			mTTCnt = 0;
@@ -249,6 +252,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 
 	bool teletext = getCRField(CR_TELETEXT) == 1;
+
+	auto prelude_stop = chrono::high_resolution_clock::now();
+	auto prelude_dur = chrono::duration_cast<chrono::nanoseconds>(prelude_stop - prelude_start);
+	mPreludeUsCnt += prelude_dur.count();
 
 
 	if (adjusted_scanline == mVerticalSyncPos) {
@@ -584,6 +591,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	}
 	// Clear remaining  right-most pixels that are "left-over" when the hz res is not a multiple of the visible characters per raster line
 	if (line_bitmap_data_p != NULL) {
+		auto border_start = chrono::high_resolution_clock::now();
 		uint32_t colour = 0xff0ff000;
 		if (field_offset == 1)
 			colour = 0xffff0000;
@@ -592,6 +600,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		int n_left_over_pixels = vis_res.width - hz_visible_chars * mPixelsPerCharacter * mPixelW;
 		for (int p = 0; p < n_left_over_pixels && bitmap_data_p < mMaxDisplayBitmap_p;p++)
 			*bitmap_data_p++ = colour;
+		auto border_stop = chrono::high_resolution_clock::now();
+		auto border_dur = chrono::duration_cast<chrono::nanoseconds>(border_stop - border_start);
+		mBorderCnt += border_dur.count();
 	}
 
 
