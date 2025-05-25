@@ -238,9 +238,6 @@ public:
 
 	TT5050(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
-	// Reset device
-	bool reset();
-
 	// Device power on
 	bool power() { return reset(); }
 

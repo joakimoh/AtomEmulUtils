@@ -183,11 +183,8 @@ public:
 	// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
 	int fieldScanLineOffset();
 
-	// Reset device
-	bool reset();
-
 	// Device power on
-	bool power() { return reset(); }
+	bool power();
 
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);

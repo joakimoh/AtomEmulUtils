@@ -51,7 +51,6 @@ CONNECT		CRTC:CUDISP			VDU:CURSOR
 CONNECT		CRTC:RA;3;0			VDU:RA
 CONNECT		CRTC:VS				SYS_VIA:CA;0	// VS => CA1
 CONNECT 	ROMSel:NW			BASIC:CS
-//CONNECT:P 	SYS_VIA:PB;3;0		VDU:SCROLL_CTRL	// PB3:0 => SCROLL_CTRL
 CONNECT:P	VIAL:Q;5;4			VDU:C
 CONNECT 	VDU:CRTC_CLK		CRTC:CLK
 
@@ -64,12 +63,7 @@ CONNECT:P 	SYS_VIA:PA;3;0		KB:COL_SEL		// PA3:0 => COL_SEL
 CONNECT:P 	SYS_VIA:PA;6;4		KB:ROW_SEL		// PA6:4 => ROW_SEL
 CONNECT 	KB:ROW				SYS_VIA:PA;7	// ROW => PA7
 CONNECT 	KB:PRESSED			SYS_VIA:CA;1	// PRESSED = CA2
-CONNECT:P 	KB:BREAK			UC:RESET		// Connect BREAK key to uC RESET input with direct processing on update
-CONNECT:P 	KB:BREAK			SYS_VIA:RESET	// Connect BREAK key to System VIA RESET input with direct processing on update
-CONNECT:P 	KB:BREAK			CRTC:RESET		// Connect BREAK key to CRTC RESET input with direct processing on update	
-CONNECT:P 	KB:BREAK			TCG:RESET		// Connect BREAK key to TCG RESET input with direct processing on update
-CONNECT:P 	KB:BREAK			VDU:RESET		// Connect BREAK key to VDU RESET input with direct processing on update
-
+CONNECT 	KB:BREAK			UC:RESET		// Connect BREAK key to uC RESET input 
 
 
 // CUTS <=> Tape Recorder Connections

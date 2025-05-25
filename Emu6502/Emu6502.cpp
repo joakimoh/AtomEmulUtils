@@ -359,7 +359,6 @@ int main(int argc, const char* argv[])
             uint64_t half_line_step = (target_cycle_count - start_count)  / 2;
             uint64_t start_target_cnt = start_count + half_line_step;
             for (int half_line = 0; half_line < 2; half_line++) {
-
                 uint64_t half_line_target = start_target_cnt + half_line_step * half_line;
               
                 // update devices scheduled on half line basis

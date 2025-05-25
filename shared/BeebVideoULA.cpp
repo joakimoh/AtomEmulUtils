@@ -85,7 +85,6 @@ BeebVideoULA::BeebVideoULA(
 	registerPort("INV",			IN_PORT,	0x01, INV,			&mINV);
 	registerPort("RA",			IN_PORT,	0x0f, RA,			&mRA);
 	registerPort("CRTC_CLK",	OUT_PORT,	0x3, CRTC_CLK,		&mCRTC_CLK);
-	registerPort("RESET",		IN_PORT,	0x01, RESET,		&mRESET);
 
 	// Initialise previously read Teletext Character Generator (TGC) data (to a dummy one)
 	mTgcData.resize(16);
@@ -112,8 +111,8 @@ BeebVideoULA::~BeebVideoULA()
 }
 
 
-// Reset device
-bool BeebVideoULA::reset()
+// Power on (reset) the device
+bool BeebVideoULA::power()
 {
 
 	Device::reset();
@@ -964,16 +963,7 @@ int BeebVideoULA::fieldScanLineOffset()
 
 void BeebVideoULA::processPortUpdate(int index)
 {
-	if (index == RESET) {
-
-		if (mDM->debug(DBG_RESET))
-			mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
-
-		if (mRESET == 0)
-			reset();
-	}
-
-	else if (index == C) {
+	if (index == C) {
 		updateHwScrollConstant();
 	}
 

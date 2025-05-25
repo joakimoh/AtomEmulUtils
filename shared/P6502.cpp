@@ -1694,15 +1694,3 @@ void P6502::printCallStack()
 	}
 	mDM->log(this, DBG_INTERRUPTS, s);
 }
-
-void P6502::processPortUpdate(int index)
-{
-	if (index == RESET) {
-
-		if (mDM->debug(DBG_RESET))
-			mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
-
-		if (mRESET == 0)
-			reset();
-	}
-}

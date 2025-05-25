@@ -179,9 +179,6 @@ public:
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
 
-	// Process a port update directly (and not just next time the advance() method is called)
-	void processPortUpdate(int index) override;
-
 };
 
 #endif

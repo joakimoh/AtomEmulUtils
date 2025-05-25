@@ -1157,17 +1157,3 @@ string VIA6522::ACRLE2Str(uint8_t l)
 	default: return "???";
 	}
 }
-
-// Process a port update directly (and not just next time the advance() method is called)
-void  VIA6522::processPortUpdate(int index)
-{
-	if (index == RESET) {
-
-		if (mDM->debug(DBG_RESET))
-			mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
-
-		if (mRESET == 0)
-			reset();
-	}
-
-}

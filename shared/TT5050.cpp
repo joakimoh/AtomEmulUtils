@@ -13,7 +13,6 @@ TT5050::TT5050(
 		cout << "Teletext Character Generator SA5050 '" << name << "' added\n";
 
 	registerPort("LOSE",	IN_PORT, 0x1, LOSE,		&mLOSE);
-	registerPort("RESET",	IN_PORT, 0x1, RESET,	&mRESET);
 	registerPort("CRS",		IN_PORT, 0x1, CRS,		&mCRS);
 	registerPort("DEW",		IN_PORT, 0x1, DEW,		&mDEW); // Data Entry Window - resets the row adr counter prior to the display period
 	registerPort("GLR",		IN_PORT, 0x1, GLR,		&mGLR); // General Line Reset
@@ -144,27 +143,10 @@ void TT5050::createInterpolatedSymbols()
 	}
 }
 
-// Reset device
-bool TT5050::reset()
-{
-	Device::reset();
-
-	mCharRasterLine = 0;
-
-	return true;
-}
-
 // Advance until clock cycle stopcycle has been reached
 bool TT5050::advance(uint64_t stopCycle)
 {
-	bool reset_transition = mRESET != pRESET;
-	pRESET = mRESET;
-
-	if (reset_transition && mDM->debug(DBG_RESET))
-		mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
-
-	if (reset_transition)
-		reset();
+	// Currently not intended to be used as getScreenData() should instead be called periodically
 
 	return true;
 }
@@ -388,16 +370,7 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 // Process a port update directly (and not just next time the advance() method is called)
 void  TT5050::processPortUpdate(int index)
 {
-	if (index == RESET) {
-
-		if (mDM->debug(DBG_RESET))
-			mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
-
-		if (mRESET == 0)
-			reset();
-	}
-
-	else if (index == GLR) {
+	if (index == GLR) {
 		if (mGLR == 1 && pGLR == 0 && mLOSE == 0) {
 			// General Line Reset - for a negative GLR pulse when LOSE is low
 			mFlash = false;
