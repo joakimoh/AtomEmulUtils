@@ -131,7 +131,7 @@ bool TI4689::advance(uint64_t stopCycle)
 					// - the reference clock (CLK) divided by 512/1204/2048 (mNoiseShiftSamples > 0) OR
 					// - the Tone Generator 3 (mNoiseShiftSamples == -1)
 					if (
-						(mNoiseShiftSamples > 0 && mSampleCount % mChannelHalfCycleSamples[channel] == 0) ||
+						(mNoiseShiftSamples > 0 && mSampleCount % mNoiseShiftSamples == 0) ||
 						(mNoiseShiftSamples == -1 && pOutput[TI4689_TONE_GENERATOR_3] == 0 && mOutput[TI4689_TONE_GENERATOR_3] == 1)
 						)
 					{
@@ -292,7 +292,7 @@ void TI4689::processPortUpdate(int index)
 							"\n";
 
 					}
-					mSamplesSize[channel] = 0;
+
 				}
 				else {
 					cout << "Invalid channel " << dec << channel << "!\n";

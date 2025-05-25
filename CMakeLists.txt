@@ -9,15 +9,17 @@ include(FetchContent)
 # Turn of warnings to get allegro to compile without errors
 if(CMAKE_COMPILER_IS_GNUCC)
     set(WFLAGS "-Wno-narrowing")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 endif()
 if(CMAKE_C_COMPILER_ID MATCHES "Clang")
     set(WFLAGS "-Wno-narrowing")
 endif()
 if(COMPILER_MSVC)
 	set(WFLAGS "${WFLAGS} -Wno-c++11-narrowing")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2")
 endif(COMPILER_MSVC)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${WFLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WFLAGS} /O2")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WFLAGS}")
 
 set(CMAKE_CXX_STANDARD 17)
 

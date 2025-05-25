@@ -170,6 +170,15 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int field_unique_lines = mScreenScanLines / 2;
 	int field_unique_line = adjusted_scanline / 2;
 
+	// Border settings (set here and not in the loops below to optimimise performance)
+	uint32_t border_colour = 0xff0ff000;
+	if (field_offset == 1)
+		border_colour = 0xffff0000;
+
+	// Cursor settings (set here and not in the loops below to optimimise performance)
+	bool clk_2_Mhz = ((mControlRegister >> 4) & 0x1) != 0;
+	uint8_t cursor_segments = (mControlRegister >> 5) & 0x7;
+
 	// Calculate horizontal borders
 	Resolution total_res = mVideoSettings.getTotalResolution();
 	Resolution video_res = mVideoSettings.getVideoResolution();
@@ -458,7 +467,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				cout << "_";
 		}
 		
-		if (dis_ena)
+		if (dis_ena && bitmap_data_p != NULL)
 			// Active area of an active line
 			//
 		{
@@ -471,8 +480,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			// has the same size as segment 1.
 			//
 			uint8_t cursor_seg_ena = 0x0;
-			bool clk_2_Mhz = ((mControlRegister >> 4) & 0x1) != 0;
-			uint8_t cursor_segments = (mControlRegister >> 5) & 0x7;
 			if (mCURSOR || mCursorSegment > 0 && (mCursorSegment <= 2 || !clk_2_Mhz && mCursorSegment <= 3)) {
 				if (mCursorSegment < 0)
 					mCursorSegment = 0;
@@ -533,7 +540,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					if (big_pixel < tgc_data.size()) {
 						Rs = tgc_data[big_pixel].R;
 						Gs = tgc_data[big_pixel].G;
-						Bs =tgc_data[big_pixel].B;
+						Bs = tgc_data[big_pixel].B;
 					}
 					else {
 						Rs = Gs = Bs = 0;
@@ -551,7 +558,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				// Update display with the R, G & B data
 				//uint32_t colour = 0xff000000 | (R ? 0x00ff0000 : 0) | (G ? 0x0000ff00 : 0) | (B ? 0x000000ff : 0);
 				uint32_t colour = 0xff000000 | (R << 16) | (G << 8) | B;
-				for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < mMaxDisplayBitmap_p; pw++)
+				for (int pw = 0; pw < mPixelW && bitmap_data_p < mMaxDisplayBitmap_p; pw++)
 					*bitmap_data_p++ = colour;
 
 				if (!teletext)
@@ -565,17 +572,13 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		else {
 			
-			if (visible_char_pos < hz_visible_chars) {
+			if (visible_char_pos < hz_visible_chars && bitmap_data_p != NULL) {
 
 				auto border_start = chrono::high_resolution_clock::now();
 
-				uint32_t colour = 0xff0ff000;
-				if (field_offset == 1)
-					colour = 0xffff0000;
-				for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++) {
-					for (int pw = 0; pw < mPixelW && bitmap_data_p != NULL && bitmap_data_p < mMaxDisplayBitmap_p; pw++)
-						*bitmap_data_p++ = colour;
-				}
+				for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++)
+					for (int pw = 0; pw < mPixelW && bitmap_data_p < mMaxDisplayBitmap_p; pw++)
+						*bitmap_data_p++ = border_colour;
 			
 				auto border_stop = chrono::high_resolution_clock::now();
 				auto border_dur = chrono::duration_cast<chrono::nanoseconds>(border_stop - border_start);
@@ -592,14 +595,11 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	// Clear remaining  right-most pixels that are "left-over" when the hz res is not a multiple of the visible characters per raster line
 	if (line_bitmap_data_p != NULL) {
 		auto border_start = chrono::high_resolution_clock::now();
-		uint32_t colour = 0xff0ff000;
-		if (field_offset == 1)
-			colour = 0xffff0000;
 		Resolution vis_res = mVideoSettings.getVisibleResolution();
 		bitmap_data_p = line_bitmap_data_p + hz_visible_chars * mPixelsPerCharacter * mPixelW;
 		int n_left_over_pixels = vis_res.width - hz_visible_chars * mPixelsPerCharacter * mPixelW;
 		for (int p = 0; p < n_left_over_pixels && bitmap_data_p < mMaxDisplayBitmap_p;p++)
-			*bitmap_data_p++ = colour;
+			*bitmap_data_p++ = border_colour;
 		auto border_stop = chrono::high_resolution_clock::now();
 		auto border_dur = chrono::duration_cast<chrono::nanoseconds>(border_stop - border_start);
 		mBorderCnt += border_dur.count();
