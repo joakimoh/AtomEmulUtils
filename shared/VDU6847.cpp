@@ -76,7 +76,6 @@ VDU6847::VDU6847(string name, uint16_t adr, VideoSettings videoSettings, double 
 	VideoDisplayUnit(name, VDU6847_DEV, videoSettings, cpuClock, waitStates, adr, 0x100, dispBitMap, videoMemAdr, debugManager, connectionManager), mN60HzCycles((int)round(cpuClock * 1e6 / 60))
 {
 	// Specify ports that can be connectde to other devices
-	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
 	registerPort("A/S", IN_PORT, 0x01, VDU_PORT_AS, &mAS);
 	registerPort("A/G", IN_PORT, 0x01, VDU_PORT_AG, &mAG);
 	registerPort("GM", IN_PORT, 0x07, VDU_PORT_GM, &mGM);
@@ -133,7 +132,7 @@ VDU6847::~VDU6847()
 	al_destroy_bitmap(mDisplayBitmap);
 }
 
-bool VDU6847::reset()
+bool VDU6847::power()
 {
 	Device::reset();
 
@@ -183,13 +182,6 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	int pixel_line = mScanLine - (mTVBlkH + mTBrdH);
 	int visible_line = mScanLine - mTVBlkH;
 	int adjusted_pixel_line = pixel_line - field;
-	
-	if (!mRESET) {
-		reset();
-		mCycleCount += (int)round(63.5 / proc_clk_rate_Mhz);
-		endCycle = mCycleCount;
-		return true;
-	}
 
 	//cout << "FIELD " << dec << (mField % 2) << ", SCAN LINE " << mScanLine << ", adj pixel line " << adjusted_pixel_line << 
 	//	", SCREEN H " << mActScreenAreaH << ", TOP BLANKING " << mTVBlkH << ", BOTTOM BLANKING " << mBVBlkH << "\n";

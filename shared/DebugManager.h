@@ -22,7 +22,7 @@ typedef int DebugLevel;
 #define	DBG_WARNING			0x0004
 #define	DBG_6502			0x0008
 #define DBG_PORT			0x0010
-#define DBG_INTERRUPTS		0x0020
+#define DBG_INTERRUPTS		0x0020	// Interrupts & reset
 #define DBG_KEYBOARD		0x0040
 #define DBG_VDU				0x0080
 #define DBG_IO_PERIPHERAL	0x0100
@@ -30,6 +30,7 @@ typedef int DebugLevel;
 #define DBG_TRGGERING		0x0400	// TRIGGERING
 #define DBG_TIME			0x0800
 #define DBG_AUDIO			0x1000
+#define DBG_RESET			0x2000	// Only reset
 #define	DBG_ALL				0xffff
 
 typedef struct InstrLogData_struct {

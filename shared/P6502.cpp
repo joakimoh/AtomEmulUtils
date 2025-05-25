@@ -147,20 +147,20 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	// Advance debugging
 	mDM->preBuffer(mProgramCounter, mRegisterX, mRegisterY, mAcc);
 
-	bool reset_transition = (mRESET == 0 && mRESET != pRESET);
+	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
 
-	if (reset_transition && (mDM->debug(DBG_INTERRUPTS) || mDM->tracing()))
-			mDM->log(this, DBG_INTERRUPTS, "RESET => " + to_string(mRESET) + "\n");
+	if (reset_transition && (mDM->debug(DBG_RESET) || mDM->tracing()))
+		mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
 	if (mIRQ != pIRQ && (mDM->debug(DBG_INTERRUPTS) || mDM->tracing()))
-			mDM->log(this, DBG_INTERRUPTS, "IRQ => " + to_string(mIRQ) + "\n");
+		mDM->log(this, DBG_INTERRUPTS, "IRQ => " + to_string(mIRQ) + "\n");
 
 	if (mNMI != pNMI && (mDM->debug(DBG_INTERRUPTS) || mDM->tracing()))
-			mDM->log(this, DBG_INTERRUPTS, "NMI => " + to_string(mNMI) + "\n");
+		mDM->log(this, DBG_INTERRUPTS, "NMI => " + to_string(mNMI) + "\n");
 
 	// Serve RESET, NMI & IRQ in priority order
-	if (!mRESET && reset_transition) {
+	if (!mRESET) {
 		reset();
 		// No meaning to continue execution before RESET line becomes HIGH again
 		endCycle = mCycleCount;
@@ -1697,8 +1697,12 @@ void P6502::printCallStack()
 
 void P6502::processPortUpdate(int index)
 {
-	if (index == RESET && mRESET == 0) {
-		cout << "6502 reset!\n";
-		reset();
+	if (index == RESET) {
+
+		if (mDM->debug(DBG_RESET))
+			mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+
+		if (mRESET == 0)
+			reset();
 	}
 }

@@ -140,8 +140,11 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	auto video_start = chrono::high_resolution_clock::now();
 
-	bool reset_transition = (mRESET != pRESET);
+	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
+
+	if (reset_transition && mDM->debug(DBG_RESET))
+		mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
 	if (mRESET == 0 && reset_transition)
 		reset();
@@ -959,14 +962,18 @@ int BeebVideoULA::fieldScanLineOffset()
 		return 0;
 }
 
-void BeebVideoULA::processPortUpdate(int port)
+void BeebVideoULA::processPortUpdate(int index)
 {
-	if (port == RESET && mRESET == 0) {
-		cout << "Video ULA reset!\n";
-		reset();
+	if (index == RESET) {
+
+		if (mDM->debug(DBG_RESET))
+			mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+
+		if (mRESET == 0)
+			reset();
 	}
 
-	if (port == C) {
+	else if (index == C) {
 		updateHwScrollConstant();
 	}
 

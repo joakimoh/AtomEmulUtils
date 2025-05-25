@@ -140,6 +140,9 @@ public:
 	// Reset device
 	bool reset() { mCycleCount = 0; return true; }
 
+	// Device power on
+	bool power() { return reset(); }
+
 	//  Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
 };

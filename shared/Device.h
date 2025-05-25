@@ -157,6 +157,12 @@ public:
 		return true;
 	}
 
+	// Power On
+	virtual bool power() {
+		reset();
+		return true;
+	}
+
 	//  Advance until clock cycle stopcycle has been reached
 	virtual bool advance(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }
 

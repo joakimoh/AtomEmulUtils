@@ -227,9 +227,8 @@ public:
 	// Advance a complete scan line
 	bool advanceLine(uint64_t& endCycle);
 
-
-	// Reset device
-	bool reset();
+	// Device power on
+	bool power();
 
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);

@@ -21,23 +21,23 @@ CLOCK 1.0	// CPU Clock in MHz
 //		ATOMCAS		An Acorn Atom Cassette Interface (NOT memory-mapped)
 //		TAPREC		A Tape Recorder emulation (CSW files read/written)
 //
-//	Device	Unique name	Addr	Size		Wait
-//							States
-ADD	SRAM	BLOCK_ZERO	0000	0400		0			// Block Zero RAM
-ADD	VDU6847	VDU		0800	0100 8000	0			// VDU CRT Controller 6847
-ADD	SRAM	PROGRAM		2800	5800		0			// Program RAM - 22K
-ADD	SRAM	GRAPHICS	8000	1800		0			// Graphics RAM - 6K
-ADD	ROM	WILLOW		A000	1000 		0	Willow.rom	// Willow Utility ROM
-ADD	PIA8255	PIA		b000	0004 		0			// PIA 8255
-ADD	VIA6522	VIA		b800	0010		0	1.0 		// VIA 6522
-ADD	ROM	BASIC		c000	1000 		0	Atom_Basic.rom	// BASIC ROM
-ADD	ROM	FP		d000	1000 		0	Atom_FloatingPoint.rom	// Floating-point ROM
-ADD	ROM	KERNEL		f000	1000 		0	Atom_Kernel.rom	// CAS ROM
-ADD	ATOMKB	ATOMKB								// Acorn Atom keyboard
-ADD	ATOMCAS	CUTS								// CUTS Cassette Interface
-ADD	UC6502	UC								// Microcontroller 6502
-ADD	TAPREC	TAPREC								// Standard Tape Recorder
-ADD	ATOMSP	SPEAKER								// Acorn Atom Speaker
+//	Device		Name		Addr	Size		Wait		Misc					Description
+//												States
+ADD	SRAM		BLOCK_ZERO	0000	0400		0									// Block Zero RAM
+ADD	VDU6847		VDU			0800	0100		0			8000					// VDU CRT Controller 6847
+ADD	SRAM		PROGRAM		2800	5800		0									// Program RAM - 22K
+ADD	SRAM		GRAPHICS	8000	1800		0									// Graphics RAM - 6K
+ADD	ROM			WILLOW		A000	1000 		0			Willow.rom				// Willow Utility ROM
+ADD	PIA8255		PIA			b000	0004 		0									// PIA 8255
+ADD	VIA6522		VIA			b800	0010		0			1.0						// VIA 6522
+ADD	ROM			BASIC		c000	1000 		0			Atom_Basic.rom			// BASIC ROM
+ADD	ROM			FP			d000	1000 		0			Atom_FloatingPoint.rom	// Floating-point ROM
+ADD	ROM			KERNEL		f000	1000 		0			Atom_Kernel.rom			// CAS ROM
+ADD	ATOMKB		ATOMKB																// Acorn Atom keyboard
+ADD	ATOMCAS		CUTS																// CUTS Cassette Interface
+ADD	UC6502		UC																	// Microcontroller 6502
+ADD	TAPREC		TAPREC																// Standard Tape Recorder
+ADD	ATOMSP		SPEAKER																// Acorn Atom Speaker
 //
 //	Device connections
 //
@@ -65,7 +65,6 @@ CONNECT PIA:PortA;3;0	ATOMKB:ROW
 CONNECT ATOMKB:COL_H;1	UC:RESET	// BREAK key => RESET of microcontroller
 CONNECT ATOMKB:COL_H;1	PIA:RESET	// BREAK key => RESET of PIA 8255
 CONNECT ATOMKB:COL_H;1	VIA:RESET	// BREAK key => RESET of VIA 6522
-CONNECT ATOMKB:COL_H;1	VDU:RESET	// BREAK key => RESET of VDU 6847
 
 // VIA <=> Microcontroller Connections
 CONNECT VIA:IRQ		UC:IRQ

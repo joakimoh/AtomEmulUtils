@@ -65,8 +65,11 @@ bool VIA6522::reset()
 
 bool VIA6522::advance(uint64_t stopCycle)
 {
-	bool reset_transition = (mRESET == 0 && mRESET != pRESET);
+	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
+
+	if (reset_transition && mDM->debug(DBG_RESET))
+		mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
 	if (!mRESET && reset_transition) {
 		reset();
@@ -1158,8 +1161,13 @@ string VIA6522::ACRLE2Str(uint8_t l)
 // Process a port update directly (and not just next time the advance() method is called)
 void  VIA6522::processPortUpdate(int index)
 {
-	if (index == RESET && mRESET == 0) {
-		cout << "VIA reset!\n";
-		reset();
+	if (index == RESET) {
+
+		if (mDM->debug(DBG_RESET))
+			mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+
+		if (mRESET == 0)
+			reset();
 	}
+
 }

@@ -204,6 +204,10 @@ public:
 	// Reset device
 	bool reset();
 
+
+	// Device power on
+	bool power() { return reset(); }
+
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
 	bool advanceChar();

@@ -215,16 +215,14 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 
 	double t = dev->getCycleCount() / (dev->mCPUClock * 1e6);
 	string t_s = Utility::encodeCPUTime(t);
-	string prefix = " ";
-	if (level != DBG_6502)
-		prefix = " *** ";
+	string prefix = t_s + " " + dev->name + " ";
 	if (mExtensiveLog && mTraceAdr > 0 && (level == DBG_6502 || (mDbgLevel & level) != 0)) {
 		if (!mEndOfTracingReached && !mEndofPrebufferingReached)
-			mSout << t_s << prefix << line;
+			mSout << prefix << line;
 	}
 
 	if (mFetchAdr == mCyclicLogAdr || ((mDbgLevel & level) != 0 && (mTraceAdr <= 0 || (mEndofPrebufferingReached && !mEndOfTracingReached)))) {
-		cout << t_s << prefix << line;
+		cout << prefix << line;
 		if (mTraceAdr > 0 && mEndofPrebufferingReached && !mEndOfTracingReached)
 			mTraceCount++;
 	}

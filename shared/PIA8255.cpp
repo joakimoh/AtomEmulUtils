@@ -16,16 +16,18 @@ bool PIA8255::reset()
 	mPortC = 0xff;
 	mCR = 0x1b; // All ports are set to the input mode
 
-	if (mDM->debug(DBG_VERBOSE) && mRESET != pRESET) {
-		cout << "PIA 8255 RESET\n";
-		pRESET = mRESET;
-	}
 
 	return true;
 }
 
 bool PIA8255::advance(uint64_t stopCycle)
 {
+
+	bool reset_transition = mRESET != pRESET;
+	pRESET = mRESET;
+
+	if (mDM->debug(DBG_RESET) && reset_transition)
+		mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
 	if (!mRESET) {
 		reset();
@@ -352,7 +354,7 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 				return false;
 			}
 
-			if (true || mDM->debug(DBG_DEVICE)) {
+			if (mDM->debug(DBG_DEVICE)) {
 				cout << "I/O Mode: ";
 				cout << " PortSelection A " << (mCR & 0x40 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2"));
 				cout << " " << (mCR & 0x10 ? "IN" : "OUT");

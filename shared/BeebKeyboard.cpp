@@ -99,16 +99,6 @@ void BeebKeyboard::processPortUpdate(int index)
 
 }
 
-// Reset device
-bool BeebKeyboard::reset()
-{
-	Device::reset();
-
-	mCycleCount = 0;
-
-	return true;
-}
-
 //  Advance until clock cycle stopcycle has been reached
 bool BeebKeyboard::advance(uint64_t stopCycle)
 {
@@ -118,13 +108,13 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 
 	// Check BREAK key
 	if (al_key_down(&mKeyboardState, mBreakKey.keyCode)) {
-		if (mBREAK == 1)
-			cout << "BREAK key pressed\n";
+		if (mDM->debug(DBG_RESET) && mBREAK == 1)
+			mDM->log(this, DBG_RESET, "BREAK key pressed\n");
 		updatePort(BREAK, 0x0);
 	}
 	else {
-		if (mBREAK == 0)
-			cout << "BREAK key released!!!\n";
+		if (mDM->debug(DBG_RESET) && mBREAK == 0)
+			mDM->log(this, DBG_RESET, "BREAK key released\n");
 		updatePort(BREAK, 0x1);
 	}
 

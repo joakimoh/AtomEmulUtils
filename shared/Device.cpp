@@ -505,8 +505,8 @@ Devices::Devices(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint16_t video_mem_adr = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					uint16_t video_mem_adr = getHexVal(sin);
 					mainVDU = new VDU6847(dev_name, dev_adr, videoSettings, cpuClock, wait_states, disp, dispBitmap, video_mem_adr, mDM, &connection_manager);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
@@ -782,10 +782,10 @@ Devices::Devices(
 	getMemoryMappedDevices(mMemoryMappedDevices);
 
 	// Sort the devices according to their specified scheduling
-	// Also reset each device and propagate its ports' values to connected devices
+	// Also power on (reset) each device and propagate its ports' values to connected devices
 	for (int i = 0; i < mDevices.size(); i++) {
 		Device* d = mDevices[i];
-		d->reset();
+		d->power();
 		d->updatePorts();
 		if (d->category == MICROROCESSOR_DEVICE || d->category == VDU_DEVICE || d->category==MEMORY_DEVICE)
 			continue;
@@ -799,7 +799,7 @@ Devices::Devices(
 			cout << d->name << " scheduled on " << _SCHEDULING(d->scheduling) << " basis\n";
 	}
 	if (debugManager->debug(DBG_VERBOSE))
-		cout << "Each device now reset and each of its port's output have been shared with the connected devices...\n";
+		cout << "Each device now powered on (reset) and each of its port's output have been shared with the connected devices...\n";
 
 	if (!getZPMemDevice(microprocessor->mZPMemDev)) {
 		cout << "Failed to zero-page memory device!\n";

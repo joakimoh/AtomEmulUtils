@@ -63,7 +63,8 @@ void ArgParser::printUsage(const char* name)
 	cout << "\t'w' warnings\n";
 	cout << "\t'u' microprocessor execution (can also be enabled at run-time with <CRTL-D>)\n";
 	cout << "\t'p' device port updates\n";
-	cout << "\t'i' interrupts\n";
+	cout << "\t'i' interrupts & reset\n";
+	cout << "\t'r' only reset\n";
 	cout << "\t'k' keyboard\n";
 	cout << "\t'v' video display units (can also be enabled at run time with <CTRL-V>)\n";
 	cout << "\t's' serial/parallel I/O peripherals\n";
@@ -202,7 +203,9 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			if (strstr(argv[a], "p") != NULL)
 				debugManager.setDebugLevel(DBG_PORT);
 			if (strstr(argv[a], "i") != NULL)
-				debugManager.setDebugLevel(DBG_INTERRUPTS);
+				debugManager.setDebugLevel(DBG_INTERRUPTS | DBG_RESET);
+			if (strstr(argv[a], "r") != NULL)
+				debugManager.setDebugLevel(DBG_RESET);
 			if (strstr(argv[a], "k") != NULL)
 				debugManager.setDebugLevel(DBG_KEYBOARD);
 			if (strstr(argv[a], "v") != NULL)

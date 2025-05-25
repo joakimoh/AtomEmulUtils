@@ -112,6 +112,10 @@ public:
 
 	// Reset device
 	bool reset(); 
+
+	// Device power on
+	bool power() { return reset(); }
+
 	bool serveNMI();
 	bool serveIRQ();
 

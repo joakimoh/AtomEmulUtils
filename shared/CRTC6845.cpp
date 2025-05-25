@@ -255,8 +255,11 @@ bool CRTC6845::updateOutputs()
 
 bool CRTC6845::advance(uint64_t stopCycle)
 {
-	bool reset_transition = (mRESET == 0 && mRESET != pRESET);
+	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
+
+	if (reset_transition && mDM->debug(DBG_RESET))
+		mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
 	if (reset_transition)
 		reset();
@@ -617,8 +620,12 @@ int CRTC6845::fieldScanLineOffset()
 // Process a port update directly (and not just next time the advance() method is called)
 void  CRTC6845::processPortUpdate(int index)
 {
-	if (index == RESET && mRESET == 0) {
-		cout << "CRTC reset!\n";
-		reset();
+	if (index == RESET) {
+
+		if (mDM->debug(DBG_RESET))
+			mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+
+		if (mRESET == 0)
+			reset();
 	}
 }

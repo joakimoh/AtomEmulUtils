@@ -164,8 +164,8 @@ public:
 
 	BeebKeyboard(string name, double cpuClock, uint8_t startupOptions, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
-	// Reset device
-	bool reset();
+	// Device power on
+	bool power() { mCycleCount = 0; return true; }
 
 	//  Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
