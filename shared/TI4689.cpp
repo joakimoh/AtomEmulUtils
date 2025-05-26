@@ -132,10 +132,10 @@ bool TI4689::advance(uint64_t stopCycle)
 					// - the Tone Generator 3 (mNoiseShiftSamples == -1)
 					if (
 						(mNoiseShiftSamples > 0 && mSampleCount % mNoiseShiftSamples == 0) ||
-						(mNoiseShiftSamples == -1 && mToneGen3Transition)
+						(mNoiseShiftSamples == -1 && mToneGen3LHTransition)
 						)
 					{
-						mToneGen3Transition = false;
+						mToneGen3LHTransition = false;
 						uint8_t feedback_network;
 						if (mGenSrc[channel].noiseType == WHITE_NOISE)
 							feedback_network = ((mNoiseShiftRegister >> 1) & 0x1) ^ (mNoiseShiftRegister & 0x1);
@@ -206,8 +206,8 @@ bool TI4689::advance(uint64_t stopCycle)
 
 				}
 
-				if (channel == TI4689_TONE_GENERATOR_3 && pOutput[channel] != mOutput[channel])
-					mToneGen3Transition = true;
+				if (channel == TI4689_TONE_GENERATOR_3 && pOutput[channel] == 0 && mOutput[channel] == 1)
+					mToneGen3LHTransition = true;
 
 				// Save output value for transition detection in upcoming rounds
 				pOutput[channel] = mOutput[channel];
