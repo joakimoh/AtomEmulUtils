@@ -17,9 +17,6 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 	// Create a default allegro Mixer and connect it to an allegro Voice
 	al_reserve_samples(0);
 
-	// Create a queue for audio stream events
-	mQueue = al_create_event_queue();
-
 	// Get a handle to the previously created Mixer
 	mMixer = al_get_default_mixer();
 	
@@ -156,22 +153,24 @@ bool TI4689::advance(uint64_t stopCycle)
 
 					if (mSampleCount % mChannelHalfCycleSamples[channel] == 0) {
 						mOutput[channel] = 1 - mOutput[channel];
-						int diff = mCycleCount - mHalfCycleCount[channel];
-						if (mDM->debug(DBG_AUDIO) && mChannelVolume[channel] > 0)
+						if (mDM->debug(DBG_AUDIO) && mChannelVolume[channel] > 0) {
+							int diff = mCycleCount - mHalfCycleCount[channel];
 							cout << (1e6 * mCPUClock) / (2 * diff) << " Hz (" << dec << diff << " 1/2 CPU cycles) for 1/2 cycle samples of " <<
-							mChannelHalfCycleSamples[channel] << " for channel " << channel << "\n";
+								mChannelHalfCycleSamples[channel] << " for channel " << channel << "\n";
+						}
 						mHalfCycleCount[channel] = mCycleCount;
 					}
 
 				}
 
 				// Change value range [0,1] to range [-1,+1] x channel volume
-				val = ((mOutput[channel] << 1) - 1) * mChannelVolume[channel];
+				val = ((mOutput[channel] << 1) - 1) * mChannelVolume[channel];;
 
 				// Add stereo sample
 				if (mSamplesSize[channel] < mSamplesPerFragment) {
 					mSamples[channel][mSamplesSize[channel]++] = { val, val };
 				}
+
 				//
 				// Output samples when samples corresponding to a complete fragment exist
 				//
@@ -186,7 +185,7 @@ bool TI4689::advance(uint64_t stopCycle)
 						// Stream was ready for new data
 
 						//  Add the samples to the stream
-						memcpy(buf, (char *)  &mSamples[channel][0], sizeof(SoundSample) * mSamplesPerFragment);
+						memcpy(buf, (char*)&mSamples[channel][0], sizeof(SoundSample) * mSamplesPerFragment);
 						if (!al_set_audio_stream_fragment(mChannelStream[channel], buf)) {
 							return false;
 						}
@@ -194,7 +193,7 @@ bool TI4689::advance(uint64_t stopCycle)
 						if (mDM->debug(DBG_AUDIO) && mChannelVolume[channel] > 0 && mChannelHalfCycleSamples[channel] > 0) {
 							double freq = 0.5 * mSampleRate / mChannelHalfCycleSamples[channel];
 							cout << dec << mSamplesPerFragment << "/" << mSamplesSize[channel] << " samples" <<
-								" (" << ((double)mSamplesPerFragment/(mSampleRate/freq)) << " cycles)" <<
+								" (" << ((double)mSamplesPerFragment / (mSampleRate / freq)) << " cycles)" <<
 								" of frequency " << dec << freq <<
 								" and max volume " << mChannelVolume[channel] <<
 								" generated for " << _TI4689_GENERATOR(channel) << "\n";
@@ -218,6 +217,7 @@ bool TI4689::advance(uint64_t stopCycle)
 
 		mCycleCount++;
 	}
+
 	return true;
 }
 

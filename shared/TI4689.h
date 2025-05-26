@@ -33,9 +33,6 @@ private:
 	int mCpuCyclesPerSample = 0;
 	int mSampleCount = 0;
 
-	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
-
-
 	uint8_t mCLK = 4;
 	uint8_t mD = 0x0;	// Data in
 	uint8_t mWE = 0x1;	// Write Enable (active low)
