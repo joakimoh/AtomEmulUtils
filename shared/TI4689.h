@@ -21,13 +21,14 @@ private:
 	vector<SoundSample> mSamples[4];
 	int mSamplesSize[4] = { 0 };
 
-	int16_t mOutput[4] = { 0 };					// Current value of a tone or noise generator
+	int16_t mOutput[4] = { 0 };					// Current 1-bit (amplitud-agnostic) value of a tone or noise generator
 	int16_t pOutput[4] = { 0 };					// Previous value of a tone or noise generator
+	bool mToneGen3Transition = false;			//
 	int mChannelHalfCycleSamples[3] = { 0 };	// No of samples during one 1/2 cycle of a tone (generator 1-3)
 	int mNoiseShiftSamples = 0;					// No of samples between shifts for the Noise Generator
 	int mChannelVolume[4] = { 0 };
 	int mChannelLevelMax = 32767;
-	uint16_t mNoiseShiftRegister = 0;		// 15-bit shift register for noise generation
+	uint16_t mNoiseShiftRegister = 0x4000; // 15-bit shift register for noise generation; only b15 shall be set initially
 
 	int mCpuCyclesPerSample = 0;
 	int mSampleCount = 0;

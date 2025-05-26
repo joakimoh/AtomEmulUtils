@@ -1,10 +1,10 @@
-10 INPUT "Theme (1), Complex (2) or Noise (3): "S
-20 IF S<>1 AND S<>2 AND S<>3 THEN GOTO 10
+10 INPUT "Theme (1), Complex (2), Noise (3) OR Complex Noise (4): "S
+20 IF S<>1 AND S<>2 AND S<>3 AND S<>4 THEN GOTO 10
 30 IF S=1 PROCTheme
 40 IF S=2 PROCComplex
 50 IF S=3 PROCNoise
-60 END
-70
+60 IF S=4 PROCComplexNoise
+70 END
 100 DEF PROCTheme
 110 SOUND 1,-5,96,10
 120 SOUND 1,-5,104,10
@@ -18,9 +18,22 @@
 220 SOUND 1,1,255,255
 230 ENDPROC
 240
-300 DEF PROCNoise
-310 SOUND 0,-15,7,150
-320 FOR P= 100 TO 250
-330 SOUND 1,-1,P,1
-340 NEXT P
-350 ENDPROC
+300 DEF PROCComplexNoise
+310 REM generates a noise on channel 0 and varies the pitch of the noise by changing the pitch of channel 1.
+320 SOUND 0,-15,7,150
+330 FOR P= 100 TO 250
+340 SOUND 1,-1,P,1
+350 NEXT P
+360 ENDPROC
+370
+400 DEF PROCNoise
+410 SOUND 1,-15,52,1 : REM Set pitch for Channel 1 (The TI4689 Sound Chip manual refers to this as Tone Generator 3)
+420 SOUND 0,-10,0,20 : REM High frequency periodic noise
+430 SOUND 0,-10,1,20 : REM Medium frequency periodic noise
+440 SOUND 0,-10,2,20 : REM Low frequency periodic noise
+450 SOUND 0,-10,3,20 : REM Periodic noise of frequency determined by the pitch setting of channel 1
+460 SOUND 0,-10,4,20 : REM High frequency white noise
+470 SOUND 0,-10,5,20 : REM Medium frequency white noise
+480 SOUND 0,-10,6,20 : REM Low frequency white noise
+490 SOUND 0,-10,7,20 : REM Noise of frequency determined (continuously) by the pitch setting of channel 1
+500 ENDPROC

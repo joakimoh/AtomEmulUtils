@@ -25,7 +25,7 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 	
 	mFieldRate = fieldRate;
 	mSamplesPerFragment = (int)round(0.5 * mSampleRate / mFieldRate); // one field of audio
-	mCpuCyclesPerSample = (int) round(1e6 * cpuClock / mSampleRate);
+	mCpuCyclesPerSample =(int) round(1e6 * cpuClock / mSampleRate);
 	mNFragments = 8;
 
 	;
@@ -132,15 +132,16 @@ bool TI4689::advance(uint64_t stopCycle)
 					// - the Tone Generator 3 (mNoiseShiftSamples == -1)
 					if (
 						(mNoiseShiftSamples > 0 && mSampleCount % mNoiseShiftSamples == 0) ||
-						(mNoiseShiftSamples == -1 && pOutput[TI4689_TONE_GENERATOR_3] == 0 && mOutput[TI4689_TONE_GENERATOR_3] == 1)
+						(mNoiseShiftSamples == -1 && mToneGen3Transition)
 						)
 					{
-								uint8_t feedback_network;
-								if (mGenSrc[channel].noiseType == WHITE_NOISE)
-									feedback_network = ((mNoiseShiftRegister >> 1) & 0x1) ^ (mNoiseShiftRegister & 0x1);
-								else // PERIODIC_NOISE
-									feedback_network = mNoiseShiftRegister & 0x1;
-								mNoiseShiftRegister = ((mNoiseShiftRegister >> 1) | (feedback_network << 14)) & 0x7fff;
+						mToneGen3Transition = false;
+						uint8_t feedback_network;
+						if (mGenSrc[channel].noiseType == WHITE_NOISE)
+							feedback_network = ((mNoiseShiftRegister >> 1) & 0x1) ^ (mNoiseShiftRegister & 0x1);
+						else // PERIODIC_NOISE
+							feedback_network = mNoiseShiftRegister & 0x1;
+						mNoiseShiftRegister = ((mNoiseShiftRegister >> 1) | (feedback_network << 14)) & 0x7fff;
 					}
 
 					mOutput[channel] = (1 - (mNoiseShiftRegister & 0x1)); // output should be inverted
@@ -205,6 +206,8 @@ bool TI4689::advance(uint64_t stopCycle)
 
 				}
 
+				if (channel == TI4689_TONE_GENERATOR_3 && pOutput[channel] != mOutput[channel])
+					mToneGen3Transition = true;
 
 				// Save output value for transition detection in upcoming rounds
 				pOutput[channel] = mOutput[channel];
@@ -333,7 +336,6 @@ void TI4689::processPortUpdate(int index)
 			{
 				mGenSrc[channel].noiseType = TI4689_NOISE_TYPE(mD);
 				mGenSrc[channel].shiftRate = TI4689_NOISE_RATE(mD);
-				mNoiseShiftRegister = 0x4000; // clear all 15 bits except bit 14 that shall be set when Register R6 is written to
 
 				double freq = 0;
 				mOutput[channel] = 1;
@@ -360,6 +362,7 @@ void TI4689::processPortUpdate(int index)
 
 				if (mDM->debug(DBG_AUDIO)) {
 					cout << "Set Noise Generator Type to " << _TI6847_NOISE_TYPE(mGenSrc[channel].noiseType) <<
+						", No of noise shift samples to " << dec << mNoiseShiftSamples << 
 						" and noise rate to " << _TI6847_NOISE_RATE(mGenSrc[channel].shiftRate) << "\n";
 				}
 				break;
