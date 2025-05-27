@@ -246,8 +246,11 @@ bool ACIA6850::advance(uint64_t stopCycle)
 	while (mCycleCount < stopCycle) {
 
 		mDataCount = mCycleCount - mDataStartCount;
-		double data_time = mDataCount / mCPUClock * 1e-6;
-		double time = mCycleCount / mCPUClock * 1e-6;
+		double data_time, time;
+		if (mDM->debug(DBG_IO_PERIPHERAL)) {
+			data_time = mDataCount / mCPUClock * 1e-6;
+			time = mCycleCount / mCPUClock * 1e-6;
+		}
 			
 		if (mDataStartCount > 0 && mRxState != NO_BIT && mCycleCount % mRxClkCycles == 0) {
 			//cout << dec << (int)mRxD;

@@ -94,4 +94,5 @@ SCHED	SOUND		HLINE
 //
 // Initialisation of external ports
 //
-INIT	KB:SW	0										// Keyboard switches; set to start with Mode 7
+INIT	KB:SW		0										// Keyboard switches; set to start with Mode 7 (value 0)
+INIT	VDU:INV		1										// Inverted screen for non-teletext modes OFF (value 1) or ON (value 0)
