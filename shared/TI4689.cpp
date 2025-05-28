@@ -28,7 +28,7 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 	;
 
 
-	if (mDM->debug(DBG_VERBOSE)) {
+	if (DBG_LEVEL(DBG_VERBOSE)) {
 		cout << "CPU Clock:                    " << dec << cpuClock << " MHz\n";
 		cout << "Field rate:                   " << dec << mFieldRate << "\n";
 		cout << "Sample rate:                  " << dec << mSampleRate << "\n";
@@ -153,7 +153,7 @@ bool TI4689::advance(uint64_t stopCycle)
 
 					if (mSampleCount % mChannelHalfCycleSamples[channel] == 0) {
 						mOutput[channel] = 1 - mOutput[channel];
-						if (mDM->debug(DBG_AUDIO) && mChannelVolume[channel] > 0) {
+						if (DBG_LEVEL(DBG_AUDIO) && mChannelVolume[channel] > 0) {
 							int diff = mCycleCount - mHalfCycleCount[channel];
 							cout << (1e6 * mCPUClock) / (2 * diff) << " Hz (" << dec << diff << " 1/2 CPU cycles) for 1/2 cycle samples of " <<
 								mChannelHalfCycleSamples[channel] << " for channel " << channel << "\n";
@@ -190,7 +190,7 @@ bool TI4689::advance(uint64_t stopCycle)
 							return false;
 						}
 
-						if (mDM->debug(DBG_AUDIO) && mChannelVolume[channel] > 0 && mChannelHalfCycleSamples[channel] > 0) {
+						if (DBG_LEVEL(DBG_AUDIO) && mChannelVolume[channel] > 0 && mChannelHalfCycleSamples[channel] > 0) {
 							double freq = 0.5 * mSampleRate / mChannelHalfCycleSamples[channel];
 							cout << dec << mSamplesPerFragment << "/" << mSamplesSize[channel] << " samples" <<
 								" (" << ((double)mSamplesPerFragment / (mSampleRate / freq)) << " cycles)" <<
@@ -267,13 +267,13 @@ void TI4689::processPortUpdate(int index)
 				if (channel < 3) {
 					if (first_byte) {
 						mGenSrc[channel].freq = (mGenSrc[channel].freq & 0x3f0) | TI4689_LSB_FREQ(mD);
-						if (mDM->debug(DBG_AUDIO)) {
+						if (DBG_LEVEL(DBG_AUDIO)) {
 							cout << "Set LSB of " << generator << " to 0x" << hex << TI4689_LSB_FREQ(mD);
 						}
 					}
 					else {
 						mGenSrc[channel].freq = (mGenSrc[channel].freq & 0x00f) | (TI4689_MSB_FREQ(mD) << 4);
-						if (mDM->debug(DBG_AUDIO)) {
+						if (DBG_LEVEL(DBG_AUDIO)) {
 							cout << "Set MSB of " << generator << " to 0x" << hex << TI4689_MSB_FREQ(mD);
 						}
 					}
@@ -288,7 +288,7 @@ void TI4689::processPortUpdate(int index)
 						mChannelHalfCycleSamples[channel] = 0;		
 						mOutput[channel] = 0;
 					}
-					if (mDM->debug(DBG_AUDIO)) {
+					if (DBG_LEVEL(DBG_AUDIO)) {
 						cout << " <=> Frequency " <<
 							dec << freq << " Hz (0x" <<
 							hex << mGenSrc[channel].freq << ")" << " and " << mChannelHalfCycleSamples[channel] << " samples per tone 1/2 cycle " << 
@@ -319,7 +319,7 @@ void TI4689::processPortUpdate(int index)
 					}
 					else
 						mChannelVolume[channel] = (int) round (mChannelLevelMax * pow(10, - a / 10.0));
-					if (mDM->debug(DBG_AUDIO)) {
+					if (DBG_LEVEL(DBG_AUDIO)) {
 						cout << "Set Attenuation for " << generator <<  " to 0x" << hex << a << " = > Attenuation " <<
 							_TI6847_ATTENUATION(a) << " => Volume " << dec << mChannelVolume[channel] << "\n";
 					}
@@ -360,7 +360,7 @@ void TI4689::processPortUpdate(int index)
 				else
 					mNoiseShiftSamples = -1;
 
-				if (mDM->debug(DBG_AUDIO)) {
+				if (DBG_LEVEL(DBG_AUDIO)) {
 					cout << "Set Noise Generator Type to " << _TI6847_NOISE_TYPE(mGenSrc[channel].noiseType) <<
 						", No of noise shift samples to " << dec << mNoiseShiftSamples << 
 						" and noise rate to " << _TI6847_NOISE_RATE(mGenSrc[channel].shiftRate) << "\n";

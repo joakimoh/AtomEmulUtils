@@ -30,13 +30,13 @@ ROM::ROM(string name, double clockSpeed, uint8_t waitStates, uint16_t adr, uint1
 
 	uint16_t upper_sz = mMemorySpace.sz;
 	if (file_sz < (streamsize)sz) {
-		if (mDM->debug(DBG_WARNING))
+		if (DBG_LEVEL(DBG_WARNING))
 			cout << "Warning - size of Beeb Paged ROM file " << binaryContent << " (" << file_sz <<
 			" ) is smaller than the expected one(" << sz << ") => filling up with zeros...\n";
 		upper_sz = (uint16_t)file_sz;
 	}
 	else if (file_sz > (streamsize)sz) {
-		if (mDM->debug(DBG_WARNING))
+		if (DBG_LEVEL(DBG_WARNING))
 			cout << "Warning - size of Beeb Paged ROM file " << binaryContent << " (" << file_sz <<
 			" ) is larger than the expected one(" << sz << ") => truncating...\n";
 		upper_sz = mMemorySpace.sz;
@@ -52,11 +52,11 @@ ROM::ROM(string name, double clockSpeed, uint8_t waitStates, uint16_t adr, uint1
 	// Read ROM content
 	fin.read((char*)&mMem[0], upper_sz);
 
-	if (mDM->debug(DBG_VERBOSE)) {
+	if (DBG_LEVEL(DBG_VERBOSE)) {
 		filesystem::path path = binaryContent;
 		string file_name = path.filename().string();
-		if (mDM->debug(DBG_ALL))
-		mDM->log(this, DBG_ALL, "Beeb Paged ROM file was '" + file_name + "'\n");
+		if (DBG_LEVEL(DBG_ALL))
+		DBG_LOG(this, DBG_ALL, "Beeb Paged ROM file was '" + file_name + "'\n");
 	}
 
 }

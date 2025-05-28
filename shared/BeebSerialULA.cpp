@@ -34,7 +34,7 @@ BeebSerialULA::BeebSerialULA(
 	mHighToneHalfCycleDurationMin = (int)round(t_low * cpuClock * 1e6 / 2400 / 2);
 	mHighToneHalfCycleDurationMax = (int)round(t_high * cpuClock * 1e6 / 2400 / 2);
 
-	if (mDM->debug(DBG_VERBOSE)) {
+	if (DBG_LEVEL(DBG_VERBOSE)) {
 		cout << "mLowToneHalfCycleDuration = " << dec << mLowToneHalfCycleDuration << "\n";
 		cout << "mLowToneHalfCycleDurationMin = " << dec << mLowToneHalfCycleDurationMin << "\n";
 		cout << "mLowToneHalfCycleDurationMax = " << dec << mLowToneHalfCycleDurationMax << "\n";
@@ -222,7 +222,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 		if (mCAS_IN != pCAS_IN) {
 			if (!mfirstTapeSample) {
 				mTapeStartCount = mCycleCount;
-				if (mDM->debug(DBG_IO_PERIPHERAL))
+				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 					cout << "*** TAPE STARTS AT " << dec << mTapeStartCount << " cycles (" << mCycleCount / mCPUClock * 1e-6 << "s)\n";
 				if (mACIA != NULL)
 					mACIA->mDataStart = true;				
@@ -264,7 +264,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					mSameToneHalfCycles++;
 					if (high_tone) {
 						if (mLastTone != 1) {
-							if (mDM->debug(DBG_IO_PERIPHERAL))
+							if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 								cout << "\n#" << dec << mSameToneHalfCycles << "x'" << dec << mLastTone << "' at " << tape_time << "s(" << time << "s)#\n";
 							mSameToneHalfCycles = 0;
 							updatePort(RxD, 1);
@@ -274,7 +274,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					}
 					else if (low_tone) {
 						if (mLastTone != 0) {
-							if (mDM->debug(DBG_IO_PERIPHERAL))
+							if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 								cout << "\n#" << dec << mSameToneHalfCycles << "x'" << dec << mLastTone << "' at " << tape_time << "s (" << time << "s)#\n";
 							mSameToneHalfCycles = 0;
 							updatePort(RxD, 0);
@@ -283,7 +283,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					}
 					else { // neither a high tone (a 2400 1/2 cycle) nor a low tone (a 1200 1/2 cycle)
 						if (mLastTone != -1) {
-							if (mDM->debug(DBG_IO_PERIPHERAL))
+							if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 								cout << "#" << dec << mSameToneHalfCycles << "x'" << dec << mLastTone << "' at " << tape_time << "s (" << time << "s)#\n";
 							mSameToneHalfCycles = 0;
 							updatePort(RxD, 1);

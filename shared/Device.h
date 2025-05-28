@@ -158,7 +158,7 @@ public:
 			mPowerOnReset = false;
 		}
 
-		if (mDM->debug(DBG_VERBOSE)) {
+		if (DBG_LEVEL(DBG_VERBOSE)) {
 			cout << "'" << this->name << "' RESET\n";
 			//pRESET = mRESET;
 		}

@@ -108,7 +108,7 @@ bool CRTC6845::advanceChar()
 
 	mCycleCount = nextCycleCount;
 
-	if (mDM->debug(DBG_VERBOSE) && mCLK != pCLK)
+	if (DBG_LEVEL(DBG_VERBOSE) && mCLK != pCLK)
 		printSettings();
 	pCLK = mCLK;
 
@@ -121,7 +121,7 @@ bool CRTC6845::advanceChar()
 
 		// A new character row
 
-		if (false && mDM->debug(DBG_VDU))
+		if (false && DBG_LEVEL(DBG_VDU))
 			cout << "CRTC SCAN LINE = " << dec << mScanLine << ", RASTER LINE = " << (int) mRA << ", CHAR ROW = " << mCharRow << 
 			" (" << mActiveRows_R6 << ")\n";
 		
@@ -238,7 +238,7 @@ bool CRTC6845::updateOutputs()
 		(cursor_disp_mode == 0x3 && mField % 32 < 16)
 		) && mRA >= cursor_first_line && mRA <= cursor_last_line && mDISPTMG;
 	if (cursor_on && mStartAdr_R12_R13 + mCharRow * mActiveRowChars_R1 + mCharCol + mCharSkew_R8 == mCursorLocation_R14_R15 + mCursSkew_R8) {
-		if (false && mDM->debug(DBG_VDU)) {
+		if (false && DBG_LEVEL(DBG_VDU)) {
 			cout << "Cursor active for CRTC scan line " << dec << mScanLine << ", raster line " <<
 				(int) mRA << ", char row " << mCharRow << ", char col " << mCharCol <<
 				", start address 0x" << hex << mStartAdr_R12_R13 <<
@@ -258,8 +258,8 @@ bool CRTC6845::advance(uint64_t stopCycle)
 	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
 
-	if (reset_transition && mDM->debug(DBG_RESET))
-		mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+	if (reset_transition && DBG_LEVEL(DBG_RESET))
+		DBG_LOG(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
 	if (reset_transition)
 		reset();
@@ -466,7 +466,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 		if (n_updated_regs == 16) {
 			mInitialised = true;
 			mRegUpdates++;
-			if (mDM->debug(DBG_VERBOSE))
+			if (DBG_LEVEL(DBG_VERBOSE))
 				printSettings();
 		}
 	}
@@ -487,7 +487,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 		updatePort(HS, mHS);
 		updatePort(VS, mVS);
 		mField = 0;
-		if (mDM->debug(DBG_VERBOSE))
+		if (DBG_LEVEL(DBG_VERBOSE))
 			printSettings();
 		//cout << "Register R" << dec << (int) reg << " updated => reset internal state!\n";
 	}

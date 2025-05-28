@@ -92,7 +92,7 @@ VDU6847::VDU6847(string name, uint16_t adr, VideoSettings videoSettings, double 
 	// Initialise the VDU registers with zeros
 	mMem.assign(mMemorySpace.sz, 0);
 
-	if (mDM->debug(DBG_VERBOSE))
+	if (DBG_LEVEL(DBG_VERBOSE))
 		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
 		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
 
@@ -106,7 +106,7 @@ VDU6847::VDU6847(string name, uint16_t adr, VideoSettings videoSettings, double 
 
 	lockDisplay();
 
-	if (mDM->debug(DBG_VERBOSE)) {
+	if (DBG_LEVEL(DBG_VERBOSE)) {
 		cout << dec << "\n\nM6847 Parameters:\n\n";
 		cout << "Field rate: " << mFieldFreq << " [Hz]\n";
 		cout << "Scan lines per field: " << mFieldScanLines << " lines\n";

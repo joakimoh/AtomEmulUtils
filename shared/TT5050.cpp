@@ -9,7 +9,7 @@ TT5050::TT5050(
 	string name, uint16_t adr, double cpuClock, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager
 ) : Device(name, TT_5050_DEV, OTHER_DEVICE, cpuClock, debugManager, connectionManager)
 {
-	if (mDM->debug(DBG_VERBOSE))
+	if (DBG_LEVEL(DBG_VERBOSE))
 		cout << "Teletext Character Generator SA5050 '" << name << "' added\n";
 
 	registerPort("LOSE",	IN_PORT, 0x1, LOSE,		&mLOSE);
@@ -108,14 +108,14 @@ void TT5050::createInterpolatedSymbols()
 
 	}
 
-	if (false && mDM->debug(DBG_VERBOSE)) {
+	if (false && DBG_LEVEL(DBG_VERBOSE)) {
 		cout << "Teletext stretch Matrix:\n\n";
 		for (int i = 0; i < 16; i++)
 			cout << i << ", " << mStretchMatrix[i].srcLeftPixel << ", " << (int)mStretchMatrix[i].leftFactor << ", " <<
 			i << ", " << mStretchMatrix[i].srcRightPixel << ", " << (int)mStretchMatrix[i].rightFactor << "\n";
 	}
 
-	if (false && mDM->debug(DBG_VERBOSE)) {
+	if (false && DBG_LEVEL(DBG_VERBOSE)) {
 
 		cout << "Non-interpolated and interpolated symbols:\n\n";
 

@@ -78,7 +78,7 @@ bool BeebROMSel::write(uint16_t adr, uint8_t data)
 bool BeebROMSel::addROMs(vector<ROM*> &ROMs)
 {
 	for (int i = 0; i < ROMs.size(); i++) {
-		if (mDM->debug(DBG_VERBOSE))
+		if (DBG_LEVEL(DBG_VERBOSE))
 			cout << "Adding Paged ROM '" << ROMs[i]->name << "\n";
 		mROMs.push_back(ROMs[i]);
 	}

@@ -26,8 +26,8 @@ bool PIA8255::advance(uint64_t stopCycle)
 	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
 
-	if (mDM->debug(DBG_RESET) && reset_transition)
-		mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+	if (DBG_LEVEL(DBG_RESET) && reset_transition)
+		DBG_LOG(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
 	if (!mRESET) {
 		reset();
@@ -198,7 +198,7 @@ PIA8255::PIA8255(string name, double cpuclock, uint8_t waitStates, uint16_t adr,
 	registerPort("PortB", IO_PORT, 0xff, PIA_PORT_B, &mPortB);
 	registerPort("PortC", IO_PORT, 0xff, PIA_PORT_C, &mPortC);
 
-	if (mDM->debug(DBG_VERBOSE))
+	if (DBG_LEVEL(DBG_VERBOSE))
 		cout << "PIA 8255 at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
 		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
 }
@@ -243,7 +243,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 
 		data = mPortC;
 
-		if (mDM->debug( DBG_DEVICE))
+		if (DBG_LEVEL( DBG_DEVICE))
 			cout << "PIA EXECUTED READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
 	}
 
@@ -354,7 +354,7 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 				return false;
 			}
 
-			if (mDM->debug(DBG_DEVICE)) {
+			if (DBG_LEVEL(DBG_DEVICE)) {
 				cout << "I/O Mode: ";
 				cout << " PortSelection A " << (mCR & 0x40 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2"));
 				cout << " " << (mCR & 0x10 ? "IN" : "OUT");
@@ -377,12 +377,12 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 			port_C_data &= ~(1 << bit);
 			port_C_data |= (val << bit);
 			updatePort(PIA_PORT_C, port_C_data);
-			if (mDM->debug( DBG_DEVICE))
+			if (DBG_LEVEL( DBG_DEVICE))
 				cout << "Set PIA PortSelection C b" << (int) bit << " to 0x" << hex << (int) val << " => PortC = 0x" << hex << (int) mPortC << dec << "\n";
 		}
 	}
 
-	if (mDM->debug( DBG_DEVICE))
+	if (DBG_LEVEL( DBG_DEVICE))
 		cout << "PIA EXECUTED WRITE OF 0x" << setw(2) << setfill('0') << hex << (int)data << " to 0x" << setw(4) << adr << "\n";
 
 	// Call parent class to trigger scheduling of other devices when applicable

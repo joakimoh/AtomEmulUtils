@@ -25,7 +25,7 @@ bool ConnectionManager::addDevicePort(Device* dev, DevicePort *localPort)
 	
 	mDevicePorts[dev][localPort->localIndex] = localPort;
 	
-	if (mDM->debug( DBG_DEVICE)) {
+	if (DBG_LEVEL( DBG_DEVICE)) {
 		printDevicePort(localPort);
 		cout << "CONNECTION MANAGER ADDS " << printDevicePort(mDevicePorts[dev][localPort->localIndex]) << "\n";
 	}
@@ -165,7 +165,7 @@ bool ConnectionManager::connect(string srcName, string dstName, bool invert, boo
 		//cout << "*** arbitration = " << (int)dst_port.port->arbitration << " as mask became 0x" << hex << (int) dst_mask << "\n\n";
 	}
 
-	if (mDM->debug(DBG_VERBOSE))
+	if (DBG_LEVEL(DBG_VERBOSE))
 		cout << "CONNECT " << srcName << " AND " << dstName << " => shifts = " << dec << input_ref.shifts << ", mask = 0x" <<
 		hex << (int)input_ref.mask << dec << ", invert = " << (invert ? "true" : "false") << ", process = " << (process ? "true" : "false") << "\n";
 

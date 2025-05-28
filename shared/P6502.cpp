@@ -52,8 +52,8 @@ bool P6502::serveNMI()
 	mProgramCounter = adr_H * 256 + adr_L;
 	mStatusRegister |= I_set_mask;
 
-	if (mDM->debug(DBG_INTERRUPTS) || mDM->tracing()) {
-		mDM->log(this, DBG_INTERRUPTS, "Serving NMI at PC = 0x" + Utility::int2hexStr(oProgramCounter,4) + "\n");
+	if (DBG_LEVEL(DBG_INTERRUPTS) || mDM->tracing()) {
+		DBG_LOG(this, DBG_INTERRUPTS, "Serving NMI at PC = 0x" + Utility::int2hexStr(oProgramCounter,4) + "\n");
 		if (mIRQ == 0)
 			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
 	}
@@ -65,8 +65,8 @@ bool P6502::serveIRQ()
 {
 	// Exit if IRQ disabled
 	if (mStatusRegister & I_set_mask) {
-		if (mIRQ != pIRQ && mDM->debug(DBG_INTERRUPTS))
-			mDM->log(this, DBG_INTERRUPTS, "I flag set => IRQ ignored at 0x" + Utility::int2hexStr(mProgramCounter,4) + "...\n");
+		if (mIRQ != pIRQ && DBG_LEVEL(DBG_INTERRUPTS))
+			DBG_LOG(this, DBG_INTERRUPTS, "I flag set => IRQ ignored at 0x" + Utility::int2hexStr(mProgramCounter,4) + "...\n");
 		return false;
 	}
 
@@ -90,8 +90,8 @@ bool P6502::serveIRQ()
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
 
-	if (mDM->debug(DBG_INTERRUPTS) || mDM->tracing()) {
-		mDM->log(this, DBG_INTERRUPTS, "Serving IRQ at PC = 0x" + Utility::int2hexStr(oProgramCounter,4) + "\n");
+	if (DBG_LEVEL(DBG_INTERRUPTS) || mDM->tracing()) {
+		DBG_LOG(this, DBG_INTERRUPTS, "Serving IRQ at PC = 0x" + Utility::int2hexStr(oProgramCounter,4) + "\n");
 		if (mIRQ == 0)
 			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
 	}
@@ -143,19 +143,19 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	bool success = true;
 
 	// Advance debugging
-	mDM->preBuffer(mProgramCounter, mRegisterX, mRegisterY, mAcc);
+	DBG_PBUF(mProgramCounter, mRegisterX, mRegisterY, mAcc);
 
 	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
 
-	if (reset_transition && (mDM->debug(DBG_RESET) || mDM->tracing()))
-		mDM->log(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+	if (reset_transition && (DBG_LEVEL(DBG_RESET) || mDM->tracing()))
+		DBG_LOG(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
-	if (mIRQ != pIRQ && (mDM->debug(DBG_INTERRUPTS) || mDM->tracing()))
-		mDM->log(this, DBG_INTERRUPTS, "IRQ => " + to_string(mIRQ) + "\n");
+	if (mIRQ != pIRQ && (DBG_LEVEL(DBG_INTERRUPTS) || mDM->tracing()))
+		DBG_LOG(this, DBG_INTERRUPTS, "IRQ => " + to_string(mIRQ) + "\n");
 
-	if (mNMI != pNMI && (mDM->debug(DBG_INTERRUPTS) || mDM->tracing()))
-		mDM->log(this, DBG_INTERRUPTS, "NMI => " + to_string(mNMI) + "\n");
+	if (mNMI != pNMI && (DBG_LEVEL(DBG_INTERRUPTS) || mDM->tracing()))
+		DBG_LOG(this, DBG_INTERRUPTS, "NMI => " + to_string(mNMI) + "\n");
 
 	// Serve RESET, NMI & IRQ in priority order
 	if (!mRESET) {
@@ -187,8 +187,8 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	uint16_t opcode_PC = mProgramCounter;
 	if (!readProgramMem(mProgramCounter++, opcode)) {
 		success = false;
-		if (mDM->debug(DBG_ERROR))
-			mDM->log(this, DBG_ERROR, "Failed to read instruction!\n");
+		if (DBG_LEVEL(DBG_ERROR))
+			DBG_LOG(this, DBG_ERROR, "Failed to read instruction!\n");
 	}
 
 	// Decode the opcode
@@ -196,8 +196,8 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	bool decode_success = true;
 	if (!mCodec.decodeInstruction(opcode, instr)) {
 		decode_success = false;
-		if (mDM->debug(DBG_ERROR))
-			mDM->log(this, DBG_ERROR, "Invalid instruction 0x" + Utility::int2hexStr(opcode, 2) + " at address 0x" + Utility::int2hexStr(opcode_PC, 4) + "!\n");
+		if (DBG_LEVEL(DBG_ERROR))
+			DBG_LOG(this, DBG_ERROR, "Invalid instruction 0x" + Utility::int2hexStr(opcode, 2) + " at address 0x" + Utility::int2hexStr(opcode_PC, 4) + "!\n");
 
 	}
 	success = success && decode_success;
@@ -209,8 +209,8 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	bool operand_success = true;
 	if (!getOperand(instr, operand, calc_op_adr, read_val)) {
 		operand_success = false;
-		if (mDM->debug(DBG_ERROR))
-			mDM->log(this, DBG_ERROR, "Failed to get operand for instruction " + Utility::int2hexStr(opcode, 2) + " at address 0x" + Utility::int2hexStr(opcode_PC, 4) + "!\n");
+		if (DBG_LEVEL(DBG_ERROR))
+			DBG_LOG(this, DBG_ERROR, "Failed to get operand for instruction " + Utility::int2hexStr(opcode, 2) + " at address 0x" + Utility::int2hexStr(opcode_PC, 4) + "!\n");
 	}
 	success = success && operand_success;
 	// After reading the operand, the PC points at the next instruction...
@@ -221,13 +221,13 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	uint8_t oI_flag = I_flag;
 	if (!executeInstr(instr, opcode_PC, operand, calc_op_adr, read_val, written_val)) {
 		exec_success = false;
-		if (mDM->debug(DBG_ERROR))
-			mDM->log(this, DBG_ERROR, "Failed to execute instruction!\n");
+		if (DBG_LEVEL(DBG_ERROR))
+			DBG_LOG(this, DBG_ERROR, "Failed to execute instruction!\n");
 	}
 	success = success && exec_success;
 	if (false && I_flag != oI_flag)
-		if (mDM->debug(DBG_INTERRUPTS))
-			mDM->log(this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[instr.instruction] + " at address 0x" + Utility::int2hexStr(opcode_PC,4) + "\n");
+		if (DBG_LEVEL(DBG_INTERRUPTS))
+			DBG_LOG(this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[instr.instruction] + " at address 0x" + Utility::int2hexStr(opcode_PC,4) + "\n");
 
 	if (mDM->tracing()) {
 
@@ -260,7 +260,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			uint16_t w = (h << 8) | l;
 			instr_log_data.stack = w;
 
-			mDM->log(this, DBG_6502, instr_log_data);
+			DBG_LOG(this, DBG_6502, instr_log_data);
 		}
 		else {
 
@@ -287,7 +287,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 				sout << " *NMI";
 			sout << "\n";
 
-			mDM->log(this, DBG_6502, sout.str());
+			DBG_LOG(this, DBG_6502, sout.str());
 		}
 	}
 	
@@ -508,8 +508,8 @@ bool P6502::executeInstr(
 			return false;
 		mProgramCounter = adr_H * 256 + adr_L;
 
-		if (mDM->debug(DBG_INTERRUPTS)) {		
-			mDM->log(this, DBG_INTERRUPTS, "BRK executed at PC = 0x" + Utility::int2hexStr(opcode_PC,4) +"\n");
+		if (DBG_LEVEL(DBG_INTERRUPTS)) {		
+			DBG_LOG(this, DBG_INTERRUPTS, "BRK executed at PC = 0x" + Utility::int2hexStr(opcode_PC,4) +"\n");
 			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
 		}
 
@@ -920,8 +920,8 @@ bool P6502::executeInstr(
 		uint16_t oPC = mProgramCounter;
 		pullWord(mProgramCounter);
 
-		if (mDM->debug(DBG_INTERRUPTS)) {
-			mDM->log(this, DBG_INTERRUPTS, "RTI executed at 0x" + Utility::int2hexStr(oPC,4) + "; execution resumed at 0x" + Utility::int2hexStr(mProgramCounter,4) +"!\n");
+		if (DBG_LEVEL(DBG_INTERRUPTS)) {
+			DBG_LOG(this, DBG_INTERRUPTS, "RTI executed at 0x" + Utility::int2hexStr(oPC,4) + "; execution resumed at 0x" + Utility::int2hexStr(mProgramCounter,4) +"!\n");
 			printInterruptStack(mStackPointer - 2, oStackPointer, oProgramCounter, oStatusRegister);
 		}
 
@@ -1568,8 +1568,8 @@ bool P6502::readDevice(uint16_t adr, uint8_t& data)
 		}
 	}
 
-	if (mDM->debug(DBG_WARNING))
-		mDM->log(this, DBG_WARNING, "*Warning* Read at unmapped address 0x" + Utility::int2hexStr(adr,4) + ". Returns 0x0 for all unmapped addresses...\n");
+	if (DBG_LEVEL(DBG_WARNING))
+		DBG_LOG(this, DBG_WARNING, "*Warning* Read at unmapped address 0x" + Utility::int2hexStr(adr,4) + ". Returns 0x0 for all unmapped addresses...\n");
 
 	data = 0x0;// Better to return 0x00 than 0xff for now when not all devices are implemented as peripheral status 0x00 usually means inactive/no event
 	return true;
@@ -1678,7 +1678,7 @@ void P6502::printInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uin
 		else
 			s += "\tmem[0x" + Utility::int2hexStr(a, 4) + "] = 0x" + Utility::int2hexStr(d, 2) + "\n";
 	}
-	mDM->log(this, DBG_INTERRUPTS, s);
+	DBG_LOG(this, DBG_INTERRUPTS, s);
 }
 
 void P6502::printCallStack()
@@ -1690,5 +1690,5 @@ void P6502::printCallStack()
 		readProgramMem(a, d);
 		s += "\tmem[0x" + Utility::int2hexStr(a, 4) + "] = 0x" + Utility::int2hexStr(d, 2) + "\n";
 	}
-	mDM->log(this, DBG_INTERRUPTS, s);
+	DBG_LOG(this, DBG_INTERRUPTS, s);
 }

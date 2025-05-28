@@ -74,7 +74,7 @@ bool RAM::write(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
 			return false;
 	}
 
-	if (mDM->debug( DBG_DEVICE))
+	if (DBG_LEVEL( DBG_DEVICE))
 		cout << "Wrote " << dec << sz << " bytes to RAM at location " << hex << setw(4) << setfill('0') << adr << "\n";
 
 	return true;

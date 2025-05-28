@@ -162,7 +162,7 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 			break;
 		}
 
-		if (mDM->debug(DBG_IO_PERIPHERAL))
+		if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 			cout << "\nACIA Control Register updated to 0x" << hex << (int)mCR << "\n";
 
 	}
@@ -172,11 +172,11 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		mSR &= ~ACIA_SR_TDRE_MASK; // Clear the Transmit Data Register Empty bit
 		if (mTxState == NO_BIT) {
 			mTxPending = true;
-			if (mDM->debug(DBG_IO_PERIPHERAL))
+			if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 				cout << "Write first byte 0x" << hex << (int) data << " to transmit into the ACIA TDR\n";
 		}
 		else {
-			if (mDM->debug(DBG_IO_PERIPHERAL))
+			if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 				cout << "Write next byte 0x" << hex << (int) data << " to transmit into the ACIA TDR\n";
 			mTxState = START_BIT;
 		}
@@ -204,7 +204,7 @@ void ACIA6850::update_settings()
 	mRxDivCycles = (int)round(mCPUClock * 1e6 / mRxDivClkRate);
 	mTxDivCycles = (int)round(mCPUClock * 1e6 / mTxDivClkRate);
 
-	if (change && mDM->debug(DBG_VERBOSE)) {
+	if (change && DBG_LEVEL(DBG_VERBOSE)) {
 		cout << "\nACIA Settings:\n" << dec <<
 			"Ena Rx IRQ =        " << (int)ACIA_CR_RIE << "\n" <<
 			"Ena Tx IRQ =        " << (int)ACIA_CR_TIE << "\n" <<
@@ -239,7 +239,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 {
 	if (mDataStart && mDataStartCount < 0) {
 			mDataStartCount = mCycleCount;
-			if (mDM->debug(DBG_IO_PERIPHERAL))
+			if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 				cout << "*** Rx DATA STARTS AT " << dec << mDataStartCount << " cycles (" << mCycleCount / mCPUClock * 1e-6 << "s)\n";
 	}
 
@@ -247,7 +247,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 
 		mDataCount = mCycleCount - mDataStartCount;
 		double data_time, time;
-		if (mDM->debug(DBG_IO_PERIPHERAL)) {
+		if (DBG_LEVEL(DBG_IO_PERIPHERAL)) {
 			data_time = mDataCount / mCPUClock * 1e-6;
 			time = mCycleCount / mCPUClock * 1e-6;
 		}
@@ -273,7 +273,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				mSR &= ~ACIA_SR_PE_MASK; // Reset Framing Error
 				mSR &= ~ACIA_SR_PE_MASK; // Reset parity Error
 				mRxPar = 0;
-				if (mDM->debug(DBG_IO_PERIPHERAL))
+				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 					cout << "\n" << dec << mRxLowSamples << " samples detected for start bit (" << mClkDiv / 2 << ") at " <<
 					data_time << "s (" << time << "s)\n";
 			}
@@ -317,7 +317,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 					//cout << "ACIA Receive Data Register FULL - cannot update it with received data!\n";
 				}
 
-				//if (mDM->debug(DBG_IO_PERIPHERAL))
+				//if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 				//cout << "\nACIA received byte 0x" << hex << (int)mRDR << " (" << (int)mRxBuffer << ") at " << data_time << "s (" << time << "s)\n";
 
 				mSR |= ACIA_SR_RDRF_MASK; // Set Receive Data Register Full bit
@@ -343,7 +343,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			{
 				updatePort(TxD, 0);
 				mSentStopBits = 0;
-				if (mDM->debug(DBG_IO_PERIPHERAL))
+				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 					cout << "ACIA writes start bit\n";
 				mTxState = DATA_BIT;
 				mTxBits = 0;
@@ -357,7 +357,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			case DATA_BIT:
 			{
 				updatePort(TxD, mTDR & 0x1);
-				if (mDM->debug(DBG_IO_PERIPHERAL))
+				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 					cout << "ACIA writes data bit '" << (int) mTxD << "'\n";
 				mTDR = (mTDR >> 1) & 0x7f;
 				mTxPar ^= mTxD;
@@ -380,19 +380,19 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			case STOP_BIT:
 			{
 				updatePort(TxD, 1);
-				if (mDM->debug(DBG_IO_PERIPHERAL))
+				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 					cout << "ACIA writes stop bit\n";
 				mSentStopBits++;
 				if (mSentStopBits == mStopBits) {
 					mTxState = NO_BIT;
 					if (!ACIA_SR_CTS) {
-						if (mDM->debug(DBG_IO_PERIPHERAL))
+						if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 							cout << "TDRE set\n";
 						mSR |= ACIA_SR_TDRE_MASK; // Set the Transmit Data Register Empty bit (if not inhibited by the CTS)
 					}
 					else
 					{
-						if (mDM->debug(DBG_IO_PERIPHERAL))
+						if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 							cout << "CTS High (SR = 0x" << hex << (int) mSR << ") = > inhibits TDRE being set\n";
 					}
 				}
@@ -435,7 +435,7 @@ void ACIA6850::processPortUpdate(int index)
 		if (mCTS != pCTS) {
 			mSR &= ~ACIA_SR_CTS_MASK;
 			if (mCTS == 0) {
-				if (mDM->debug(DBG_IO_PERIPHERAL))
+				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 					cout << "ACIA CTS Input Low (active)\n";
 				mSR |= ACIA_SR_CTS_MASK;
 			}
@@ -443,7 +443,7 @@ void ACIA6850::processPortUpdate(int index)
 				mSR &= ~ACIA_SR_CTS_MASK;
 				// Loss of CTS shall clear the TDRE bit
 				mSR &= ~ACIA_SR_TDRE_MASK;
-				if (mDM->debug(DBG_IO_PERIPHERAL))
+				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 					cout << "*** CARRIER LOST\n";
 			}
 		}
@@ -463,7 +463,7 @@ void ACIA6850::updateIRQ()
 		) {
 		updatePort(IRQ, 0);
 		mSR |= ACIA_SR_IRQ_MASK;
-		if (mDM->debug(DBG_INTERRUPTS) && p_IRQ == 1) {
+		if (DBG_LEVEL(DBG_INTERRUPTS) && p_IRQ == 1) {
 			stringstream sout;
 			sout << ((ACIA_CR_TIE && ACIA_SR_TDRE) ? "TDRE " : "");
 			sout << ((ACIA_CR_RIE && ACIA_SR_RDRF) ? "RDRF " : "");
@@ -475,7 +475,7 @@ void ACIA6850::updateIRQ()
 	else {
 		updatePort(IRQ, 1);
 		mSR &= ~ACIA_SR_IRQ_MASK;
-		if (mDM->debug(DBG_INTERRUPTS) && p_IRQ == 0) {
+		if (DBG_LEVEL(DBG_INTERRUPTS) && p_IRQ == 0) {
 			cout << "ACIA: IRQ Inactive (High)\n";
 		}
 	}

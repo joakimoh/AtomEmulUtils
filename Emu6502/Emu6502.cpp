@@ -260,7 +260,9 @@ int main(int argc, const char* argv[])
 
     bool quit = false;
     
+#ifdef TIME_DEBUG
     auto field_start = chrono::high_resolution_clock::now();
+#endif
     int field_rate =  50;
     field_timer = al_create_timer(1.0 / field_rate);
     al_register_event_source(queue, al_get_timer_event_source(field_timer));
@@ -293,7 +295,7 @@ int main(int argc, const char* argv[])
         // Required for the cases these parameters re not hard-coded but can be reconfigured by
         // the software.
         int cycles_per_field = (int)round(CPU_clock * 1e6 / field_rate_d);
-
+#ifdef TIME_DEBUG
         auto field_stop = chrono::high_resolution_clock::now();      
         field_cycle_count = cycle_count - p_cycle_count;
         lines_per_field = line_count - p_line_count;
@@ -302,16 +304,19 @@ int main(int argc, const char* argv[])
         auto field_dur = chrono::duration_cast<chrono::nanoseconds>(field_stop - field_start);
         field_start = field_stop;
         field_dur_cnt += field_dur.count();   
+#endif
 
         // Advance time for each devices that is scheduled on field basis
         for (int i = 0; i < field_scheduled_devices.size(); i++) {
-
+#ifdef TIME_DEBUG
             auto dev_start = chrono::high_resolution_clock::now();
+#endif
             field_scheduled_devices[i]->advance(cycle_count + cycles_per_field);
+#ifdef TIME_DEBUG
             auto dev_stop = chrono::high_resolution_clock::now();
             auto dev_dur = chrono::duration_cast<chrono::nanoseconds>(dev_stop - dev_start);
             field_scheduled_devices_cnt[i] += dev_dur.count();
-            
+#endif        
         }
 
         //
@@ -337,7 +342,9 @@ int main(int argc, const char* argv[])
             uint64_t start_count = cycle_count;
 
             // Advance time for the VDU corresponding to one scan line (1/2 scan line if it is the last line and interlace is enabled)
+#ifdef TIME_DEBUG
             auto vdu_start = chrono::high_resolution_clock::now();
+#endif
             if (interlaced_mode && add_half_line) {
                 vdu->advanceHalfLine(target_cycle_count);
                 line_count += 0.5;
@@ -349,10 +356,11 @@ int main(int argc, const char* argv[])
                 line_count++;
                 //cout << "LINE " << dec << screen_scan_line << " (" << n_screen_scan_lines << ") - " << (interlaced_mode ? "Interlaced" : "Non-interlaced") << "\n";
             }
-
+#ifdef TIME_DEBUG
             auto vdu_stop = chrono::high_resolution_clock::now();
             auto vdu_dur = chrono::duration_cast<chrono::nanoseconds>(vdu_stop - vdu_start);
             vdu_cnt += vdu_dur.count();
+#endif
 
             uint64_t half_line_step = (target_cycle_count - start_count)  / 2;
             uint64_t start_target_cnt = start_count + half_line_step;
@@ -361,12 +369,15 @@ int main(int argc, const char* argv[])
               
                 // update devices scheduled on half line basis
                 for (int i = 0; i < half_line_scheduled_devices.size(); i++) {
-
+#ifdef TIME_DEBUG
                     auto dev_start = chrono::high_resolution_clock::now();
+#endif
                     half_line_scheduled_devices[i]->advance(half_line_target);
+#ifdef TIME_DEBUG
                     auto dev_stop = chrono::high_resolution_clock::now();
                     auto dev_dur = chrono::duration_cast<chrono::nanoseconds>(dev_stop - dev_start);
                     half_line_scheduled_devices_cnt[i] += dev_dur.count();
+#endif
                 }            
 
                 
@@ -374,26 +385,31 @@ int main(int argc, const char* argv[])
                 // update devices scheduled on instruction basis in a tight loop
                 while (cycle_count < half_line_target) {
                     // Execute one microprocessor instruction and advance time accordingly (cycle_count updated)
+#ifdef TIME_DEBUG
                     auto uc_start = chrono::high_resolution_clock::now();
+#endif
                     if (!microprocessor->advanceInstr(cycle_count)) {
                         // Execution stopped - exit
                         return 0;
                     }
-                    
+#ifdef TIME_DEBUG  
                     auto uc_stop = chrono::high_resolution_clock::now();
                     auto uc_dur = chrono::duration_cast<chrono::nanoseconds>(uc_stop - uc_start);
                     uc_cnt += uc_dur.count();
+#endif
 
                     // Advance time for each device scheduled on instruction basis so that it matches the time
                     // of the microprocessor.
                     for (int d = 0; d < instr_scheduled_devices.size(); d++) {
-
+#ifdef TIME_DEBUG
                         auto other_dev_start = chrono::high_resolution_clock::now();
+#endif
                         instr_scheduled_devices[d]->advance(cycle_count);
+#ifdef TIME_DEBUG
                         auto other_dev_stop = chrono::high_resolution_clock::now();
                         auto other_dev_dur = chrono::duration_cast<chrono::nanoseconds>(other_dev_stop - other_dev_start);
                         instr_scheduled_devices_cnt[d] += other_dev_dur.count();
-                      
+#endif
                     }
                     
 
@@ -414,6 +430,7 @@ int main(int argc, const char* argv[])
 
 
         field_cnt = (field_cnt + 1) % field_rate;
+#ifdef TIME_DEBUG
         if (arg_parser.debugManager.debug(DBG_TIME) && field_cnt == 0) {
             cout << "\nScan lines per field " << dec << lines_per_field << " (" << vdu->getScanLinesPerField() << ")\n";
             cout << "Cycles passed per Field: " << dec << field_cycle_count << " (" << cycles_per_field << ") <=> " <<
@@ -445,14 +462,14 @@ int main(int argc, const char* argv[])
         }
 
         auto wait_start = chrono::high_resolution_clock::now();
-
+#endif
         // wait for event
         al_wait_for_event(queue, &event);
-
+#ifdef TIME_DEBUG
         auto wait_stop = chrono::high_resolution_clock::now();
         auto wait_dur = chrono::duration_cast<chrono::nanoseconds>(wait_stop - wait_start);
         wait_cnt += wait_dur.count();
-
+#endif
         bool cont = true;
         // There could be more than one event in the queue - make sure to empty it before waiting for next timer event
         while (cont) {

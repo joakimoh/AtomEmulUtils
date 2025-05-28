@@ -95,7 +95,7 @@ BeebVideoULA::BeebVideoULA(
 	mDisplayBitmap = al_create_bitmap(vis_res.width, vis_res.height);
 	al_clear_to_color(black);
 
-	if (mDM->debug(DBG_VERBOSE))
+	if (DBG_LEVEL(DBG_VERBOSE))
 		cout << "create display bitmap " << dec << vis_res.width << " x " << vis_res.height << "\n";
 
 	lockDisplay();
@@ -136,10 +136,13 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	bool sync_debug = false;
 	bool mem_debug = false;
 
+	vector<TT5050::TTColour> tgc_data(16);
 
+#ifdef VDU_TIME_DEBUG
 	auto video_start = chrono::high_resolution_clock::now();
 	auto prelude_start = video_start;
-
+#endif
+	// Adjust mCycleCount to match the time passed for one scan line
 	uint64_t pCycleCount = mCycleCount;
 	double scan_line_duration = getScanLineDuration();
 	int cycle_count = max(1, (int)round(scan_line_duration * mCPUClock));
@@ -208,7 +211,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int video_line = (field_scan_line - vt_blanking + mScreenScanLines) % mScreenScanLines;
 	int vt_video_lines = mScreenScanLines - vt_blanking;
 	
-	if (mDM->debug(DBG_VDU) && adjusted_scanline == 100 && mField % 50 == 0) {
+	if (DBG_LEVEL(DBG_VDU) && adjusted_scanline == 100 && mField % 50 == 0) {
 		cout << "\n" << dec <<
 			"chars per line: " << hz_chars << ", pixels/byte: " << mPixelsPerCharacter << ", pixel width: " << (int)mPixelW << "\n";
 		cout << "duration of a line and a field expressed in pixels: " << total_res.width << " x " << total_res.height << "\n";
@@ -225,9 +228,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	}
 	
 	int field_rate = (int)round(getFieldRate());
-	if (adjusted_scanline == mVerticalSyncPos) {
 
-		if (mDM->debug(DBG_TIME) && mField == 0) {
+	if (adjusted_scanline == mVerticalSyncPos) {
+#ifdef VDU_TIME_DEBUG
+		if (DBG_LEVEL(DBG_TIME) && mField == 0) {
 			cout << dec << "\n";
 			cout << "Field Rate: " << dec << field_rate << "\n";
 			cout << "Video ULA total (including CRTC & TCG) - ms per sec: " << mVideoULACnt / 1e6 << "\n";
@@ -248,12 +252,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			mReadCnt = 0;
 			mLineCnt = 0;
 		}
-
+#endif
 		mField = (mField + 1) % field_rate;
 	}
 
 	
-	if (false && mDM->debug(DBG_VDU))
+	if (false && DBG_LEVEL(DBG_VDU))
 		cout << "\n\nFIELD #" << field_offset << "(" << mField << "), SCAN LINE " << dec << mScanLine << " (adjusted to " << adjusted_scanline << ")" <<
 		", VISIBLE LINE " << visible_scan_line << " (" << vt_visible_pixels << ")" <<
 		", ACTIVE LINE " << active_scan_line << " (" << mActiveLines << ")" <<
@@ -262,16 +266,20 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	bool teletext = getCRField(CR_TELETEXT) == 1;
 
+#ifdef VDU_TIME_DEBUG
 	auto prelude_stop = chrono::high_resolution_clock::now();
 	auto prelude_dur = chrono::duration_cast<chrono::nanoseconds>(prelude_stop - prelude_start);
 	mPreludeUsCnt += prelude_dur.count();
+#endif
 
 
 	if (adjusted_scanline == mVerticalSyncPos) {
 	
+#ifdef VDU_TIME_DEBUG
 		auto disp_start = chrono::high_resolution_clock::now();
+#endif
 
-		mDM->log(this, DBG_VDU, "UPDATE SCREEN\n");
+		DBG_LOG(this, DBG_VDU, "UPDATE SCREEN\n");
 
 		// Unlock the screen display (bitmap) so it can be written to
 		unlockDisplay();
@@ -289,9 +297,11 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// Lock the screen display (bitmap) again
 		lockDisplay();
 
+#ifdef VDU_TIME_DEBUG
 		auto disp_stop = chrono::high_resolution_clock::now();
 		auto disp_dur = chrono::duration_cast<chrono::nanoseconds>(disp_stop - disp_start);
 		mDispUsCnt += disp_dur.count();
+#endif
 
 	}
 
@@ -374,8 +384,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		int visible_char_pos = (char_pos - hz_visible_char_offset + hz_chars) % hz_chars;
 		int active_char_pos = (char_pos - hz_disp_skew + hz_chars) % hz_chars;
 
+#ifdef VDU_TIME_DEBUG
 		auto line_start = chrono::high_resolution_clock::now();
-
+#endif
 		int pos_X = -1;
 		int pos_Y = -1;
 		if (line_bitmap_data_p != NULL && visible_char_pos < hz_visible_chars) {
@@ -389,24 +400,26 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
 		// the TGC character is only 12 pixels wide (well 16 bit after being extended) whereas the CRTC one is 8 pixels wide!
-		
-		vector<TT5050::TTColour> tgc_data(16);
 
-		if (false && char_pos == 0 && mDM->debug(DBG_VDU))
+		if (false && char_pos == 0 && DBG_LEVEL(DBG_VDU))
 			cout << "VDU RA = " << dec << (int)mRA << "\n";
 
 		// Advance the CRT one character at a time
 		// If in the active, area, the video memory address containing 
 		// character/graphics data is also provided.
 		uint16_t crtc_adr, screen_adr;
+#ifdef VDU_TIME_DEBUG
 		auto crtc_start = chrono::high_resolution_clock::now();
+#endif
 		if (!mCRTC->getMemFetchAdr(crtc_adr)) {
 			cout << "Failed to get address from the CRTC!\n";
 			return false;
 		}
+#ifdef VDU_TIME_DEBUG
 		auto crtc_stop = chrono::high_resolution_clock::now();
 		auto crtc_dur = chrono::duration_cast<chrono::nanoseconds>(crtc_stop - crtc_start);
 		mCRTCnt += crtc_dur.count();
+#endif
 
 		// Is the screen (display) in the active area (for non-teletext modes; for teletext mode dis_ena will be updated later on	
 		uint8_t dis_ena = false;
@@ -431,27 +444,35 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// Read video memory data
 		// Data shall be read from video memory even if the display is not yet enabled
 		//
+#ifdef VDU_TIME_DEBUG
 		auto mem_read_start = chrono::high_resolution_clock::now();
+#endif
 		uint8_t screen_data;
 		if (!mVideoMem->read(screen_adr, screen_data)) {
 			cout << "Failed to read video memory at address 0x" << hex << screen_adr << "\n";
 			return false;
 		}
+#ifdef VDU_TIME_DEBUG
 		auto mem_read_stop = chrono::high_resolution_clock::now();
 		auto mem_read_dur = chrono::duration_cast<chrono::nanoseconds>(mem_read_stop - mem_read_start);
 		mReadCnt += mem_read_dur.count();
+#endif
 
 		// For teletext modes, decode video memory data as videotext data
 		if (teletext) {
+#ifdef VDU_TIME_DEBUG
 			auto tt_start = chrono::high_resolution_clock::now();
+#endif
 			// Feed video memory data to the CRTC. Result will be collected the next character column due to
 			// delay within the TCG
 			memcpy((char*)&tgc_data[0], (char*)&mTgcData[0], 16 * sizeof(tgc_data[0]));
 			dis_ena = mValidTgcData;
 			mValidTgcData = mTGC->getScreenData(screen_data, mTgcData);
+#ifdef VDU_TIME_DEBUG
 			auto tt_stop = chrono::high_resolution_clock::now();
 			auto tt_dur = chrono::duration_cast<chrono::nanoseconds>(tt_stop - tt_start);
 			mTTCnt += tt_dur.count();
+#endif
 		}
 
 		if (mem_debug) {
@@ -485,7 +506,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					mCursorSegment = 0;
 				int shift = (mCursorSegment <= 2 ? mCursorSegment : 2);
 				cursor_seg_ena = (cursor_segments >> (2 - shift)) & 0x1;						
-				if (false && mDM->debug(DBG_VDU)) {
+				if (false && DBG_LEVEL(DBG_VDU)) {
 					cout << "VDU CURSOR " << dec << (int) mCURSOR << ", cursor ena " << (cursor_seg_ena ? "enabled" : "disabled") <<
 						", cursor segments '" << setw(3) << bitset<3>(cursor_segments) << "', cursor segment #" << dec << mCursorSegment << 
 						", char col " << char_pos << "\n";
@@ -509,7 +530,9 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			// 
 			// Big pixels/byte = 8 * cols / Visible "chars" per line
 			//
+#ifdef VDU_TIME_DEBUG
 			auto char_pixel_start = chrono::high_resolution_clock::now();
+#endif
 			for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++) {
 
 				if (!teletext) {
@@ -564,51 +587,63 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				if (!teletext)
 					mem_data = (mem_data << 1) | 1;
 			}
+#ifdef VDU_TIME_DEBUG
 			auto char_pixel_stop = chrono::high_resolution_clock::now();
 			auto char_pixel_dur = chrono::duration_cast<chrono::nanoseconds>(char_pixel_stop - char_pixel_start);
 			mCharPixelCnt += char_pixel_dur.count();
+#endif
 
 		}
 
 		else {
 			
 			if (visible_char_pos < hz_visible_chars && bitmap_data_p != NULL) {
-
+#ifdef VDU_TIME_DEBUG
 				auto border_start = chrono::high_resolution_clock::now();
+#endif
 
 				for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++)
 					for (int pw = 0; pw < mPixelW && bitmap_data_p < mMaxDisplayBitmap_p; pw++)
 						*bitmap_data_p++ = border_colour;
-			
+#ifdef VDU_TIME_DEBUG
 				auto border_stop = chrono::high_resolution_clock::now();
 				auto border_dur = chrono::duration_cast<chrono::nanoseconds>(border_stop - border_start);
 				mBorderCnt += border_dur.count();
+#endif
 				
 			}
 
 		}
+#ifdef VDU_TIME_DEBUG
 		auto line_stop = chrono::high_resolution_clock::now();
 		auto line_dur = chrono::duration_cast<chrono::nanoseconds>(line_stop - line_start);
 		mLineCnt += line_dur.count();
+#endif
 		
 	}
+
 	// Clear remaining  right-most pixels that are "left-over" when the hz res is not a multiple of the visible characters per raster line
 	if (line_bitmap_data_p != NULL) {
+#ifdef VDU_TIME_DEBUG
 		auto border_start = chrono::high_resolution_clock::now();
+#endif
 		Resolution vis_res = mVideoSettings.getVisibleResolution();
 		bitmap_data_p = line_bitmap_data_p + hz_visible_chars * mPixelsPerCharacter * mPixelW;
 		int n_left_over_pixels = vis_res.width - hz_visible_chars * mPixelsPerCharacter * mPixelW;
 		for (int p = 0; p < n_left_over_pixels && bitmap_data_p < mMaxDisplayBitmap_p;p++)
 			*bitmap_data_p++ = border_colour;
+#ifdef VDU_TIME_DEBUG
 		auto border_stop = chrono::high_resolution_clock::now();
 		auto border_dur = chrono::duration_cast<chrono::nanoseconds>(border_stop - border_start);
 		mBorderCnt += border_dur.count();
+#endif
 	}
 
-
+#ifdef VDU_TIME_DEBUG
 	auto video_stop = chrono::high_resolution_clock::now();
 	auto video_dur = chrono::duration_cast<chrono::nanoseconds>(video_stop - video_start);
 	mVideoULACnt += video_dur.count();
+#endif
 
 	return true;
 }
@@ -638,7 +673,7 @@ void BeebVideoULA::updateScreenSz(int fullW, int fullH, int activeW, int activeH
 	if (fullW != mScreenW || fullH != mScreenH) {
 		mScreenW = fullW;
 		mScreenH = fullH;
-		if (mDM->debug(DBG_VERBOSE))
+		if (DBG_LEVEL(DBG_VERBOSE))
 			cout << "create display bitmap " << dec << mScreenW << " x " << mScreenH << " (" << activeW << " x " << activeH << ")\n";
 		al_resize_display(mDisplay, mScreenW, mScreenH);
 		unlockDisplay();
@@ -739,7 +774,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 		mScreenScanLines != p_scan_lines ||
 		mVerticalSyncPos != p_vertical_syn_pos
 		)
-		&& (mDM->debug(DBG_VERBOSE))
+		&& (DBG_LEVEL(DBG_VERBOSE))
 	) {
 		cout << "\n" << dec;
 		cout << "Video ULA Control Register: 0x" << hex << (int)mControlRegister << dec << "\n";
@@ -1023,7 +1058,7 @@ void BeebVideoULA::updateHwScrollConstant() {
 		mode = 7;
 	}
 
-	if (false && mDM->debug(DBG_VDU) && mHwScrollSub != p_HW_scroll_sub) {
+	if (false && DBG_LEVEL(DBG_VDU) && mHwScrollSub != p_HW_scroll_sub) {
 		cout << "Teletext=" << (int)teletext << ", C1C0=0x" << hex << (int)mC << " => new HW Scroll constant 0x" << hex << mHwScrollSub << " (0x" << p_HW_scroll_sub << ") for mode " << dec << mode << "\n";
 		cout << "Video ULA CR = 0x" << hex << (int)mControlRegister << "\n";
 	}

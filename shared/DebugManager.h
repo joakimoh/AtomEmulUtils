@@ -33,6 +33,22 @@ typedef int DebugLevel;
 #define DBG_RESET			0x2000	// Only reset
 #define	DBG_ALL				0xffff
 
+//#define DBG_ON
+
+#ifdef DBG_ON
+
+#define DBG_LOG(...) mDM->log(__VA_ARGS__)
+#define DBG_PBUF(...) mDM->preBuffer(__VA_ARGS__)
+#define DBG_LEVEL(...) mDM->debug(__VA_ARGS__))
+
+#else
+
+#define DBG_LOG(...)
+#define DBG_PBUF(...)
+#define DBG_LEVEL(x) false
+
+#endif
+
 typedef struct InstrLogData_struct {
 	double logTime = 0;
 	Codec6502::InstructionInfo instr;

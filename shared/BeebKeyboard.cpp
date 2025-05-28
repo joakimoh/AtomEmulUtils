@@ -69,7 +69,7 @@ void BeebKeyboard::processPortUpdate(int index)
 				Key& key = mKeyboardMatrix[row][mCOL_SEL];
 				if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
 					column_key_pressed = true;
-					mDM->log(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!\n");
+					DBG_LOG(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!\n");
 					break;
 				}
 			}
@@ -108,13 +108,13 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 
 	// Check BREAK key
 	if (al_key_down(&mKeyboardState, mBreakKey.keyCode)) {
-		if (mDM->debug(DBG_RESET) && mBREAK == 1)
-			mDM->log(this, DBG_RESET, "BREAK key pressed\n");
+		if (DBG_LEVEL(DBG_RESET) && mBREAK == 1)
+			DBG_LOG(this, DBG_RESET, "BREAK key pressed\n");
 		updatePort(BREAK, 0x0);
 	}
 	else {
-		if (mDM->debug(DBG_RESET) && mBREAK == 0)
-			mDM->log(this, DBG_RESET, "BREAK key released\n");
+		if (DBG_LEVEL(DBG_RESET) && mBREAK == 0)
+			DBG_LOG(this, DBG_RESET, "BREAK key released\n");
 		updatePort(BREAK, 0x1);
 	}
 
@@ -129,7 +129,7 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 				Key& key = mKeyboardMatrix[row][col];
 				if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
 					column_key_pressed = true;
-					mDM->log(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!\n");
+					DBG_LOG(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!\n");
 //					if (key.keyName == "B")
 //						mDM->setDebugLevel(DBG_INTERRUPTS | DBG_KEYBOARD | DBG_IO_PERIPHERAL | DBG_PORT | DBG_6502);
 					break;
@@ -146,8 +146,8 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 		updatePort(PRESSED, 0x0);
 
 
-	if (mDM->debug(DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mENA != pENA || mPRESSED != old_pressed)) {
-		mDM->log(this, DBG_KEYBOARD, "ENA = " + to_string(mENA) + ",COL_SEL = " + to_string(mCOL_SEL) + 
+	if (DBG_LEVEL(DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mENA != pENA || mPRESSED != old_pressed)) {
+		DBG_LOG(this, DBG_KEYBOARD, "ENA = " + to_string(mENA) + ",COL_SEL = " + to_string(mCOL_SEL) + 
 			", ROW_SEL = " + to_string(mROW_SEL) + ", PRESSED = " + to_string(mPRESSED) + ", ROW = " + to_string(mROW) + "\n");
 	}
 
