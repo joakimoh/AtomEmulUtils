@@ -542,13 +542,20 @@ int main(int argc, const char* argv[])
 
     delete vdu;
 
+    if (field_timer != NULL) {
+        al_stop_timer(field_timer);
+        al_unregister_event_source(queue, al_get_timer_event_source(field_timer));
+        al_destroy_timer(field_timer);
+    }
+
     al_stop_timer(field_timer);
     al_destroy_font(font);
     al_destroy_event_queue(queue);
     al_destroy_menu(menu);
     al_destroy_display(disp);
     al_uninstall_audio();
- 
+
+  
     return 0;
 
 }

@@ -108,6 +108,7 @@ BeebVideoULA::BeebVideoULA(
 
 BeebVideoULA::~BeebVideoULA()
 {
+	al_destroy_bitmap(mDisplayBitmap);
 }
 
 
