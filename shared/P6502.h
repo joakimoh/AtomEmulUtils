@@ -104,6 +104,7 @@ public:
 	bool readDevice(uint16_t adr, uint8_t& data);
 
 	MemoryMappedDevice* mZPMemDev = NULL;
+	MemoryMappedDevice* mStackMemDev = NULL;
 	vector<MemoryMappedDevice*> mDevices;
 	vector< MemoryMappedDevice*> mMemories;
 

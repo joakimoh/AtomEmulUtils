@@ -1548,7 +1548,6 @@ void  P6502::adjustForWaitStates(MemoryMappedDevice* dev)
 bool P6502::readDevice(uint16_t adr, uint8_t& data)
 {
 	
-
 	for (int i = 0; i < mDevices.size(); i++) {
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
@@ -1569,16 +1568,17 @@ bool P6502::readZP(uint8_t adr, uint8_t &data)
 	data = 0xff;
 	if (mZPMemDev != NULL && mZPMemDev->selected(adr)) {
 		adjustForWaitStates(mZPMemDev);// Add wait states if applicable
-		mZPMemDev->read(adr, data);
-		return true;
+		return mZPMemDev->read(adr, data);
 	}
 	return false;
 }
 
 bool P6502::readProgramMem(uint16_t adr, uint8_t& data)
 {
-	if (mLastPgmDevice != NULL && mLastPgmDevice->read(adr, data))
-		return true;
+	if (mLastPgmDevice != NULL && mLastPgmDevice->selected(adr)) {
+		adjustForWaitStates(mLastPgmDevice);
+		return mLastPgmDevice->read(adr, data);
+	}
 
 	mLastPgmDevice = NULL;
 	for (int i = 0; i < mMemories.size(); i++) {
@@ -1595,9 +1595,6 @@ bool P6502::readProgramMem(uint16_t adr, uint8_t& data)
 	return true;
 }
 
-//
-//
-//
 bool P6502::writeDevice(uint16_t adr, uint8_t data)
 {
 
@@ -1613,12 +1610,20 @@ bool P6502::writeDevice(uint16_t adr, uint8_t data)
 
 void P6502::push(uint8_t v)
 {
-	writeDevice(0x100 + (uint16_t)mStackPointer--, v);
+	uint16_t adr = 0x100 + (uint16_t)mStackPointer--;
+	if (mStackMemDev != NULL && mStackMemDev->selected(adr)) {
+		adjustForWaitStates(mStackMemDev);// Add wait states if applicable
+		mStackMemDev->write(adr, v);
+	}
 }
 
 void P6502::pull(uint8_t& v)
 {
-	readProgramMem(0x100 + (uint16_t)++mStackPointer, v);
+	uint16_t adr = 0x100 + (uint16_t)++mStackPointer;
+	if (mStackMemDev != NULL && mStackMemDev->selected(adr)) {
+		adjustForWaitStates(mStackMemDev);// Add wait states if applicable
+		mStackMemDev->read(adr, v);
+	}
 }
 
 void P6502::pushWord(uint16_t word)

@@ -13,7 +13,7 @@
 
 using namespace std;
 
-// Forward references to classed defined later on to allow them being referenced before their the are declared
+// Forward references to classed defined later on to allow them being referenced before they are declared
 class ConnectionManager;
 class Device;
 class MemoryMappedDevice;
@@ -49,7 +49,7 @@ public:
 	bool getMemoryMappedDevices(vector<MemoryMappedDevice*>& devices);
 	bool getMemoryDevices(vector<MemoryMappedDevice*>& devices);
 	bool getRAMs(vector<RAM*>& devices);
-	bool getZPMemDevice(MemoryMappedDevice*& zpMem);
+	bool getPageMemDevice(MemoryMappedDevice*& zpMem, uint8_t page);
 
 	bool loadData(Program data);
 
@@ -67,7 +67,7 @@ public:
 
 	//
 	// Find a device of a certain type.
-	// If more thn one device of this type is found,
+	// If more than one device of this type is found,
 	// the first one is returned but an error is also indicated.
 	//
 	bool getDevice(DeviceId id, Device*& device) {

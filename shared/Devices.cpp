@@ -590,9 +590,14 @@ Devices::Devices(
 	if (debugManager->debug(DBG_VERBOSE))
 		cout << "Each device now powered on (reset) and each of its port's output have been shared with the connected devices...\n";
 
-	if (!getZPMemDevice(microprocessor->mZPMemDev)) {
-		cout << "Failed to zero-page memory device!\n";
-		throw runtime_error("Failed to zero-page memory device");
+	if (!getPageMemDevice(microprocessor->mZPMemDev, 0)) {
+		cout << "Failed to get zero-page memory device!\n";
+		throw runtime_error("Failed to get zero-page memory device");
+	}
+
+	if (!getPageMemDevice(microprocessor->mStackMemDev, 1)) {
+		cout << "Failed to get page one memory device!\n";
+		throw runtime_error("Failed to get page one memory device");
 	}
 
 	if (!loadData(program))
@@ -732,15 +737,17 @@ bool Devices::getMemoryDevices(vector<MemoryMappedDevice*>& devices)
 	return true;
 }
 
-bool Devices::getZPMemDevice(MemoryMappedDevice*& zpMem)
+bool Devices::getPageMemDevice(MemoryMappedDevice*& zpMem, uint8_t page)
 {
+	uint16_t low_adr = page << 8;
+	uint16_t high_adr = low_adr | 0xff;
 	for (int i = 0; i < mDevices.size(); i++) {
 		Device* dev = mDevices[i];
 		if (dev->category == MEMORY_DEVICE) {
 			MemoryMappedDevice* mdev = (MemoryMappedDevice*)dev;
-			if (mdev->selected(0x0) && mdev->selected(0xff)) {
+			if (mdev->selected(low_adr) && mdev->selected(high_adr)) {
 				if (DBG_LEVEL(DBG_VERBOSE))
-					cout << "Adding zero page memory device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
+					cout << "Adding page " << dec << (int) page << " memory device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 				zpMem = mdev;
 			}
 			return true;
