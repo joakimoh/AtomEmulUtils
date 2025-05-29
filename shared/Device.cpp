@@ -94,8 +94,10 @@ bool Device::updatePort(int index, uint8_t val)
 		return false;
 
 	*(mPorts[index]->val) = val;
-	if (!updateConnectedPorts(mPorts[index]->inputs, val, mPorts[index]))
-		return false;
+	if (mPorts[index]->inputs.size() > 0) {
+		if (!updateConnectedPorts(mPorts[index]->inputs, val, mPorts[index]))
+			return false;
+	}
 
 	return true;
 }

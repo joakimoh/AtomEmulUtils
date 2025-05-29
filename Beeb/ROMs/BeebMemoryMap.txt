@@ -68,7 +68,7 @@ CONNECT 	KB:BREAK			UC:RESET		// Connect BREAK key to uC RESET input
 
 // CUTS <=> Tape Recorder Connections
 CONNECT 	TAPREC:CAS_IN		SerialULA:CAS_IN	// Connect Serial ULA (CUTS) and tape recorder - CAS IN
-CONNECT 	SerialULA:CAS_OUT	TAPREC:CAS_OUT		// Connect Serial ULA (CUTS)and tape recorder - CAS OUT
+CONNECT 	SerialULA:CAS_OUT	TAPREC:CAS_OUT		// Connect Serial ULA (CUTS) and tape recorder - CAS OUT
 CONNECT:P	ACIA:TxD			SerialULA:TxD		// Connect the ACIA Tx data to the Serial ULA with direct processing on update
 CONNECT:P	ACIA:RTS			SerialULA:RTSI		// Connect the ACIA RTS to the Serial ULA with direct processing on update
 CONNECT		SerialULA:RxD		ACIA:RxD			// Connect the Serial ULA Rx data to the ACIA

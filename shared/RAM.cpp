@@ -33,8 +33,10 @@ bool RAM::read(uint16_t adr, uint8_t& data)
 {
 
 	// Call parent class to trigger scheduling of other devices when applicable
-	if (!MemoryMappedDevice::triggerBeforeRead(adr,data) || mCS != 0)
-		return false;
+	if (mTriggerOnRead) {
+		if (!MemoryMappedDevice::triggerBeforeRead(adr, data) || mCS != 0)
+			return false;
+	}
 	
 	data = mMem[adr - mMemorySpace.adr];
 
@@ -61,7 +63,7 @@ bool RAM::write(uint16_t adr, uint8_t data)
 	mMem[adr - mMemorySpace.adr] = data;
 
 	// Call parent class to trigger scheduling of other devices when applicable
-	return MemoryMappedDevice::triggerAfterWrite(adr, data);
+	return !mTriggerOnWrite || MemoryMappedDevice::triggerAfterWrite(adr, data);
 }
 
 bool RAM::write(uint16_t adr, vector<uint8_t>& data, uint16_t sz)

@@ -49,6 +49,9 @@ bool MemoryMappedDevice::read(uint16_t adr, uint8_t& data) {
 
 bool MemoryMappedDevice::triggerBeforeRead(uint16_t adr, uint8_t data)
 {
+	if (!mTriggerOnRead)
+		return true;
+
 	if (!selected(adr)) {
 		//cout << "READ ADDRESS 0x" << hex << adr << " DOESN'T BELONG TO DEVICE '" << this->name << "\n";
 		return false;
@@ -66,6 +69,9 @@ bool MemoryMappedDevice::triggerBeforeRead(uint16_t adr, uint8_t data)
 
 bool MemoryMappedDevice::triggerAfterWrite(uint16_t adr, uint8_t data)
 {
+	if (!mTriggerOnWrite)
+		return true;
+
 	if (!selected(adr)) {
 		//cout << "READ ADDRESS 0x" << hex << adr << " DOESN'T BELONG TO DEVICE '" << this->name << "\n";
 		return false;
@@ -88,10 +94,14 @@ bool MemoryMappedDevice::write(uint16_t adr, uint8_t data) {
 
 bool MemoryMappedDevice::registerAccess(Device* dev, uint16_t adr, bool writeAccess) {
 	DeviceAccessScheduling dev_sch = { dev, adr };
-	if (writeAccess)
+	if (writeAccess) {
+		mTriggerOnWrite = true;
 		mScheduleOnWrite.push_back(dev_sch);
-	else
+	}
+	else {
+		mTriggerOnRead = true;
 		mScheduleOnRead.push_back(dev_sch);
+	}
 	if (DBG_LEVEL(DBG_VERBOSE))
 		cout << "TRIGGER " << dev->name << " ON " << this->name << " 0x" << hex << adr << (writeAccess ? " WRITE" : " READ") << " ACCESSES\n";
 	return true;

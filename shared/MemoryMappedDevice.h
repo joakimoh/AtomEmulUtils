@@ -17,6 +17,9 @@ class MemoryMappedDevice : public Device {
 
 protected:
 
+	bool mTriggerOnWrite = false;
+	bool mTriggerOnRead = false;
+
 	MemoryRange mMemorySpace;
 	vector< MemoryRange> mMemoryGaps;
 

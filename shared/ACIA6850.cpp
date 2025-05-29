@@ -8,6 +8,9 @@ ACIA6850::ACIA6850(string name, uint16_t adr, double clock, double cpuClock, uin
 
 bool ACIA6850::read(uint16_t adr, uint8_t& data)
 {
+	uint8_t p_SR = mSR;
+	uint8_t p_CR = mCR;
+
 	// Call parent class to trigger scheduling of other devices when applicable
 	if (!MemoryMappedDevice::triggerBeforeRead(adr, data))
 		return false;
@@ -34,8 +37,11 @@ bool ACIA6850::read(uint16_t adr, uint8_t& data)
 			mPendingRxIRQClr = false;
 		}
 	}
+
+
 	
-	updateIRQ();
+	if (true || mSR != p_SR || mCR != p_CR)
+		updateIRQ();
 
 	return true;
 }
@@ -54,6 +60,8 @@ bool ACIA6850::dump(uint16_t adr, uint8_t& data)
 
 bool ACIA6850::write(uint16_t adr, uint8_t data)
 {
+	uint8_t p_SR = mSR;
+	uint8_t p_CR = mCR;
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	MemoryMappedDevice::triggerAfterWrite(adr, data);
@@ -77,7 +85,7 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 			// master reset
 			mCR = 0;
 			mSR &= ~ACIA_SR_CTS_MASK; // Clear all bits except the CTS bit that shall still reflect the state of the CTS input
-			mSR |= ACIA_SR_TDRE_MASK; // Also set the Transmit Data Register Empty bit (makes sense even if not clear by the MC6850 datasheet)
+			mSR |= ACIA_SR_TDRE_MASK; // Also set the Transmit Data Register Empty bit (makes sense even if not specified by the MC6850 datasheet)
 			if (mPowerOn) {
 				updatePort(RTS, 1);
 				mPowerOn = false;
@@ -186,7 +194,8 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 
 	update_settings();
 
-	updateIRQ(); // Update IRQ line based on condition bits and interrupt enable status
+	if (true || mSR != p_SR || mCR != p_CR)
+		updateIRQ(); // Update IRQ line based on condition bits and interrupt enable status
 
 	return true;
 }
@@ -237,6 +246,9 @@ bool ACIA6850::reset()
 // Advance until clock cycle stopcycle has been reached
 bool ACIA6850::advance(uint64_t stopCycle)
 {
+	uint8_t p_SR;
+	uint8_t p_CR;
+
 	if (mDataStart && mDataStartCount < 0) {
 			mDataStartCount = mCycleCount;
 			if (DBG_LEVEL(DBG_IO_PERIPHERAL))
@@ -245,6 +257,9 @@ bool ACIA6850::advance(uint64_t stopCycle)
 
 	while (mCycleCount < stopCycle) {
 
+		p_SR = mSR;
+		p_CR = mCR;
+
 		mDataCount = mCycleCount - mDataStartCount;
 		double data_time, time;
 		if (DBG_LEVEL(DBG_IO_PERIPHERAL)) {
@@ -252,9 +267,9 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			time = mCycleCount / mCPUClock * 1e-6;
 		}
 			
-		if (mDataStartCount > 0 && mRxState != NO_BIT && mCycleCount % mRxClkCycles == 0) {
+		//if (mDataStartCount > 0 && mRxState != NO_BIT && mCycleCount % mRxClkCycles == 0) {
 			//cout << dec << (int)mRxD;
-		}
+		//}
 
 		// Check for a start bit at the external Rx clock rate to find and 
 		// synchronise to the middle of a bit
@@ -405,7 +420,8 @@ bool ACIA6850::advance(uint64_t stopCycle)
 
 		}
 
-		updateIRQ();
+		if (true || mSR != p_SR || mCR != p_CR)
+			updateIRQ();
 
 		mCycleCount++;
 	}
@@ -415,7 +431,9 @@ bool ACIA6850::advance(uint64_t stopCycle)
 // Process clock updates to drive shifting on changes
 void ACIA6850::processPortUpdate(int index)
 {
-	
+	uint8_t p_SR = mSR;
+	uint8_t p_CR = mCR;
+
 	if (index == DCD) {
 		if (mDCD != pDCD) {
 			if (mDCD == 0) {
@@ -450,7 +468,8 @@ void ACIA6850::processPortUpdate(int index)
 		pCTS = mCTS;
 	}
 
-	updateIRQ();
+	if (true || mSR != p_SR || mCR != p_CR)
+		updateIRQ();
 
 }
 

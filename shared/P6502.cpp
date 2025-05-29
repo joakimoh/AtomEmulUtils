@@ -147,11 +147,11 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
 
-	DBG_TRACING_OR_COND(reset_transition, this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+	DBG_COND_TRACING(reset_transition, this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
-	DBG_TRACING_OR_COND(mIRQ != pIRQ,this, DBG_INTERRUPTS, "IRQ => " + to_string(mIRQ) + "\n");
+	DBG_COND_TRACING(mIRQ != pIRQ, this, DBG_INTERRUPTS, "IRQ => " + to_string(mIRQ) + "\n");
 
-	DBG_TRACING_OR_COND(mNMI != pNMI, this, DBG_INTERRUPTS, "NMI => " + to_string(mNMI) + "\n");
+	DBG_COND_TRACING(mNMI != pNMI, this, DBG_INTERRUPTS, "NMI => " + to_string(mNMI) + "\n");
 
 	// Serve RESET, NMI & IRQ in priority order
 	if (!mRESET) {
@@ -166,13 +166,13 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		serveIRQ();
 
 	// Turn on interrupt logging?
-	mDM->triggerInterruptLogging(mProgramCounter, mIRQ == 0 || mNMI == 0);
+	DBG_ADR_INT_TRIGGER(mProgramCounter, mIRQ == 0 || mNMI == 0);
 
 	// Turn on unconditional logging
-	mDM->triggerLogging(mProgramCounter);
+	DBG_ADR_TRIGGER(mProgramCounter);
 
 	// Stop execution?
-	if (mDM->triggerExecutionStop(this, mProgramCounter)) {
+	if (DBG_STOP(this, mProgramCounter)) {
 		mCycleCount++;
 		endCycle = mCycleCount;
 		return false;

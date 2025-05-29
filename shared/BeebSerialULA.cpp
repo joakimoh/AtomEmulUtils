@@ -353,8 +353,8 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 							mHalfCycleCnt++;
 						}
 
-					//cout << "Serial ULA starts " << (mTxD == 0 ? "Low Tone" : "High Tone") << " after " << dec << mHalfCycleCnt << " 1/2 cycles of different tone\n";
-					//cout << "Same level duration was " << dec << mBitDurationCnt << " cycles\n";
+					cout << "Serial ULA starts " << (mTxD == 0 ? "Low Tone" : "High Tone") << " after " << dec << mHalfCycleCnt << " 1/2 cycles of different tone\n";
+					cout << "Same level duration was " << dec << mBitDurationCnt << " cycles\n";
 					if (mTxD == 0)
 						mToneHalfCycleDuration = mLowToneHalfCycleDuration;
 					else
@@ -367,8 +367,8 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					mBitDurationCnt++;
 					mToneCnt++;
 					if (mToneCnt == mToneHalfCycleDuration) {
-						//cout << (mToneHalfCycleDuration == mHighToneHalfCycleDuration ? "H" : "L");
-						//cout << dec << mToneCnt << " ";
+						cout << (mToneHalfCycleDuration == mHighToneHalfCycleDuration ? "H" : "L");
+						cout << dec << mToneCnt << " ";
 						updatePort(CAS_OUT, 1 - mCAS_OUT);
 						mToneCnt = 0;
 						mHalfCycleCnt++;
