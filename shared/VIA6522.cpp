@@ -29,8 +29,7 @@ VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8
 	registerPort("CA", IO_PORT, 0x03, CA, &mCA);
 	registerPort("CB", IO_PORT, 0x03, CB, &mCB);
 
-	if (DBG_LEVEL(DBG_VERBOSE))
-		DBG_LOG(this, DBG_VERBOSE, "VIA 6522 '" + name + "' at address 0x" + Utility::int2hexStr(mMemorySpace.adr,4) +
+	DBG_LOG(this, DBG_VERBOSE, "VIA 6522 '" + name + "' at address 0x" + Utility::int2hexStr(mMemorySpace.adr,4) +
 		" to 0x" + Utility::int2hexStr(mMemorySpace.adr + mMemorySpace.sz - 1,4) + " (" + to_string(mMemorySpace.sz) + " bytes)\n");
 
 }
@@ -68,8 +67,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
 
-	if (reset_transition && DBG_LEVEL(DBG_RESET))
-		DBG_LOG(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+	DBG_LOG_COND(reset_transition, this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
 	if (!mRESET && reset_transition) {
 		reset();
@@ -591,8 +589,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 			data = mIFR & 0x7f; // Clear IRQ bit
 		else
 			data = mIFR | 0x80; // Set IRQ bit
-		if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-			DBG_LOG(this, DBG_IO_PERIPHERAL, "Read VIA 6522 at 0x" + Utility::int2hexStr(adr,4) + " IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Read VIA 6522 at 0x" + Utility::int2hexStr(adr,4) + " IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
 		break;
 
 	case IER:
@@ -772,8 +769,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		if (!updatePort(PB, (mPB & ~mDDRB) | (data & mDDRB)))
 			return false;
 
-		if  (DBG_LEVEL(DBG_IO_PERIPHERAL))
-			DBG_LOG(this, DBG_IO_PERIPHERAL, "WRITE TO PB WITH DDR 0x" + Utility::int2hexStr(mDDRB,2) + " and PB 0x" + Utility::int2hexStr(oPB,2) + " => 0x" + Utility::int2hexStr(mPB,2) + "\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "WRITE TO PB WITH DDR 0x" + Utility::int2hexStr(mDDRB,2) + " and PB 0x" + Utility::int2hexStr(oPB,2) + " => 0x" + Utility::int2hexStr(mPB,2) + "\n");
 		break;
 	}
 	case ORA:
@@ -941,8 +937,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Interrupt Flag Register - writing an '1' will clear the corresponding flag!!!
 	{
 		mIFR &= (~data) & 0x7f;
-		if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-			DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to VIA 6522 IFR at 0x" + Utility::int2hexStr(adr,4) + " IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to VIA 6522 IFR at 0x" + Utility::int2hexStr(adr,4) + " IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
 		updateIRQ();
 
 		break;
@@ -956,8 +951,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		else { // disable interrupts		
 			mIER = (mIER & ~data) & 0x7f;
 		}
-		if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-			DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to VIA 6522 IER at 0x" + Utility::int2hexStr(adr, 4) + " IER = 0x" + Utility::int2hexStr(mIER, 2) + " (" + IER2Str() + ")\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to VIA 6522 IER at 0x" + Utility::int2hexStr(adr, 4) + " IER = 0x" + Utility::int2hexStr(mIER, 2) + " (" + IER2Str() + ")\n");
 
 
 		break;
@@ -969,8 +963,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		uint8_t oPA = mPA;
 		updatePort(PA, (mPA & ~mDDRA) | (data & mDDRA));
 
-		if  (DBG_LEVEL(DBG_IO_PERIPHERAL))
-			DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to PA with DDR 0x" + Utility::int2hexStr(mDDRA,2) + " and PA 0x" + Utility::int2hexStr(oPA,2) + " => 0x" + Utility::int2hexStr(mPA,2) + "\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to PA with DDR 0x" + Utility::int2hexStr(mDDRA,2) + " and PA 0x" + Utility::int2hexStr(oPA,2) + " => 0x" + Utility::int2hexStr(mPA,2) + "\n");
 
 
 		break;

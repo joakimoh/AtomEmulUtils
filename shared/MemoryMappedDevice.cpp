@@ -55,8 +55,7 @@ bool MemoryMappedDevice::triggerBeforeRead(uint16_t adr, uint8_t data)
 	}
 	for (int i = 0; i < mScheduleOnRead.size(); i++) {
 		if (mScheduleOnRead[i].triggeringAdr == adr) {
-			if (DBG_LEVEL(DBG_TRGGERING))
-				DBG_LOG(this, DBG_TRGGERING, "READ 0x" + Utility::int2hexStr(adr, 4) +  " => triggers " +
+			DBG_LOG(this, DBG_TRGGERING, "READ 0x" + Utility::int2hexStr(adr, 4) +  " => triggers " +
 					mScheduleOnRead[i].device->name + " at " + to_string(mCycleCount) + "\n");
 			mScheduleOnRead[i].device->advance(mCycleCount); // align the triggered device's time with this device
 		}
@@ -73,8 +72,7 @@ bool MemoryMappedDevice::triggerAfterWrite(uint16_t adr, uint8_t data)
 	}
 	for (int i = 0; i < mScheduleOnWrite.size(); i++) {
 		if (mScheduleOnWrite[i].triggeringAdr == adr) {
-			if (DBG_LEVEL(DBG_TRGGERING))
-				DBG_LOG(this, DBG_TRGGERING, "WRITE 0x" + Utility::int2hexStr(data,2) + " TO 0x" + Utility::int2hexStr(adr,4) + " => triggers " +
+			DBG_LOG(this, DBG_TRGGERING, "WRITE 0x" + Utility::int2hexStr(data,2) + " TO 0x" + Utility::int2hexStr(adr,4) + " => triggers " +
 					mScheduleOnWrite[i].device->name + " at " + to_string(mCycleCount) + "\n");
 			mScheduleOnWrite[i].device->advance(mCycleCount); // align the triggered device's time with this device
 		}

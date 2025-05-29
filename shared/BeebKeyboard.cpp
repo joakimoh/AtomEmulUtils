@@ -108,13 +108,11 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 
 	// Check BREAK key
 	if (al_key_down(&mKeyboardState, mBreakKey.keyCode)) {
-		if (DBG_LEVEL(DBG_RESET) && mBREAK == 1)
-			DBG_LOG(this, DBG_RESET, "BREAK key pressed\n");
+		DBG_LOG_COND(mBREAK == 1, this, DBG_RESET, "BREAK key pressed\n");
 		updatePort(BREAK, 0x0);
 	}
 	else {
-		if (DBG_LEVEL(DBG_RESET) && mBREAK == 0)
-			DBG_LOG(this, DBG_RESET, "BREAK key released\n");
+		DBG_LOG_COND(mBREAK == 0, this, DBG_RESET, "BREAK key released\n");
 		updatePort(BREAK, 0x1);
 	}
 

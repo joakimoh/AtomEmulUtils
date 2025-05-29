@@ -316,7 +316,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		line_bitmap_data_p = (BITMAP_PTR) ((LOCKED_BITMAP_PTR) mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
 	}
 
-
+#ifdef DBG_ON
 	if (sync_debug || mem_debug) {
 		cout << "\n\n";
 		cout << dec << setw(3) << mScanLine << " (F" << field_scan_line << ",R" << mCRTC->mCharRow << ") V" << hz_visible_chars << " A" << hz_active_chars << " O" << hz_visible_char_offset << "\n";
@@ -377,7 +377,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		}
 		cout << "\nDIS:";
 	}
-
+#endif
 	BITMAP_PTR bitmap_data_p = line_bitmap_data_p;
 	for (int char_pos = 0; char_pos < hz_chars; char_pos++) {
 
@@ -400,10 +400,10 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
 		// the TGC character is only 12 pixels wide (well 16 bit after being extended) whereas the CRTC one is 8 pixels wide!
-
+#ifdef DBG_ON
 		if (false && char_pos == 0 && DBG_LEVEL(DBG_VDU))
 			cout << "VDU RA = " << dec << (int)mRA << "\n";
-
+#endif
 		// Advance the CRT one character at a time
 		// If in the active, area, the video memory address containing 
 		// character/graphics data is also provided.
@@ -474,12 +474,11 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			mTTCnt += tt_dur.count();
 #endif
 		}
-
+#ifdef DBG_ON
 		if (mem_debug) {
 			cout << setfill('0') << setw(2) << dec << char_pos << ":" << setw(4) << hex << screen_adr << ":" << setw(2) << (int)screen_data << ":" <<
 			"(" << dec << pos_X << "," << pos_Y << ") ";
 		}
-
 		
 		if (sync_debug) {
 			if (dis_ena)
@@ -487,7 +486,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			else
 				cout << "_";
 		}
-		
+#endif		
 		if (dis_ena && bitmap_data_p != NULL)
 			// Active area of an active line
 			//
@@ -505,12 +504,14 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				if (mCursorSegment < 0)
 					mCursorSegment = 0;
 				int shift = (mCursorSegment <= 2 ? mCursorSegment : 2);
-				cursor_seg_ena = (cursor_segments >> (2 - shift)) & 0x1;						
+				cursor_seg_ena = (cursor_segments >> (2 - shift)) & 0x1;	
+#ifdef DBG_ON
 				if (false && DBG_LEVEL(DBG_VDU)) {
 					cout << "VDU CURSOR " << dec << (int) mCURSOR << ", cursor ena " << (cursor_seg_ena ? "enabled" : "disabled") <<
 						", cursor segments '" << setw(3) << bitset<3>(cursor_segments) << "', cursor segment #" << dec << mCursorSegment << 
 						", char col " << char_pos << "\n";
 				}
+#endif
 				mCursorSegment++;
 			}
 			else
@@ -767,7 +768,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	if (!mCRTC->interlacedVideo())
 		mVtPixelsPerRow *= 2;
 
-
+#ifdef DBG_ON
 	if ((
 		((mControlRegister ^ newControlRegisterValue) & 0xfe) != 0 ||
 		mPixelsPerCharacter != p_pixels_per_byte ||
@@ -792,7 +793,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 		cout << "Video ULA Vertical Sync:   " << dec << mVerticalSyncPos << "\n";
 		cout << "\n";
 	}
-
+#endif
 	
 
 	return true;
@@ -1057,10 +1058,10 @@ void BeebVideoULA::updateHwScrollConstant() {
 		mHwScrollSub = 0x0400;
 		mode = 7;
 	}
-
+#ifdef DBG_ON
 	if (false && DBG_LEVEL(DBG_VDU) && mHwScrollSub != p_HW_scroll_sub) {
 		cout << "Teletext=" << (int)teletext << ", C1C0=0x" << hex << (int)mC << " => new HW Scroll constant 0x" << hex << mHwScrollSub << " (0x" << p_HW_scroll_sub << ") for mode " << dec << mode << "\n";
 		cout << "Video ULA CR = 0x" << hex << (int)mControlRegister << "\n";
 	}
-
+#endif
 }

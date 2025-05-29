@@ -89,24 +89,17 @@ bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &ind
 //
 bool Device::updatePort(int index, uint8_t val)
 {
-	return updatePort(index, val, true);
-}
-
-bool Device::updatePort(int index, uint8_t val, bool triggerConnectedDevices)
-{
 	if (index < 0 && index >= mPorts.size())
 		return false;
 
 	*(mPorts[index]->val) = val;
-	if (!updateConnectedPorts(mPorts[index]->inputs, val, mPorts[index], triggerConnectedDevices))
-		return false;
-	if (!updateConnectedPorts(mPorts[index]->bidirectionalInputs, val, mPorts[index], triggerConnectedDevices))
+	if (!updateConnectedPorts(mPorts[index]->inputs, val, mPorts[index]))
 		return false;
 
 	return true;
 }
 
-bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_t val, DevicePort *port, bool triggerConnectedDevices)
+bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_t val, DevicePort *port)
 {
 	
 	for (int i = 0; i < connectedPorts.size(); i++) {
@@ -190,7 +183,7 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 		else { // Only one source device connected to the port => arbitration not needed
 			*dst_val_p = nval;
 		}
-
+#ifdef DGB_ON
 		if (/*dstPort.port->arbitration ||*/ (
 			mDM->matchPort(dstPort.port) &&
 			(DBG_LEVEL(DBG_PORT) && *(dstPort.port->val) != pval)
@@ -212,7 +205,7 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 			else
 				cout << "\n";
 		}
-
+#endif
 		return true;
 	}
 
@@ -222,12 +215,11 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 bool Device::updatePorts()
 {
 	for (int i = 0; i < mPorts.size(); i++) {
-		if (!updatePort(i, *(mPorts[i]->val)), false)
+		if (!updatePort(i, *(mPorts[i]->val)))
 			return false;
 	}
 
-	if (DBG_LEVEL(DBG_VERBOSE))
-		DBG_LOG(this, DBG_VERBOSE, "All ports for "  + this->name + " have been shared...\n");
+	DBG_LOG(this, DBG_VERBOSE, "All ports for "  + this->name + " have been shared...\n");
 
 	return true;
 }

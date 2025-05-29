@@ -258,8 +258,7 @@ bool CRTC6845::advance(uint64_t stopCycle)
 	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
 
-	if (reset_transition && DBG_LEVEL(DBG_RESET))
-		DBG_LOG(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+	DBG_LOG_COND(reset_transition, this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
 	if (reset_transition)
 		reset();

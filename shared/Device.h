@@ -81,7 +81,6 @@ public:
 	uint8_t					mask = 0x1;				// mask to select only the implemented bits
 	uint8_t	*				val;					// pointer to variable holding the port's value
 	vector<InputReference>	inputs;					// connected inputs (used only if the port is an output port)
-	vector<InputReference>	bidirectionalInputs;	// connected bidirectional ports (used only if the port is an output port)
 	vector<OutputReference> portSources;			// Connected outputs - used if more than one device connects to a port (e.g., an IRQ input connected to many devices)
 	bool					arbitration = false;	// true if more than one device is connected at least one bit slice of the port
 };
@@ -109,9 +108,8 @@ typedef struct Routing_struct { // specifies how an output port of one device is
 class Device {
 
 private:
-	bool updatePort(int index, uint8_t val, bool triggerConnectedDevices);
 	bool updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal);
-	bool updateConnectedPorts(vector<InputReference>& connectedPorts, uint8_t val, DevicePort* port, bool triggerConnectedDevices);
+	bool updateConnectedPorts(vector<InputReference>& connectedPorts, uint8_t val, DevicePort* port);
 
 protected:
 

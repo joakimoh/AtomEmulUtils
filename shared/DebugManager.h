@@ -34,18 +34,29 @@ typedef int DebugLevel;
 #define	DBG_ALL				0xffff
 
 //#define DBG_ON
+//#define TIME_DEBUG
+//#define VDU_TIME_DEBUG
 
 #ifdef DBG_ON
 
+#define DBG_TRACING() mDM->tracing()
 #define DBG_LOG(...) mDM->log(__VA_ARGS__)
+#define DBG_LOG_COND(cond,...) if(cond) mDM->log(__VA_ARGS__)
 #define DBG_PBUF(...) mDM->preBuffer(__VA_ARGS__)
-#define DBG_LEVEL(...) mDM->debug(__VA_ARGS__))
+#define DBG_LEVEL(...) mDM->debug(__VA_ARGS__)
+#define DBG_TRACING_OR_LEVEL(level) (DBG_LEVEL(level) || DBG_TRACING())
+#define DBG_TRACING_OR_COND(cond, ...) DBG_LOG_COND(cond || mDM->tracing(), __VA_ARGS__)
+
 
 #else
 
+#define DBG_TRACING_OR_LEVEL(...)	false
+#define DBG_TRACING()				false
 #define DBG_LOG(...)
+#define DBG_LOG_COND(...)
 #define DBG_PBUF(...)
-#define DBG_LEVEL(x) false
+#define DBG_LEVEL(x)				false
+#define DBG_TRACING_OR_COND(...)	false
 
 #endif
 

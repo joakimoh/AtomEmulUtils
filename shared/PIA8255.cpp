@@ -26,8 +26,7 @@ bool PIA8255::advance(uint64_t stopCycle)
 	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
 
-	if (DBG_LEVEL(DBG_RESET) && reset_transition)
-		DBG_LOG(this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+	DBG_LOG_COND(reset_transition, this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
 	if (!mRESET) {
 		reset();

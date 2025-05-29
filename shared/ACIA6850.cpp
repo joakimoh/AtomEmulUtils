@@ -204,7 +204,7 @@ void ACIA6850::update_settings()
 	mRxDivCycles = (int)round(mCPUClock * 1e6 / mRxDivClkRate);
 	mTxDivCycles = (int)round(mCPUClock * 1e6 / mTxDivClkRate);
 
-	if (change && DBG_LEVEL(DBG_VERBOSE)) {
+	if (DBG_LEVEL(DBG_VERBOSE) && change) {
 		cout << "\nACIA Settings:\n" << dec <<
 			"Ena Rx IRQ =        " << (int)ACIA_CR_RIE << "\n" <<
 			"Ena Tx IRQ =        " << (int)ACIA_CR_TIE << "\n" <<

@@ -55,7 +55,6 @@ ROM::ROM(string name, double clockSpeed, uint8_t waitStates, uint16_t adr, uint1
 	if (DBG_LEVEL(DBG_VERBOSE)) {
 		filesystem::path path = binaryContent;
 		string file_name = path.filename().string();
-		if (DBG_LEVEL(DBG_ALL))
 		DBG_LOG(this, DBG_ALL, "Beeb Paged ROM file was '" + file_name + "'\n");
 	}
 

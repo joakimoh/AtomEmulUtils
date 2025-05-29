@@ -54,7 +54,7 @@ private:
 #define Z_flag ((mStatusRegister >> 1) & 1)
 #define C_flag (mStatusRegister & 1)
 
-	bool getOperand(Codec6502::InstructionInfo instr, uint16_t& operand, uint16_t &calc_op_adr, uint8_t& read_val);
+	bool getOperand(Codec6502::InstructionInfo &instr, uint16_t& operand, uint16_t &calc_op_adr, uint8_t& read_val);
 
 
 	void tick(int cycles = 1);
