@@ -3,6 +3,7 @@
 #include <iomanip>
 #include "P6502.h"
 #include "Device.h"
+#include "Devices.h"
 #include "Utility.h"
 #include <bitset>
 

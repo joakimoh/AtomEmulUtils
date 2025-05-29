@@ -1,0 +1,559 @@
+ 10 DIM UCoL 100
+ 15 DIM UGL 100
+ 20 DIM Sm 200
+ 22 REM Sm(i% [0,1],r [0-9],c [0-9])=b7:guessed,b6b5b4:no,b1:hit,b0:exists; adr=100i+10r+c;
+ 24 REM i%:(0:user ships,1:comp. ships)
+ 30 DIM Ssc 14: REM Ssc(2,7):REM 0<=>user ships,1<=>comp. ships
+ 35 DIM sSz 7
+ 70 DIM rSz 5:REM #remaining user ships
+ 71 nh%=0 : REM #hits on a user ship
+ 75 showCBp%=1:db%=0
+ 80 rSz?5=1:rSz?4=2:rSz?3=2:rSz?2=3:mSz%=5
+ 680 sSz?0=5:sSz?1=4:sSz?2=3:sSz?3=3
+ 690 sSz?4=2:sSz?5=2:sSz?6=2
+ 700 Gc%=0:REM last hit%
+ 705 Go%=0:REM guess orient.
+ 706 Gd%=1:REM guess direction
+ 710 Gn%=0:REM coord. of left/upper-most guess
+ 711 Gp%=0:REM coord. of right/lower-most guess
+ 715 fG%=TRUE:nUs%=0:nCs%=0
+ 720 FOR I%=0 TO 13
+ 740 Ssc?I% = 0
+ 760 NEXT I%
+ 770 FOR I%=0 TO 199
+ 800 ?(Sm+I%)=0
+ 810 NEXT I%
+ 815 REPEAT INPUT "random no generator seed?" s% : UNTIL s% > 0
+ 816 d%=RND(-s%)
+ 820 REPEAT INPUT "mode?" gM% : UNTIL gM%>=0 AND gM%<6 AND gM%<>3
+ 821 IF gM%<=5 nTrows%=32 ELSE nTrows%=25
+ 822 IF gM%=2 OR gM%=5 nTcols%=20 ELSE nTcols%=40
+ 823 IF gM%=0 nTcols%=80
+ 824 nC%=2
+ 825 IF gM%=1 OR gM%=5 nC%=4
+ 826 IF gM%=2 nC%=16
+ 830 IF nC%=2 SbC%=1:SfC%=0:PBmC%=1:PBhC%=0:CBmC%=1:CBhC%=1
+ 831 IF nC%=4 SbC%=1:SfC%=3:PBmC%=3:PBhC%=2:CBmC%=3:CBhC%=1
+ 832 IF nC%=16 SbC%=4:SfC%=7:PBmC%=3:PBhC%=0:CBmC%=3:CBhC%=1
+ 835 resX%=1280:resY%=1024:BchW%=resX%/20 
+ 836 OTx%=resX%/2-3*BchW%:OTy%=resY%-resY%/100
+ 837 Bsep%=resX%/16:PBLOX%=resX%/100:PBLOY%=resY%/100
+ 840 PBOX%=BchW%:PBOY%=3*resY%/4:PBcW%=resX%/20
+ 850 CBcW%=resY%/25:CBLOX%=resX%/100:CBLOY%=resY%/100 
+ 860 CBOX%=PBOX%+10*PBcW%+Bsep%+BchW%
+ 865 CBOY%=PBOY%
+ 870 DTOX%=CBOX%-2*CBcW%
+ 880 DTOY%=CBOY%-12*CBcW%
+ 895 DTSOX%=nTcols%*3/5:DTSOY=nTrows%*5/7
+ 910 PROCinitCguess:REM Init. comp. guess mtx
+ 920 guess%=0:REM #guesses made
+ 930 PROCplaceCships:REM comp.'s ships
+ 940 MODE gM%: CLS:VDU 5
+ 950 MOVE OTx%,OTy%:PRINT "CONVOY"
+ 960 PROCdPB:REM Draw player's board
+ 970 PROCdCB:REM Draw comp.'s board
+ 975 VDU 4:VDU 28,DTSOX%,nTrows%-1,nTcols%-1,DTSOY
+ 985 FORR%=0TO9:FORC%=0TO9:IF(?(Sm+100+R%*10+C%) AND &1)=1 AND showCBp% PROCdCBhitmiss(0,R%,C%)
+ 986 NEXTC%:NEXTR%
+ 990 PROCenterUships:REM user's ships
+ 1000 REM Main loop
+ 1005 REPEAT
+ 1010 IF FNguessU=7 PROCdispQA(6,0,-1):END
+ 1030 succ%=FNguessC
+ 1035 IF succ%=7 PROCdispQA(7,0,-1):END
+ 1040 IF succ%=-1 PROCdispQA(8,-1,-1):END
+ 1050 UNTIL FALSE
+ 1055 END
+ 1056
+ 1060 DEF PROCdPB
+ 1062 REM ********************************
+ 1066 REM Draw player's board
+ 1067 REM ********************************
+ 1070 FOR N%=0 TO 10
+ 1080 X%=PBOX%+N%*PBcW%
+ 1090 y1%=PBOY%-10*PBcW%
+ 1100 y2%=PBOY%
+ 1110 MOVE X%,y1%:DRAW X%,y2%
+ 1120 NEXT N%
+ 1130 FOR N%=0 TO 10
+ 1140 Y%=PBOY%-N%*PBcW%
+ 1150 x1%=PBOX%
+ 1160 x2=PBOX%+10*PBcW%
+ 1170 MOVE x1%,Y%:DRAW x2,Y%
+ 1180 NEXT N%
+ 1190 Y%=PBOY%+PBcW%
+ 1200 @%=0
+ 1210 FOR N%=0 TO 9
+ 1220 X%=PBOX%+N%*PBcW%+PBLOX%
+ 1230 MOVE X%,Y%:PRINT N%
+ 1240 NEXT N%
+ 1250 X%=PBOX%-PBcW%+PBLOX%
+ 1260 @%=0
+ 1270 F.N%=0 TO 9
+ 1280 Y%=PBOY%-N%*PBcW%-PBLOY%
+ 1290 MOVE X%,Y%:PRINT CHR$(N%+ASC("A"))
+ 1300 N.N%
+ 1305 ENDPROC
+ 1307
+ 1310 DEF PROCdCB
+ 1312 REM ********************************
+ 1315 REM Draw comp.'s board
+ 1317 REM ********************************
+ 1320 FOR N%=0 TO 10
+ 1330 X%=CBOX%+N%*CBcW%
+ 1340 y1%=CBOY%-10*CBcW%
+ 1350 y2%=CBOY%
+ 1360 MOVE X%,y1%:DRAW X%,y2%
+ 1370 NEXT N%
+ 1380 FOR N%=0 TO 10
+ 1390 Y%=CBOY%-N%*CBcW%
+ 1400 x1%=CBOX%
+ 1410 x2=CBOX%+10*CBcW%
+ 1420 MOVE x1%,Y%:DRAW x2,Y% 
+ 1430 NEXT N%
+ 1440 Y%=CBOY%+CBcW%+CBLOY%
+ 1450 @%=0
+ 1460 FOR N%=0 TO 9
+ 1470 X%=CBOX%+N%*CBcW%+1
+ 1480 MOVE X%,Y%:PRINT N%
+ 1490 NEXT N%
+ 1500 X%=CBOX%-CBcW%-CBLOX%
+ 1510 @%=0
+ 1520 FOR N%=0 TO 9
+ 1530 Y%=CBOY%-N%*CBcW%-1
+ 1540 MOVE X%,Y%:PRINT CHR$(N%+ASC("A"))
+ 1550 NEXT N%
+ 1560 MOVE X%,Y%
+ 1570 ENDPROC
+ 1576
+ 1577 DEF PROCdispQA(a%,t%,coo%)
+ 1578 REM ********************************
+ 1580 REM Display question
+ 1625 REM ********************************
+ 1655 LOCAL s$,r%,c%
+ 1656 r%=coo%/10:c%=coo% MOD 10
+ 1657 s$=FNdC(coo%)
+ 1660 IF a%=0 PRINT "My guess:";s$
+ 1670 IF a%=1 PRINT "A miss!":PROCdCBhitmiss(0,r%,c%)
+ 1680 IF a%=2 PRINT "A hit!":PROCdCBhitmiss(1,r%,c%)
+ 1690 IF a%=3 PRINT "Your guess:"
+ 1700 IF a%=4 PROCdisptypeofship(t%)
+ 1710 IF a%=5 PRINT "Ship sunken!":PROCdCBhitmiss(1,r%,c%)
+ 1720 IF a%=6 PRINT "You won!!!":PROCdCBhitmiss(1,r%,c%)
+ 1730 IF a%=7 PRINT "I won!!!"
+ 1740 IF a%=8 PRINT "You cheated!!!"
+ 1750 IF a%=1 OR a%=2 OR a%=5 keyhit=GET
+ 1760 ENDPROC
+ 1765
+ 1768 DEF PROCdCBhitmiss(hit%,r%,c%)
+ 1769 REM ********************************
+ 1770 REM Display HIT/MISS for user guess
+ 1775 REM ********************************
+ 1776 LOCAL x1%,y1%
+ 1777 GCOL 0,CBmC%
+ 1780 x1%=CBOX%+c%*CBcW%
+ 1790 y1%=CBOY%-r%*CBcW%
+ 1800 IF hit%=0 PROCdCBmiss(x1%,y1%) ELSE PROCdCBhit(x1%,y1%)
+ 1805 ENDPROC
+ 1807
+ 1808 DEF PROCdCBhit(x1%,y1%)
+ 1809 GCOL 0,CBhC%
+ 1810 MOVE x1%,y1%:DRAW (x1%+CBcW%),(y1%-CBcW%)
+ 1820 MOVE x1%,(y1%-CBcW%):DRAW (x1%+CBcW%),y1%
+ 1830 ENDPROC
+ 1840
+ 1850 DEF PROCdCBmiss(x1%,y1%)
+ 1860 LOCAL mx%,my%,mo%
+ 1870 mx%=x1%+CBcW%/2:my%=y1%-CBcW%/2:mo%=CBcW%/10
+ 1880 PROCsq(mx%-mo%,my%-mo%,mx%+mo%,my%+mo%,CBmC%)
+ 1882 ENDPROC
+ 1887
+ 1888 DEF PROCdisptypeofship(t%)
+ 1889 REM ********************************
+ 1890 REM Display type of ship
+ 1892 REM ********************************
+ 1895 IF t%=5 PRINT "HANGAR ship(5):"
+ 1900 IF t%=4 PRINT "BATTLE ship(4):"
+ 1910 IF t%=3 PRINT "TORPEDO BOAT(3):"
+ 1920 IF t%=2 PRINT "SUBMARINE(2):"
+ 1930 ENDPROC
+ 1937
+ 1938 DEF FNgetcoord(a%,t%,no%)
+ 1939 REM ********************************
+ 1940 REM Get user input coordinates for
+ 1945 REM user guess (a%=1) or placement of user ship (a%=2)
+ 1996 REM ********************************
+ 1998 LOCAL r%,c%,v%,coo%,fits%
+ 2000 REPEAT
+ 2010 INPUT guess$
+ 2020 CLS
+ 2030 r%=ASC(MID$(guess$,1,1))-ASC("A"):c%=ASC(MID$(guess$,2,1))-ASC("0"):coo%=r%*10+c%
+ 2031 IF MID$(guess$,3,1)="V" v%=1 ELSE v%=0
+ 2033 IF a%=2 IF v%=0 coo%=FNfitsH(0,no%,coo%,t%,&1,0) ELSE IF a%=2 coo%=FNfitsV(0,no%,coo%,t%,&1,0)
+ 2034 IF a%=2 fits%=(coo%<>-1) ELSE fits%=TRUE
+ 2040 UNTIL LEN(guess$)>=2 AND r%>=0 AND r%<=9 AND c%>=0 AND c%<=9 AND fits%
+ 2042 IF a%=2 PROCdship(t%,r%,c%,v%,SbC%,SfC%)
+ 2043 =coo%
+ 2066
+ 2067 DEF FNrateCguess(coo%)
+ 2068 REM ********************************
+ 2070 REM Reply to comp.'s guess
+ 2072 REM Returns 7 for WIN,2 for DESTROYED,1 for HIT and 0 for MISS
+ 2073 REM ********************************
+ 2075 LOCAL r%,s$,m%,no%,exists%,sz%
+ 2077 r%=0
+ 2078 REPEAT
+ 2079 INPUT s$
+ 2085 r%=-1
+ 2090 IF MID$(s$,1,1)="M" r%=0
+ 2095 IF MID$(s$,1,1)="H" r%=1
+ 2100 IF MID$(s$,1,1)="D" r%=2
+ 2101 UNTIL r%<>-1
+ 2102 sz%=sSz?no%
+ 2103 IF r%=2 rSz?sz%=rSz?sz%-1
+ 2104 IF rSz?5=0 mSz%=sSz?4
+ 2105 IF rSz?4=0 mSz%=sSz?3
+ 2106 IF rSz?3=0 mSz%=sSz?2
+ 2107 IF rSz?2=0 mSz%=0:r%=7
+ 2108 IF r%=2 nUs%=nUs%+1
+ 2109 m%=Sm+coo%
+ 2110 ?m%=?m% OR &80:REM Mark ship coord. as being guessed
+ 2120 IF r%>0 PROCdPBhit(coo%/10,coo% MOD 10):?m%=?m% OR &2 ELSE PROCdPBmiss(coo%/10,coo% MOD 10)
+ 2130 =r%
+ 2135
+ 2136 DEF PROCdPBhit(row%,col%)
+ 2137 LOCAL x1%,y1%
+ 2138 GCOL 0,PBhC%
+ 2140 x1%=PBOX%+col%*PBcW%
+ 2150 y1%=PBOY%-row%*PBcW%
+ 2160 MOVE x1%,y1%:DRAW x1%+PBcW%,y1%-PBcW%
+ 2170 MOVE x1%,y1%-PBcW%:DRAW x1%+PBcW%,y1%
+ 2175 ENDPROC
+ 2176
+ 2178 DEF PROCdPBmiss(r%,c%)
+ 2180 LOCAL mx%,my%,mo%,x1%,y1%
+ 2181 GCOL 0,PBmC%
+ 2182 x1%=PBOX%+c%*PBcW%
+ 2183 y1%=PBOY%-r%*PBcW%
+ 2185 mx%=x1%+PBcW%/2:my%=y1%-PBcW%/2:mo%=PBcW%/10
+ 2186 PROCsq(mx%-mo%,my%-mo%,mx%+mo%,my%+mo%,PBmC%)
+ 2187 ENDPROC
+ 2188
+ 2226 DEF PROCdship(t%,row%,col%,v%,bcol%,fcol%)
+ 2227 REM ********************************
+ 2228 REM Drawship
+ 2229 REM ********************************
+ 2230 IF v%=1 PROCdshipV(t%,row%,col%,bcol%,fcol%) ELSE PROCdshipH(t%,row%,col%,bcol%,fcol%)
+ 2235 ENDPROC
+ 2236
+ 2238 DEF PROCdshipH(t%,row%,col%,bcol%,fcol%)
+ 2240 x=PBOX%+col%*PBcW%
+ 2250 y=PBOY%-row%*PBcW%-PBcW%
+ 2270 PROCS(t%,x,y,PBcW%,0,bcol%,fcol%)
+ 2280 ENDPROC
+ 2285
+ 2286 DEF PROCdshipV(t%,row%,col%,bcol%,fcol%)
+ 2290 x=PBOX%+col%*PBcW% 
+ 2300 y=PBOY%-row%*PBcW%-PBcW%
+ 2310 PROCS(t%,x,y,PBcW%,1,bcol%,fcol%)
+ 2330 ENDPROC
+ 2335
+ 2337 DEF PROCenterUships
+ 2338 REM ********************************
+ 2340 REM Enter ships
+ 2345 REM ********************************
+ 2347 LOCAL dummy%
+ 2350 PROCdispQA(4,5,-1)
+ 2360 dummy%=FNgetcoord(2,5,0)
+ 2370 PROCdispQA(4,4,-1)
+ 2380 dummy%=FNgetcoord(2,4,1)
+ 2390 PROCdispQA(4,3,-1)
+ 2400 dummy%=FNgetcoord(2,3,2)
+ 2410 PROCdispQA(4,3,-1)
+ 2420 dummy%=FNgetcoord(2,3,3)
+ 2430 PROCdispQA(4,2,-1)
+ 2440 dummy%=FNgetcoord(2,2,4)
+ 2450 PROCdispQA(4,2,-1)
+ 2460 dummy%=FNgetcoord(2,2,5)
+ 2470 PROCdispQA(4,2,-1)
+ 2480 dummy%=FNgetcoord(2,2,6)
+ 2490 ENDPROC
+ 2497
+ 2498 DEF PROCplaceCships
+ 2499 REM ********************************
+ 2500 REM Place comp.'s ships
+ 2505 REM ********************************
+ 2520 IF FNplaceS(0,5,1)<0 :END
+ 2530 IF FNplaceS(1,4,1)<0 :END
+ 2540 IF FNplaceS(2,3,1)<0 :END
+ 2550 IF FNplaceS(3,3,1)<0 :END
+ 2560 IF FNplaceS(4,2,1)<0 :END
+ 2570 IF FNplaceS(5,2,1)<0 :END
+ 2580 IF FNplaceS(6,2,1)<0 :END
+ 2590 ENDPROC
+ 2597
+ 2598 DEF FNplaceS(no%,sz%,i%)
+ 2599 REM ********************************
+ 2600 REM Generate a comp. guess (i%=0) or place a comp. ship (i%=1)
+ 2610 REM sz%=ship SIZE
+ 2640 REM no%=ship NUMBER
+ 2642 REM Returns coord. of the stern (rear) of the ship
+ 2645 REM ********************************
+ 2648 LOCAL r%,coi%,coo%,x%,cnt%,g%
+ 2650 IF i%=0 g%=&80:x%=&2:u%=g% ELSE g%=0:x%=&1:u%=x%:REM b7:user ship guess made,b1:guess made on user ship was a hit,b0:comp. ship exists
+ 2651 n%=0
+ 2652 REPEAT
+ 2653 cnt%=0:Go%=RND(2)-1:REM orientation
+ 2655 REPEAT
+ 2660 coi%=UGL?guess%:cnt%=cnt%+1
+ 2670 guess%=(guess%+1) MOD 100
+ 2680 UNTIL cnt%>100 OR ((?(Sm+i%*100+coi%) AND u%)=0):REM stop for unused coordinate
+ 2685 IF cnt%>100 PROCf("!",coi%):=-1:REM should never happen
+ 2687 PROCf("P",coi%)
+ 2688 IF Go%=1 coo%=FNfitsV(i%,no%,coi%,sz%,x%,g%) ELSE coo%=FNfitsH(i%,no%,coi%,sz%,x%,g%)
+ 2689 IF coo%<0 Go%=1-Go% ELSE GOTO2692
+ 2690 IF Go%=1 coo%=FNfitsV(i%,no%,coi%,sz%,x%,g%) ELSE coo%=FNfitsH(i%,no%,coi%,sz%,x%,g%)
+ 2691 IF coo%<0 n%=n%+1
+ 2692 UNTIL coo%<>-1 OR n% > 100
+ 2693 =coo%
+ 2696
+ 2697 REM ********************************
+ 2698 REM Horizontal placement of user ship (i%=0,x%=&1,g%=0),
+ 2699 REM or of comp. ship (i%=1,x=&1,g%=0),
+ 2700 REM OR comp. guess for user ship (i%=0,x%=&2,g%=&80)
+ 2701 REM ********************************
+ 2702 DEF FNfitsH(i%,no%,coi%,sz%,x%,g%)
+ 2703 LOCAL coo%,k%,Sm%:PROCf("H",coi%)
+ 2704 Sm%=Sm+i%*100+coi%:r%=coi%/10:c%=coi% MOD 10
+ 2705 IF c%+sz%>10 PROCf("F",coi%):=-1:REM Won't fit
+ 2710 IF c%+sz%<=9 AND (?(Sm%+sz%) AND x%)<>0 PROCf("L",coi%):=-1:REM not before another ship
+ 2720 IF c%>0 IF (?(Sm%-1) AND x%)<>0 PROCf("R",coi%):=-1:REM not after another ship
+ 2740 k%=0
+ 2750 IF (?(Sm%+k%) AND x%)<>0 PROCf("X",coi%):=-1:REM no overlap with existing ship
+ 2760 IF r%>0 IF (?(Sm%-10+k%) AND x%)<>0 PROCf("U",coi%):=-1:REM not under another ship
+ 2770 IF r%<9 IF (?(Sm%+10+k%) AND x%)<>0 PROCf("A",coi%):=-1:REM not above another ship
+ 2780 IF k%<sz%-1 k%=k%+1:GOTO 2750
+ 2800 IF g%=&80 GOTO 2841:REM comp. guess for user ship
+ 2810 k%=0: REM place the ship
+ 2820 ?(Sm%+k%)=no%*16+1
+ 2830 IF k%<sz%-1 k%=k%+1:GOTO 2820
+ 2840 =r%*10+c%
+ 2841 k%=0: REM k% no overlap with previous guess
+ 2842 IF (?(Sm%+k%) AND g%) <> 0 PROCf("G",coi%):=-1
+ 2843 IF k%<sz%-1 k%=k%+1:GOTO 2842
+ 2844 =r%*10+c%
+ 2845
+ 2846 REM ********************************
+ 2847 REM Vertical placement of user ship (i%=0,x%=&1,g%=0),
+ 2848 REM or of comp. ship (i%=1,x=&1,g%=0),
+ 2849 REM OR comp. guess for user ship (i%=0,x%=&2,g%=&80)
+ 2850 REM ********************************
+ 2852 DEF FNfitsV(i%,no%,coi%,sz%,x%,g%)
+ 2853 LOCAL coo%,k%,Sm%:PROCf("V",coi%)
+ 2854 Sm%=Sm+i%*100+coi%:r%=coi%/10:c%=coi% MOD 10
+ 2855 IF r%+sz%>10=-1:REM Won't fit
+ 2860 IF r%+sz%<=9 AND (?(Sm%+sz%*10) AND x%)<>0  =-1:REM not above another ship
+ 2870 IF r%>0 IF (?(Sm%-10) AND x%)<>0  =-1:REM not under another ship
+ 2890 k%=0
+ 2900 IF (?(Sm%+k%*10) AND x%)<>0=-1:REM no overlap with existing ship
+ 2910 IF c%>0 IF (?(Sm%+k%*10-1) AND x%)<>0  =-1:REM not after another ship
+ 2920 IF c%<9 IF (?(Sm%+k%*10+1) AND x%)<>0  =-1:REM not before another ship
+ 2930 IF k%<sz%-1 k%=k%+1:GOTO2900
+ 2950 IF g%=&80 GOTO 2991:REM comp. guess for user ship
+ 2960 k%=0:REM place the ship
+ 2970 ?(Sm%+k%*10)=no%*16+1
+ 2980 IF k%<sz%-1 k%=k%+1: GOTO 2970
+ 2990 =r%*10+c%
+ 2991 k%=0: REM no overlap with previous guesses
+ 2992 IF (?(Sm%+k%*10) AND g%) <> 0 =-1
+ 2993 IF k%<sz%-1 k%=k%+1:GOTO 2992
+ 2994 =r%*10+c%
+ 2996
+ 2997 DEF FNguessU
+ 2998 REM ********************************
+ 3000 REM Let user guess
+ 3005 REM ********************************
+ 3006 CLS
+ 3010 PROCdispQA(3,0,-1):REM question
+ 3014 LOCAL coo%,no%,m%,a%
+ 3020 coo%=FNgetcoord(1,0,-1):REM GET ANSWER
+ 3030 a%=1:REM Assume a% MISS as a start
+ 3035 m%=Sm+100+coo%
+ 3050 IF (?m% AND &1)=0 PROCdispQA(1,-1,coo%) :=nCs% : REM A miss!
+ 3060 a%=2: REM A hit!
+ 3070 no%=(?m%/16) MOD 8:exists%=?m% MOD 2
+ 3080 IF exists% Ssc?(1*2+no%)=Ssc?(1*2+no%)+1
+ 3090 ?m%=?m% OR &80 : REM set 'guessed' bit
+ 3100 IF Ssc?(1*2+no%)=sSz?no% a%=5:nCs%=nCs%+1:REM Ship sunken!
+ 3110 PROCdispQA(a%,-1,coo%):=nCs%
+ 3122
+ 3125 DEF FNguessC
+ 3126 REM ********************************
+ 3130 REM Computer will guess
+ 3135 REM ********************************
+ 3150 CLS: IF fG%=TRUE=FNfirstCguess ELSE=FNnextCguess
+ 3155
+ 3156 DEF FNfirstCguess
+ 3158 LOCAL r%,sz%,coo%
+ 3159 GHdirC%=0:GVdirC%=0
+ 3160 REPEAT:REM Find size of a ship that still exists
+ 3170 sz%=sSz?(RND(7)-1)
+ 3175 UNTIL sz%<=mSz% AND rSz?sz%>0
+ 3210 coo%=FNplaceS(-1,sz%,0):REM guess% coord. of a complete ship
+ 3215 IF coo%=-1=-1:REM Not possible to find free space for a ship
+ 3250 PROCdispQA(0,-1,coo%):REM ASK question
+ 3270 r%=FNrateCguess(coo%):REM GET ANSWER
+ 3275 Gd%=1 : REM direction when calling FNplaceS is always '+'
+ 3280 IF r%>0 fG%=FALSE: Gc%=coo%:Gn%=Gc%:Gp%=Gc%:Gi%=Gc%:REM a first hit for a ship
+ 3300 =r%
+ 3305
+ 3310 DEF FNnextCguess
+ 3320 REM ********************************
+ 3321 REM PROCESS guess
+ 3325 REM ********************************
+ 3330 LOCAL coo%,cnt%
+ 3335 REPEAT
+ 3336 stopN%=FALSE:stopP%=FALSE
+ 3340 IF Go%=0 coo%=FNnextHCguess ELSE coo%=FNnextVCguess
+ 3342 IF coo%=-1 Gc%=Gi%:Go%=1-Go%:cnt%=cnt%+1
+ 3376 UNTIL coo%<>-1 OR cnt%=2
+ 3378 IF coo%=-1 THEN=-1:REM NO guess% possible=>user cheated!
+ 3380 PROCdispQA(0,-1,coo%):REM ASK guess
+ 3390 r%=FNrateCguess(coo%):REM GET reply
+ 3430 IF r%=2 fG%=TRUE
+ 3440 IF r%>0 Gc%=coo%:IF Gd%=-1 Gn%=Gc% ELSE IF r%>0 Gp%=Gc%:REM save coord. for a hit
+ 3450 IF r%=0 Gd%=-Gd%:IF Gd%=-1 Gc%=Gn% ELSE IF r%=0 Gc%=Gp%
+ 3460 =r%
+ 3470
+ 3500 DEF FNnextHCguess
+ 3502 LOCAL r%,c%,stopP%,stopN%,m%
+ 3503 r%=Gc%/10:c%=Gc% MOD 10
+ 3504 m%=Sm+r%*10+c%
+ 3505 h%=0
+ 3510 REPEAT
+ 3512 IF Gd%=1 IF c%<9 AND ((?(m%+1) AND &80)=0) c%=c%+1:m%=m%+1:h%=1 ELSE IF Gd%=1 stopP%=TRUE:Gd%=-1:c%=Gn% MOD 10:m%=Sm+r%*10+c%
+ 3514 IF Gd%=-1 IF c%>0 AND ((?(m%-1) AND &80)=0) c%=c%-1:m%=m%-1:h%=1 ELSE IF Gd%=-1 stopN%=TRUE:Gd%=1:c%=Gp% MOD 10:m%=Sm+r%*10+c%
+ 3516 UNTIL (stopP% AND stopN%) OR (c%>=0 AND c%<=9 AND h%)
+ 3518 IF stopP% AND stopN%:=-1
+ 3519 ?m%=?m% OR &80 : REM Set 'guessed' bit
+ 3520 =r%*10+c%
+ 3530
+ 3540 DEF FNnextVCguess
+ 3542 LOCAL r%,c%,r%,stopP%,stopN%,m%
+ 3543 r%=Gc%/10:c%=Gc% MOD 10
+ 3544 m%=Sm+r%*10+c%
+ 3545 h%=0
+ 3550 REPEAT
+ 3552 IF Gd%=1 IF r%<9 AND ((?(m%+10) AND &80)=0) r%=r%+1:m%=m%+10:h%=1 ELSE IF Gd%=1 stopP%=TRUE:Gd%=-1:r%=Gn%/10:m%=Sm+r%*10+c% 
+ 3554 IF Gd%=-1 IF r%>0 AND ((?(m%-10) AND &80)=0) r%=r%-1:m%=m%-10:h%=1 ELSE IF Gd%=-1 stopN%=TRUE:Gd%=1:r%=Gp%/10:m%=Sm+r%*10+c%
+ 3556 UNTIL (stopP% AND stopN%) OR (r%>=0 AND r%<=9 AND h%)
+ 3558 IF stopP% AND stopN%:=-1
+ 3559 ?m%=?m% OR &80 : REM Set 'guessed' bit
+ 3560 =r%*10+c%
+ 3570
+ 3725 DEF PROCinitCguess
+ 3727 REM ********************************
+ 3730 REM Generate 100 guesses on beforehand
+ 3735 REM ********************************
+ 3738 LOCAL d%,r%,c%,match%,i%
+ 3740 FOR r%=0 TO 9
+ 3750 FOR c%=0 TO 9
+ 3760 UCoL?(r%*10+c%)=r%*10+c%
+ 3770 NEXT c%
+ 3780 NEXT r%
+ 3790 FOR r%=0 TO 9
+ 3800 FOR c%=0 TO 9
+ 3810 d%=(RND(2)-1)*2-1
+ 3820 i%=RND(100)-1
+ 3825 REPEAT
+ 3830 match%=UCoL?i%<>&FF
+ 3832 IF match% UGL?(r%*10+c%)=UCoL?i%:UCoL?i%=&FF
+ 3833 REPEAT
+ 3834 IF NOT match% i%=i%+d%:IF i%=100 OR i%=-1 d%=-d%
+ 3836 UNTIL i%<>100 AND i%<>-1
+ 3837 UNTIL match%
+ 3870 NEXT c%
+ 3880 NEXT r%
+ 3890 ENDPROC
+ 3970
+ 5000 DEF PROCsq(x1%,y1%,x2,y2%,col%)
+ 5010 GCOL 0,col%
+ 5020 MOVE x1%,y1%
+ 5030 MOVE x1%,y2%
+ 5040 PLOT 85,x2,y2%
+ 5050 MOVE x2,y1%
+ 5060 PLOT 85,x1%,y1%
+ 5070 VDU 20,14:REM restore default colour scheme
+ 5080 ENDPROC
+ 5090
+ 6000 DEF PROCssq(x,y,ox1,oy1,ox2,oy2,cw,v%,col%)
+ 6010 IF v%=1 PROCsq(x+oy1,y+cw-ox1,x+oy2,y+cw-ox2,col%) ELSE PROCsq(x+ox1,y+oy1,x+ox2,y+oy2,col%)
+ 6020 ENDPROC
+ 6030
+ 6040 DEF PROCsb(x,y,cw,sz,v%,col%)
+ 6050 IF v%=1 PROCsq(x+1,y+cw-1,x+cw-1,y-cw*(sz-1)-1,col%) ELSE PROCsq(x+1,y+1,x+cw*sz-1,y+cw-1,col%)
+ 6060 ENDPROC
+ 6070
+ 7000 DEF PROCS2(x,y,cw,v%,bcol%,fcol%)
+ 7010 psz=cw/10
+ 7020 PROCsb(x,y,cw,2,v%,bcol%)
+ 7030 PROCssq(x,y,psz,psz,2*cw-psz,2*psz,cw,v%,fcol%)
+ 7040 PROCssq(x,y,2*psz,psz,2*cw-2*psz,3*psz,cw,v%,fcol%)
+ 7050 PROCssq(x,y,4*psz,psz,10*psz,4*psz,cw,v%,fcol%)
+ 7060 PROCssq(x,y,5*psz,psz,10*psz,5*psz,cw,v%,fcol%)
+ 7070 PROCssq(x,y,6*psz,psz,9*psz,6*psz,cw,v%,fcol%) 
+ 7080 ENDPROC
+ 7090
+ 8000 DEF PROCS3(x,y,cw,v%,bcol%,fcol%)
+ 8005 psz=cw/10
+ 8010 PROCsb(x,y,cw,3,v%,bcol%)
+ 8030 PROCssq(x,y,psz,psz,3*cw-5*psz,2*psz,cw,v%,fcol%)
+ 8040 PROCssq(x,y,psz,2*psz,3*cw-4*psz,3*psz,cw,v%,fcol%)
+ 8050 PROCssq(x,y,2*psz,3*psz,3*cw- psz,4*psz,cw,v%,fcol%)
+ 8060 PROCssq(x,y,6*psz,psz,15*psz,5*psz,cw,v%,fcol%)
+ 8070 PROCssq(x,y,7*psz,psz,14*psz,6*psz,cw,v%,fcol%)
+ 8080 PROCssq(x,y,7*psz,psz,13*psz,7*psz,cw,v%,fcol%)
+ 8090 PROCssq(x,y,8*psz,psz,10*psz,8*psz,cw,v%,fcol%) 
+ 8100 ENDPROC
+ 8110
+ 9000 DEF PROCS4(x,y,cw,v%,bcol%,fcol%)
+ 9010 psz=cw/10
+ 9020 PROCsb(x,y,cw,4,v%,bcol%)
+ 9030 PROCssq(x,y,psz,psz,4*cw-5*psz,2*psz,cw,v%,fcol%)
+ 9040 PROCssq(x,y,psz,2*psz,4*cw-3*psz,3*psz,cw,v%,fcol%)
+ 9050 PROCssq(x,y,2*psz,3*psz,4*cw- psz,4*psz,cw,v%,fcol%)
+ 9060 PROCssq(x,y,6*psz,psz,18*psz,5*psz,cw,v%,fcol%)
+ 9070 PROCssq(x,y,7*psz,psz,18*psz,6*psz,cw,v%,fcol%)
+ 9080 PROCssq(x,y,7*psz,psz,16*psz,7*psz,cw,v%,fcol%)
+ 9090 PROCssq(x,y,8*psz,psz,14*psz,8*psz,cw,v%,fcol%)
+ 9100 PROCssq(x,y,2*cw+3*psz,4*psz,3*cw,5*psz,cw,v%,fcol%)
+ 9110 ENDPROC
+ 9120
+ 9500 DEF PROCS5(x,y,cw,v%,bcol%,fcol%)
+ 9510 psz=cw/10
+ 9520 PROCsb(x,y,cw,5,v%,bcol%)
+ 9530 PROCssq(x,y,psz,psz,5*cw-5*psz,2*psz,cw,v%,fcol%)
+ 9540 PROCssq(x,y,2*psz,2*psz,5*cw-4*psz,3*psz,cw,v%,fcol%)
+ 9550 PROCssq(x,y,3*psz,3*psz,5*cw-3*psz,4*psz,cw,v%,fcol%)
+ 9560 PROCssq(x,y,6*psz,psz,18*psz,5*psz,cw,v%,fcol%)
+ 9570 PROCssq(x,y,7*psz,psz,18*psz,6*psz,cw,v%,fcol%)
+ 9580 PROCssq(x,y,7*psz,psz,17*psz,7*psz,cw,v%,fcol%)
+ 9590 PROCssq(x,y,8*psz,psz,15*psz,8*psz,cw,v%,fcol%)
+ 9600 ENDPROC
+ 9700
+ 9710 DEF PROCS(t%,x,y,cw,v%,bcol%,fcol%)
+ 9720 IF t%=2 PROCS2(x,y,cw,v%,bcol%,fcol%)
+ 9730 IF t%=3 PROCS3(x,y,cw,v%,bcol%,fcol%)
+ 9740 IF t%=4 PROCS4(x,y,cw,v%,bcol%,fcol%)
+ 9750 IF t%=5 PROCS5(x,y,cw,v%,bcol%,fcol%)
+ 9760 ENDPROC
+ 9770
+ 9800 DEF FNdC(c%)
+ 9810 IF c%<0 ="??" ELSE =CHR$(c%/10+ASC("A"))+CHR$(c% MOD 10 +ASC("0"))
+ 9820
+ 9830 DEF FNdM(m%)
+ 9840 ="g"+STR$((?m% AND &80)/128)+",n"+STR$((?m%/16) MOD 8)+",h"+STR$((?m%/2) MOD 2)+",x"+STR$(?m% MOD 2)
+ 9850
+ 9860 DEF PROCf(e$,c%)
+ 9870 IF db% PRINT e$;FNdC(c%);" " : A = GET : CLS
+ 9880 ENDPROC

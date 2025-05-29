@@ -18,6 +18,8 @@
 #include "../shared/VideoDisplayUnit.h"
 #include "../shared/GUI.h"
 #include "../shared/DebugManager.h"
+#include "../shared/ConnectionManager.h"
+#include "../shared/Devices.h"
 
 #include <chrono>
 #include <cmath>

@@ -1,4 +1,6 @@
 #include "Device.h"
+#include "Devices.h"
+#include "ConnectionManager.h"
 #include "Tokeniser.h"
 #include <iostream>
 

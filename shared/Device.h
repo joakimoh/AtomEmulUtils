@@ -90,10 +90,11 @@ typedef struct BitsSelection_struct {
 	uint8_t lowBit = 0;	// specifies the lowest bit if the port I/O to be connected (already identified by the mask but pre-calculated for speed reasons)
 } BitsSelection;
 
-typedef struct PortBitsSel_struct {
-	DevicePort *	port;	// port identity
+class PortSelection {
+public:
+	DevicePort* port;	// port identity
 	BitsSelection	bits;	// bits selection
-} PortSelection;
+};
 
 typedef struct Connector_struct { // specifies the receiving unique part of a routing
 	BitsSelection srcBits; // specifies the bits of the output port to be connected
@@ -204,118 +205,6 @@ public:
 
 	// Called by a other device when the device is asked to process/transform data.
 	virtual bool getDeviceData(uint8_t dIn, uint8_t& dOut) { dOut = 0xff;  return false; }
-
-};
-
-class Devices {
-
-private:
-
-	vector<Device*> mDevices;
-	vector<MemoryMappedDevice*> mMemoryMappedDevices;
-	DebugManager *mDM = NULL;
-
-	string getFileName(string& path, stringstream& sin);
-	uint16_t getHexVal(stringstream& sin);
-	double getDoubleVal(stringstream& sin);
-	int getIntVal(stringstream& sin);
-
-public:
-
-	Devices(
-		VideoSettings videoSettings,
-		string memMapFile, double &cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, Resolution disRes, DebugManager  *debugManager,
-		Program program, Program data, ConnectionManager &connectionManager, P6502* &microprocessor, VideoDisplayUnit* &vdu,
-		vector<Device *> &fieldScheduledDevices, vector<Device*> &halfLineScheduledDevices, vector<Device*> &instructionScheduledDevices
-	);
-
-	~Devices();
-
-	bool getPeripherals(vector<Device*> &devices);
-	bool getOtherDevices(vector<Device*> &devices);
-	bool getMemoryMappedDevices(vector<MemoryMappedDevice*> &devices);
-	bool getMemoryDevices(vector<MemoryMappedDevice*>& devices);
-	bool getRAMs(vector<RAM*>& devices);
-	bool getZPMemDevice(MemoryMappedDevice*& zpMem);
-
-	bool loadData(Program data);
-
-
-	bool getDevice(string name, Device * &device) {
-		device = NULL;
-		for (int i = 0; i < mDevices.size(); i++) {
-			if (mDevices[i]->name == name) {
-				device = mDevices[i];
-				return true;
-			}
-		}
-		return false;
-	}
-
-	//
-	// Find a device of a certain type.
-	// If more thn one device of this type is found,
-	// the first one is returned but an error is also indicated.
-	//
-	bool getDevice(DeviceId id, Device*& device) {
-		bool found = false;
-		device = NULL;
-		for (int i = 0; i < mDevices.size(); i++) {
-			if (mDevices[i]->devType == id) {
-				if (!found) {
-					device = mDevices[i];
-					found = true;
-				}
-				else
-					return false;
-			}
-		}
-		return found;
-	}
-
-	int size() { return (int) mDevices.size(); }
-
-	// Non-intrusive reading of the memory location of a device.
-	// If no memory-mapped device exists at the specified address,
-	// the method will return false.
-	bool dumpDeviceMemory(uint16_t adr, uint8_t& data);
-
-
-};
-
-class ConnectionManager {
-
-private:
-
-	//map<int, Routing>					mRouting;		// each output will have a device-independent unique index which is used to lookup the routing
-	Devices*							mDevices = NULL;
-	map<Device*, map<int,DevicePort*>>	mDevicePorts;	// device port to global index mapping
-	int									mDevicePortIndex = 0;
-
-
-	DebugManager *mDM = NULL;
-	
-
-public:
-
-	bool extractPort(string name, PortSelection& port);
-	void printRouting();
-	string printDevicePort(DevicePort * device_port);
-	string printPortSelection(PortSelection & port_selection);
-
-	ConnectionManager(DebugManager  *debugManager);
-	~ConnectionManager();
-
-	void setDevices(Devices* devices);
-
-	// Used by a device to make a port available for routing
-	bool addDevicePort(Device* dev, DevicePort *localPort);
-
-	// Based on the device-independent unique index of a device's output, propagate the update to all connected devices
-	//bool receiveUpdate(Device *dev, int index, uint8_t val);
-
-	// Connect one device's output with the input of another device
-	bool connect(string srcName, string dstName, bool invert, bool process);
 
 };
 

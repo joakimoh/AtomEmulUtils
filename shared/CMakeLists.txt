@@ -2,11 +2,13 @@ add_library(
 	shared
 	"Codec6502.cpp" "P6502.cpp" "VIA6522.cpp" "VDU6847.cpp" "PIA8255.cpp" "ROM.cpp" "RAM.cpp" "Device.cpp" "TapeRecorder.cpp" "AtomSpeaker.cpp" "VideoDisplayUnit.cpp"
 	"AtomKeyboardDevice.cpp" "ConnectionManager.cpp" "Tokeniser.cpp" "MemoryMappedDevice.cpp" "AtomCUTSInterface.cpp" "CSWCodec.cpp" "zpipe.cpp" "GUI.cpp"
-	"SoundDevice.cpp" "CRTC6845.cpp" "TT5050.cpp" "BeebRomSel.cpp" "ACIA6850.cpp" "DebugManager.cpp" "BeebSerialULA.cpp"
+	"SoundDevice.cpp" "CRTC6845.cpp" "TT5050.cpp" "BeebRomSel.cpp" "ACIA6850.cpp" "DebugManager.cpp" "BeebSerialULA.cpp" "Devices.cpp"
+	"VideoSettings.cpp" "TI4689.cpp" "BeebViaLatch.cpp" "VideoDisplayUnit.cpp" "BeebVideoULA.cpp" "BeebKeyboard.cpp" "Utility.cpp"
 	"Codec6502.h" "P6502.h" "VIA6522.h" "AtomKeyboardDevice.h" "MemoryMappedDevice.h" "AtomCUTSInterface.h" "CSWCodec.h" "SoundDevice.h" "BeebVideoULA.h"
 	 "VDU6847.h"  "PIA8255.h"  "ROM.h"  "RAM.h" "Device.h" "Tokeniser.h" "DebugManager.h" "GUI.h" "TapeRecorder.h" "AtomSpeaker.h" "VideoDisplayUnit.h"
- "VideoDisplayUnit.h" "VideoDisplayUnit.cpp" "SoundDevice.h" "BeebVideoULA.cpp" "BeebKeyboard.cpp" "BeebKeyboard.h" "CRTC6845.h" "TT5050.h"
- "BeebRomSel.h"  "ACIA6850.h" "Utility.h" "Utility.cpp" "BeebSerialULA.h" "VideoSettings.h" "VideoSettings.cpp" "TI4689.cpp" "BeebViaLatch.cpp")
+	"VideoDisplayUnit.h" "SoundDevice.h"  "BeebKeyboard.h" "CRTC6845.h" "TT5050.h"
+	"BeebRomSel.h"  "ACIA6850.h" "Utility.h"  "BeebSerialULA.h" "VideoSettings.h" 
+	 "ConnectionManager.h"  "Devices.h")
 
 # Locate zlib
 find_package(ZLIB REQUIRED)
