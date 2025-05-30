@@ -40,7 +40,7 @@ bool ACIA6850::read(uint16_t adr, uint8_t& data)
 
 
 	
-	if (true || mSR != p_SR || mCR != p_CR)
+	if (mIRQ == 0 || mSR != p_SR || mCR != p_CR)
 		updateIRQ();
 
 	return true;
@@ -194,7 +194,7 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 
 	update_settings();
 
-	if (true || mSR != p_SR || mCR != p_CR)
+	if (mIRQ == 0 || mSR != p_SR || mCR != p_CR)
 		updateIRQ(); // Update IRQ line based on condition bits and interrupt enable status
 
 	return true;
@@ -426,7 +426,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 
 		}
 
-		if (true || mSR != p_SR || mCR != p_CR)
+		if (mIRQ == 0 || mSR != p_SR || mCR != p_CR)
 			updateIRQ();
 
 		mCycleCount++;
@@ -474,7 +474,7 @@ void ACIA6850::processPortUpdate(int index)
 		pCTS = mCTS;
 	}
 
-	if (true || mSR != p_SR || mCR != p_CR)
+	if (mIRQ == 0 || mSR != p_SR || mCR != p_CR)
 		updateIRQ();
 
 }
