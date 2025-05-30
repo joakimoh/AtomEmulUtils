@@ -349,17 +349,23 @@ bool ACIA6850::advance(uint64_t stopCycle)
 		}
 
 		if (mCycleCount % mTxDivCycles == 0) { // Internal Tx DIV clock rate
-			if (mTxPending && mTxState == NO_BIT) {
-				mTxState = START_BIT;			
-				mTxPending = false;
+			if (mTxState == NO_BIT) {
+				if (mTxPending) {
+					mTxState = START_BIT;
+					mTxPending = false;
+				}
+				else if (mTxD != 1) {
+					// Make output high before a potential later start bit
+					updatePort(TxD, 1);
+				}
 			}
 			switch (mTxState) {
 			case START_BIT:
 			{
-				updatePort(TxD, 0);
-				mSentStopBits = 0;
 				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 					cout << "ACIA writes start bit\n";
+				updatePort(TxD, 0);
+				mSentStopBits = 0;
 				mTxState = DATA_BIT;
 				mTxBits = 0;
 				if (mParity == 0)
@@ -371,9 +377,9 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			}
 			case DATA_BIT:
 			{
-				updatePort(TxD, mTDR & 0x1);
 				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-					cout << "ACIA writes data bit '" << (int) mTxD << "'\n";
+					cout << "ACIA writes data bit '" << (int)(mTDR & 0x1) << "'\n";
+				updatePort(TxD, mTDR & 0x1);
 				mTDR = (mTDR >> 1) & 0x7f;
 				mTxPar ^= mTxD;
 				mTxBits++;
@@ -394,9 +400,9 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			}
 			case STOP_BIT:
 			{
-				updatePort(TxD, 1);
 				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
 					cout << "ACIA writes stop bit\n";
+				updatePort(TxD, 1);
 				mSentStopBits++;
 				if (mSentStopBits == mStopBits) {
 					mTxState = NO_BIT;

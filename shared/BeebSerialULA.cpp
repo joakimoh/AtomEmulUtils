@@ -352,10 +352,10 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 							updatePort(CAS_OUT, 1 - mCAS_OUT);
 							mHalfCycleCnt++;
 						}
-
-					cout << "Serial ULA starts " << (mTxD == 0 ? "Low Tone" : "High Tone") << " after " << dec << mHalfCycleCnt << " 1/2 cycles of different tone\n";
-					cout << "Same level duration was " << dec << mBitDurationCnt << " cycles\n";
-					if (mTxD == 0)
+					if (DBG_LEVEL(DBG_IO_PERIPHERAL)) {
+						cout << "\nSerial ULA starts " << (mTxD == 0 ? "Low Tone" : "High Tone") << " after " << dec << mHalfCycleCnt << " 1/2 cycles of different tone\n";
+						cout << "Same level duration was " << dec << mBitDurationCnt << " cycles\n";
+					}if (mTxD == 0)
 						mToneHalfCycleDuration = mLowToneHalfCycleDuration;
 					else
 						mToneHalfCycleDuration = mHighToneHalfCycleDuration;
@@ -367,8 +367,10 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					mBitDurationCnt++;
 					mToneCnt++;
 					if (mToneCnt == mToneHalfCycleDuration) {
-						cout << (mToneHalfCycleDuration == mHighToneHalfCycleDuration ? "H" : "L");
-						cout << dec << mToneCnt << " ";
+						if (DBG_LEVEL(DBG_IO_PERIPHERAL)) {
+							cout << (mToneHalfCycleDuration == mHighToneHalfCycleDuration ? "H" : "L");
+							cout << dec << mToneCnt << " ";
+						}
 						updatePort(CAS_OUT, 1 - mCAS_OUT);
 						mToneCnt = 0;
 						mHalfCycleCnt++;
@@ -386,9 +388,9 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 
 			// Consider a too long same level input as loss of carrier
 			if (mLevelCnt > mLowToneHalfCycleDurationMax && mDCD == DCD_ACTIVE) {			
-				if (mDCD == DCD_ACTIVE) {
-					//cout << "Carrier lost  at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
-					//cout << "DCD -> HIGH at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
+				if (DBG_LEVEL(DBG_IO_PERIPHERAL) && mDCD == DCD_ACTIVE) {
+					cout << "\nCarrier lost  at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
+					cout << "\nDCD -> HIGH at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
 				}				
 				updatePort(DCD, DCD_INACTIVE);
 				mHighToneHalfCycles = 0;

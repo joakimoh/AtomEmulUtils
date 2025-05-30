@@ -288,7 +288,7 @@ bool CSWCodec::openTapeFileW(string& filePath)
 
     mTapeFilePath = filePath;
 
-    //if (DBG_LEVEL(DBG_VERBOSE))
+    if (DBG_LEVEL(DBG_VERBOSE))
         cout << "Pulses will be written to file '" << filePath << "'\n";
 
     return true;
@@ -297,7 +297,7 @@ bool CSWCodec::openTapeFileW(string& filePath)
 bool CSWCodec::closeTapeFileW()
 {
     if (mPulses.size() == 0) {
-        //if (DBG_LEVEL(DBG_VERBOSE))
+        if (DBG_LEVEL(DBG_VERBOSE))
             cout << "No pulses to write when closing file!\n";
         return false;
     }
