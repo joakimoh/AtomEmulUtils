@@ -202,17 +202,23 @@ bool CRTC6845::updateOutputs()
 {
 
 	// Check for Vertical Sync Output
-	if (mCharRow >= mVSyncRow_R7 && mCharRow < mVSyncRow_R7 + mVSyncPulseH_R3)
-		updatePort(VS, 0x1);
-	else
-		updatePort(VS, 0x0);
+	if (mCharRow >= mVSyncRow_R7 && mCharRow < mVSyncRow_R7 + mVSyncPulseH_R3) {
+		if (mVS == 0)
+			updatePort(VS, 0x1);
+	}
+	else {
+		if (mVS == 1)
+			updatePort(VS, 0x0);
+	}
 
 	// Check for Horizontal Sync Output
 	if (mCharCol >= mHzSyncPos_R2 && mCharCol < mHzSyncPos_R2 + mHzSyncPulseW_R3) {
-		updatePort(HS, 0x1);
-	}
+		if (mHS == 0)
+			updatePort(HS, 0x1);
+	}	
 	else {
-		updatePort(HS, 0x0);
+		if (mHS == 1)
+			updatePort(HS, 0x0);
 	}
 
 	//

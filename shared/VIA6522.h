@@ -145,6 +145,9 @@ private:
 		IRA2  = 0xf, ORA2  = 0xf
 	};
 
+	uint8_t pPCR = mPCR;
+	uint8_t pACR = mACR;
+
 	double mClock = 1.0;
 
 	void updateIRQ();

@@ -153,16 +153,38 @@ bool ConnectionManager::connect(string srcName, string dstName, bool invert, boo
 	output_ref.srcPort = src_port.port;
 	output_ref.dstMask = dst_port.bits.mask;
 	dst_port.port->portSources.push_back(output_ref);
+	src_port.port->fanOut++;
+	dst_port.port->fanIn++;
+	if (dst_port.port->dir == PortDirection::IO_PORT) {
+		src_port.port->conToBiDirP = true;
+		//cout << "BIDIRECTIONAL CONNECTION " << src_port.port->dev->name << ":" << src_port.port->name << " => " <<
+		//	dst_port.port->dev->name << ":" << dst_port.port->name << "\n";
+	}
 
+	// Check for fan in on destination port
+	// Set arbitration flag on destination port if fan in > 1.
+	// Also set fan in flag on source port
+	bool arbitration = false;
 	if (dst_port.port->portSources.size() > 1) {
 		uint8_t dst_mask = 0xff;
 		for (int i = 0; i < dst_port.port->portSources.size(); i++) {
 			dst_mask &= dst_port.port->portSources[i].dstMask;
 			//cout << "*** " << dst_port.port->portSources[i].srcPort->name << " mask: " << hex << (int) dst_port.port->portSources[i].dstMask << "\n";
 		}
-		dst_port.port->arbitration = (dst_mask != 0);
+		arbitration = arbitration || (dst_mask != 0);
+		dst_port.port->arbitration = arbitration;
+		if (arbitration)
+			src_port.port->dstFanIn = true;
 		//cout << "*** arbitration = " << (int)dst_port.port->arbitration << " as mask became 0x" << hex << (int) dst_mask << "\n\n";
 	}
+	if (arbitration) {
+		for (int i = 0; i < dst_port.port->portSources.size(); i++) {
+			auto& sp = dst_port.port->portSources[i].srcPort;
+			dst_port.port->portSources[i].srcPort->dstFanIn = true;
+			//cout << "ARBITRATION " << sp->dev->name << ":" << sp->name << " => " << dst_port.port->dev->name << ":" << dst_port.port->name << "\n";
+		}
+	}
+	
 
 	if (DBG_LEVEL(DBG_VERBOSE))
 		cout << "CONNECT " << srcName << " AND " << dstName << " => shifts = " << dec << input_ref.shifts << ", mask = 0x" <<

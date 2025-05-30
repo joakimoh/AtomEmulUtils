@@ -344,11 +344,10 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 		// Stretch 12-pixel wide sixel/character raster line into 16 pixels
 		// Also scale the BGR values from the initial range 0:1 to the range 0:255
 		//
-
+		TTColour pixel_colour;
 		for (int i = 0; i < 16; i++) {
 				uint8_t val = screenData12[mStretchMatrix[i].srcLeftPixel] * mStretchMatrix[i].leftFactor +
-					screenData12[mStretchMatrix[i].srcRightPixel] * mStretchMatrix[i].rightFactor;
-				TTColour pixel_colour;
+					screenData12[mStretchMatrix[i].srcRightPixel] * mStretchMatrix[i].rightFactor;			
 				if (val > 0) {
 					pixel_colour.B = val * foreground_colour.B;
 					pixel_colour.G = val * foreground_colour.G;

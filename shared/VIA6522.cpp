@@ -105,10 +105,10 @@ bool VIA6522::advance(uint64_t stopCycle)
 			DBG_LOG(this, DBG_IO_PERIPHERAL, "CA1 = " + to_string(mCA & 0x1) + ", CA2 = " + to_string((mCA >> 1) & 0x1) + "\n");
 		}
 
-		if (ACR_PA_LATCH && (mCA & 0x1)) // PA shall be latched on a high CA1
+		if (ACR_PA_LATCH && CA1) // PA shall be latched on a high CA1
 			mPA_latched = mPA;
 
-		if (ACR_PB_LATCH && (mCB & 0x1)) // PB shall be latched on a high CB1
+		if (ACR_PB_LATCH && CB1) // PB shall be latched on a high CB1
 			mPB_latched = mPB;
 
 		// Shift Register Function
@@ -397,6 +397,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 		pCB = mCB;
 		pPA = mPA;
 		pPB = mPB;
+		pPCR = mPCR;
+		pACR = mACR;
 
 		pTimer1Counter = mTimer1Counter;
 		pTimer2Counter = mTimer2Counter;

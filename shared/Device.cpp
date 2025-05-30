@@ -93,9 +93,26 @@ bool Device::updatePort(int index, uint8_t val)
 	if (index < 0 && index >= mPorts.size())
 		return false;
 
-	*(mPorts[index]->val) = val;
-	if (mPorts[index]->inputs.size() > 0) {
-		if (!updateConnectedPorts(mPorts[index]->inputs, val, mPorts[index]))
+	DevicePort &port = *mPorts[index];
+
+
+	// No need to propagate value if there are no connected port...
+	if (port.fanOut < 1)
+		return true;
+
+	uint8_t& pval = *port.val;
+
+	// No need to progate value if it is unchanged unless connected to a  destination port that is either bidirectional or with fan in > 1
+	// (the latter requires arbitration).
+	if (pval == val && !(port.conToBiDirP || port.dstFanIn)) {
+		//cout << port.dev->name << ":" << port.name << " " << hex << (int)pval << " => " << (int)val << (port.conToBiDirP ? " [I/O] " : " ") << dec << 
+		//	(port.dstFanIn?"DST FAN IN>1":"") << "\n";
+		return true;
+	}
+
+	pval = val;
+	if (port.inputs.size() > 0) {
+		if (!updateConnectedPorts(port.inputs, val, &port))
 			return false;
 	}
 

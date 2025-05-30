@@ -82,7 +82,11 @@ public:
 	uint8_t	*				val;					// pointer to variable holding the port's value
 	vector<InputReference>	inputs;					// connected inputs (used only if the port is an output port)
 	vector<OutputReference> portSources;			// Connected outputs - used if more than one device connects to a port (e.g., an IRQ input connected to many devices)
-	bool					arbitration = false;	// true if more than one device is connected at least one bit slice of the port
+	bool					arbitration = false;	// true if more than one device is connected to at least to one bit slice of the port (for a destination port)
+	int						fanOut = 0;				// The no of destination ports connected to the device port (for a source port)
+	int						fanIn = 0;				// The no of source ports connected to the device port (for a destination port)
+	bool					dstFanIn = 0;			// True if more than one source port is connected to the destination port (for a source port)
+	bool					conToBiDirP = false;	// True if at least one bidirectional destination port is connected
 };
 
 typedef struct BitsSelection_struct {
