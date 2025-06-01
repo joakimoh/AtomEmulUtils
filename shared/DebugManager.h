@@ -142,7 +142,8 @@ private:
 	int mMatchY = -1;
 	int mMatchA = -1;
 
-	vector <LogPort> mLogPorts;
+	vector <LogPort> mTmpLogPorts;
+	vector <DevicePort*> mLogPorts;
 
 	DebugLevel mDbgLevel = DBG_NONE;
 

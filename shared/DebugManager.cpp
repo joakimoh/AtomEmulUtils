@@ -93,7 +93,7 @@ void DebugManager::setDebugPort(string portDevice, string port)
 {
 	mDbgLevel |= DBG_PORT;
 	LogPort log_port = { portDevice, port };
-	mLogPorts.push_back(log_port);
+	mTmpLogPorts.push_back(log_port);
 	//cout << "Logging added for device '" << portDevice << "' and port '" << port << "'\n";
 }
 
@@ -101,9 +101,14 @@ bool DebugManager::matchPort(DevicePort* port)
 {
 	if (mLogPorts.size() == 0)
 		return true;
+	
+	if (port == NULL || port->dev == NULL) {
+		cout << "INTERNAL ERROR in matchPort()!\n";
+		return true;
+	}
 
 	for (int i = 0; i < mLogPorts.size();i++) {
-		if (port != NULL && port->dev != NULL && port->dev->name == mLogPorts[i].device && port->name == mLogPorts[i].port)
+		if (port == mLogPorts[i])
 			return true;
 	}
 	return false;
@@ -281,13 +286,16 @@ bool DebugManager::setDevices(Devices * devices)
 	if (devices == NULL)
 		return false;
 
-	for (int i = 0; i < mLogPorts.size(); i++) {
+	for (int i = 0; i < mTmpLogPorts.size(); i++) {
+		string dev_name = mTmpLogPorts[i].device;
+		string port_name = mTmpLogPorts[i].port;
 		Device* dev;
 		DevicePort* device_port;
-		if (!mDevices->getDevice(mLogPorts[i].device, dev) || !dev->getPortIndex(mLogPorts[i].port, device_port)) {
-			cout << "Port " << mLogPorts[i].device << ":" << mLogPorts[i].port << " doesn't exist!\n";
+		if (!mDevices->getDevice(dev_name, dev) || !dev->getPortIndex(port_name, device_port)) {
+			cout << "Port " << dev_name << ":" << port_name << " doesn't exist!\n";
 			return false;
 		}
+		mLogPorts.push_back(device_port);
 	}
 }
 
