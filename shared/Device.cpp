@@ -108,10 +108,9 @@ bool Device::updatePort(int index, uint8_t val)
 	// Get reference to the current source port value
 	uint8_t& port_val = *port.val;
 
-	// No need to progate value if it is unchanged unless connected to a destination port that is either 
-	// - bidirectional (a change of the dst port from IN->OUT->IN would then require it to be updated to "get back" the old src port value) or
-	// - with fan in > 1 (this needs to trigger an arbitration)
-	if (port_val == val && !(port.conToBiDirP)){// || port.dstFanIn)) {
+	// No need to progate value if the source port is unchanged unless connected to a destination port that is bidirectional.
+	// (A change of the dst port from IN->OUT->IN would then require it to be updated to "get back" the old src port value.)
+	if (port_val == val && !port.conToBiDirP){
 		//cout << port.dev->name << ":" << port.name << " " << hex << (int)pval << " => " << (int)val << (port.conToBiDirP ? " [I/O] " : " ") << dec << 
 		//	(port.dstFanIn?"DST FAN IN>1":"") << "\n";
 		return true;
@@ -212,13 +211,13 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 			}
 			//cout << "ARBITRATED VALUE BECAME 0x" << hex << (int)aval << "\n";
 
-			*dst_val_p = aval;
+			*dst_val_p = aval & dst_mask;
 		}
 		else { // Only one source device connected to the port => arbitration not needed
 			*dst_val_p = nval;
 		}
 #ifdef DBG_ON
-		if (mDM->matchPort(dstPort.port) && DBG_LEVEL(DBG_PORT) && *(dstPort.port->val) != pval) {
+		if (DBG_LEVEL(DBG_PORT) && mDM->matchPort(dstPort.port) && *dst_val_p != pval) {
 			string shift_s, c_dir;
 			if (dstPort.shifts >= 0)
 				shift_s = "((src >> shifts) & mask)";

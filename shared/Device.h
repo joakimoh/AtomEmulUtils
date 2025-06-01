@@ -64,7 +64,7 @@ typedef struct InputReference_struct {
 // Reference to a source port by a destination port - only used for port arbitration
 typedef struct OutputReference_struct {
 	DevicePort* srcPort;			// Reference to a source port
-	uint8_t		dstVal = 0x1;		// Requested value for the destination port based on the source port value
+	uint8_t		dstVal = 0xff;		// Requested value for the destination port based on the source port value
 	uint8_t		dstMask = 0xff;		// Bit mask specifying the bits of the destination port connected to the source port
 } OutputReference;
 
