@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <iostream>
 #include <string.h>
+#include "../shared/Tokeniser.h"
 
 using namespace std;
 
@@ -57,7 +58,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "\t(as -ctrace <hex adr> 0 0 but faster)\n\n";
 	cout << "-ilog <hex adr>:\n\tStart logging instruction execution after an interrupt and when execution reaches the specified address\n";
 	cout << "-mlog <adr>:\n\tmemory concent to add along with the log\n\n";
-	cout << "-port <device name> <port name>\n\tlog updates of a specific port\n";
+	cout << "-port <device name>:<port name> {, <device_name:<port name>\n\tlog updates of specific ports\n";
 	cout << "-dbg <string with one or more of the letters below>: Debugging of different detail.\n";
 	cout << "\t'e' errors\n";
 	cout << "\t'w' warnings\n";
@@ -222,12 +223,22 @@ ArgParser::ArgParser(int argc, const char* argv[])
 				debugManager.setDebugLevel(DBG_ALL);
 		}
 		else if (strcmp(argv[a], "-port") == 0) {
-			a += 2;;
+			a++;
 			if (a >= argc) {
 				printUsage(argv[0]);
 				return;
 			}
-			debugManager.setDebugPort(argv[a - 1], argv[a]);
+			Tokeniser dev_tok(argv[a], ',');
+			string device_port_s;
+			while (dev_tok.nextToken(device_port_s)) {
+				Tokeniser port_tok(device_port_s, ':');
+				string device, port;
+				if (!port_tok.nextToken(device) || !port_tok.nextToken(port)) {
+					printUsage(argv[0]);
+					return;
+				}
+				debugManager.setDebugPort(device, port);
+			}
 		}
 		else {
 			cout << "Unknown option " << argv[a] << "\n";

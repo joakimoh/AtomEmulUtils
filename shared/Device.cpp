@@ -93,37 +93,48 @@ bool Device::updatePort(int index, uint8_t val)
 	if (index < 0 && index >= mPorts.size())
 		return false;
 
+	// Get reference to the source port
 	DevicePort &port = *mPorts[index];
 
-
-	// No need to propagate value if there are no connected port...
+	// No need to propagate value if there are no connected ports...
 	if (port.fanOut < 1)
 		return true;
 
-	uint8_t& pval = *port.val;
+	if (port.dir == IN_PORT) {
+		cout << "ERROR - attempt to use the INPUT port '" << port.dev->name << ":" << port.name << "' as an output port!\n";
+		return false;
+	}
 
-	// No need to progate value if it is unchanged unless connected to a  destination port that is either bidirectional or with fan in > 1
-	// (the latter requires arbitration).
-	if (pval == val && !(port.conToBiDirP || port.dstFanIn)) {
+	// Get reference to the current source port value
+	uint8_t& port_val = *port.val;
+
+	// No need to progate value if it is unchanged unless connected to a destination port that is either 
+	// - bidirectional (a change of the dst port from IN->OUT->IN would then require it to be updated to "get back" the old src port value) or
+	// - with fan in > 1 (this needs to trigger an arbitration)
+	if (port_val == val && !(port.conToBiDirP)){// || port.dstFanIn)) {
 		//cout << port.dev->name << ":" << port.name << " " << hex << (int)pval << " => " << (int)val << (port.conToBiDirP ? " [I/O] " : " ") << dec << 
 		//	(port.dstFanIn?"DST FAN IN>1":"") << "\n";
 		return true;
 	}
-
-	pval = val;
-	if (port.inputs.size() > 0) {
-		if (!updateConnectedPorts(port.inputs, val, &port))
-			return false;
+#ifdef DBG_ON
+	if (DBG_LEVEL(DBG_PORT) && mDM->matchPort(&port) && port_val != val) {
+		DBG_LOG(this, DBG_PORT, "SRC PORT '" + port.dev->name + ":" + port.name + " " + to_string(port_val) + " => " + to_string(val) + "\n");
 	}
+#endif
+	// Update the source port value with the new value
+	port_val = val;
 
-	return true;
+	
+
+	// Update the destination ports based on the new value
+	return updateConnectedPorts(port.inputs, val, &port);
 }
 
 bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_t val, DevicePort *port)
 {
 	
 	for (int i = 0; i < connectedPorts.size(); i++) {
-		InputReference input = connectedPorts[i];
+		InputReference &input = connectedPorts[i];
 		uint8_t pval = *(input.port->val);
 		uint8_t nval = val;
 		if (input.invert)
@@ -187,11 +198,14 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 
 			for (int i = 0; i < dstPort.port->portSources.size(); i++) {
 				OutputReference &src_ref = dstPort.port->portSources[i];
+
+				// Update the destination port's input - only for the source port which was updated upon entering updatePort()
 				if (src_ref.srcPort == srcPort) {
 					src_ref.dstVal = nval_or;
 					//cout << "*";
 				}
-				// update destination port's source port entry with new requested value		
+
+				// update arbitrated value	
 				aval &= src_ref.dstVal | ~src_ref.dstMask; // arbitrate with each source port's value
 				//cout << "SOURCE PORT " << src_ref.srcPort->dev->name << ":" << src_ref.srcPort->name << " = 0x" << hex << (int) src_ref.dstVal <<
 				//	" (mask 0x" << (int)src_ref.dstMask << ")\n";
@@ -203,17 +217,14 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 		else { // Only one source device connected to the port => arbitration not needed
 			*dst_val_p = nval;
 		}
-#ifdef DGB_ON
-		if (/*dstPort.port->arbitration ||*/ (
-			mDM->matchPort(dstPort.port) &&
-			(DBG_LEVEL(DBG_PORT) && *(dstPort.port->val) != pval)
-			)) {
+#ifdef DBG_ON
+		if (mDM->matchPort(dstPort.port) && DBG_LEVEL(DBG_PORT) && *(dstPort.port->val) != pval) {
 			string shift_s, c_dir;
 			if (dstPort.shifts >= 0)
 				shift_s = "((src >> shifts) & mask)";
 			else
 				shift_s = "((src << shifts) & mask)";
-			cout << this->name << ":" << srcPort->name << " = 0x" << hex << (int)srcVal << " => " <<
+			cout << "SRC PORT " << this->name << ":" << srcPort->name << " = 0x" << hex << (int)srcVal << " => DST PORT " <<
 				dstPort.port->dev->name << ":" << dstPort.port->name << " = " <<
 				dstPort.port->name << " &  ~mask | " << shift_s << " = 0x" << hex <<
 				(int)pval << " & 0x" << hex << setfill('0') << setw(2) << (int)(uint8_t)(~dst_sel_mask) << " | ((0x" << hex << (int)nval <<

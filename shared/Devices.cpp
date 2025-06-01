@@ -188,7 +188,7 @@ Devices::Devices(
 				// Microcontrollers
 				//
 
-				else if (dev_type == "UC6502") {
+				else if (dev_type == "CPU_6502") {
 
 					microprocessor = new P6502(dev_name, cpuClock, mDM, &connection_manager);
 					mDevices.push_back(microprocessor);

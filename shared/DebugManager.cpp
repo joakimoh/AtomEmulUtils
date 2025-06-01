@@ -92,13 +92,21 @@ void DebugManager::setDebugLevel(DebugLevel level)
 void DebugManager::setDebugPort(string portDevice, string port)
 {
 	mDbgLevel |= DBG_PORT;
-	mPortDevice = portDevice;
-	mPort = port;
+	LogPort log_port = { portDevice, port };
+	mLogPorts.push_back(log_port);
+	cout << "Logging added for device '" << portDevice << "' and port '" << port << "'\n";
 }
 
 bool DebugManager::matchPort(DevicePort* port)
 {
-	return (mPortDevice == "" || (port != NULL && port->dev != NULL && port->dev->name == mPortDevice && port->name == mPort));
+	if (mLogPorts.size() == 0)
+		return true;
+
+	for (int i = 0; i < mLogPorts.size();i++) {
+		if (port != NULL && port->dev != NULL && port->dev->name == mLogPorts[i].device && port->name == mLogPorts[i].port)
+			return true;
+	}
+	return false;
 }
 
 void DebugManager::clearDebugLevel(DebugLevel level)

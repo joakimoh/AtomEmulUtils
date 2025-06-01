@@ -21,7 +21,7 @@ ADD	VIA6522			SYS_VIA		fe40	0020	1			1.0			// IC3	fe40 -	fe4f; 1 Mhz Clock
 //ADD	ADC7002		ADC			fec0	0003	1						// ADC Converter
 
 ADD	BEEBKB			KB		00											// startup options (DIP switches)
-ADD	UC6502			UC													// Microcontroller 6502
+ADD	CPU_6502		CPU													// Microprocessor 6502
 ADD	TAPREC			TAPREC												// Standard Tape Recorder
 ADD	TI4689			SOUND
 ADD	BEEBVIALATCH	VIAL												// System VIA Latch with 8 outputs, each updated by writing to Port B bits 3:0
@@ -55,7 +55,7 @@ CONNECT:P	VIAL:Q;5;4			VDU:C
 CONNECT 	VDU:CRTC_CLK		CRTC:CLK
 
 // VIA IRQ
-CONNECT 	SYS_VIA:IRQ			UC:IRQ			// VIA generates 100 Hz timer interrupts and more
+CONNECT 	SYS_VIA:IRQ			CPU:IRQ			// VIA generates 100 Hz timer interrupts and more
 
 // Keyboard connections
 CONNECT:P	VIAL:Q;3			KB:ENA			// Connect System VIA Latch Q3 (value set by writing to System VIA Port B) to KB ENA
@@ -63,7 +63,7 @@ CONNECT:P 	SYS_VIA:PA;3;0		KB:COL_SEL		// PA3:0 => COL_SEL
 CONNECT:P 	SYS_VIA:PA;6;4		KB:ROW_SEL		// PA6:4 => ROW_SEL
 CONNECT 	KB:ROW				SYS_VIA:PA;7	// ROW => PA7
 CONNECT 	KB:PRESSED			SYS_VIA:CA;1	// PRESSED = CA2
-CONNECT 	KB:BREAK			UC:RESET		// Connect BREAK key to uC RESET input 
+CONNECT 	KB:BREAK			CPU:RESET		// Connect BREAK key to uC RESET input 
 
 
 // CUTS <=> Tape Recorder Connections
@@ -74,7 +74,7 @@ CONNECT:P	ACIA:RTS			SerialULA:RTSI		// Connect the ACIA RTS to the Serial ULA w
 CONNECT		SerialULA:RxD		ACIA:RxD			// Connect the Serial ULA Rx data to the ACIA
 CONNECT:P	SerialULA:CTSO		ACIA:CTS			// Connect the Serial ULA CTS to the ACIA with direct processing on update
 CONNECT:P	SerialULA:DCD		ACIA:DCD			// Connect the Serial ULA DCD to the ACIA with direct processing on update
-CONNECT		ACIA:IRQ			UC:IRQ
+CONNECT		ACIA:IRQ			CPU:IRQ
 
 //
 //	Device scheduling

@@ -61,10 +61,10 @@ typedef struct InputReference_struct {
 	bool			process = false;		// If true, the receiving device's process method will be called in addition to updating the port value
 } InputReference;
 
-// Reference to a source port by a destination port
+// Reference to a source port by a destination port - only used for port arbitration
 typedef struct OutputReference_struct {
 	DevicePort* srcPort;			// Reference to a source port
-	uint8_t		dstVal = 0x0;		// Requested value for the destination port based on the source port value
+	uint8_t		dstVal = 0x1;		// Requested value for the destination port based on the source port value
 	uint8_t		dstMask = 0xff;		// Bit mask specifying the bits of the destination port connected to the source port
 } OutputReference;
 

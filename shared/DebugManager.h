@@ -66,6 +66,11 @@ typedef int DebugLevel;
 
 #endif
 
+typedef struct LogPort_struct {
+	string device;
+	string port;
+} LogPort;
+
 typedef struct InstrLogData_struct {
 	double logTime = 0;
 	Codec6502::InstructionInfo instr;
@@ -136,10 +141,8 @@ private:
 	int mMatchX = -1;
 	int mMatchY = -1;
 	int mMatchA = -1;
-	
-	string mPortDevice = "";
-	string mPort = "";
 
+	vector <LogPort> mLogPorts;
 
 	DebugLevel mDbgLevel = DBG_NONE;
 
