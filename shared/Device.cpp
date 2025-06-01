@@ -147,7 +147,7 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 
 		InputReference &input = connectedPorts[i];
 
-		// Skip destination ports that are not bidirectional for unchanged source port values
+		// Skip destination ports that are not bidirectional for unchanged source ports
 		if (!changed && input.port->dir == IN_PORT)
 			continue;
 
@@ -215,6 +215,7 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 			//cout << "\nABRITRATION FOR PORT " << dstPort.port->dev->name << ":" << dstPort.port->name << " = 0x" << hex << (int) pval << "\n";
 
 			for (int i = 0; i < dstPort.port->portSources.size(); i++) {
+
 				OutputReference &src_ref = dstPort.port->portSources[i];
 
 				// Update the destination port's input - only for the source port which was updated upon entering updatePort()
