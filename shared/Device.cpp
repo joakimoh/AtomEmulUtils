@@ -114,7 +114,7 @@ bool Device::updatePort(int index, uint8_t val)
 
 	// Check that the source port is not an input port
 	if (port.dir == IN_PORT) {
-		cout << "ERROR - attempt to use the INPUT port '" << port.dev->name << ":" << port.name << "' as an output port!\n";
+		cout << "INTERNAL ERROR - attempt to use the INPUT port '" << port.dev->name << ":" << port.name << "' as an output port!\n";
 		return false;
 	}
 
@@ -123,11 +123,12 @@ bool Device::updatePort(int index, uint8_t val)
 
 	// No need to progate value if the source port is unchanged unless connected to a destination port that is bidirectional.
 	// (A change of the dst port from IN->OUT->IN would then require it to be updated to "get back" the old src port value.)
-	if (port_val == val && !port.conToBiDirP)
+	bool changed = (port_val != val);
+	if (!changed && !port.conToBiDirP)
 		return true;
 
 #ifdef DBG_ON
-	if (DBG_LEVEL(DBG_PORT) && mDM->matchPort(&port) && port_val != val) {
+	if (DBG_MATCH_PORT(&port) && changed) {
 		DBG_LOG(this, DBG_PORT, "SRC PORT '" + port.dev->name + ":" + port.name + " " + to_string(port_val) + " => " + to_string(val) + "\n");
 	}
 #endif
@@ -136,14 +137,20 @@ bool Device::updatePort(int index, uint8_t val)
 	port_val = val;
 
 	// Update the destination ports based on the new value
-	return updateConnectedPorts(port.inputs, val, &port);
+	return updateConnectedPorts(port.inputs, val, &port, changed);
 }
 
-bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_t val, DevicePort *port)
+bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_t val, DevicePort *port, bool changed)
 {
-	
+
 	for (int i = 0; i < connectedPorts.size(); i++) {
+
 		InputReference &input = connectedPorts[i];
+
+		// Skip destination ports that are not bidirectional for unchanged source port values
+		if (!changed && input.port->dir == IN_PORT)
+			continue;
+
 		uint8_t pval = *(input.port->val);
 		uint8_t nval = val;
 		if (input.invert)
@@ -229,7 +236,7 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 			*dst_val_p = nval;
 		}
 #ifdef DBG_ON
-		if (DBG_LEVEL(DBG_PORT) && mDM->matchPort(dstPort.port) && *dst_val_p != pval) {
+		if (DBG_MATCH_PORT(dstPort.port) && *dst_val_p != pval) {
 			string shift_s, c_dir;
 			if (dstPort.shifts >= 0)
 				shift_s = "((src >> shifts) & mask)";

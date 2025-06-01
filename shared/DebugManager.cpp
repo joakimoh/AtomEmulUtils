@@ -99,6 +99,10 @@ void DebugManager::setDebugPort(string portDevice, string port)
 
 bool DebugManager::matchPort(DevicePort* port)
 {
+	if ((mDbgLevel & DBG_PORT) == 0)
+		return false;
+
+	// If no ports were specifed (and for port debug enabled), a match will always be indicated
 	if (mLogPorts.size() == 0)
 		return true;
 	
@@ -297,6 +301,8 @@ bool DebugManager::setDevices(Devices * devices)
 		}
 		mLogPorts.push_back(device_port);
 	}
+
+	return true;
 }
 
 

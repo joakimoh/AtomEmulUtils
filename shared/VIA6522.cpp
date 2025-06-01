@@ -918,7 +918,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		mACR = data;
 		if (ACR_SR_CTRL != p_shift_mode)
 			registerPortDirChange(CB);
-		
+
 		break;
 	}
 	case PCR:

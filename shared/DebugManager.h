@@ -49,6 +49,7 @@ typedef int DebugLevel;
 #define DBG_ADR_INT_TRIGGER(...)	mDM->triggerInterruptLogging(__VA_ARGS__)
 #define DBG_ADR_TRIGGER(...)		mDM->triggerLogging(__VA_ARGS__)
 #define DBG_STOP(...)				mDM->triggerExecutionStop(__VA_ARGS__)
+#define DBG_MATCH_PORT(x)			mDM->matchPort(x)
 
 
 #else
@@ -63,6 +64,7 @@ typedef int DebugLevel;
 #define DBG_ADR_INT_TRIGGER(...)
 #define DBG_ADR_TRIGGER(...)
 #define DBG_STOP(...)				false
+#define DBG_MATCH_PORT(x)			false
 
 #endif
 
