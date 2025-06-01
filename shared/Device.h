@@ -87,7 +87,10 @@ public:
 	int						fanIn = 0;				// The no of source ports connected to the device port (for a destination port)
 	bool					dstFanIn = 0;			// True if more than one source port is connected to the destination port (for a source port)
 	bool					conToBiDirP = false;	// True if at least one bidirectional destination port is connected
+	bool					portDirChanged = false;	// True if the direction of a bidirectional port has been changed from IN to OUT since the last call of portUpdate()
 };
+
+#define _PORT_ID(x)	(x==NULL||x->dev==NULL?"???":(x->dev->name+":"+x->name))
 
 typedef struct BitsSelection_struct {
 	uint8_t mask = 0x0;	// specifies the bits of the I/O port to be connected
@@ -179,6 +182,9 @@ public:
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 	bool updatePort(int index, uint8_t val);
+
+	// Register that the direction of a bidirectional port (PORT_IO) has changed
+	bool registerPortDirChange(int index);
 
 	// In the case the port value need to be processed immediately (if the qualifier 'P' was added to 'CONNECT')
 	// then this method will be called for the device receiving the port update

@@ -332,6 +332,11 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 
 		uint8_t BSR_mode = 1 - ((data >> 7) & 0x1);
 
+		// Conservatively assume that an update of the CR results in a change in the direction of any of the ports A, B & C
+		registerPortDirChange(PIA_PORT_A);
+		registerPortDirChange(PIA_PORT_B);
+		registerPortDirChange(PIA_PORT_C);
+
 		if (!BSR_mode)
 		// Basic I/O (Mode 0), Strobed I/O (Mode 1) or Bi-directional bus (Mode 2)
 		{

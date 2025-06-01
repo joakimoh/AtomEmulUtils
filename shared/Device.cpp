@@ -81,6 +81,18 @@ bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &ind
 	return true;
 }
 
+// Used to mark a bidirectional port as having changed its direction (reset by updatePort() later)
+bool Device::registerPortDirChange(int index)
+{
+	if (index < 0 && index >= mPorts.size())
+		return false;
+
+	// Get reference to the source port
+	DevicePort& port = *mPorts[index];
+
+	port.portDirChanged = true;
+}
+
 //
 // Update each connected input port (dst) based on the output port (src)
 // 
@@ -100,6 +112,7 @@ bool Device::updatePort(int index, uint8_t val)
 	if (port.fanOut < 1)
 		return true;
 
+	// Check that the source port is not an input port
 	if (port.dir == IN_PORT) {
 		cout << "ERROR - attempt to use the INPUT port '" << port.dev->name << ":" << port.name << "' as an output port!\n";
 		return false;
@@ -110,20 +123,17 @@ bool Device::updatePort(int index, uint8_t val)
 
 	// No need to progate value if the source port is unchanged unless connected to a destination port that is bidirectional.
 	// (A change of the dst port from IN->OUT->IN would then require it to be updated to "get back" the old src port value.)
-	if (port_val == val && !port.conToBiDirP){
-		//cout << port.dev->name << ":" << port.name << " " << hex << (int)pval << " => " << (int)val << (port.conToBiDirP ? " [I/O] " : " ") << dec << 
-		//	(port.dstFanIn?"DST FAN IN>1":"") << "\n";
+	if (port_val == val && !port.conToBiDirP)
 		return true;
-	}
+
 #ifdef DBG_ON
 	if (DBG_LEVEL(DBG_PORT) && mDM->matchPort(&port) && port_val != val) {
 		DBG_LOG(this, DBG_PORT, "SRC PORT '" + port.dev->name + ":" + port.name + " " + to_string(port_val) + " => " + to_string(val) + "\n");
 	}
 #endif
+
 	// Update the source port value with the new value
 	port_val = val;
-
-	
 
 	// Update the destination ports based on the new value
 	return updateConnectedPorts(port.inputs, val, &port);
@@ -160,7 +170,7 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 //
 // Update a destinaton port based on a source port value
 //
-// Returns true if there was an change; otherwise false
+// Returns true if there was a change; otherwise false
 //
 bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal)
 {
@@ -185,6 +195,8 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 	// update on change or always for a bidirectional
 	if (pval != nval || dstPort.port->dir == IO_PORT) {
 
+		// Reset the change of port direction flag for a bidirectional port (well also for a "pure" output port even if it is N/A)
+		dstPort.port->portDirChanged = false;
 	
 		// Arbitrate with 'AND' logic between the new source port-based value and and other source port-based values
 		// Example: The IRQ line on the 6502 CPU is updated from several devices but shall remain low as long as at least

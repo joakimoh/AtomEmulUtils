@@ -430,7 +430,6 @@ void VIA6522::updateIRQ()
 	}
 }
 
-
 void VIA6522::clearIFR(uint8_t mask)
 {
 	uint8_t oIFR = mIFR;
@@ -802,12 +801,16 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	case DDRB:
 		// Data Direction Register B - '0' means corresponding PB acts as input; otherwise as output
 	{
+		if (mDDRB != data)
+			registerPortDirChange(PB);
 		mDDRB = data;
 		break;
 	}
 	case DDRA:
 		// Data Direction Register A - '0' means corresponding PA acts as input; otherwise as output
 	{
+		if (mDDRA != data)
+			registerPortDirChange(PA);
 		mDDRA = data;
 		break;
 	}
@@ -884,7 +887,6 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	{
 		mShiftRegister = data;
 
-
 		// Start input shifting on write
 		if (mShifts == 0) {
 			switch (ACR_SR_CTRL) {		
@@ -911,13 +913,22 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	case ACR:
 		// Auxiliary Control Register
 	{
+		// Check for shift mode changes impacting the direction of port CB
+		uint8_t p_shift_mode = ACR_SR_CTRL;
 		mACR = data;
+		if (ACR_SR_CTRL != p_shift_mode)
+			registerPortDirChange(CB);
+		
 		break;
 	}
 	case PCR:
 		// Peripheral Control Register
 	{
 		mPCR = data;
+
+		// Conservatively assume changes to the PCR always result in changes in the direction of ports CA & CB
+		registerPortDirChange(CA);
+		registerPortDirChange(CB);
 
 		// Check for explicit CA2 control
 		int CA2_mode = PCR_CA2_CTRL;

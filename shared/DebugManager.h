@@ -188,7 +188,7 @@ public:
 
 	bool matchPort(DevicePort* port);
 
-	void setDevices(Devices *devices);
+	bool setDevices(Devices *devices);
 
 	bool quickTracing() { return !mExtensiveLog; }
 

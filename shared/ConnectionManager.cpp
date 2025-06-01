@@ -131,6 +131,16 @@ bool ConnectionManager::connect(string srcName, string dstName, bool invert, boo
 		return false;
 	}
 
+	if (src_port.port->dir == IN_PORT) {
+		cout << "Attempt to use the input port " << _PORT_ID(src_port.port) << " as a source port!\n";
+		return false;
+	}
+
+	if (dst_port.port->dir == OUT_PORT) {
+		cout << "Attempt to use the output port " << _PORT_ID(dst_port.port) << " as a destination port!\n";
+		return false;
+	}
+
 	Connection connection;
 	connection.srcBits = src_port.bits;
 	connection.dstPort = dst_port;

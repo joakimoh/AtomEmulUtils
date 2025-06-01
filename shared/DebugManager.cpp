@@ -94,7 +94,7 @@ void DebugManager::setDebugPort(string portDevice, string port)
 	mDbgLevel |= DBG_PORT;
 	LogPort log_port = { portDevice, port };
 	mLogPorts.push_back(log_port);
-	cout << "Logging added for device '" << portDevice << "' and port '" << port << "'\n";
+	//cout << "Logging added for device '" << portDevice << "' and port '" << port << "'\n";
 }
 
 bool DebugManager::matchPort(DevicePort* port)
@@ -274,9 +274,21 @@ void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 
 }
 
-void DebugManager::setDevices(Devices * devices)
+bool DebugManager::setDevices(Devices * devices)
 {
 	mDevices = devices;
+
+	if (devices == NULL)
+		return false;
+
+	for (int i = 0; i < mLogPorts.size(); i++) {
+		Device* dev;
+		DevicePort* device_port;
+		if (!mDevices->getDevice(mLogPorts[i].device, dev) || !dev->getPortIndex(mLogPorts[i].port, device_port)) {
+			cout << "Port " << mLogPorts[i].device << ":" << mLogPorts[i].port << " doesn't exist!\n";
+			return false;
+		}
+	}
 }
 
 

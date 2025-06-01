@@ -384,7 +384,6 @@ Devices::Devices(
 					}
 				}
 				else {
-					cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
 					throw runtime_error("Syntax error");
 				}
 
@@ -392,7 +391,9 @@ Devices::Devices(
 				string src_port, dst_port;
 				sin >> src_port;
 				sin >> dst_port;
-				connection_manager.connect(src_port, dst_port, invert, process);
+				if (!connection_manager.connect(src_port, dst_port, invert, process)) {
+					throw runtime_error("Syntax error");
+				}
 
 
 
@@ -494,12 +495,11 @@ Devices::Devices(
 			}
 
 			else {
-				cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
 				throw runtime_error("Syntax error");
 			}
 		}
 		catch (...) {
-			cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
+			cout << "Error found at line " << dec << line_no << "of the memory map file:\n\t" << line << "\n";
 			throw runtime_error("Syntax error");
 		}
 
