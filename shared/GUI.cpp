@@ -98,14 +98,23 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         filesystem::path file_path = program_file_name;
         filesystem::path dir_path = file_path.parent_path();
         filesystem::path file_stem = file_path.stem();
+        string file_ext = file_path.extension().string();
         filesystem::path info_file = file_stem.string() + ".inf";
         filesystem::path info_file_path = dir_path / info_file;
         string info_file_name = info_file_path.string();
 
         if (!filesystem::exists(info_file_path)) {
-            cout << "*ERROR*\nPlease create an info file '" << info_file_name <<
-                "' with the first line starting with '<program file name without file extension> <load address in hex>' to load data into RAM!\n";
-            return false;
+            // Try using stem + extension as the stem instead (if there are more than one '.' in a file name, the part before the first
+            // '.' might be mistaken as the stem when it is actually the longer part that preceeds the last '.' that should be the stem).
+            file_stem = file_stem.string() + file_ext;
+            info_file = file_stem.string() + ".inf";
+            info_file_path = dir_path / info_file;
+            info_file_name = info_file_path.string();
+            if (!filesystem::exists(info_file_path)) {
+                cout << "*ERROR*\nPlease create an info file '" << info_file_name <<
+                    "' with the first line starting with '<program file name without file extension> <load address in hex>' to load data into RAM!\n";
+                return false;
+            }
         } 
         ifstream info_f(info_file_path);
         if (!info_f) {
