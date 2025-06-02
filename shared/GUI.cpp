@@ -115,7 +115,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
                     "' with the first line starting with '<program file name without file extension> <load address in hex>' to load data into RAM!\n";
                 return false;
             }
-        } 
+        }
         ifstream info_f(info_file_path);
         if (!info_f) {
             cout << "couldn't open INF file " << info_file_path << "\n";
