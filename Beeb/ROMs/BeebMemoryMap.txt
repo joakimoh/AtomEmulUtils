@@ -17,7 +17,7 @@ ADD	BeebSerULA		SerialULA	fe10	0010	1						// Beeb Serial ULA
 ADD	BeebVideoULA	VDU			fe20	0010	1						// Beeb Video ULA
 ADD	BeebRomSel		ROMSel		fe30	0010	0
 ADD	VIA6522			SYS_VIA		fe40	0020	1			1.0			// IC3	fe40 -	fe4f; 1 Mhz Clock
-//ADD	VIA6522		USER_VIA	fe60	0020	1			1.0			// IC69	fe60 -	fe6f; 1 MHz Clock
+ADD	VIA6522			USER_VIA	fe60	0020	1			1.0			// IC69	fe60 -	fe6f; 1 MHz Clock
 //ADD	ADC7002		ADC			fec0	0003	1						// ADC Converter
 
 ADD	BEEBKB			KB		00											// startup options (DIP switches)
@@ -56,6 +56,7 @@ CONNECT 	VDU:CRTC_CLK		CRTC:CLK
 
 // VIA IRQ
 CONNECT 	SYS_VIA:IRQ			CPU:IRQ			// VIA generates 100 Hz timer interrupts and more
+CONNECT		USER_VIA:IRQ		CPU:IRQ			// User-define usage (i.e.not used by the BBC MOS)
 
 // Keyboard connections
 CONNECT:P	VIAL:Q;3			KB:ENA			// Connect System VIA Latch Q3 (value set by writing to System VIA Port B) to KB ENA
@@ -63,7 +64,9 @@ CONNECT:P 	SYS_VIA:PA;3;0		KB:COL_SEL		// PA3:0 => COL_SEL
 CONNECT:P 	SYS_VIA:PA;6;4		KB:ROW_SEL		// PA6:4 => ROW_SEL
 CONNECT 	KB:ROW				SYS_VIA:PA;7	// ROW => PA7
 CONNECT 	KB:PRESSED			SYS_VIA:CA;1	// PRESSED = CA2
-CONNECT 	KB:BREAK			CPU:RESET		// Connect BREAK key to uC RESET input 
+CONNECT 	KB:BREAK			CPU:RESET		// Connect BREAK key to uC RESET input
+CONNECT 	KB:BREAK			SYS_VIA:RESET
+CONNECT 	KB:BREAK			USER_VIA:RESET
 
 
 // CUTS <=> Tape Recorder Connections
