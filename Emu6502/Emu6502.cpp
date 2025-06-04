@@ -263,12 +263,15 @@ int main(int argc, const char* argv[])
     al_clear_to_color(al_map_rgb(0, 0, 0));
 
     bool quit = false;
+
+    // Set emulation speed
+    double speed_factor = arg_parser.emulationSpeed / 100;
     
 #ifdef TIME_DEBUG
     auto field_start = chrono::high_resolution_clock::now();
 #endif
     int field_rate =  50;
-    field_timer = al_create_timer(1.0 / field_rate);
+    field_timer = al_create_timer(1.0 / field_rate / speed_factor);
     al_register_event_source(queue, al_get_timer_event_source(field_timer));
     al_start_timer(field_timer);
     int field_cycle_count = 0;
@@ -289,16 +292,17 @@ int main(int argc, const char* argv[])
                 al_destroy_timer(field_timer);
                 field_timer = NULL;
             }
-            field_timer = al_create_timer(1.0 / field_rate);
+            field_timer = al_create_timer(1.0 / field_rate * speed_factor);
             al_register_event_source(queue, al_get_timer_event_source(field_timer));
             al_start_timer(field_timer);
         }
        
 
         // Get field duration (in CPU cycles).
-        // Required for the cases these parameters re not hard-coded but can be reconfigured by
+        // Required for the cases these parameters are not hard-coded but can be reconfigured by
         // the software.
         int cycles_per_field = (int)round(CPU_clock * 1e6 / field_rate_d);
+        
 #ifdef TIME_DEBUG
         auto field_stop = chrono::high_resolution_clock::now();      
         field_cycle_count = cycle_count - p_cycle_count;

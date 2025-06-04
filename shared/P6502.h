@@ -15,6 +15,13 @@ class P6502 : public Device {
 
 private:
 
+#ifdef DBG_UC_TIME
+	int mOpcodeCnt = 0;
+	int mOperandCnt = 0;
+	int mExecCnt = 0;
+	int mCycles_1s = 1;
+#endif
+
 	int cPeriod = 1000; // clock period in ns
 
 	uint64_t cycleCount = 0; // #clock cycles passed since RESET

@@ -91,6 +91,8 @@ bool Device::registerPortDirChange(int index)
 	DevicePort& port = *mPorts[index];
 
 	port.portDirChanged = true;
+
+	return true;
 }
 
 //

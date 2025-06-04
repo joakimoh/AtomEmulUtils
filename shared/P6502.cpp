@@ -22,6 +22,9 @@ P6502::P6502(string name, double clockSpeed, DebugManager  *debugManager, Connec
 	registerPort("IRQ", IN_PORT, 0x01, RESET, &mIRQ);
 	registerPort("NMI", IN_PORT, 0x01, RESET, &mNMI);
 
+#ifdef DBG_UC_TIME
+	mCycles_1s = (int)round(clockSpeed * 1e6);
+#endif
 
 }
 
@@ -181,6 +184,9 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	// Get opcode of next instruction
 	uint8_t opcode;
 	uint16_t opcode_PC = mProgramCounter;
+#ifdef DBG_UC_TIME
+	auto opcode_start = chrono::high_resolution_clock::now();
+#endif
 	if (!readProgramMem(mProgramCounter++, opcode)) {
 		success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to read instruction!\n");
@@ -195,29 +201,63 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 
 	}
 	success = success && decode_success;
+#ifdef DBG_UC_TIME
+	auto opcode_stop = chrono::high_resolution_clock::now();
+	auto opcode_dur = chrono::duration_cast<chrono::nanoseconds>(opcode_stop - opcode_start);
+	mOpcodeCnt += opcode_dur.count();
+#endif
 
 	// Get the operand
 	uint16_t operand = 0x0;
 	uint16_t calc_op_adr = 0x0;
 	uint8_t read_val = 0x0;
 	bool operand_success = true;
+#ifdef DBG_UC_TIME
+	auto operand_start = chrono::high_resolution_clock::now();
+#endif
 	if (!getOperand(instr, operand, calc_op_adr, read_val)) {
 		operand_success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to get operand for instruction " + Utility::int2hexStr(opcode, 2) + " at address 0x" + Utility::int2hexStr(opcode_PC, 4) + "!\n");
 	}
 	success = success && operand_success;
+#ifdef DBG_UC_TIME
+	auto operand_stop = chrono::high_resolution_clock::now();
+	auto operand_dur = chrono::duration_cast<chrono::nanoseconds>(operand_stop - operand_start);
+	mOperandCnt += operand_dur.count();
+#endif
+	
 	// After reading the operand, the PC points at the next instruction...
 
 	// Execute the instruction
 	uint8_t written_val;
 	bool exec_success = true;
 	uint8_t oI_flag = I_flag;
+#ifdef DBG_UC_TIME
+	auto exec_start = chrono::high_resolution_clock::now();
+#endif
 	if (!executeInstr(instr, opcode_PC, operand, calc_op_adr, read_val, written_val)) {
 		exec_success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to execute instruction!\n");
 	}
 	success = success && exec_success;
+#ifdef DBG_UC_TIME
+	auto exec_stop = chrono::high_resolution_clock::now();
+	auto exec_dur = chrono::duration_cast<chrono::nanoseconds>(exec_stop - exec_start);
+	mExecCnt += exec_dur.count();
+#endif
 	DBG_LOG_COND(false && I_flag != oI_flag, this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[instr.instruction] + " at address 0x" + Utility::int2hexStr(opcode_PC,4) + "\n");
+
+#ifdef DBG_UC_TIME
+	if (DBG_LEVEL(DBG_TIME) && mCycleCount % mCycles_1s == 0) {
+		cout << dec << "\n";
+		cout << "Opcode fetch & decode - ms per sec:  " << mOpcodeCnt / 1e6 << "\n";
+		cout << "Operand fetch & decode - ms per sec: " << mOperandCnt / 1e6 << "\n";
+		cout << "Instruction execution - ms per sec:  " << mExecCnt / 1e6 << "\n";
+		mOpcodeCnt = 0;
+		mOperandCnt = 0;
+		mExecCnt = 0;
+	}
+#endif
 
 	if (DBG_TRACING()) {
 
