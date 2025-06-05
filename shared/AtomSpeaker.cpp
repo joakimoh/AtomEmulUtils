@@ -30,6 +30,7 @@ AtomSpeaker::~AtomSpeaker()
 
 void AtomSpeaker::setFieldRate(int fieldRate, double speed)
 {
+	SoundDevice::setFieldRate(fieldRate, speed);
 
 	mSamples.clear();
 	mSoundCnt = 0;
@@ -46,7 +47,7 @@ void AtomSpeaker::setFieldRate(int fieldRate, double speed)
 	mAudioStream = al_create_audio_stream(
 		mNFragments,					// #fragments
 		mSamplesPerFragment,			// size of a fragment
-		mSampleRate,					// sample frequency
+		mRealSampleRate,					// sample frequency
 		ALLEGRO_AUDIO_DEPTH_UINT8,
 		ALLEGRO_CHANNEL_CONF_1
 	);

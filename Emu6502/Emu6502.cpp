@@ -40,21 +40,21 @@ ALLEGRO_MENU_INFO main_menu[] = {
          ALLEGRO_END_OF_MENU,
 
       ALLEGRO_START_OF_MENU("&Speed", SPEED_ID),
-         { "10%",               SPEED_10_ID,            0, NULL },
-         { "25%",               SPEED_25_ID,            0, NULL },
-         { "50%",               SPEED_50_ID,            0, NULL },
+         { "10%",               SPEED_10_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+         { "25%",               SPEED_25_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+         { "50%",               SPEED_50_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
          { "Real-time",         SPEED_100_ID,           ALLEGRO_MENU_ITEM_CHECKED, NULL },
-         { "200%",              SPEED_200_ID,           0, NULL },
-         { "300%",              SPEED_300_ID,           0, NULL },
-         { "500%",              SPEED_500_ID,           0, NULL },
+         { "200%",              SPEED_200_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+         { "300%",              SPEED_300_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+         { "500%",              SPEED_500_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
          ALLEGRO_END_OF_MENU,
 
       ALLEGRO_START_OF_MENU("&Tape Recorder", TAPE_RECORDER_ID),
-         { "&Play",             PLAY_ID,                ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKED, NULL },
-         { "&Record",           RECORD_ID,              ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKED, NULL },
-         { "Pause",             PAUSE_ID,               ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKED, NULL },
-         { "Rewind",            REWIND_ID,              ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKED, NULL },
-         { "Stop",              STOP_ID,                ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKED, NULL },
+         { "&Play",             PLAY_ID,                ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+         { "&Record",           RECORD_ID,              ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+         { "Pause",             PAUSE_ID,               ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+         { "Rewind",            REWIND_ID,              ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+         { "Stop",              STOP_ID,                ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
          { "&Load from Tape",   LOAD_TAPE_ID,           0,                                                      NULL },
          { "&Save to Tape",     SAVE_TAPE_ID,           0,                                                      NULL },
          ALLEGRO_END_OF_MENU,
@@ -302,6 +302,10 @@ int main(int argc, const char* argv[])
         int p_field_rate = field_rate;
         double field_rate_d = vdu->getFieldRate();
         field_rate = (int)round(field_rate_d);
+
+        //
+        // Update field timer and sound timing when either the field rate or the emulation speed is updated
+        //
         if (p_speed_factor != speed_factor || (field_rate != p_field_rate && field_rate > 10)) {
             p_field_rate = field_rate;
             p_speed_factor = speed_factor;
@@ -315,7 +319,7 @@ int main(int argc, const char* argv[])
             field_timer = al_create_timer(1.0 / field_rate / speed_factor);
             al_register_event_source(queue, al_get_timer_event_source(field_timer));
             al_start_timer(field_timer);
-            cout << "Speed factor = " << dec << speed_factor << " and field rate = " << field_rate << "\n";
+
             if (sound_device != NULL)
                 sound_device->setFieldRate(field_rate, speed_factor);
         }

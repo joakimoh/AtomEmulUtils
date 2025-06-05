@@ -26,10 +26,12 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 
 void TI4689::setFieldRate(int fieldRate, double speed)
 {
-	mFieldRate = fieldRate;
-	mSamplesPerFragment = (int)round(0.5 * mSampleRate / mFieldRate * speed); // one field of audio
-	mCpuCyclesPerSample = (int)round(1e6 * mCPUClock / mSampleRate / speed);
+	SoundDevice::setFieldRate(fieldRate, speed);
+
+	mSamplesPerFragment = (int)round(0.5 * mSampleRate / mFieldRate); // one field of audio
+	mCpuCyclesPerSample = (int)round(1e6 * mCPUClock / mSampleRate);
 	mNFragments = 8;
+	
 
 	if (DBG_LEVEL(DBG_VERBOSE)) {
 		cout << "CPU Clock:                    " << dec << mCPUClock << " MHz\n";
@@ -57,7 +59,7 @@ void TI4689::setFieldRate(int fieldRate, double speed)
 		mChannelStream[channel] = al_create_audio_stream(
 			mNFragments,					// #fragments
 			mSamplesPerFragment,			// size of a fragment
-			mSampleRate,					// sample frequency
+			mRealSampleRate,					// sample frequency
 			ALLEGRO_AUDIO_DEPTH_INT16,		// int16_t samples
 			ALLEGRO_CHANNEL_CONF_2			// Stereo => pair of int16_t samples
 		);

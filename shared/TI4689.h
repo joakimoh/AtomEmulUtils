@@ -91,6 +91,7 @@ private:
 
 	uint8_t mFirstByte = 0xff;
 
+
 public:
 
 	TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, DebugManager* debugManager, ConnectionManager* connectionManager, double speed);

@@ -11,4 +11,5 @@ void SoundDevice::setFieldRate(int fieldRate, double speed)
 {
 	mFieldRate = fieldRate;
 	mSpeed = speed;
+	mRealSampleRate = mSampleRate * speed;
 }

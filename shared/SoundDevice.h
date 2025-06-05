@@ -15,7 +15,9 @@ class SoundDevice : public Device {
 protected:
 
 	int mFieldRate = 60;
-	int mSampleRate = 32000;
+	int mSampleRate = 32000;			// sample rate for real-time emulation
+	int mRealSampleRate = mSampleRate; // sample rate compensated for non-real time emulation speed
+
 	double mSpeed = 1.0;
 
 
