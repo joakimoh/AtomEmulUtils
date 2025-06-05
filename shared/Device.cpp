@@ -222,7 +222,7 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 
 				// Update the destination port's input - only for the source port which was updated upon entering updatePort()
 				if (src_ref.srcPort == srcPort) {
-					src_ref.dstVal = nval_or;
+					src_ref.dstVal = nval;
 					//cout << "*";
 				}
 

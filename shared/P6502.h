@@ -30,7 +30,9 @@ private:
 
 	bool mStop = false;
 
-
+	bool mResetTransition = false;
+	bool mIrqTransition = false;
+	bool mNmiTransition = false;
 
 	Codec6502 mCodec;
 

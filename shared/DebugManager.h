@@ -33,7 +33,7 @@ typedef int DebugLevel;
 #define DBG_RESET			0x2000	// Only reset
 #define	DBG_ALL				0xffff
 
-//#define DBG_ON
+#define DBG_ON
 //#define TIME_DEBUG
 //#define DBG_UC_TIME
 //#define VDU_TIME_DEBUG

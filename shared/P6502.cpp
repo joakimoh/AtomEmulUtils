@@ -68,7 +68,7 @@ bool P6502::serveIRQ()
 {
 	// Exit if IRQ disabled
 	if (mStatusRegister & I_set_mask) {
-		DBG_LOG_COND(mIRQ != pIRQ, this, DBG_INTERRUPTS, "I flag set => IRQ ignored at 0x" + Utility::int2hexStr(mProgramCounter,4) + "...\n");
+		DBG_LOG_COND(mIrqTransition, this, DBG_INTERRUPTS, "I flag set => IRQ ignored at 0x" + Utility::int2hexStr(mProgramCounter,4) + "...\n");
 		return false;
 	}
 
@@ -147,14 +147,20 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	// Advance debugging
 	DBG_PBUF(mProgramCounter, mRegisterX, mRegisterY, mAcc);
 
-	bool reset_transition = mRESET != pRESET;
+	mResetTransition = mRESET != pRESET;
 	pRESET = mRESET;
 
-	DBG_COND_TRACING(reset_transition, this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+	mIrqTransition = mIRQ != pIRQ;
+	pIRQ = mIRQ;
 
-	DBG_COND_TRACING(mIRQ != pIRQ, this, DBG_INTERRUPTS, "IRQ => " + to_string(mIRQ) + "\n");
+	mNmiTransition = mNMI != pNMI;
+	pNMI = mNMI;
 
-	DBG_COND_TRACING(mNMI != pNMI, this, DBG_INTERRUPTS, "NMI => " + to_string(mNMI) + "\n");
+	DBG_COND_TRACING(mResetTransition, this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+
+	DBG_COND_TRACING(mIrqTransition, this, DBG_INTERRUPTS, "IRQ => " + to_string(mIRQ) + "\n");
+
+	DBG_COND_TRACING(mNmiTransition, this, DBG_INTERRUPTS, "NMI => " + to_string(mNMI) + "\n");
 
 	// Serve RESET, NMI & IRQ in priority order
 	if (!mRESET) {
@@ -163,7 +169,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		endCycle = mCycleCount;
 		return true;
 	}
-	else if (!mNMI && pNMI)	// NMI is edge-triggered!
+	else if (!mNMI && mNmiTransition)	// NMI is edge-triggered!
 		serveNMI();
 	else if (!mIRQ)	// IRQ is level-triggered!
 		serveIRQ();
@@ -276,8 +282,8 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			instr_log_data.opcode = opcode;
 			instr_log_data.operand = operand;
 			instr_log_data.accessAdr = calc_op_adr;
-			instr_log_data.activeIRQ = (!mIRQ && mIRQ != pIRQ);
-			instr_log_data.activeNMI = (!mNMI && mNMI != pNMI);
+			instr_log_data.activeIRQ = (!mIRQ && mIrqTransition);
+			instr_log_data.activeNMI = (!mNMI && mNmiTransition);
 			instr_log_data.execFailure = !exec_success;
 			instr_log_data.rwFailure = !operand_success;
 			instr_log_data.readVal = read_val;
@@ -311,9 +317,9 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 				sout << " R/W FAILURE";
 			if (!exec_success)
 				sout << " EXEC FAILURE";
-			if (!mIRQ && mIRQ != pIRQ)
+			if (!mIRQ && mIrqTransition)
 				sout << " *IRQ";
-			if (!mNMI && mNMI != pNMI)
+			if (!mNMI && mNmiTransition)
 				sout << " *NMI";
 			sout << "\n";
 
@@ -330,8 +336,6 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	// Return time reached
 	endCycle = mCycleCount;
 
-	pNMI = mNMI;
-	pIRQ = mIRQ;
 
 	// Always return true even if the instruction execution failed in some way in order
 	// not to terminate the simulation prematurely...
