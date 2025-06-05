@@ -29,12 +29,12 @@ private:
 	int mSoundCnt = 0;
 public:
 
-	AtomSpeaker(string name, double cpuClock, int sampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	AtomSpeaker(string name, double cpuClock, double fieldRate, int sampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager, double speed);
 	~AtomSpeaker();
 
 	bool advance(uint64_t stopCycle);
 
-	void setFieldRate(int fieldRate);
+	void setFieldRate(int fieldRate, double speed);
 
 };
 

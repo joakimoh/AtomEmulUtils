@@ -28,6 +28,15 @@ enum {
     LOAD_TAPE_ID,
     SAVE_TAPE_ID,
 
+    SPEED_ID,
+    SPEED_10_ID,
+    SPEED_25_ID,
+    SPEED_50_ID,
+    SPEED_100_ID,
+    SPEED_200_ID,
+    SPEED_300_ID,
+    SPEED_500_ID,
+
     HELP_ABOUT_ID
 };
 
@@ -35,18 +44,15 @@ class GUI {
 
 private:
 
-    
-   
-  
-
     ALLEGRO_MENU* mMenu = NULL;
     ALLEGRO_DISPLAY* mDisplay = NULL;
     Devices* mDevices = NULL;
     TapeRecorder* mTapeRec = NULL;
+    double *mEmulationSpeed = NULL;
 
 public:
 
-    GUI(ALLEGRO_DISPLAY* disp, ALLEGRO_MENU * menu, Devices * devices);
+    GUI(ALLEGRO_DISPLAY* disp, ALLEGRO_MENU * menu, Devices * devices, double *emulationSpeed);
     ~GUI();
 
 	bool itemSelected(ALLEGRO_EVENT  *event);

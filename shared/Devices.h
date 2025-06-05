@@ -18,6 +18,7 @@ class ConnectionManager;
 class Device;
 class MemoryMappedDevice;
 class VideoDisplayUnit;
+class SoundDevice;
 
 
 class Devices {
@@ -39,7 +40,8 @@ public:
 		VideoSettings videoSettings,
 		string memMapFile, double& cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, Resolution disRes, DebugManager* debugManager,
 		Program program, Program data, ConnectionManager& connectionManager, P6502*& microprocessor, VideoDisplayUnit*& vdu,
-		vector<Device*>& fieldScheduledDevices, vector<Device*>& halfLineScheduledDevices, vector<Device*>& instructionScheduledDevices
+		SoundDevice * &sound_device,
+		vector<Device*>& fieldScheduledDevices, vector<Device*>& halfLineScheduledDevices, vector<Device*>& instructionScheduledDevices, double speed
 	);
 
 	~Devices();

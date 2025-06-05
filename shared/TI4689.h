@@ -93,8 +93,10 @@ private:
 
 public:
 
-	TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, DebugManager* debugManager, ConnectionManager* connectionManager);
+	TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, DebugManager* debugManager, ConnectionManager* connectionManager, double speed);
 	~TI4689();
+
+	void setFieldRate(int fieldRate, double speed);
 
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);

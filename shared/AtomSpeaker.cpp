@@ -7,7 +7,8 @@
 //
 
 
-AtomSpeaker::AtomSpeaker(string name, double cpuClock, int sampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager) :
+AtomSpeaker::AtomSpeaker(string name, double cpuClock, double fieldRate, int sampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager,
+	double speed) :
 	SoundDevice(name, ATOM_SPEAKER_DEV, cpuClock, sampleFreq, debugManager, connectionManager)
 {
 	registerPort("OUT", IN_PORT, 0x01, OUT, &mOUT);	// From PIA PC2
@@ -15,6 +16,8 @@ AtomSpeaker::AtomSpeaker(string name, double cpuClock, int sampleFreq, DebugMana
 	mUpdateFreqCount = (int)round(mCPUClock *1e6 / sampleFreq); // limit updates to sampleFreq
 
 	al_reserve_samples(0);
+
+	setFieldRate(fieldRate, speed);
 
 	
 }
@@ -25,11 +28,18 @@ AtomSpeaker::~AtomSpeaker()
 	al_destroy_audio_stream(mAudioStream);
 }
 
-void AtomSpeaker::setFieldRate(int fieldRate)
+void AtomSpeaker::setFieldRate(int fieldRate, double speed)
 {
-	SoundDevice::setFieldRate(fieldRate);
 
-	mSamplesPerFragment = (int) round(1.0 * mSampleRate / mFieldRate); // 2 frames of audio
+	mSamples.clear();
+	mSoundCnt = 0;
+
+	if (mAudioStream != NULL) {
+			al_drain_audio_stream(mAudioStream);
+			al_destroy_audio_stream(mAudioStream);
+	}
+
+	mSamplesPerFragment = (int) round(1.0 * mSampleRate / mFieldRate * speed); // 2 frames of audio
 	mNFragments = 8;
 
 	// Create audio stream

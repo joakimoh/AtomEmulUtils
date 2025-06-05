@@ -6,7 +6,7 @@
 // 
 
 
-TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, DebugManager* debugManager, ConnectionManager* connectionManager) :
+TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, DebugManager* debugManager, ConnectionManager* connectionManager, double speed) :
 
 	SoundDevice(name, TI4689_DEV, cpuClock, sampleFreq, debugManager, connectionManager)
 {
@@ -20,21 +20,34 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 	// Get a handle to the previously created Mixer
 	mMixer = al_get_default_mixer();
 	
+	setFieldRate(fieldRate, speed);
+
+}
+
+void TI4689::setFieldRate(int fieldRate, double speed)
+{
 	mFieldRate = fieldRate;
-	mSamplesPerFragment = (int)round(0.5 * mSampleRate / mFieldRate); // one field of audio
-	mCpuCyclesPerSample =(int) round(1e6 * cpuClock / mSampleRate);
+	mSamplesPerFragment = (int)round(0.5 * mSampleRate / mFieldRate * speed); // one field of audio
+	mCpuCyclesPerSample = (int)round(1e6 * mCPUClock / mSampleRate / speed);
 	mNFragments = 8;
 
-	;
-
-
 	if (DBG_LEVEL(DBG_VERBOSE)) {
-		cout << "CPU Clock:                    " << dec << cpuClock << " MHz\n";
+		cout << "CPU Clock:                    " << dec << mCPUClock << " MHz\n";
 		cout << "Field rate:                   " << dec << mFieldRate << "\n";
 		cout << "Sample rate:                  " << dec << mSampleRate << "\n";
 		cout << "Samples per fragment:         " << dec << mSamplesPerFragment << "\n";
 		cout << "CPU cycles per sample:        " << dec << mCpuCyclesPerSample << "\n";
 		cout << "No of audio stream fragments: " << dec << mNFragments << "\n";
+	}
+
+	mSampleCount = 0;
+
+	for (int channel = 0; channel < 4; channel++) {
+		if (mChannelStream[channel] != NULL) {
+			al_drain_audio_stream(mChannelStream[channel]);
+			al_destroy_audio_stream(mChannelStream[channel]);
+		}
+		mSamplesSize[channel] = 0;
 	}
 
 	for (int channel = 0; channel < 4; channel++) {
@@ -68,7 +81,6 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 		}
 
 	}
-
 }
 
 TI4689::~TI4689()

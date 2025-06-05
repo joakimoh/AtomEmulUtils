@@ -16,13 +16,14 @@ protected:
 
 	int mFieldRate = 60;
 	int mSampleRate = 32000;
+	double mSpeed = 1.0;
 
 
 public:
 
 	SoundDevice(string name, DeviceId devId, double cpuClock, int SampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
-	virtual void setFieldRate(int fieldRate);
+	virtual void setFieldRate(int fieldRate, double speed);
 
 };
 

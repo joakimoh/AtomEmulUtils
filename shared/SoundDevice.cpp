@@ -7,7 +7,8 @@ SoundDevice::SoundDevice(string name, DeviceId devId, double cpuClock, int Sampl
 
 }
 
-void SoundDevice::setFieldRate(int fieldRate)
+void SoundDevice::setFieldRate(int fieldRate, double speed)
 {
 	mFieldRate = fieldRate;
+	mSpeed = speed;
 }

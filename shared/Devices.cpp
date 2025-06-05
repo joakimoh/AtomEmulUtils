@@ -73,8 +73,9 @@ string Devices::getFileName(string& path, stringstream& sin)
 Devices::Devices(
 	VideoSettings videoSettings,
 	string memMapFile, double& cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, Resolution disRes, DebugManager* debugManager,
-	Program program, Program data, ConnectionManager& connection_manager, P6502*& microprocessor, VideoDisplayUnit*& mainVDU,
-	vector<Device*>& fieldScheduledDevices, vector<Device*>& halflineScheduledDevices, vector<Device*>& instrScheduledDevices) :mDM(debugManager)
+	Program program, Program data, ConnectionManager& connection_manager, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device,
+	vector<Device*>& fieldScheduledDevices, vector<Device*>& halflineScheduledDevices, vector<Device*>& instrScheduledDevices,
+	double speed) :mDM(debugManager)
 {
 	vector<VideoDisplayUnit*> vdus;
 
@@ -85,7 +86,7 @@ Devices::Devices(
 	BeebROMSel* paged_rom_sel = NULL;
 
 	mainVDU = NULL;
-	SoundDevice* sound_device = NULL;
+	sound_device = NULL;
 
 	connection_manager.setDevices(this);
 
@@ -152,7 +153,7 @@ Devices::Devices(
 
 				else if (dev_type == "ATOMSP") {
 
-					AtomSpeaker* sp = new AtomSpeaker(dev_name, cpuClock, audioSampleFreq, mDM, &connection_manager);
+					AtomSpeaker* sp = new AtomSpeaker(dev_name, cpuClock, videoSettings.getFieldRate(), audioSampleFreq, mDM, &connection_manager, speed);
 					mDevices.push_back(sp);
 					sound_device = sp;
 
@@ -160,7 +161,7 @@ Devices::Devices(
 
 				else if (dev_type == "TI4689") {
 
-					TI4689* sd = new TI4689(dev_name, cpuClock, videoSettings.getFieldRate(), audioSampleFreq, mDM, &connection_manager);
+					TI4689* sd = new TI4689(dev_name, cpuClock, videoSettings.getFieldRate(), audioSampleFreq, mDM, &connection_manager, speed);
 					mDevices.push_back(sd);
 					sound_device = sd;
 
@@ -610,7 +611,7 @@ Devices::Devices(
 		connection_manager.printRouting();
 
 	if (sound_device != NULL)
-		sound_device->setFieldRate(mainVDU->getFieldRate());
+		sound_device->setFieldRate(mainVDU->getFieldRate(), speed);
 
 }
 

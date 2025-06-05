@@ -8,7 +8,8 @@
 using namespace std;
 
 
-GUI::GUI(ALLEGRO_DISPLAY* disp, ALLEGRO_MENU* menu, Devices * devices): mMenu(menu), mDisplay(disp), mDevices(devices)
+GUI::GUI(ALLEGRO_DISPLAY* disp, ALLEGRO_MENU* menu, Devices * devices, double *speed): mMenu(menu), mDisplay(disp), mDevices(devices),
+    mEmulationSpeed(speed)
 {
     Device* dev;
     if (!mDevices->getDevice(DeviceId::TAPE_RECORDER_DEV, dev)) {
@@ -264,6 +265,42 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         }
         break;
     }
+
+    case SPEED_10_ID:
+        if (mEmulationSpeed != NULL)
+            *mEmulationSpeed = 0.1;
+        break;
+
+    case SPEED_25_ID:
+        if (mEmulationSpeed != NULL)
+            *mEmulationSpeed = 0.25;
+        break;
+
+    case SPEED_50_ID:
+        if (mEmulationSpeed != NULL)
+            *mEmulationSpeed = 0.5; 
+        break;
+
+    case SPEED_100_ID:
+        if (mEmulationSpeed != NULL)
+            *mEmulationSpeed = 1;
+        break;
+
+    case SPEED_200_ID:
+        if (mEmulationSpeed != NULL)
+            *mEmulationSpeed = 2;
+        break;
+
+    case SPEED_300_ID:
+        if (mEmulationSpeed != NULL)
+            *mEmulationSpeed = 3;
+        break;
+
+    case SPEED_500_ID:
+        if (mEmulationSpeed != NULL)
+            *mEmulationSpeed = 5;
+        break;
+
 
     default:
     {

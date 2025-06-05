@@ -20,6 +20,7 @@
 #include "../shared/DebugManager.h"
 #include "../shared/ConnectionManager.h"
 #include "../shared/Devices.h"
+#include "../shared/SoundDevice.h"
 
 #include <chrono>
 #include <cmath>
@@ -36,6 +37,16 @@ ALLEGRO_MENU_INFO main_menu[] = {
          { "&Save memory data to file",   SAVE_FROM_RAM,  0,  NULL },
          ALLEGRO_MENU_SEPARATOR,
          { "E&xit",                 FILE_EXIT_ID,   0,  NULL },
+         ALLEGRO_END_OF_MENU,
+
+      ALLEGRO_START_OF_MENU("&Speed", SPEED_ID),
+         { "10%",               SPEED_10_ID,            0, NULL },
+         { "25%",               SPEED_25_ID,            0, NULL },
+         { "50%",               SPEED_50_ID,            0, NULL },
+         { "Real-time",         SPEED_100_ID,           ALLEGRO_MENU_ITEM_CHECKED, NULL },
+         { "200%",              SPEED_200_ID,           0, NULL },
+         { "300%",              SPEED_300_ID,           0, NULL },
+         { "500%",              SPEED_500_ID,           0, NULL },
          ALLEGRO_END_OF_MENU,
 
       ALLEGRO_START_OF_MENU("&Tape Recorder", TAPE_RECORDER_ID),
@@ -206,6 +217,9 @@ int main(int argc, const char* argv[])
 	//al_register_event_source(queue, al_get_mouse_event_source());
     
 
+    // Set emulation speed
+    double speed_factor = arg_parser.emulationSpeed / 100;
+
     ConnectionManager connection_manager(&arg_parser.debugManager);
 
      VideoDisplayUnit* vdu = NULL;
@@ -216,14 +230,16 @@ int main(int argc, const char* argv[])
     // Set the audio sampling rate to rate to the rate of 1/2 a scan line (usually 1/32us = 31.25 kHz)
     Resolution res = video_settings.getTotalResolution();
     int sample_rate = (int)round(res.height * video_settings.getFieldRate());
+    SoundDevice* sound_device = NULL;
     Devices devices(
         video_settings,
         arg_parser.mapFileName,
         CPU_clock,            // CPU Clock frequency in MHz
         sample_rate,          // audio sample rate corresponding to a rate of at least twice per scan line
         disp, disp_bm, disp_res,
-        &arg_parser.debugManager, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu,
-        field_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices
+        &arg_parser.debugManager, arg_parser.program, arg_parser.data, connection_manager, microprocessor, vdu, sound_device,
+        field_scheduled_devices, half_line_scheduled_devices, instr_scheduled_devices,
+        speed_factor
 
     );
     if (!arg_parser.debugManager.setDevices(&devices)) {
@@ -256,7 +272,10 @@ int main(int argc, const char* argv[])
         	cout << "Failed to clone to popup menu!\n";
         //return -1;
     }
-    GUI gui(disp, menu, &devices);
+
+
+
+    GUI gui(disp, menu, &devices, &speed_factor);
      
     uint64_t cycle_count = 0;
 
@@ -264,9 +283,7 @@ int main(int argc, const char* argv[])
 
     bool quit = false;
 
-    // Set emulation speed
-    double speed_factor = arg_parser.emulationSpeed / 100;
-    
+
 #ifdef TIME_DEBUG
     auto field_start = chrono::high_resolution_clock::now();
 #endif
@@ -279,12 +296,15 @@ int main(int argc, const char* argv[])
     double line_count = 0;
     double p_line_count = 0;
     double lines_per_field = 0;
+    double p_speed_factor = speed_factor;
     while (!quit)
     {   
         int p_field_rate = field_rate;
         double field_rate_d = vdu->getFieldRate();
         field_rate = (int)round(field_rate_d);
-        if (field_rate != p_field_rate && field_rate > 10) {
+        if (p_speed_factor != speed_factor || (field_rate != p_field_rate && field_rate > 10)) {
+            p_field_rate = field_rate;
+            p_speed_factor = speed_factor;
             //cout << "new field rate " << dec << field_rate << "!\n";
             if (field_timer != NULL) {
                 al_stop_timer(field_timer);
@@ -292,9 +312,12 @@ int main(int argc, const char* argv[])
                 al_destroy_timer(field_timer);
                 field_timer = NULL;
             }
-            field_timer = al_create_timer(1.0 / field_rate * speed_factor);
+            field_timer = al_create_timer(1.0 / field_rate / speed_factor);
             al_register_event_source(queue, al_get_timer_event_source(field_timer));
             al_start_timer(field_timer);
+            cout << "Speed factor = " << dec << speed_factor << " and field rate = " << field_rate << "\n";
+            if (sound_device != NULL)
+                sound_device->setFieldRate(field_rate, speed_factor);
         }
        
 
