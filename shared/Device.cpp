@@ -112,8 +112,10 @@ bool Device::updatePort(int index, uint8_t val)
 	DevicePort &port = *mPorts[index];
 
 	// No need to propagate value if there are no connected ports...
-	if (port.fanOut < 1)
+	if (port.fanOut < 1) {
+		*port.val = val; // still update the source port even if it is not connected!
 		return true;
+	}
 
 	// Check that the source port is not an input port
 	if (port.dir == IN_PORT) {

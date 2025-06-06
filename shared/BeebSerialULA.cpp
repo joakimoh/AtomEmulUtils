@@ -3,6 +3,10 @@
 #include "Device.h"
 #include "Utility.h"
 #include <cmath>
+#include "DebugManager.h"
+#include <string>
+
+using namespace std;
 
 BeebSerialULA::BeebSerialULA(
 	string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugManager* debugManager, ConnectionManager* connectionManager) :
@@ -183,7 +187,13 @@ bool BeebSerialULA::write(uint16_t adr, uint8_t data)
 		mACIA->setTxClkRate(mTxClkRate);
 	}
 
+	// Update cassette motor output
+	updatePort(CASMO, SER_ULA_CR_CAS_MOT);
 
+	DBG_LOG(this, DBG_IO_PERIPHERAL, "Serial ULA CR = 0x" + Utility::int2hexStr(data, 2) + "/0b" + Utility::int2binStr(data, 8) + " [" +
+			"Motor (b7): " + (SER_ULA_CR_CAS_MOT ? "On" : "Off") +
+			", Mode (b6): " + (SER_ULA_CR_ENA_SER ? "Serial" : "Cassette") +
+			", RxClk (b5:b3): " + to_string(mRxClkRate) + ", TxClkc (b2:b0): " + to_string(mTxClkRate) + "]\n");
 
 	return true;
 }
@@ -338,7 +348,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 			// Generate cassette output when Request To Send (RTS) is active (i.e., Low)
 			//
 
-			if (mRTSI == 0) {
+			if (mRTSI == 0 && mCASMO) {
 
 				//
 				// Change tone frequency when Tx data from the ACIA changes
@@ -349,9 +359,9 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					mBitDurationCnt++;
 					mToneCnt++;
 					if (mToneCnt > mToneHalfCycleDuration / 2) {
-							updatePort(CAS_OUT, 1 - mCAS_OUT);
-							mHalfCycleCnt++;
-						}
+						updatePort(CAS_OUT, 1 - mCAS_OUT);
+						mHalfCycleCnt++;
+					}
 					if (DBG_LEVEL(DBG_IO_PERIPHERAL)) {
 						cout << "\nSerial ULA starts " << (mTxD == 0 ? "Low Tone" : "High Tone") << " after " << dec << mHalfCycleCnt << " 1/2 cycles of different tone\n";
 						cout << "Same level duration was " << dec << mBitDurationCnt << " cycles\n";
