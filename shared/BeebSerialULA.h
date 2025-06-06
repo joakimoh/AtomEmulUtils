@@ -62,6 +62,9 @@ private:
 	long mRxClkRate = 4800; // with ÷ 64 by the ACIA this results in a baud rate of 75 for the serial communication
 	long mTxClkRate = 4800; // with ÷ 64 by the ACIA this results in a baud rate of 75 for the serial communication
 
+	double mTapeTime = 0;
+	double mTime = 0;
+
 
 	ACIA6850 *mACIA = NULL;
 
