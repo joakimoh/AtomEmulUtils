@@ -27,6 +27,7 @@
 #include "TI4689.h"
 #include "BeebViaLatch.h"
 #include "ConnectionManager.h"
+#include "Utility.h"
 
 using namespace std;
 
@@ -201,37 +202,45 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 		nval_or = (src_val << (-shifts)) & dst_sel_mask;
 	nval = ((pval & ~dst_sel_mask) | nval_or) & dst_mask;
 
-	// update on change or always for a bidirectional
+	// Always update the destination port's recollection of the source port's value
+	int i = 0;
+	for (; i < dstPort.port->portSources.size() && dstPort.port->portSources[i].srcPort != srcPort; i++);
+	if (i < dstPort.port->portSources.size() )
+		dstPort.port->portSources[i].dstVal = nval;
+
+	// Update destination port on change or always for a bidirectional port
 	if (pval != nval || dstPort.port->dir == IO_PORT) {
 
 		// Reset the change of port direction flag for a bidirectional port (well also for a "pure" output port even if it is N/A)
 		dstPort.port->portDirChanged = false;
 	
-		// Arbitrate with 'AND' logic between the new source port-based value and and other source port-based values
+		// Arbitrate with 'AND' logic between the new source port-based value and other source port-based values
 		// Example: The IRQ line on the 6502 CPU is updated from several devices but shall remain low as long as at least
 		//			one device requests the IRQ line to be low even if another device requests it to be high.
 		if (dstPort.port->arbitration) {
 
 			uint8_t aval = dst_mask; // initialise abritrated value with the destination port's mask <=> all bits set (High)
 
-			//cout << "\nABRITRATION FOR PORT " << dstPort.port->dev->name << ":" << dstPort.port->name << " = 0x" << hex << (int) pval << "\n";
+#ifdef DBG_ON
+			if (DBG_MATCH_PORT(dstPort.port))
+				DBG_LOG(this, DBG_PORT, "\nABRITRATION FOR PORT " + dstPort.port->dev->name + ":" + dstPort.port->name + " = 0x" + Utility::int2hexStr(pval,2) + "\n");
+#endif
 
 			for (int i = 0; i < dstPort.port->portSources.size(); i++) {
 
 				OutputReference &src_ref = dstPort.port->portSources[i];
 
-				// Update the destination port's input - only for the source port which was updated upon entering updatePort()
-				if (src_ref.srcPort == srcPort) {
-					src_ref.dstVal = nval;
-					//cout << "*";
-				}
-
 				// update arbitrated value	
 				aval &= src_ref.dstVal | ~src_ref.dstMask; // arbitrate with each source port's value
-				//cout << "SOURCE PORT " << src_ref.srcPort->dev->name << ":" << src_ref.srcPort->name << " = 0x" << hex << (int) src_ref.dstVal <<
-				//	" (mask 0x" << (int)src_ref.dstMask << ")\n";
+#ifdef DBG_ON
+				if (DBG_MATCH_PORT(dstPort.port))
+					DBG_LOG(this, DBG_PORT, "SOURCE PORT " + src_ref.srcPort->dev->name + ":" + src_ref.srcPort->name + " = 0x" + Utility::int2hexStr(src_ref.dstVal,2) + " (mask 0x" + Utility::int2hexStr(src_ref.dstMask,2) + ")\n");
+#endif
 			}
-			//cout << "ARBITRATED VALUE BECAME 0x" << hex << (int)aval << "\n";
+#ifdef DBG_ON
+			if (DBG_MATCH_PORT(dstPort.port))
+				DBG_LOG(this, DBG_PORT, "ARBITRATED VALUE BECAME 0x" + Utility::int2hexStr(aval,2) + "\n");
+#endif
 
 			*dst_val_p = aval & dst_mask;
 		}

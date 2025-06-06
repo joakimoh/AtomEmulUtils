@@ -164,6 +164,7 @@ private:
 	string ACRT22Str(uint8_t t);
 	string ACRSR2Str(uint8_t s);
 	string ACRLE2Str(uint8_t l);
+	string ddr2Str(char port, uint8_t ddr);
 
 public:
 

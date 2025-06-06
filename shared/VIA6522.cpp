@@ -590,7 +590,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 			data = mIFR & 0x7f; // Clear IRQ bit
 		else
 			data = mIFR | 0x80; // Set IRQ bit
-		DBG_LOG(this, DBG_IO_PERIPHERAL, "Read VIA 6522 at 0x" + Utility::int2hexStr(adr,4) + " IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Read at 0x" + Utility::int2hexStr(adr,4) + " IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
 		break;
 
 	case IER:
@@ -770,7 +770,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		if (!updatePort(PB, (mPB & ~mDDRB) | (data & mDDRB)))
 			return false;
 
-		DBG_LOG(this, DBG_IO_PERIPHERAL, "WRITE TO PB WITH DDR 0x" + Utility::int2hexStr(mDDRB,2) + " and PB 0x" + Utility::int2hexStr(oPB,2) + " => 0x" + Utility::int2hexStr(mPB,2) + "\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to PB with DDR 0x" + Utility::int2hexStr(mDDRB,2) + " and PB 0x" + Utility::int2hexStr(oPB,2) + " => 0x" + Utility::int2hexStr(mPB,2) + "\n");
 		break;
 	}
 	case ORA:
@@ -801,16 +801,22 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	case DDRB:
 		// Data Direction Register B - '0' means corresponding PB acts as input; otherwise as output
 	{
-		if (mDDRB != data)
+		if (mDDRB != data) {
+			DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to DDRB at 0x" + Utility::int2hexStr(adr, 4) +
+				": DDRB = 0x" + Utility::int2hexStr(data, 2) + " (" + ddr2Str('B', data) + ")\n");
 			registerPortDirChange(PB);
+		}
 		mDDRB = data;
 		break;
 	}
 	case DDRA:
 		// Data Direction Register A - '0' means corresponding PA acts as input; otherwise as output
 	{
-		if (mDDRA != data)
+		if (mDDRA != data) {
+			DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to DDRA at 0x" + Utility::int2hexStr(adr, 4) +
+				": DDRA = 0x" + Utility::int2hexStr(data, 2) + " (" + ddr2Str('A', data) + ")\n");
 			registerPortDirChange(PA);
+		}
 		mDDRA = data;
 		break;
 	}
@@ -913,6 +919,9 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	case ACR:
 		// Auxiliary Control Register
 	{
+		if (mACR != data)
+			DBG_LOG(this, DBG_IO_PERIPHERAL, "\nWrite to ACR:\n" + ACR2Str() + "\n");
+
 		// Check for shift mode changes impacting the direction of port CB
 		uint8_t p_shift_mode = ACR_SR_CTRL;
 		mACR = data;
@@ -924,6 +933,10 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	case PCR:
 		// Peripheral Control Register
 	{
+
+		if (mPCR != data)
+			DBG_LOG(this, DBG_IO_PERIPHERAL, "\nWrite to PCR:\n" + PCR2Str() + "\n");
+
 		mPCR = data;
 
 		// Conservatively assume changes to the PCR always result in changes in the direction of ports CA & CB
@@ -950,7 +963,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Interrupt Flag Register - writing an '1' will clear the corresponding flag!!!
 	{
 		mIFR &= (~data) & 0x7f;
-		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to VIA 6522 IFR at 0x" + Utility::int2hexStr(adr,4) + " IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to IFR at 0x" + Utility::int2hexStr(adr,4) + ": IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
 		updateIRQ();
 
 		break;
@@ -964,7 +977,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		else { // disable interrupts		
 			mIER = (mIER & ~data) & 0x7f;
 		}
-		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to VIA 6522 IER at 0x" + Utility::int2hexStr(adr, 4) + " IER = 0x" + Utility::int2hexStr(mIER, 2) + " (" + IER2Str() + ")\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to IER at 0x" + Utility::int2hexStr(adr, 4) + ": IER = 0x" + Utility::int2hexStr(mIER, 2) + " (" + IER2Str() + ")\n");
 
 
 		break;
@@ -1162,4 +1175,36 @@ string VIA6522::ACRLE2Str(uint8_t l)
 	case 0x1: return "Yes";
 	default: return "???";
 	}
+}
+
+string VIA6522::ddr2Str(char port, uint8_t ddr)
+{
+	stringstream sout;
+	bool out = false;
+	for (int b = 0; b < 8; b++) {
+		if ((ddr & (1 << b)) != 0) {
+			if (out)
+				sout << ", ";
+			else
+				sout << "OUT: ";
+			sout << "P" << port << (int)b;
+			out = true;
+		}
+	}
+	bool in = false;
+	for (int b = 0; b < 8; b++) {
+		if ((ddr & (1 << b)) == 0) {
+			if (in)
+				sout << ", ";
+			else {
+				if (out)
+					sout << "; IN: ";
+				else
+					sout << "IN: ";
+			}
+			sout << "P" << port << (int)b;
+			in = true;
+		}
+	}
+	return sout.str();
 }
