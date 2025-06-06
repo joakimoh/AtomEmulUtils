@@ -30,7 +30,8 @@ typedef int DebugLevel;
 #define DBG_TRGGERING		0x0400	// TRIGGERING
 #define DBG_TIME			0x0800
 #define DBG_AUDIO			0x1000
-#define DBG_RESET			0x2000	// Only reset
+#define DBG_TAPE			0x2000
+#define DBG_RESET			0x4000	// Only reset
 #define	DBG_ALL				0xffff
 
 #define DBG_ON

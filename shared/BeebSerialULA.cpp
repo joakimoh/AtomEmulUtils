@@ -190,7 +190,7 @@ bool BeebSerialULA::write(uint16_t adr, uint8_t data)
 	// Update cassette motor output
 	updatePort(CASMO, SER_ULA_CR_CAS_MOT);
 
-	DBG_LOG(this, DBG_IO_PERIPHERAL, "Serial ULA CR = 0x" + Utility::int2hexStr(data, 2) + "/0b" + Utility::int2binStr(data, 8) + " [" +
+	DBG_LOG(this, DBG_TAPE, "Serial ULA CR = 0x" + Utility::int2hexStr(data, 2) + "/0b" + Utility::int2binStr(data, 8) + " [" +
 			"Motor (b7): " + (SER_ULA_CR_CAS_MOT ? "On" : "Off") +
 			", Mode (b6): " + (SER_ULA_CR_ENA_SER ? "Serial" : "Cassette") +
 			", RxClk (b5:b3): " + to_string(mRxClkRate) + ", TxClkc (b2:b0): " + to_string(mTxClkRate) + "]\n");
@@ -232,7 +232,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 		if (mCAS_IN != pCAS_IN) {
 			if (!mfirstTapeSample) {
 				mTapeStartCount = mCycleCount;
-				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
+				if (DBG_LEVEL(DBG_TAPE))
 					cout << "*** TAPE STARTS AT " << dec << mTapeStartCount << " cycles (" << mCycleCount / mCPUClock * 1e-6 << "s)\n";
 				if (mACIA != NULL)
 					mACIA->mDataStart = true;				
@@ -274,7 +274,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					mSameToneHalfCycles++;
 					if (high_tone) {
 						if (mLastTone != 1) {
-							if (DBG_LEVEL(DBG_IO_PERIPHERAL))
+							if (DBG_LEVEL(DBG_TAPE))
 								cout << "\n#" << dec << mSameToneHalfCycles << "x'" << dec << mLastTone << "' at " << tape_time << "s(" << time << "s)#\n";
 							mSameToneHalfCycles = 0;
 							updatePort(RxD, 1);
@@ -284,7 +284,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					}
 					else if (low_tone) {
 						if (mLastTone != 0) {
-							if (DBG_LEVEL(DBG_IO_PERIPHERAL))
+							if (DBG_LEVEL(DBG_TAPE))
 								cout << "\n#" << dec << mSameToneHalfCycles << "x'" << dec << mLastTone << "' at " << tape_time << "s (" << time << "s)#\n";
 							mSameToneHalfCycles = 0;
 							updatePort(RxD, 0);
@@ -293,7 +293,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					}
 					else { // neither a high tone (a 2400 1/2 cycle) nor a low tone (a 1200 1/2 cycle)
 						if (mLastTone != -1) {
-							if (DBG_LEVEL(DBG_IO_PERIPHERAL))
+							if (DBG_LEVEL(DBG_TAPE))
 								cout << "#" << dec << mSameToneHalfCycles << "x'" << dec << mLastTone << "' at " << tape_time << "s (" << time << "s)#\n";
 							mSameToneHalfCycles = 0;
 							updatePort(RxD, 1);
@@ -302,14 +302,15 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 						
 					}
 
-					/*
-					if (high_tone && mLowToneDetected)
-						cout << dec << half_cycle_cnt << " samples High tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
-					else if (low_tone)
-						cout << dec << half_cycle_cnt << " samples Low tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
-					else if (mLowToneDetected)
-						cout << "*** " << dec << half_cycle_cnt << " samples Undefined tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
-					*/
+					if (DBG_LEVEL(DBG_TAPE)) {
+						if (high_tone && mLowToneDetected)
+							cout << dec << half_cycle_cnt << " samples High tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
+						else if (low_tone)
+							cout << dec << half_cycle_cnt << " samples Low tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
+						else if (mLowToneDetected)
+							cout << "*** " << dec << half_cycle_cnt << " samples Undefined tone 1/2 cycle at " << tape_time << "s (" << time << "s)\n";
+					}
+					
 				}
 				else if (mRxD != 1)
 					updatePort(RxD, 1);
@@ -323,17 +324,19 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					mLowerToneHalfCycles++;
 					// Deactivate DCD if a complete lower tone cycle was received (normally this is due to a start bit)
 					if (mLowerToneHalfCycles >= 2) {
-						//if (mDCD == DCD_ACTIVE)
-						//	cout << "DCD -> HIGH at " << tape_time << "s\n";
+						if (DBG_LEVEL(DBG_TAPE) && mDCD == DCD_ACTIVE)
+							cout << "DCD -> HIGH at " << tape_time << "s\n";
 						updatePort(DCD, DCD_INACTIVE);					
 						mHighToneHalfCycles = 0;
 					}
 				}
 				if (mHighToneHalfCycles > mMinCarrierHalfCycles) {
 					if (mDCD == DCD_INACTIVE) {
-						//cout << "\n" << dec << mHighToneHalfCycles << " 1/2 cycles (" << ((double) mHighToneHalfCycles / 2400 / 2) << "s) of Carrier detected at " <<
-						//	(mCycleCount / mCPUClock * 1e-6) << "s\n";
-						//cout << "DCD -> LOW at " << tape_time << "s\n";
+						if (DBG_LEVEL(DBG_TAPE)) {
+							cout << "\n" << dec << mHighToneHalfCycles << " 1/2 cycles (" << ((double)mHighToneHalfCycles / 2400 / 2) << "s) of Carrier detected at " <<
+								(mCycleCount / mCPUClock * 1e-6) << "s\n";
+							cout << "DCD -> LOW at " << tape_time << "s\n";
+						}
 						updatePort(DCD, DCD_ACTIVE);
 						mSameToneHalfCycles = 0;
 						mCarrierDetected = true;
@@ -362,10 +365,11 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 						updatePort(CAS_OUT, 1 - mCAS_OUT);
 						mHalfCycleCnt++;
 					}
-					if (DBG_LEVEL(DBG_IO_PERIPHERAL)) {
+					if (DBG_LEVEL(DBG_TAPE)) {
 						cout << "\nSerial ULA starts " << (mTxD == 0 ? "Low Tone" : "High Tone") << " after " << dec << mHalfCycleCnt << " 1/2 cycles of different tone\n";
 						cout << "Same level duration was " << dec << mBitDurationCnt << " cycles\n";
-					}if (mTxD == 0)
+					}
+					if (mTxD == 0)
 						mToneHalfCycleDuration = mLowToneHalfCycleDuration;
 					else
 						mToneHalfCycleDuration = mHighToneHalfCycleDuration;
@@ -377,7 +381,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 					mBitDurationCnt++;
 					mToneCnt++;
 					if (mToneCnt == mToneHalfCycleDuration) {
-						if (DBG_LEVEL(DBG_IO_PERIPHERAL)) {
+						if (DBG_LEVEL(DBG_TAPE)) {
 							cout << (mToneHalfCycleDuration == mHighToneHalfCycleDuration ? "H" : "L");
 							cout << dec << mToneCnt << " ";
 						}
@@ -398,7 +402,7 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 
 			// Consider a too long same level input as loss of carrier
 			if (mLevelCnt > mLowToneHalfCycleDurationMax && mDCD == DCD_ACTIVE) {			
-				if (DBG_LEVEL(DBG_IO_PERIPHERAL) && mDCD == DCD_ACTIVE) {
+				if (DBG_LEVEL(DBG_TAPE) && mDCD == DCD_ACTIVE) {
 					cout << "\nCarrier lost  at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
 					cout << "\nDCD -> HIGH at " << (mCycleCount / mCPUClock * 1e-6) << "s\n";
 				}				

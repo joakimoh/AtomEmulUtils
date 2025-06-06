@@ -72,6 +72,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "\t'a' audio\n";
 	cout << "\t'd' device execution in general\n";
 	cout << "\t't' triggering on R/W accesses\n";
+	cout << "\t'c' cassette tape I/O\n";
 	cout << "\t'x' measuring execution time of the different components\n";
 	cout << "\t'A' all the above\n\n";
 }
@@ -219,6 +220,8 @@ ArgParser::ArgParser(int argc, const char* argv[])
 				debugManager.setDebugLevel(DBG_TIME);
 			if (strstr(argv[a], "a") != NULL)
 				debugManager.setDebugLevel(DBG_AUDIO);
+			if (strstr(argv[a], "c") != NULL)
+				debugManager.setDebugLevel(DBG_TAPE);
 			if (strstr(argv[a], "A") != NULL)
 				debugManager.setDebugLevel(DBG_ALL);
 		}
