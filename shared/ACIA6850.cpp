@@ -189,9 +189,9 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 			break;
 		}
 
-		if (DBG_LEVEL(DBG_IO_PERIPHERAL)) {
+		if (DBG_LEVEL(DBG_IO_PERIPHERAL) && mCR != p_CR) {
 			cout << "\nACIA Control Register updated to 0x" << hex << (int)mCR << " [" <<
-				div_s << ", " << w_sel_s << ", " << tx_ctrl_s << (ACIA_CR_RIE?"Rx IRQ":"No Rx IRQ") << "]\n";
+				div_s << ", " << w_sel_s << ", " << tx_ctrl_s << ", " << (ACIA_CR_RIE ? "Rx IRQ" : "No Rx IRQ") << "]\n";
 		}
 
 
@@ -207,8 +207,8 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		}
 		else {
 			if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-				cout << "Write byte 0x" << hex << (int) data << " to transmit into the ACIA TDR [ongping Tx]\n";
-			mTxState = START_BIT;
+				cout << "Write byte 0x" << hex << (int) data << " to transmit into the ACIA TDR [ongoing Tx - state is " << 
+				(mTxState==DATA_BIT?"Data":(mTxState==PARITY_BIT?"Parity Bit":(mTxState==STOP_BIT?"Stop bit":"???"))) << "]\n";
 		}
 	}
 
@@ -388,16 +388,16 @@ bool ACIA6850::advance(uint64_t stopCycle)
 					}
 
 				}
-				else if (mTxD != 1) {
+				//else if (mTxD != 1) {
 					// Make output high before a potential later start bit
-					updatePort(TxD, 1);
-				}
+				//	updatePort(TxD, 1);
+				//}
 			}
 			switch (mTxState) {
 			case START_BIT:
 			{
 				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-					cout << "ACIA writes start bit for byte 0x" << hex << (int) mTDR << "\n";
+					cout << "ACIA writes start bit for byte 0x" << hex << (int)mTDRBuf << "\n";
 				updatePort(TxD, 0);
 				mSentStopBits = 0;
 				mTxState = DATA_BIT;
@@ -450,7 +450,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 
 		}
 
-		if (mIRQ == 0 || mSR != p_SR || mCR != p_CR)
+		if (mSR != p_SR || mCR != p_CR)
 			updateIRQ();
 
 		mCycleCount++;
