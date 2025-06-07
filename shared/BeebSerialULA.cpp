@@ -402,6 +402,9 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 			}
 
 			else {
+				if (DBG_LEVEL(DBG_TAPE) && mCAS_OUT == 1)
+					cout << "RTS -> HIGH => Set CAS_OUT to '0'\n";
+					
 				// Keep CAS OUT low when RTS is high as an emulation of 'zero output voltage'
 				updatePort(CAS_OUT, 0);
 			}
@@ -417,6 +420,15 @@ bool BeebSerialULA::advance(uint64_t stopCycle)
 				mHighToneHalfCycles = 0;
 				mCarrierDetected = false;
 				updatePort(RxD, 1); // Set RxD HIGH so the ACIA will not mistake a constantly LOW RxD for a start bit
+			}
+		}
+
+		else {
+			// Keep CAS OUT low when in serial (not cassette) mode to emulate 'zero output voltage'
+			if (mCAS_OUT != 0) {
+				if (DBG_LEVEL(DBG_TAPE))
+					cout << "Serial Mode => Set CAS_OUT to '0'\n";
+				updatePort(CAS_OUT, 0);
 			}
 		}
 

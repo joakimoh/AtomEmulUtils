@@ -137,10 +137,20 @@ void TapeRecorder::stop()
 			cout << "STOP PLAYING\n";
 	}
 	else if (mSaveToTape) {
+
+		// Add a last long pulse
+		if (mRecord) {
+			unsigned int pulse_len = (int)round((double)mHalfCycleDuration / (mCPUClock * 1e6) * mSampleRate);
+			if (!mCodec->writePulse(pulse_len)) {
+				cout << "Failed to write last pulse!\n";
+			}
+		}
+
 		mSaveToTape = false;
 		mRecord = false;
 		if (DBG_LEVEL(DBG_VERBOSE))
 			cout << "STOP RECORDING\n";
+
 		mCodec->closeTapeFileW();
 	}
 	

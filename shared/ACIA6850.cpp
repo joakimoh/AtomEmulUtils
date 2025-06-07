@@ -376,22 +376,12 @@ bool ACIA6850::advance(uint64_t stopCycle)
 					mTxState = START_BIT;
 					mTxPending = false;
 					mTDRBuf = mTDR; // Copy the TDR data into a buffer to free  the TDR for new data
-					if (!ACIA_SR_CTS) {
-						if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-							cout << "TDRE set\n";
-						mSR |= ACIA_SR_TDRE_MASK; // Set the Transmit Data Register Empty bit (if not inhibited by the CTS)
-					}
-					else
-					{
-						if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-							cout << "CTS High (SR = 0x" << hex << (int)mSR << ") = > inhibits TDRE being set\n";
-					}
 
 				}
-				//else if (mTxD != 1) {
+				else if (mTxD != 1) {
 					// Make output high before a potential later start bit
-				//	updatePort(TxD, 1);
-				//}
+					updatePort(TxD, 1);
+				}
 			}
 			switch (mTxState) {
 			case START_BIT:
@@ -440,6 +430,17 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				mSentStopBits++;
 				if (mSentStopBits == mStopBits) {
 					mTxState = NO_BIT;
+					if (!ACIA_SR_CTS) {
+						if (DBG_LEVEL(DBG_IO_PERIPHERAL))
+							cout << "TDRE set\n";
+						mSR |= ACIA_SR_TDRE_MASK; // Set the Transmit Data Register Empty bit (if not inhibited by the CTS)
+					}
+					else
+					{
+						if (DBG_LEVEL(DBG_IO_PERIPHERAL))
+							cout << "CTS High (SR = 0x" << hex << (int)mSR << ") = > inhibits TDRE being set\n";
+					}
+
 				}
 				
 				break;
