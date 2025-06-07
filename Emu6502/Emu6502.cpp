@@ -40,10 +40,10 @@ ALLEGRO_MENU_INFO main_menu[] = {
          ALLEGRO_END_OF_MENU,
 
       ALLEGRO_START_OF_MENU("&Speed", SPEED_ID),
+         { "Real-time",         SPEED_100_ID,           ALLEGRO_MENU_ITEM_CHECKED, NULL },
          { "10%",               SPEED_10_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
          { "25%",               SPEED_25_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
          { "50%",               SPEED_50_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-         { "Real-time",         SPEED_100_ID,           ALLEGRO_MENU_ITEM_CHECKED, NULL },
          { "200%",              SPEED_200_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
          { "300%",              SPEED_300_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
          { "500%",              SPEED_500_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },

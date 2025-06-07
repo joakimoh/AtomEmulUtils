@@ -181,7 +181,7 @@ public:
 	virtual bool advance(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
-	bool updatePort(int index, uint8_t val);
+	bool updatePort(int index, uint8_t val, bool forceUpdate = false);
 
 	// Register that the direction of a bidirectional port (PORT_IO) has changed
 	bool registerPortDirChange(int index);

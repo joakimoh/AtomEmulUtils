@@ -363,7 +363,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			case START_BIT:
 			{
 				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-					cout << "ACIA writes start bit\n";
+					cout << "ACIA writes start bit for byte 0x" << hex << (int) mTDR << "\n";
 				updatePort(TxD, 0);
 				mSentStopBits = 0;
 				mTxState = DATA_BIT;

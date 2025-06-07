@@ -103,7 +103,7 @@ bool Device::registerPortDirChange(int index)
 // dst = dst & ~mask | ((src >> shifts) & mask) when shifts > 0
 // dst = dst & ~mask | ((src << -shifts) & mask) when shifts < 0
 //
-bool Device::updatePort(int index, uint8_t val)
+bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 {
 	if (index < 0 && index >= mPorts.size())
 		return false;
@@ -128,7 +128,7 @@ bool Device::updatePort(int index, uint8_t val)
 
 	// No need to progate value if the source port is unchanged unless connected to a destination port that is bidirectional.
 	// (A change of the dst port from IN->OUT->IN would then require it to be updated to "get back" the old src port value.)
-	bool changed = (port_val != val);
+	bool changed = port_val != val || forceUpdate;
 	if (!changed && !port.conToBiDirP)
 		return true;
 
@@ -275,10 +275,14 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 	return false;
 }
 
+//
+// Force an update of all of a device's connected ports
+// Used during start up to ensure a consistent state between source and destination ports
+//
 bool Device::updatePorts()
 {
 	for (int i = 0; i < mPorts.size(); i++) {
-		if (!updatePort(i, *(mPorts[i]->val)))
+		if (!updatePort(i, *(mPorts[i]->val), true)) // force update of each connected port
 			return false;
 	}
 

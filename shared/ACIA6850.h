@@ -24,8 +24,8 @@ private:
 
 	// Ports
 	int RxD, TxD, RTS, CTS, DCD, IRQ;
-	uint8_t mRxD = 0x0;
-	uint8_t mTxD = 0x0;
+	uint8_t mRxD = 0x1;
+	uint8_t mTxD = 0x1;
 	uint8_t mRTS = 0x1;
 	uint8_t mCTS = 0x1;
 	uint8_t mDCD = 0x1;
