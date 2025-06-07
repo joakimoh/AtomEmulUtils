@@ -71,15 +71,19 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		mCR = data;
 
 		// Rx & Tx clock divide
+		string div_s;
 		switch (ACIA_CR_DIV) {
 		case 0x0:
 			mClkDiv = 1;
+			div_s = "Rx/Tx Clk DIV 1";
 			break;
 		case 0x1:
 			mClkDiv = 16;
+			div_s = "Rx/Tx Clk DIV 16";
 			break;
 		case 0x2:
 			mClkDiv = 64;
+			div_s = "Rx/Tx Clk DIV 64";
 			break;
 		case 0x3:
 			// master reset
@@ -92,86 +96,104 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 			}
 			mRxState = NO_BIT;
 			mTxState = NO_BIT;
+			div_s = "Master Reset";
 			return true;
 		default:
 			break;
 		}
 
 		// Rx & Tx data bits
+		string w_sel_s;
 		switch (ACIA_CR_WORD) {
 		case 0x0:
 			mNDataBits = 7;
 			mParity = 0;
 			mStopBits = 2;
 			mInBits = mOutBits = 11;
+			w_sel_s = "7 data bits, even parity, 2 stop bits";
 			break;
 		case 0x1:
 			mNDataBits = 7;
 			mParity = 1;
 			mStopBits = 2;
 			mInBits = mOutBits = 11;
+			w_sel_s = "7 data bits, odd parity, 2 stop bits";
 			break;
 		case 0x2:
 			mNDataBits = 7;
 			mParity = 0;
 			mStopBits = 1;
 			mInBits = mOutBits = 10;
+			w_sel_s = "7 data bits, even parity, 1 stop bit";
 			break;
 		case 0x3:
 			mNDataBits = 7;
 			mParity = 1;
 			mStopBits = 1;
 			mInBits = mOutBits = 10;
+			w_sel_s = "7 data bits, odd parity, 1 stop bit";
 			break;
 		case 0x4:
 			mNDataBits = 8;
 			mParity = -1;
 			mStopBits = 2;
 			mInBits = mOutBits = 11;
+			w_sel_s = "8 data bits, no parity, 2 stop bits";
 			break;
 		case 0x5:
 			mNDataBits = 8;
 			mParity = -1;
 			mStopBits = 1;
 			mInBits = mOutBits = 10;
+			w_sel_s = "8 data bits, no parity, 1 stop bit";
 			break;
 		case 0x6:
 			mNDataBits = 8;
 			mParity = 0;
 			mStopBits = 1;
 			mInBits = mOutBits = 11;
+			w_sel_s = "8 data bits, even parity, 1 stop bit";
 			break;
 		case 0x7:
 			mNDataBits = 8;
 			mParity = 1;
 			mStopBits = 1;
 			mInBits = mOutBits = 11;
+			w_sel_s = "8 data bits, odd parity, 1 stop bit";
 			break;
 		default:
 			break;
 		}
 
 		// Tx control
+		string tx_ctrl_s;
 		switch (ACIA_CR_Tx) {
 		case 0x0:
 			updatePort(RTS, 0);
+			tx_ctrl_s = "RTS low; no Tx IRQ";
 			break;
 		case 0x1:
 			updatePort(RTS, 0);
+			tx_ctrl_s = "RTS low; Tx IRQ";
 			break;
 		case 0x2:
 			updatePort(RTS, 1);
+			tx_ctrl_s = "RTS high; no Tx IRQ";
 			break;
 		case 0x3:
 			updatePort(RTS, 0);
 			updatePort(TxD, 0); // break level (space) on data out
+			tx_ctrl_s = "RTS low; transmit space;no Tx IRQ";
 			break;
 		default:
 			break;
 		}
 
-		if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-			cout << "\nACIA Control Register updated to 0x" << hex << (int)mCR << "\n";
+		if (DBG_LEVEL(DBG_IO_PERIPHERAL)) {
+			cout << "\nACIA Control Register updated to 0x" << hex << (int)mCR << " [" <<
+				div_s << ", " << w_sel_s << ", " << tx_ctrl_s << (ACIA_CR_RIE?"Rx IRQ":"No Rx IRQ") << "]\n";
+		}
+
 
 	}
 	else {
@@ -181,11 +203,11 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		if (mTxState == NO_BIT) {
 			mTxPending = true;
 			if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-				cout << "Write first byte 0x" << hex << (int) data << " to transmit into the ACIA TDR\n";
+				cout << "Write byte 0x" << hex << (int) data << " to transmit into the ACIA TDR [no ongoing Tx]\n";
 		}
 		else {
 			if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-				cout << "Write next byte 0x" << hex << (int) data << " to transmit into the ACIA TDR\n";
+				cout << "Write byte 0x" << hex << (int) data << " to transmit into the ACIA TDR [ongping Tx]\n";
 			mTxState = START_BIT;
 		}
 	}
@@ -353,6 +375,18 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				if (mTxPending) {
 					mTxState = START_BIT;
 					mTxPending = false;
+					mTDRBuf = mTDR; // Copy the TDR data into a buffer to free  the TDR for new data
+					if (!ACIA_SR_CTS) {
+						if (DBG_LEVEL(DBG_IO_PERIPHERAL))
+							cout << "TDRE set\n";
+						mSR |= ACIA_SR_TDRE_MASK; // Set the Transmit Data Register Empty bit (if not inhibited by the CTS)
+					}
+					else
+					{
+						if (DBG_LEVEL(DBG_IO_PERIPHERAL))
+							cout << "CTS High (SR = 0x" << hex << (int)mSR << ") = > inhibits TDRE being set\n";
+					}
+
 				}
 				else if (mTxD != 1) {
 					// Make output high before a potential later start bit
@@ -378,9 +412,9 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			case DATA_BIT:
 			{
 				if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-					cout << "ACIA writes data bit '" << (int)(mTDR & 0x1) << "'\n";
-				updatePort(TxD, mTDR & 0x1);
-				mTDR = (mTDR >> 1) & 0x7f;
+					cout << "ACIA writes data bit '" << (int)(mTDRBuf & 0x1) << "'\n";
+				updatePort(TxD, mTDRBuf & 0x1);
+				mTDRBuf = (mTDRBuf >> 1) & 0x7f;
 				mTxPar ^= mTxD;
 				mTxBits++;
 				if (mTxBits == mNDataBits) {
@@ -406,16 +440,6 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				mSentStopBits++;
 				if (mSentStopBits == mStopBits) {
 					mTxState = NO_BIT;
-					if (!ACIA_SR_CTS) {
-						if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-							cout << "TDRE set\n";
-						mSR |= ACIA_SR_TDRE_MASK; // Set the Transmit Data Register Empty bit (if not inhibited by the CTS)
-					}
-					else
-					{
-						if (DBG_LEVEL(DBG_IO_PERIPHERAL))
-							cout << "CTS High (SR = 0x" << hex << (int) mSR << ") = > inhibits TDRE being set\n";
-					}
 				}
 				
 				break;

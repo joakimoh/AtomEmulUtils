@@ -41,6 +41,8 @@ private:
 
 	uint8_t pCR = mCR;
 
+	uint8_t mTDRBuf = 0x0;
+
 
 	// Control Register (CR) Fields
 #define ACIA_CR_DIV_MASK	(0x3 << 0)
