@@ -10,6 +10,7 @@
 using namespace std;
 
 class BeebROMSel : public MemoryMappedDevice {
+	// Selects one of the four sideways ROM sockets (IC52, IC88, IC100, IC101, left to right on the board after the OS socket)
 
 private:
 

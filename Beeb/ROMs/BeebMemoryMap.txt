@@ -4,8 +4,9 @@ CLOCK	2.0	// CPU clock in MHz
 //												States		
 //												[CPU Cycles]
 ADD	DRAM			RAM32K		0000	8000	0						// 32kB RAM	0000 -	7fff
-ADD	ROM 			BASIC		8000	4000	0			BASIC2.rom	// Paged ROM #15 (IC52 NW)	8000 - bfff
-ADD	ROM				OS			c000	4000	0			OS12.rom	// OS		 		c000 -	ffff
+ADD	ROM 			BASIC		8000	4000	0			BASIC2.rom	// Paged ROM #12 (IC52 NW)	8000 - bfff
+ADD	ROM				MMFS		8000	4000	0			MMFS.rom	// Paged ROM #13 (IC88 NE)
+ADD	ROM				OS			c000	4000	0			OS12.rom	// OS (IC51)		 		c000 -	ffff
 GAP					OS			fc00	0300							// Gap in OS ROM space between fc00-ff00	
 //
 // SHEILA	fe00 -	feff
@@ -51,6 +52,7 @@ CONNECT		CRTC:CUDISP			VDU:CURSOR
 CONNECT		CRTC:RA;3;0			VDU:RA
 CONNECT		CRTC:VS				SYS_VIA:CA;0	// VS => CA1
 CONNECT 	ROMSel:NW			BASIC:CS
+CONNECT		ROMSel:NE			MMFS:CS
 CONNECT:P	VIAL:Q;5;4			VDU:C
 CONNECT 	VDU:CRTC_CLK		CRTC:CLK
 
