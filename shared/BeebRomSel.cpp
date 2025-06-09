@@ -41,6 +41,8 @@ bool BeebROMSel::write(uint16_t adr, uint8_t data)
 	if (!selected(adr))
 		return false;
 
+	uint8_t p_reg = mReg & 0x3;
+	uint8_t reg = data & 0x3;
 	mReg = data;
 	switch (mReg & 0x3) {
 	case 0x3:
@@ -48,24 +50,28 @@ bool BeebROMSel::write(uint16_t adr, uint8_t data)
 		updatePort(NE, 0x1);
 		updatePort(SW, 0x1);
 		updatePort(SE, 0x1);
+		DBG_LOG_COND(reg != p_reg, this, DBG_VERBOSE, "ROMSel: Slot 12 NW - IC52 (Normally DFS) Selected\n");
 		break;
 	case 0x2:
 		updatePort(NW, 0x1);
 		updatePort(NE, 0x0);
 		updatePort(SW, 0x1);
 		updatePort(SE, 0x1);
+		DBG_LOG_COND(reg != p_reg, this, DBG_VERBOSE, "ROMSel: Slot 13 NE - IC88 (Normally Aux ROM) Selected\n");
 		break;
 	case 0x1:
 		updatePort(NW, 0x1);
 		updatePort(NE, 0x1);
 		updatePort(SW, 0x0);
 		updatePort(SE, 0x1);
+		DBG_LOG_COND(reg != p_reg, this, DBG_VERBOSE, "ROMSel: Slot 14 SW- IC100 (Normally Aux ROM) Selected\n");
 		break;
 	case 0x0:
 		updatePort(NW, 0x1);
 		updatePort(NE, 0x1);
 		updatePort(SW, 0x1);
 		updatePort(SE, 0x0);
+		DBG_LOG_COND(reg != p_reg, this, DBG_VERBOSE, "ROMSel: Slot 15 SE - IC101 (Normally BASIC) Selected\n");
 		break;
 	default:
 		break;
@@ -73,15 +79,4 @@ bool BeebROMSel::write(uint16_t adr, uint8_t data)
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	return MemoryMappedDevice::triggerAfterWrite(adr, data);
-}
-
-bool BeebROMSel::addROMs(vector<ROM*> &ROMs)
-{
-	for (int i = 0; i < ROMs.size(); i++) {
-		if (DBG_LEVEL(DBG_VERBOSE))
-			cout << "Adding Paged ROM '" << ROMs[i]->name << "\n";
-		mROMs.push_back(ROMs[i]);
-	}
-
-	return true;
 }

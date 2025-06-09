@@ -17,6 +17,8 @@ class MemoryMappedDevice : public Device {
 
 protected:
 
+	uint8_t mCS = 0x0;
+
 	bool mTriggerOnWrite = false;
 	bool mTriggerOnRead = false;
 

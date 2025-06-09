@@ -22,8 +22,9 @@ bool MemoryMappedDevice::selected(uint16_t adr)
 {
 	bool valid = true;
 
-	if (adr < mMemorySpace.adr || adr >= mMemorySpace.adr + mMemorySpace.sz)
+	if (mCS != 0 || adr < mMemorySpace.adr || adr >= mMemorySpace.adr + mMemorySpace.sz)
 		return false;
+
 	for (int i = 0; i < mMemoryGaps.size(); i++) {
 		if (adr >= mMemoryGaps[i].adr && adr < mMemoryGaps[i].adr + mMemoryGaps[i].sz) {
 			return false;		

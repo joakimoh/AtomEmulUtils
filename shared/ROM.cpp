@@ -68,6 +68,11 @@ bool ROM::read(uint16_t adr, uint8_t& data)
 
 	data = mMem[adr - mMemorySpace.adr];
 
+	if (DBG_LEVEL(DBG_VERBOSE) && !mRead) {
+		cout << "ROM '" << this->name << "' read gave 0x" << hex << (int)data << "\n";
+		mRead = true;
+	}
+
 	return true;
 
 }

@@ -8,7 +8,7 @@ add_library(
 	 "VDU6847.h"  "PIA8255.h"  "ROM.h"  "RAM.h" "Device.h" "Tokeniser.h" "DebugManager.h" "GUI.h" "TapeRecorder.h" "AtomSpeaker.h" "VideoDisplayUnit.h"
 	"VideoDisplayUnit.h" "SoundDevice.h"  "BeebKeyboard.h" "CRTC6845.h" "TT5050.h"
 	"BeebRomSel.h"  "ACIA6850.h" "Utility.h"  "BeebSerialULA.h" "VideoSettings.h" 
-	 "ConnectionManager.h"  "Devices.h")
+	 "ConnectionManager.h"  "Devices.h" "SDCard.cpp" "SDCard.h")
 
 # Locate zlib
 find_package(ZLIB REQUIRED)

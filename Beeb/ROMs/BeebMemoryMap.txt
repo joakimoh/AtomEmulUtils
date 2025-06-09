@@ -4,8 +4,8 @@ CLOCK	2.0	// CPU clock in MHz
 //												States		
 //												[CPU Cycles]
 ADD	DRAM			RAM32K		0000	8000	0						// 32kB RAM	0000 -	7fff
-ADD	ROM 			BASIC		8000	4000	0			BASIC2.rom	// Paged ROM #12 (IC52 NW)	8000 - bfff
-ADD	ROM				MMFS		8000	4000	0			MMFS.rom	// Paged ROM #13 (IC88 NE)
+ADD	ROM 			BASIC		8000	4000	0			BASIC2.rom	// Paged ROM #15 (IC101 SE)	8000 - bfff
+ADD	ROM				MMFS		8000	4000	0			MMFS.rom	// Paged ROM #13 (IC52 NW)	8000 - bfff
 ADD	ROM				OS			c000	4000	0			OS12.rom	// OS (IC51)		 		c000 -	ffff
 GAP					OS			fc00	0300							// Gap in OS ROM space between fc00-ff00	
 //
@@ -51,10 +51,20 @@ CONNECT		CRTC:DISPTMG		VDU:DISEN
 CONNECT		CRTC:CUDISP			VDU:CURSOR
 CONNECT		CRTC:RA;3;0			VDU:RA
 CONNECT		CRTC:VS				SYS_VIA:CA;0	// VS => CA1
-CONNECT 	ROMSel:NW			BASIC:CS
-CONNECT		ROMSel:NE			MMFS:CS
 CONNECT:P	VIAL:Q;5;4			VDU:C
 CONNECT 	VDU:CRTC_CLK		CRTC:CLK
+
+// Paged ROMs
+CONNECT 	ROMSel:SE			BASIC:CS
+CONNECT		ROMSel:NW			MMFS:CS
+
+// SD Card for MMFS
+CONNECT:P	SYS_VIA:PB1			SD_CARD:CLK		// Clock
+CONNECT:P	SYS_VIA:PB1			SYS_VIA:CB1		// Clock
+CONNECT:P	SYS_VIA:CB2			SD_CARD:MISO	// Serial Data Out
+CONNECT:P	SYS_VIA:PB0			SD_CARD:MOSI	// Serial Data In
+INIT		SC_CARD:SEL			0				// Select hard-wired to active
+
 
 // VIA IRQ
 CONNECT 	SYS_VIA:IRQ			CPU:IRQ			// VIA generates 100 Hz timer interrupts and more

@@ -14,7 +14,7 @@ class ROM : public MemoryMappedDevice {
 public:
 
 	int CS;
-	uint8_t mCS = 0x0;
+	bool mRead = false;
 
 public:
 

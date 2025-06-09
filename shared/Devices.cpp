@@ -82,8 +82,6 @@ Devices::Devices(
 	cpuClock = 1.0; // Default 1 Mhz CPU clock
 
 	// BBC Micro Page ROM support
-	vector<ROM*> paged_ROMs;
-	BeebROMSel* paged_rom_sel = NULL;
 
 	mainVDU = NULL;
 	sound_device = NULL;
@@ -236,7 +234,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					paged_rom_sel = new BeebROMSel(dev_name, cpuClock, wait_states, dev_adr, mDM, &connection_manager);
+					BeebROMSel *paged_rom_sel = new BeebROMSel(dev_name, cpuClock, wait_states, dev_adr, mDM, &connection_manager);
 					mDevices.push_back(paged_rom_sel);
 
 				}
@@ -515,15 +513,6 @@ Devices::Devices(
 	if (microprocessor == NULL) {
 		cout << "No microprocessor device specifed!\n";
 		throw runtime_error("No microprocessor device specifed");
-	}
-
-
-	if (paged_ROMs.size() > 0) {
-		if (paged_rom_sel == NULL) {
-			cout << "No paged ROM register specifed!\n";
-			throw runtime_error("No paged ROM register specifed");
-		}
-		paged_rom_sel->addROMs(paged_ROMs);
 	}
 
 	// Update the video data unit(s) with graphics memory data
