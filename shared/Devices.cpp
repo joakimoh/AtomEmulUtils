@@ -29,6 +29,7 @@
 #include "Device.h"
 #include "ConnectionManager.h"
 #include "Devices.h"
+#include "SDCard.h"
 
 using namespace std;
 
@@ -184,7 +185,7 @@ Devices::Devices(
 				}
 
 				//
-				// Microcontrollers
+				// Microprocessors
 				//
 
 				else if (dev_type == "CPU_6502") {
@@ -335,6 +336,12 @@ Devices::Devices(
 				else if (dev_type == "BEEBVIALATCH") {
 					BeebViaLatch* latch = new BeebViaLatch(dev_name, cpuClock, mDM, &connection_manager);
 					mDevices.push_back(latch);
+				}
+
+				else if (dev_type == "SD_CARD") {
+					string card_file_path = getFileName(memMapFile, sin);
+					SDCard* card = new SDCard(dev_name, cpuClock, card_file_path, mDM, &connection_manager);
+					mDevices.push_back(card);
 				}
 
 				else {

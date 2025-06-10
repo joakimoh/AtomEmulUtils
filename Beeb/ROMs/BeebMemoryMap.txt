@@ -26,6 +26,7 @@ ADD	CPU_6502		CPU													// Microprocessor 6502
 ADD	TAPREC			TAPREC												// Standard Tape Recorder
 ADD	TI4689			SOUND
 ADD	BEEBVIALATCH	VIAL												// System VIA Latch with 8 outputs, each updated by writing to Port B bits 3:0
+ADD SD_CARD			MMFS_CARD							Disc.mmb		// SD Card formated with Disc.mmb
 
 //
 //	Device connections
@@ -58,12 +59,15 @@ CONNECT 	VDU:CRTC_CLK		CRTC:CLK
 CONNECT 	ROMSel:SE			BASIC:CS
 CONNECT		ROMSel:NW			MMFS:CS
 
+//
 // SD Card for MMFS
-CONNECT:P	SYS_VIA:PB1			SD_CARD:CLK		// Clock
-CONNECT:P	SYS_VIA:PB1			SYS_VIA:CB1		// Clock
-CONNECT:P	SYS_VIA:CB2			SD_CARD:MISO	// Serial Data Out
-CONNECT:P	SYS_VIA:PB0			SD_CARD:MOSI	// Serial Data In
-INIT		SC_CARD:SEL			0				// Select hard-wired to active
+//
+// CB1/CB2 are used for clock/data during shift in to VIA amd PB1/PB0 for clock/data during shift out from VIA
+CONNECT:P	SYS_VIA:CB;0			MMFS_CARD:CLK		// Clock - CB1 used to provide shift clock to the card (shift in to VIA as well as shift out from VIA)
+CONNECT:P	SYS_VIA:PB;1			SYS_VIA:CB;0		// Clock - PB1 used to generate the CB1 shift clock (shift out from VIA only; otherwise PB1 is input)
+CONNECT:P	SYS_VIA:PB;0			MMFS_CARD:MOSI		// Serial Data In sent from PB0 (VIA PB1 output connected to CB1 shift clock input)
+CONNECT:P	MMFS_CARD:MISO			SYS_VIA:CB;1		// Serial Data Out received on CB2 (VIA timer T2 generates CB1 shift clock output)
+INIT		MMFS_CARD:SEL			0					// Select hard-wired to be active
 
 
 // VIA IRQ

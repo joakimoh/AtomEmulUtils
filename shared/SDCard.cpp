@@ -1,12 +1,39 @@
 #include "SDCard.h"
+#include <stdexcept>
+#include <iostream>
+#include <fstream>
+#include <filesystem>
 
-SDCard::SDCard(string name, double cpuClock, DebugManager* debugManager, ConnectionManager* connectionManager): 
+SDCard::SDCard(string name, double cpuClock, string cardImage, DebugManager* debugManager, ConnectionManager* connectionManager):
 	Device(name, SD_CARD, OTHER_DEVICE, cpuClock, debugManager, connectionManager)
 {
-	registerPort("CLK",		IN_PORT,	0x1, &mCLK);	// Clock
-	registerPort("MISO",	OUT_PORT,	0x1, &mMISO);	// Data Out
-	registerPort("MOSI",	IN_PORT,	0x1, &mMOSI);	// Data In
-	registerPort("SEL",		IN_PORT,	0x1, &mSEL);	// Select
+	registerPort("CLK",		IN_PORT,	0x1,	CLK,	&mCLK);		// Clock
+	registerPort("MOSI",	IN_PORT,	0x1,	MOSI,	&mMOSI);	// Data In
+	registerPort("SEL",		IN_PORT,	0x1,	SEL,	&mSEL);		// Select
+	registerPort("MISO",	OUT_PORT,	0x1,	MISO,	&mMISO);	// Data Out
+/*
+	mCardImage = new ifstream(cardImage, ios::in | ios::binary | ios::ate);
+
+	if (mCardImage == NULL || !*mCardImage) {
+		cout << "couldn't open SD Card Image " << cardImage << "\n";
+		throw runtime_error("couldn't open  SD Card Image");
+	}
+
+	cout << "SD Card Image '" << cardImage << " added...\n";
+
+	// Get file size (should normally equal ROM size)
+	mCardImage->seekg(0, ios::end);
+	streamsize file_sz = mCardImage->tellg();
+	mCardImage->seekg(0);
+	*/
+}
+
+SDCard::~SDCard()
+{
+	if (mCardImage != NULL) {
+		mCardImage->close();
+		delete mCardImage;
+	}
 }
 
 //
@@ -29,15 +56,15 @@ SDCard::SDCard(string name, double cpuClock, DebugManager* debugManager, Connect
 // |0|1| 6-bit Command | 32-bit Argument | 7-bit CRC |1|
 // +-------------------+-----------------+-----------+-+
 // 
-// Data is sent with MOSI intially High ('1') as the idle state. When data transmission starts
+// Data is sent with MOSI intially set to '1'.
 // Then the most significant bit is placed on the MOSI with Clock 0->1->0 to latch and shift the bit.
-// This is repeated until a complet command has been received.
+// This is repeated until a complete command has been received.
 // 
-// To respond to a command, the SD card requires the SD CLK signal to toggle for at least 8 cycles while
+// To respond to a command, the SD card requires the CLK signal to toggle for at least 8 cycles while
 // keeping MOSI high.
 // 
-// The SD card is placed into the SPI mode by setting the MOSI and CS lines to logic value 1 and toggle SD CLK for at least 74 cycles.
-// Then the CS line shal lbe set to 0 and the reset command CMD0 shall be sent.
+// The SD card is placed into the SPI mode by setting the MOSI and SEL lines to '1' and toggle the CLK for at least 74 cycles.
+// Then the SEL line shall be set to '0' and the reset command (CMD0) shall be sent.
 // 
 // A successful reception of a command will be replied with an 8-bit respone of the format below:
 // +---+---+---+---+---+---+---+---+
@@ -46,24 +73,31 @@ SDCard::SDCard(string name, double cpuClock, DebugManager* debugManager, Connect
 // | 1 | PE| AE| EE| CE| IC| ER| IS|		IS = In Idle State
 // +---+---+---+---+---+---+---+---+ 
 //
-// To receive this message (data in MISO), the SD CLK signal is toggled while keeping the MOSI line high and the CS line low.
+// To receive this message (data in MISO), the SD CLK signal is toggled while keeping the MOSI line high and the SEL line low.
 // 
 // Commands:
 // CMD0:	01 000000 00000000 00000000 00000000 00000000 1001010 1			RESET
 //
 void SDCard::processPortUpdate(int port)
 {
+	cout << "SPI Clock = '" << (int)mCLK << "', SEL = '" << (int)mSEL << "', MOSI(Din) = '" << (int)mMOSI << "'\n";
+
 	// Mode 0 assumed
 	if (port == CLK) {
 		if (mCLK != pCLK) {
+			if (!mCLK)
 			if (mCLK) {
 				if (mSPIMode == SPI_NOT_INIT) {
-					if (mMOSI == 1 && mSEL == 1)
+					if (mMOSI == 1 && mSEL == 1) {
 						mReceviedBits++;
+						cout << "SPI Init Phase - " << dec << mReceviedBits << " bits received!\n";
+					}
 					else
 						mReceviedBits = 0;
-					if (mReceviedBits == 74)
+					if (mReceviedBits == 74) {
 						mSPIMode = SPI_READY_PEND;
+						cout << "SD Card SPI Reset completed!\n";
+					}
 				}
 				else if (mSEL == 0) {
 					mCommand = ((mCommand >> 1) & 0x7f) | mMOSI;

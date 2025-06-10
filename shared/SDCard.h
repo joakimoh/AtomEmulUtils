@@ -38,10 +38,14 @@ private:
 		{SPI_CMD1, 0x567890}
 	};
 
+	ifstream* mCardImage = NULL;
+
 public:
 
 
-	SDCard(string name, double cpuClock, DebugManager* debugManager, ConnectionManager* connectionManager);
+	SDCard(string name, double cpuClock, string cardFile, DebugManager* debugManager, ConnectionManager* connectionManager);
+
+	~SDCard();
 
 	void processPortUpdate(int port) override;
 
