@@ -177,6 +177,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 			case 0x7:	// Shift out under control of external clock
 			{
 				if (mCB1ShiftPulse) { // shift in out HIGH CB1 shift pulse
+					cout << "SHIFT\n";
 					updatePort(CB, (mCB & ~0x2) | ((mShiftRegister & 0x1) << 1)); // output b0 on CB2
 					mShiftRegister = (mShiftRegister >> 1) | ((mShiftRegister << 7) & 0x80); // shift register right one bit with b0 going into b7
 					mShifts = mShifts % 8;

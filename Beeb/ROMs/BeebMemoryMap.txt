@@ -60,13 +60,13 @@ CONNECT 	ROMSel:SE			BASIC:CS
 CONNECT		ROMSel:NW			MMFS:CS
 
 //
-// SD Card for MMFS
+// SD Card for MMFS connected to the User VIA
 //
-// CB1/CB2 are used for clock/data during shift in to VIA amd PB1/PB0 for clock/data during shift out from VIA
-CONNECT:P	SYS_VIA:CB;0			MMFS_CARD:CLK		// Clock - CB1 used to provide shift clock to the card (shift in to VIA as well as shift out from VIA)
-CONNECT:P	SYS_VIA:PB;1			SYS_VIA:CB;0		// Clock - PB1 used to generate the CB1 shift clock (shift out from VIA only; otherwise PB1 is input)
-CONNECT:P	SYS_VIA:PB;0			MMFS_CARD:MOSI		// Serial Data In sent from PB0 (VIA PB1 output connected to CB1 shift clock input)
-CONNECT:P	MMFS_CARD:MISO			SYS_VIA:CB;1		// Serial Data Out received on CB2 (VIA timer T2 generates CB1 shift clock output)
+// VIA CB1/CB2 are used for clock/data during shift in to VIA amd PB1/PB0 for clock/data during shift out from VIA
+CONNECT:P	USER_VIA:CB;0			MMFS_CARD:CLK		// Clock - CB1 used to provide shift clock to the card (shift in to VIA as well as shift out from VIA)
+CONNECT:P	USER_VIA:PB;1			USER_VIA:CB;0		// Clock - PB1 used to generate the CB1 shift clock (shift out from VIA only; otherwise PB1 is input)
+CONNECT:P	USER_VIA:PB;0			MMFS_CARD:MOSI		// Serial Data In sent from PB0 (VIA PB1 output connected to CB1 shift clock input)
+CONNECT:P	MMFS_CARD:MISO			USER_VIA:CB;1		// Serial Data Out received on CB2 (VIA timer T2 generates CB1 shift clock output)
 INIT		MMFS_CARD:SEL			0					// Select hard-wired to be active
 
 
@@ -109,6 +109,7 @@ SCHED	SerialULA	INSTR
 SCHED	VDU			NONE
 SCHED	VIAL		NONE
 SCHED	SOUND		HLINE
+SCHED	MMFS_CARD	NONE
 
 //
 // Initialisation of external ports

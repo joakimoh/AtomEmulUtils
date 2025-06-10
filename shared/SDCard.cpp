@@ -80,7 +80,7 @@ SDCard::~SDCard()
 //
 void SDCard::processPortUpdate(int port)
 {
-	cout << "SPI Clock = '" << (int)mCLK << "', SEL = '" << (int)mSEL << "', MOSI(Din) = '" << (int)mMOSI << "'\n";
+	cout << "Port " << port << ", SPI Clock = '" << (int)mCLK << "', SEL = '" << (int)mSEL << "', MOSI(Din) = '" << (int)mMOSI << "'\n";
 
 	// Mode 0 assumed
 	if (port == CLK) {
