@@ -174,14 +174,19 @@ bool ConnectionManager::connect(string srcName, string dstName, bool invert, boo
 	// Check for fan in on destination port
 	// Set arbitration flag on destination port if fan in > 1.
 	// Also set fan in flag on source port
+	// Only pure output ports are considered (and not bidirectional ports)
 	bool arbitration = false;
 	if (dst_port.port->portSources.size() > 1) {
 		uint8_t dst_mask = 0xff;
+		int cnt = 0;
 		for (int i = 0; i < dst_port.port->portSources.size(); i++) {
-			dst_mask &= dst_port.port->portSources[i].dstMask;
+			if (dst_port.port->portSources[i].srcPort->dir == OUT_PORT) {
+				dst_mask &= dst_port.port->portSources[i].dstMask;
+				cnt++;
+			}
 			//cout << "*** " << dst_port.port->portSources[i].srcPort->name << " mask: " << hex << (int) dst_port.port->portSources[i].dstMask << "\n";
 		}
-		arbitration = arbitration || (dst_mask != 0);
+		arbitration = cnt>1 && (arbitration || (dst_mask != 0));
 		dst_port.port->arbitration = arbitration;
 		if (arbitration)
 			src_port.port->dstFanIn = true;

@@ -113,41 +113,68 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 		// Shift Register Function
 		if (mStartShifting) {
+
+			// Generate shift pulse from either CB1 input, timer T2 or input clock phi2
+			// The generated pulse is always visible on the CB1 line (irrespecively if it is configured as an input or output)
 			switch (ACR_SR_CTRL) {
+
 			case 0x0:	// Shift in on positive edge of CB1 - no interrupt flag set
+				DBG_LOG_COND(mCB1ShiftPulse != CB1, this, DBG_IO_PERIPHERAL, "Mode 0: CB1 shift in pulse '" + to_string(mCB1ShiftPulse) + "' generated from CB1 input...\n");
 				mCB1ShiftPulse = CB1;
-				mShiftInterrupt = false;
+				mShiftInterrupt = false;			
 				break;
+
 			case 0x1:	// Shift in on timeout of T2 (lower bits only) and generate shift pulses on CB1 - interrupt flag set
-				if (mTimer2Counter % 256 == 0 && pTimer2Counter % 256 != 0)
+				if (mTimer2Counter % 256 == 0 && pTimer2Counter % 256 != 0) {
 					mCB1ShiftPulse = 1 - mCB1ShiftPulse;
+					DBG_LOG(this, DBG_IO_PERIPHERAL, "Mode 1: CB1 shift in pulse '" + to_string(mCB1ShiftPulse) + "' generated from Timer T2...\n");
+				}
 				mShiftInterrupt = true;
 				mShiftGenerateCB1 = true;
+				
 				break;
+
 			case 0x2:	// Shift in under control of phi2 and generate shift pulses on CB1 - interrupt flag set
 				mCB1ShiftPulse = 1 - mCB1ShiftPulse;
 				mShiftInterrupt = true;
 				mShiftGenerateCB1 = true;
+				DBG_LOG(this, DBG_IO_PERIPHERAL, "Mode 2: CB1 shift in pulse '" + to_string(mCB1ShiftPulse) + "' generated from phi2 system clock...\n");
 				break;
+
 			case 0x3:	// Shift in under control of external clock (on CB1) -  - interrupt flag set
+				DBG_LOG_COND(mCB1ShiftPulse != CB1, this, DBG_IO_PERIPHERAL, "Mode 3: CB1 shift in pulse '" + to_string(mCB1ShiftPulse) + "' generated from CB1 input...\n"); 
 				mCB1ShiftPulse = CB1;
-				mShiftInterrupt = true;
-				mShiftGenerateCB1 = false;
+				mShiftInterrupt = true;	
 				break;
+
 			case 0x4:	// Shift out fre-running at T2 rate
-				break;
-			case 0x5:	// Shift out under control of T2
-				if (mTimer2Counter % 256 == 0 && pTimer2Counter % 256 != 0)
+				if (mTimer2Counter % 256 == 0 && pTimer2Counter % 256 != 0) {
 					mCB1ShiftPulse = 1 - mCB1ShiftPulse;
-				mShiftInterrupt = true;
+					DBG_LOG(this, DBG_IO_PERIPHERAL, "Mode 4: CB1 shift out pulse '" + to_string(mCB1ShiftPulse) + "' generated from timer T2 - frerunning...\n");
+				}
 				mShiftGenerateCB1 = true;
 				break;
+
+			case 0x5:	// Shift out under control of T2
+				if (mTimer2Counter % 256 == 0 && pTimer2Counter % 256 != 0) {
+					mCB1ShiftPulse = 1 - mCB1ShiftPulse;
+					DBG_LOG(this, DBG_IO_PERIPHERAL, "Mode 5: CB1 shift out pulse '" + to_string(mCB1ShiftPulse) + "' generated from timer T2...\n");
+				}
+				mShiftInterrupt = true;
+				mShiftGenerateCB1 = true;			
+				break;
+
 			case 0x6:	// Shift out under control of phi2
 				mCB1ShiftPulse = 1 - mCB1ShiftPulse;
+				mShiftGenerateCB1 = true;
+				DBG_LOG(this, DBG_IO_PERIPHERAL, "Mode 6: CB1 shift out pulse '" + to_string(mCB1ShiftPulse) + "' generated from phi2 system clock...\n");
 				break;
-			case 0x7:	// Shift out under control of external clock
+
+			case 0x7:	// Shift out under control of external clock (CB1 input)
 				mCB1ShiftPulse = CB1;
+				DBG_LOG_COND(mCB1ShiftPulse != CB1, this, DBG_IO_PERIPHERAL, "Mode 7: CB1 shift out pulse '" + to_string(mCB1ShiftPulse) + "' generated from CB1 input...\n");
 				break;
+
 			}
 
 			// Shift Register Function
@@ -158,6 +185,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 			case 0x3:	// Shift in under control of external clock (on CB1) - negative transition used
 			{
 				if (mCB1ShiftPulse) { // shift in on HIGH CB1 shift pulse
+					DBG_LOG(this, DBG_IO_PERIPHERAL, "SHIFT IN\n");
 					mShiftRegister = (mShiftRegister << 1) | CB2;
 					mShifts = mShifts % 8;
 					if (mShifts == 0) {
@@ -177,7 +205,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 			case 0x7:	// Shift out under control of external clock
 			{
 				if (mCB1ShiftPulse) { // shift in out HIGH CB1 shift pulse
-					cout << "SHIFT\n";
+					DBG_LOG(this, DBG_IO_PERIPHERAL, "SHIFT OUT\n");
 					updatePort(CB, (mCB & ~0x2) | ((mShiftRegister & 0x1) << 1)); // output b0 on CB2
 					mShiftRegister = (mShiftRegister >> 1) | ((mShiftRegister << 7) & 0x80); // shift register right one bit with b0 going into b7
 					mShifts = mShifts % 8;
@@ -549,7 +577,6 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		
 		data = mShiftRegister;
 
-
 		// Start input shifting on read
 		if (mShifts == 0) {
 			switch (ACR_SR_CTRL) {
@@ -561,7 +588,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 			case 0x5:	// Shift out under control of T2	
 			case 0x7:	// Shift out under control of external clock
 				mStartShifting = true;
-
+				DBG_LOG(this, DBG_IO_PERIPHERAL, ": Start shifting by reading the Shift Register - mode is "+ to_string(ACR_SR_CTRL) + "\n");
 				break;
 			default:
 				break;
@@ -893,7 +920,6 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Shift Register
 	{
 		mShiftRegister = data;
-
 		// Start input shifting on write
 		if (mShifts == 0) {
 			switch (ACR_SR_CTRL) {		
@@ -905,6 +931,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 			case 0x5:	// Shift out under control of T2	
 			case 0x7:	// Shift out under control of external clock
 				mStartShifting = true;
+				DBG_LOG(this, DBG_IO_PERIPHERAL, ": Start shifting by writing to the Shift Register - mode is " + to_string(ACR_SR_CTRL) + "\n");
 				break;
 			default:
 				break;

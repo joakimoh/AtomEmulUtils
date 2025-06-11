@@ -60,6 +60,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "-mlog <adr>:\n\tmemory concent to add along with the log\n\n";
 	cout << "-port <device name>:<port name> {, <device_name:<port name>\n\tlog updates of specific ports\n";
 	cout << "-dbg <string with one or more of the letters below>: Debugging of different detail.\n";
+	cout << "-dev <dev name>: specify that debugging shall be limited to a certain device instance <dev name>.\n";
 	cout << "\t'e' errors\n";
 	cout << "\t'w' warnings\n";
 	cout << "\t'u' microprocessor execution (can also be enabled at run-time with <CRTL-D>)\n";
@@ -91,6 +92,10 @@ ArgParser::ArgParser(int argc, const char* argv[])
 	while (a < argc) {
 		if (strcmp(argv[a], "-speed") == 0) {
 			emulationSpeed = stod(argv[a + 1]);
+			a++;
+		}
+		else if (strcmp(argv[a], "-dev") == 0) {
+			debugManager.setLogDevice(argv[a + 1]);
 			a++;
 		}
 		else if (strcmp(argv[a], "-nHA") == 0) {

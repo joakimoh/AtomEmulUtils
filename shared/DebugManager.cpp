@@ -228,6 +228,9 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 
 void DebugManager::log(Device * dev, DebugLevel level, string line)
 {
+	if (mLogDevice != NULL && dev != mLogDevice)
+		return;
+
 	if (mFetchAdr != mCyclicLogAdr && ((mDbgLevel & level) == 0 || mDelayed))
 		return;
 
@@ -249,7 +252,8 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 
 void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 {
-
+	if (mLogDevice != NULL && dev != mLogDevice)
+		return;
 
 	if (mFetchAdr != mCyclicLogAdr && ((mDbgLevel & level) == 0 || mDelayed))
 		return;
@@ -290,16 +294,20 @@ bool DebugManager::setDevices(Devices * devices)
 	if (devices == NULL)
 		return false;
 
+	Device* dev;
 	for (int i = 0; i < mTmpLogPorts.size(); i++) {
 		string dev_name = mTmpLogPorts[i].device;
-		string port_name = mTmpLogPorts[i].port;
-		Device* dev;
+		string port_name = mTmpLogPorts[i].port;		
 		DevicePort* device_port;
 		if (!mDevices->getDevice(dev_name, dev) || !dev->getPortIndex(port_name, device_port)) {
 			cout << "Port " << dev_name << ":" << port_name << " doesn't exist!\n";
 			return false;
 		}
 		mLogPorts.push_back(device_port);
+	}
+
+	if (mTmpLogDeviceName != "" && mDevices->getDevice(mTmpLogDeviceName, dev)) {
+		mLogDevice = dev;
 	}
 
 	return true;

@@ -125,6 +125,9 @@ private:
 	uint16_t mFetchAdr = 0x0;
 	stringstream mSout;
 
+	Device* mLogDevice = NULL;
+	string mTmpLogDeviceName;
+
 	int mInterruptLogAdr = -1;
 	int mCyclicLogAdr = -1;
 	int mLogAdr = -1;
@@ -196,6 +199,8 @@ public:
 	bool setDevices(Devices *devices);
 
 	bool quickTracing() { return !mExtensiveLog; }
+
+	bool setLogDevice(string devName) { mTmpLogDeviceName = devName; return true; }
 
 };
 
