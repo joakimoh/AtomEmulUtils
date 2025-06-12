@@ -113,7 +113,7 @@ void SDCard::processPortUpdate(int port)
 					}
 
 					if (mSPIMode == SPI_INIT_CMD_WAIT || mSPIMode == SPI_CMD_WAIT) {
-						if (!mFirstBit || !mMOSI) {
+						if (!mFirstBit || !mMOSI && pMOSI) { // Each command must be preceeded by at least one '1' and then start with '01'... 
 							mFirstBit = false;
 							mReceviedBits++;
 							//if (mSPIMode == SPI_INIT_CMD_WAIT)
@@ -133,12 +133,12 @@ void SDCard::processPortUpdate(int port)
 					}
 
 					else if (mSPIMode == SPI_RESP_WAIT) {
-						updatePort(MISO, (mResponse >> 7) & 0x1);
+						updatePort(MISO, (mResponse >> (nResponseBits-1)) & 0x1);
 						mSentBits++;
 						//cout << "SPI Response Wait Phase - " << dec << mSentBits << " bits sent - last bit was '" << (int)mMISO << "'\n";
 						mResponse = mResponse << 1;
-						if (mSentBits == 8) {
-							cout << "SPI Response sent!\n";
+						if (mSentBits == nResponseBits) {
+							cout << "SPI Response with " << dec << nResponseBits << " bits sent!\n";
 							mSentBits = 0;
 							mSPIMode = SPI_CMD_WAIT;
 						}
@@ -147,21 +147,26 @@ void SDCard::processPortUpdate(int port)
 			}
 		}
 		pCLK = mCLK;
+		pMOSI = mMOSI;
 	}
 }
 
-bool SDCard::execCmd(uint64_t cmd)
+bool SDCard::execCmd(uint64_t request)
 {
-	cout << "Execute command 0x" << hex << cmd << "\n";
+	
+	uint8_t cmd = (request >> 40) & 0x3f;
+	cout << "Execute command 0x" << dec << (int)cmd << " (request 0x" << hex << request << ")\n";
 	if (mSPIMode == SPI_INIT_CMD_WAIT) {
 		if (cmd == SPI_CMD0) {
-			mSPIMode = SPI_CMD_WAIT;
+			SPICmdInfo cmd_info = spiCmdInfo[SPICmdEnum(cmd)];
+			nResponseBits = spiRspInfo[cmd_info.response] * 8;
 			cout << "Reset cmd received => SPI Ready Phase!\n";
 			mResponse = SPI_RESP_OK;
 		}
 	}
 	else {
-		mSPIMode = SPI_CMD_WAIT;
+		SPICmdInfo cmd_info = spiCmdInfo[SPICmdEnum(cmd)];
+		nResponseBits = spiRspInfo[cmd_info.response] * 8;
 		mResponse = SPI_RESP_OK;
 	}
 
