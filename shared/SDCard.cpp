@@ -86,53 +86,59 @@ void SDCard::processPortUpdate(int port)
 	if (port == CLK) {
 		if (mCLK != pCLK) {
 			if (mCLK) {
-				if (mSPIMode == SPI_NOT_INIT) {
-					if (mMOSI == 1){//}&& mSEL == 1) {
+				//cout << "MOSI = '" << dec << (int)mMOSI << "'\n";
+				if (!mInitialised) {
+					if (mMOSI == 1) {
 						mReceviedBits++;
 						//cout << "SPI Not Init Phase - " << dec << mReceviedBits << " bits received - last bit was '" << (int)mMOSI << "'\n";
 					}
 					else
 						mReceviedBits = 0;
 					if (mReceviedBits == 74) {
-						mSPIMode = SPI_INIT_PENDING;
-						cout << "SD Card: SPI Reset completed!\n";
+						mSPIMode = SPI_CMD_PREAMBLE_WAIT;
+						mReceviedBits = 0;
+						mInitialised = true;
+						cout << "SD Card: SPI Reset (74 x '1') completed  - Waiting for Reset command CMD0!\n";
 					}
 				}
 				else if (mSEL == 0) {
 
-					if (mSPIMode == SPI_INIT_PENDING) {
-						mReceviedBits++;
-						//cout << "SPI Init Pending Phase - " << dec << mReceviedBits << " bits received - last bit was '" << (int)mMOSI << "'\n";
-						if (!mMOSI) {
-							mReceviedBits = 0;
-							mSPIMode = SPI_INIT_CMD_WAIT;
-							mCommand = 0x0;
-							mFirstBit = true;
-							cout << "SD Card: First Cmd Detected!\n";
+					if (mSPIMode == SPI_IDLE_WAIT) {
+						if (mMOSI == 1) {
+							mSPIMode = SPI_CMD_PREAMBLE_WAIT;
+							//cout << "SD Card: Idle level '1' detected\n";
 						}
 					}
-
-					if (mSPIMode == SPI_INIT_CMD_WAIT || mSPIMode == SPI_CMD_WAIT) {
-						if (!mFirstBit || !mMOSI && pMOSI) { // Each command must be preceeded by at least one '1' and then start with '01'... 
-							mFirstBit = false;
+					else if (mSPIMode == SPI_CMD_PREAMBLE_WAIT) {
+						if (mMOSI == 0)
 							mReceviedBits++;
-							//if (mSPIMode == SPI_INIT_CMD_WAIT)
-							//	cout << "SPI Init Cmd Wait Phase - " << dec << mReceviedBits << " bits received - last bit was '" << (int)mMOSI << "'\n";
-							//else
-							//	cout << "SPI Cmd Wait Phase - " << dec << mReceviedBits << " bits received - last bit was '" << (int)mMOSI << "'\n";
-							mCommand = ((mCommand << 1) & 0xfffffffffffe) | mMOSI;
-							if (mReceviedBits == 48) {
-								execCmd(mCommand);
-								mReceviedBits = 0;
-								mCommand = 0x0;
-								mFirstBit = true;
-								mSPIMode = SPI_RESP_WAIT;
-								cout << "SD Card: Cmd Received!\n";
+						else { // mMOSI == 1
+							if (mReceviedBits == 1) {
+								mSPIMode = SPI_CMD_WAIT; // Preamble '01' detected
+								mCommand = 0b01; // update thw command with the first received '01' bits shifted left one step
+								mReceviedBits = 2;
+								//cout << "SD Card: Preamble '01' detected\n";
+							}
+							else {
+								mReceviedBits = 0;// restart search for '01'
+								//cout << "SD Card: Restart preamble search!\n";
 							}
 						}
 					}
+					else if (mSPIMode == SPI_CMD_WAIT) {
+						mReceviedBits++;
+						mCommand = ((mCommand << 1) & 0xfffffffffffe) | mMOSI;
+						if (mReceviedBits == 48) {
+							execCmd(mCommand);
+							mReceviedBits = 0;
+							mCommand = 0x0;
+							mFirstBit = true;
+							mSPIMode = SPI_RESP_WAIT;
+							cout << "SD Card: Cmd Received!\n";
+						}
+				}
 
-					else if (mSPIMode == SPI_RESP_WAIT) {
+					else { // mSPIMode == SPI_RESP_WAIT
 						updatePort(MISO, (mResponse >> (nResponseBits-1)) & 0x1);
 						mSentBits++;
 						//cout << "SPI Response Wait Phase - " << dec << mSentBits << " bits sent - last bit was '" << (int)mMISO << "'\n";
@@ -140,7 +146,7 @@ void SDCard::processPortUpdate(int port)
 						if (mSentBits == nResponseBits) {
 							cout << "SPI Response with " << dec << nResponseBits << " bits sent!\n";
 							mSentBits = 0;
-							mSPIMode = SPI_CMD_WAIT;
+							mSPIMode = SPI_IDLE_WAIT;
 						}
 					}
 				}
@@ -156,8 +162,9 @@ bool SDCard::execCmd(uint64_t request)
 	
 	uint8_t cmd = (request >> 40) & 0x3f;
 	cout << "Execute command 0x" << dec << (int)cmd << " (request 0x" << hex << request << ")\n";
-	if (mSPIMode == SPI_INIT_CMD_WAIT) {
+	if (!mResetCmdReceived) {
 		if (cmd == SPI_CMD0) {
+			mResetCmdReceived = true;
 			SPICmdInfo cmd_info = spiCmdInfo[SPICmdEnum(cmd)];
 			nResponseBits = spiRspInfo[cmd_info.response] * 8;
 			cout << "Reset cmd received => SPI Ready Phase!\n";

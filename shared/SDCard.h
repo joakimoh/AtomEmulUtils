@@ -31,9 +31,12 @@ private:
 
 	int nResponseBits = 8;
 
-	enum SPIMode {SPI_NOT_INIT, SPI_INIT_PENDING, SPI_INIT_CMD_WAIT, SPI_CMD_WAIT, SPI_RESP_WAIT};
+	bool mInitialised = false;
+	bool mResetCmdReceived = false;
 
-	SPIMode mSPIMode = SPI_NOT_INIT;
+	enum SPIMode {SPI_IDLE_WAIT, SPI_CMD_PREAMBLE_WAIT, SPI_CMD_WAIT, SPI_RESP_WAIT};
+
+	SPIMode mSPIMode = SPI_IDLE_WAIT;
 
 	enum SPICmdEnum {
 							
