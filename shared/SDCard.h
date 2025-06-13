@@ -78,16 +78,16 @@ private:
 	};
 
 	enum SPIRspEnum {
-		SPI_RSP_R1 = 0,
-		SPI_RSP_R1b = 1,
+		SPI_RSP_R1 = 1,
+		SPI_RSP_R1b = 11,
 		SPI_RSP_R2 = 2,
 		SPI_RSP_R3 = 3,
-		SPI_RSP_R7 = 4
+		SPI_RSP_R7 = 7
 	};
 
 	typedef struct SPICmdInfo_struct {
 		uint64_t		request;
-		SPIRspEnum		response;
+		SPIRspEnum		respType;
 	} SPICmdInfo;
 
 
@@ -120,18 +120,17 @@ private:
 	};
 
 	typedef struct SPIRspInfo_struct {
+		uint64_t	okResponse;
 		int			nBytes;
 	} SPIRspInfo;
 
-	map< SPIRspEnum,int> spiRspInfo = {
-		{SPI_RSP_R1,	1},
-		{SPI_RSP_R1b,	1}, // one byte, could be followed by zero bytes
-		{SPI_RSP_R2,	2},
-		{SPI_RSP_R3,	5},
-		{SPI_RSP_R7,	5}
+	map< SPIRspEnum, SPIRspInfo> spiRspInfo = {
+		{SPI_RSP_R1,	{0b10000000,											1}},
+		{SPI_RSP_R1b,	{0b00000000,											1}}, // one byte, could be followed by zero bytes
+		{SPI_RSP_R2,	{0b0000000000000000,									2}},
+		{SPI_RSP_R3,	{0b000000000000000000000000000000000000000,				5}},
+		{SPI_RSP_R7,	{0b000010000000000000000000000000000000000000000001,	6}}
 	};
-		
-#define SPI_RESP_OK 0b10000000
 
 	ifstream* mCardImage = NULL;
 

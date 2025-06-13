@@ -134,7 +134,6 @@ void SDCard::processPortUpdate(int port)
 							mCommand = 0x0;
 							mFirstBit = true;
 							mSPIMode = SPI_RESP_WAIT;
-							cout << "SD Card: Cmd Received!\n";
 						}
 				}
 
@@ -144,7 +143,6 @@ void SDCard::processPortUpdate(int port)
 						//cout << "SPI Response Wait Phase - " << dec << mSentBits << " bits sent - last bit was '" << (int)mMISO << "'\n";
 						mResponse = mResponse << 1;
 						if (mSentBits == nResponseBits) {
-							cout << "SPI Response with " << dec << nResponseBits << " bits sent!\n";
 							mSentBits = 0;
 							mSPIMode = SPI_IDLE_WAIT;
 						}
@@ -161,20 +159,24 @@ bool SDCard::execCmd(uint64_t request)
 {
 	
 	uint8_t cmd = (request >> 40) & 0x3f;
-	cout << "Execute command 0x" << dec << (int)cmd << " (request 0x" << hex << request << ")\n";
 	if (!mResetCmdReceived) {
 		if (cmd == SPI_CMD0) {
 			mResetCmdReceived = true;
 			SPICmdInfo cmd_info = spiCmdInfo[SPICmdEnum(cmd)];
-			nResponseBits = spiRspInfo[cmd_info.response] * 8;
-			cout << "Reset cmd received => SPI Ready Phase!\n";
-			mResponse = SPI_RESP_OK;
+			SPIRspInfo rsp_info = spiRspInfo[cmd_info.respType];
+			nResponseBits = rsp_info.nBytes * 8;
+			mResponse = rsp_info.okResponse;
+			cout << "Reset cmd CMD0 (request 0x" << hex << request << ") received => SPI Ready Phase!\n";
+			cout << "sending SPI Response of type R" << dec << cmd_info.respType << " (response 0x" << hex << mResponse << ") with " << dec << nResponseBits << " bits!\n";
 		}
 	}
 	else {
 		SPICmdInfo cmd_info = spiCmdInfo[SPICmdEnum(cmd)];
-		nResponseBits = spiRspInfo[cmd_info.response] * 8;
-		mResponse = SPI_RESP_OK;
+		SPIRspInfo rsp_info = spiRspInfo[cmd_info.respType];
+		nResponseBits = rsp_info.nBytes * 8;
+		mResponse = rsp_info.okResponse;
+		cout << "Command CMD" << dec << (int)cmd << " (request 0x" << hex << request << ") received!\n";
+		cout << "sending SPI Response of type R" << dec << cmd_info.respType << " (response 0x" << hex << mResponse << ") with " << dec << nResponseBits << " bits!\n";
 	}
 
 	return true;
