@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include "Utility.h"
 
 SDCard::SDCard(string name, double cpuClock, string cardImage, DebugManager* debugManager, ConnectionManager* connectionManager):
 	Device(name, SD_CARD, OTHER_DEVICE, cpuClock, debugManager, connectionManager)
@@ -89,14 +90,14 @@ void SDCard::processPortUpdate(int port)
 				//cout << "MOSI = '" << dec << (int)mMOSI << "'\n";
 				if (!mInitialised) {
 					if (mMOSI == 1) {
-						mReceviedBits++;
-						//cout << "SPI Not Init Phase - " << dec << mReceviedBits << " bits received - last bit was '" << (int)mMOSI << "'\n";
+						mReceivedBits++;
+						//cout << "SPI Not Init Phase - " << dec << mReceivedBits << " bits received - last bit was '" << (int)mMOSI << "'\n";
 					}
 					else
-						mReceviedBits = 0;
-					if (mReceviedBits == 74) {
+						mReceivedBits = 0;
+					if (mReceivedBits == 74) {
 						mSPIMode = SPI_CMD_PREAMBLE_WAIT;
-						mReceviedBits = 0;
+						mReceivedBits = 0;
 						mInitialised = true;
 						cout << "SD Card: SPI Reset (74 x '1') completed  - Waiting for Reset command CMD0!\n";
 					}
@@ -111,39 +112,53 @@ void SDCard::processPortUpdate(int port)
 					}
 					else if (mSPIMode == SPI_CMD_PREAMBLE_WAIT) {
 						if (mMOSI == 0)
-							mReceviedBits++;
+							mReceivedBits++;
 						else { // mMOSI == 1
-							if (mReceviedBits == 1) {
+							if (mReceivedBits == 1) {
 								mSPIMode = SPI_CMD_WAIT; // Preamble '01' detected
-								mCommand = 0b01; // update thw command with the first received '01' bits shifted left one step
-								mReceviedBits = 2;
+								mShiftRegister = 0b01; // update the command shift register with the first received '01' bits shifted left one step
+								mReceivedBits = 2;
+								mReceivedBytes = 0;
 								//cout << "SD Card: Preamble '01' detected\n";
 							}
 							else {
-								mReceviedBits = 0;// restart search for '01'
+								mReceivedBits = 0;// restart search for '01'
+								mReceivedBytes = 0;
 								//cout << "SD Card: Restart preamble search!\n";
 							}
 						}
 					}
 					else if (mSPIMode == SPI_CMD_WAIT) {
-						mReceviedBits++;
-						mCommand = ((mCommand << 1) & 0xfffffffffffe) | mMOSI;
-						if (mReceviedBits == 48) {
+						mReceivedBits++;
+						mShiftRegister = ((mShiftRegister << 1) & 0xfe) | mMOSI;
+						if (mReceivedBits % 8 == 0) {
+							cout << "CMD byte #" << mReceivedBytes << " = 0x" << hex << (int)mShiftRegister << "\n";
+							mCommand[mReceivedBytes++] = mShiftRegister;						
+						}
+						if (mReceivedBits == 48) {
 							execCmd(mCommand);
-							mReceviedBits = 0;
-							mCommand = 0x0;
+							mReceivedBits = 0;
+							mReceivedBytes = 0;
 							mFirstBit = true;
 							mSPIMode = SPI_RESP_WAIT;
 						}
 				}
 
 					else { // mSPIMode == SPI_RESP_WAIT
-						updatePort(MISO, (mResponse >> (nResponseBits-1)) & 0x1);
+						if (mSentBits % 8 == 0) {
+							cout << "RSP byte #" << mSentBytes << " = 0x" << hex << (int)mResponse[mSentBytes] << "\n";
+							mShiftRegister = mResponse[mSentBytes++];
+						}
+						else
+							mShiftRegister = mShiftRegister << 1;
+						updatePort(MISO, (mShiftRegister & 0x1));
 						mSentBits++;
-						//cout << "SPI Response Wait Phase - " << dec << mSentBits << " bits sent - last bit was '" << (int)mMISO << "'\n";
-						mResponse = mResponse << 1;
+						//cout << "SPI Response Wait Phase - " << dec << mSentBits << " bits sent - last bit was '" << (int)mMISO << "'\n"
+
 						if (mSentBits == nResponseBits) {
+							cout << "Response of type R" << mResponseType << " (response 0x" << hex << bytes2str(mResponse) << ") sent\n";
 							mSentBits = 0;
+							mSentBytes = 0;
 							mSPIMode = SPI_IDLE_WAIT;
 						}
 					}
@@ -155,29 +170,202 @@ void SDCard::processPortUpdate(int port)
 	}
 }
 
-bool SDCard::execCmd(uint64_t request)
+bool SDCard::execCmd(vector <uint8_t> request)
 {
 	
-	uint8_t cmd = (request >> 40) & 0x3f;
-	if (!mResetCmdReceived) {
-		if (cmd == SPI_CMD0) {
-			mResetCmdReceived = true;
+	uint8_t cmd = request[0] & 0x3f;
+
+	cout << "cmd = 0x" << hex << (int)cmd << "\n";
+
+	bool valid_cmd = true;
+
+	if (mResetCmdReceived || cmd == SPI_CMD_0) {
+
+		switch (cmd) {
+		case SPI_CMD_0:
+		case SPI_CMD_1:
+		case SPI_CMD_6:
+		case SPI_CMD_8:
+		case SPI_CMD_9:
+		case SPI_CMD_10:
+		case SPI_CMD_12:
+		case SPI_CMD_13:
+		case SPI_CMD_16:
+		case SPI_CMD_17:
+		case SPI_CMD_18:
+		case SPI_CMD_24:
+		case SPI_CMD_25:
+		case SPI_CMD_27:
+		case SPI_CMD_28:
+		case SPI_CMD_29:
+		case SPI_CMD_30:
+		case SPI_CMD_32:
+		case SPI_CMD_33:
+		case SPI_CMD_38:
+		case SPI_CMD_42:
+		case SPI_CMD_55:
+		case SPI_CMD_56:
+		case SPI_CMD_58:
+		case SPI_CMD_59:
+			break;
+		default:
+			valid_cmd = false;
+			break;
+		}
+
+		if (valid_cmd) {
+
 			SPICmdInfo cmd_info = spiCmdInfo[SPICmdEnum(cmd)];
-			SPIRspInfo rsp_info = spiRspInfo[cmd_info.respType];
+			mResponseType = cmd_info.respType;
+			SPIRspInfo rsp_info = spiRspInfo[mResponseType];
+			uint8_t req_crc = crc7(request, 5);
 			nResponseBits = rsp_info.nBytes * 8;
 			mResponse = rsp_info.okResponse;
-			cout << "Reset cmd CMD0 (request 0x" << hex << request << ") received => SPI Ready Phase!\n";
-			cout << "sending SPI Response of type R" << dec << cmd_info.respType << " (response 0x" << hex << mResponse << ") with " << dec << nResponseBits << " bits!\n";
+			cout << "Command CMD" << dec << (int)cmd << " (request 0x" << hex << bytes2str(request) << ") with expected CRC 0x" << (int) req_crc <<
+				" received - expect a response of type R" <<
+				mResponseType << " with " << nResponseBits << " bits...\n";
+
+
+			switch (cmd) {
+
+			case SPI_CMD_0:
+				mResetCmdReceived = true;
+				break;
+
+			case SPI_CMD_1:
+				break;
+
+			case SPI_CMD_6:
+				break;
+
+			case SPI_CMD_8:
+			{
+				uint8_t supply_voltage = request[4] & 0xf;
+				uint8_t check_pattern = request[5];
+				mResponse[3] |= supply_voltage;
+				mResponse[4] = check_pattern;
+				mResponse[5] = crc7(mResponse, 5);
+				break;
+			}
+
+			case SPI_CMD_9:
+				break;
+
+			case SPI_CMD_10:
+				break;
+
+			case SPI_CMD_12:
+				break;
+
+			case SPI_CMD_13:
+				break;
+
+			case SPI_CMD_16:
+				break;
+
+			case SPI_CMD_17:
+				break;
+
+			case SPI_CMD_18:
+				break;
+
+			case SPI_CMD_24:
+				break;
+
+			case SPI_CMD_25:
+				break;
+
+			case SPI_CMD_27:
+				break;
+
+			case SPI_CMD_28:
+				break;
+
+			case SPI_CMD_29:
+				break;
+
+			case SPI_CMD_30:
+				break;
+
+			case SPI_CMD_32:
+				break;
+
+			case SPI_CMD_33:
+				break;
+
+			case SPI_CMD_38:
+				break;
+
+			case SPI_CMD_42:
+				break;
+
+			case SPI_CMD_55:
+				break;
+
+			case SPI_CMD_56:
+				break;
+
+			case SPI_CMD_58:
+				break;
+
+			case SPI_CMD_59:
+				break;
+
+			default:
+				valid_cmd = false;
+				break;
+
+			}
+
+			if (valid_cmd) {
+				cout << "sending SPI Response of type R" << dec << cmd_info.respType << " (response 0x" << hex << bytes2str(mResponse) << ") with " << dec << nResponseBits << " bits!\n";
+
+			}
 		}
-	}
-	else {
-		SPICmdInfo cmd_info = spiCmdInfo[SPICmdEnum(cmd)];
-		SPIRspInfo rsp_info = spiRspInfo[cmd_info.respType];
-		nResponseBits = rsp_info.nBytes * 8;
-		mResponse = rsp_info.okResponse;
-		cout << "Command CMD" << dec << (int)cmd << " (request 0x" << hex << request << ") received!\n";
-		cout << "sending SPI Response of type R" << dec << cmd_info.respType << " (response 0x" << hex << mResponse << ") with " << dec << nResponseBits << " bits!\n";
+
+		if (!valid_cmd) {
+			cout << "invalid command CMD" << dec << (int)cmd << " received before reset command CMD0 has been received!\n";
+		}
+
 	}
 
-	return true;
+	return valid_cmd;
+}
+
+//
+// Compute the SPI CRC7 with the polynom below:
+//  G(x) = x7 + x3 + 1
+//
+uint8_t SDCard::crc7(vector <uint8_t>& data, int n)
+{
+	uint8_t polynom = 0x89;
+	uint8_t crc = 0x0;
+	for (int i = 0; i < n; i++) {
+		crc = (crc << 1) ^ data[i];
+		crc = (crc & 0x80) ? crc ^ polynom : crc;
+		for (int j = 1; j < 8; j++) {
+			crc <<= 1;
+			if (crc & 0x80)
+				crc ^= polynom;
+		}
+	}
+	return crc;
+}
+
+//
+// Compute the SPI CRC16 with the polynom below:
+//  x16 +x12 +x5 +1 
+//
+uint16_t SDCard::crc16(vector <uint8_t>& data, int n)
+{
+	return 0;
+}
+
+string SDCard::bytes2str(vector <uint8_t> data)
+{
+	string s;
+	for (int i = 0; i < data.size(); i++)
+		s += Utility::int2hexStr(data[i],2);
+
+	return s;
 }
