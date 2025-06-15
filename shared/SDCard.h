@@ -23,7 +23,8 @@ private:
 
 	uint8_t pCLK = 0x0;
 
-	vector <uint8_t> mResponse = { 0x00, 0x00, 0x00 , 0x00 , 0x00 , 0x00 };
+	vector <uint8_t> mCmdResponse = { 0x00, 0x00, 0x00 , 0x00 , 0x00 , 0x00 };
+	vector <uint8_t> mDataResponse;
 	int mReceivedBits = 0;
 	int mReceivedBytes = 0;
 	int mSentBits = 0;
@@ -31,21 +32,22 @@ private:
 	vector <uint8_t> mCommand = { 0x00, 0x00, 0x00 , 0x00 , 0x00 , 0x00 };
 	bool mFirstBit = true;
 
-	int nResponseBits = 8;
+	int nCmdResponseBits = 8;
+	int mDataResponseBits = 0;
 
 	bool mInitialised = false;
 	bool mResetCmdReceived = false;
 
 	// SD Card parameters
 	uint8_t mCIDRegister[16] = {
-		0x0;
+		0x0
 	};
 
 	// SD Card memory parameters
 	uint32_t mBlockLen = 0;
 
-	enum SPITxMode {SPI_Tx_WAIT, SPI_Tx_IDLE};
-	enum SPIRxMode {SPI_Rx_IDLE, SPI_Rx_PREAMBLE_WAIT, SPI_Rx_CMD_WAIT};
+	enum SPITxMode {SPI_Tx_RSP_WAIT, SPI_Tx_RSP_DATA_WAIT, SPI_Tx_DATA_WAIT, SPI_Tx_IDLE};
+	enum SPIRxMode {SPI_Rx_IDLE, SPI_Rx_PREAMBLE_WAIT, SPI_Rx_CMD_WAIT, SPI_Tx_CMD_DATA_WAIT, SPI_Rx_DATA_WAIT};
 
 	SPIRxMode mSPIRxMode = SPI_Rx_IDLE;
 	SPITxMode mSPITxMode = SPI_Tx_IDLE;
