@@ -95,7 +95,7 @@ BeebVideoULA::BeebVideoULA(
 	mDisplayBitmap = al_create_bitmap(vis_res.width, vis_res.height);
 	al_clear_to_color(black);
 
-	if (DBG_LEVEL(DBG_VERBOSE))
+	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 		cout << "create display bitmap " << dec << vis_res.width << " x " << vis_res.height << "\n";
 
 	lockDisplay();
@@ -212,7 +212,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int video_line = (field_scan_line - vt_blanking + mScreenScanLines) % mScreenScanLines;
 	int vt_video_lines = mScreenScanLines - vt_blanking;
 	
-	if (DBG_LEVEL(DBG_VDU) && adjusted_scanline == 100 && mField % 50 == 0) {
+	if (DBG_LEVEL_DEV(this,DBG_VDU) && adjusted_scanline == 100 && mField % 50 == 0) {
 		cout << "\n" << dec <<
 			"chars per line: " << hz_chars << ", pixels/byte: " << mPixelsPerCharacter << ", pixel width: " << (int)mPixelW << "\n";
 		cout << "duration of a line and a field expressed in pixels: " << total_res.width << " x " << total_res.height << "\n";
@@ -232,7 +232,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	if (adjusted_scanline == mVerticalSyncPos) {
 #ifdef VDU_TIME_DEBUG
-		if (DBG_LEVEL(DBG_TIME) && mField == 0) {
+		if (DBG_LEVEL_DEV(this,DBG_TIME) && mField == 0) {
 			cout << dec << "\n";
 			cout << "Field Rate: " << dec << field_rate << "\n";
 			cout << "Video ULA total (including CRTC & TCG) - ms per sec: " << mVideoULACnt / 1e6 << "\n";
@@ -258,7 +258,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	}
 
 	
-	if (false && DBG_LEVEL(DBG_VDU))
+	if (false && DBG_LEVEL_DEV(this,DBG_VDU))
 		cout << "\n\nFIELD #" << field_offset << "(" << mField << "), SCAN LINE " << dec << mScanLine << " (adjusted to " << adjusted_scanline << ")" <<
 		", VISIBLE LINE " << visible_scan_line << " (" << vt_visible_pixels << ")" <<
 		", ACTIVE LINE " << active_scan_line << " (" << mActiveLines << ")" <<
@@ -402,7 +402,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
 		// the TGC character is only 12 pixels wide (well 16 bit after being extended) whereas the CRTC one is 8 pixels wide!
 #ifdef DBG_ON
-		if (false && char_pos == 0 && DBG_LEVEL(DBG_VDU))
+		if (false && char_pos == 0 && DBG_LEVEL_DEV(this,DBG_VDU))
 			cout << "VDU RA = " << dec << (int)mRA << "\n";
 #endif
 		// Advance the CRT one character at a time
@@ -507,7 +507,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				int shift = (mCursorSegment <= 2 ? mCursorSegment : 2);
 				cursor_seg_ena = (cursor_segments >> (2 - shift)) & 0x1;	
 #ifdef DBG_ON
-				if (false && DBG_LEVEL(DBG_VDU)) {
+				if (false && DBG_LEVEL_DEV(this,DBG_VDU)) {
 					cout << "VDU CURSOR " << dec << (int) mCURSOR << ", cursor ena " << (cursor_seg_ena ? "enabled" : "disabled") <<
 						", cursor segments '" << setw(3) << bitset<3>(cursor_segments) << "', cursor segment #" << dec << mCursorSegment << 
 						", char col " << char_pos << "\n";
@@ -675,7 +675,7 @@ void BeebVideoULA::updateScreenSz(int fullW, int fullH, int activeW, int activeH
 	if (fullW != mScreenW || fullH != mScreenH) {
 		mScreenW = fullW;
 		mScreenH = fullH;
-		if (DBG_LEVEL(DBG_VERBOSE))
+		if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 			cout << "create display bitmap " << dec << mScreenW << " x " << mScreenH << " (" << activeW << " x " << activeH << ")\n";
 		al_resize_display(mDisplay, mScreenW, mScreenH);
 		unlockDisplay();
@@ -776,7 +776,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 		mScreenScanLines != p_scan_lines ||
 		mVerticalSyncPos != p_vertical_syn_pos
 		)
-		&& (DBG_LEVEL(DBG_VERBOSE))
+		&& (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 	) {
 		cout << "\n" << dec;
 		cout << "Video ULA Control Register: 0x" << hex << (int)mControlRegister << dec << "\n";
@@ -1060,7 +1060,7 @@ void BeebVideoULA::updateHwScrollConstant() {
 		mode = 7;
 	}
 #ifdef DBG_ON
-	if (false && DBG_LEVEL(DBG_VDU) && mHwScrollSub != p_HW_scroll_sub) {
+	if (false && DBG_LEVEL_DEV(this,DBG_VDU) && mHwScrollSub != p_HW_scroll_sub) {
 		cout << "Teletext=" << (int)teletext << ", C1C0=0x" << hex << (int)mC << " => new HW Scroll constant 0x" << hex << mHwScrollSub << " (0x" << p_HW_scroll_sub << ") for mode " << dec << mode << "\n";
 		cout << "Video ULA CR = 0x" << hex << (int)mControlRegister << "\n";
 	}

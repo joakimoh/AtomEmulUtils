@@ -46,7 +46,8 @@ typedef int DebugLevel;
 #define DBG_LOG_COND(cond,...)		if(cond) mDM->log(__VA_ARGS__)
 #define DBG_PBUF(...)				mDM->preBuffer(__VA_ARGS__)
 #define DBG_LEVEL(...)				mDM->debug(__VA_ARGS__)
-#define DBG_TRACING_OR_LEVEL(level)	(DBG_LEVEL(level) || DBG_TRACING())
+#define DBG_LEVEL_DEV(...)			mDM->debug(__VA_ARGS__)
+#define DBG_TRACING_OR_LEVEL(level)	(DBG_LEVEL_DEV(level) || DBG_TRACING())
 #define DBG_COND_TRACING(cond, ...)	DBG_LOG_COND(cond || mDM->tracing(), __VA_ARGS__)
 #define DBG_ADR_INT_TRIGGER(...)	mDM->triggerInterruptLogging(__VA_ARGS__)
 #define DBG_ADR_TRIGGER(...)		mDM->triggerLogging(__VA_ARGS__)
@@ -62,6 +63,7 @@ typedef int DebugLevel;
 #define DBG_LOG_COND(...)
 #define DBG_PBUF(...)
 #define DBG_LEVEL(x)				false
+#define DBG_LEVEL_DEV(x)			false
 #define DBG_COND_TRACING(...)		false
 #define DBG_ADR_INT_TRIGGER(...)
 #define DBG_ADR_TRIGGER(...)
@@ -167,6 +169,7 @@ private:
 
 public:
 
+	bool debug(Device* dev, DebugLevel level);
 	bool debug(DebugLevel level);
 
 	void toggleCondition();

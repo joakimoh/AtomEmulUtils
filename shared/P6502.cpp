@@ -254,7 +254,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	DBG_LOG_COND(false && I_flag != oI_flag, this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[instr.instruction] + " at address 0x" + Utility::int2hexStr(opcode_PC,4) + "\n");
 
 #ifdef DBG_UC_TIME
-	if (DBG_LEVEL(DBG_TIME) && mCycleCount % mCycles_1s == 0) {
+	if (DBG_LEVEL_DEV(this,DBG_TIME) && mCycleCount % mCycles_1s == 0) {
 		cout << dec << "\n";
 		cout << "Opcode fetch & decode - ms per sec:  " << mOpcodeCnt / 1e6 << "\n";
 		cout << "Operand fetch & decode - ms per sec: " << mOperandCnt / 1e6 << "\n";
@@ -542,7 +542,7 @@ bool P6502::executeInstr(
 			return false;
 		mProgramCounter = adr_H * 256 + adr_L;
 
-		if (DBG_LEVEL(DBG_INTERRUPTS)) {		
+		if (DBG_LEVEL_DEV(this,DBG_INTERRUPTS)) {		
 			DBG_LOG(this, DBG_INTERRUPTS, "BRK executed at PC = 0x" + Utility::int2hexStr(opcode_PC,4) +"\n");
 			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
 		}
@@ -954,7 +954,7 @@ bool P6502::executeInstr(
 		uint16_t oPC = mProgramCounter;
 		pullWord(mProgramCounter);
 
-		if (DBG_LEVEL(DBG_INTERRUPTS)) {
+		if (DBG_LEVEL_DEV(this,DBG_INTERRUPTS)) {
 			DBG_LOG(this, DBG_INTERRUPTS, "RTI executed at 0x" + Utility::int2hexStr(oPC,4) + "; execution resumed at 0x" + Utility::int2hexStr(mProgramCounter,4) +"!\n");
 			printInterruptStack(mStackPointer - 2, oStackPointer, oProgramCounter, oStatusRegister);
 		}

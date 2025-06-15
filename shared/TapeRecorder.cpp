@@ -51,7 +51,7 @@ bool TapeRecorder::advance(uint64_t stopCycle)
 				if (!mCodec->readPulse(mCasInPulses, mCasInPulseIndex, pulse_len)) {
 					mLoadFromTape = false;
 					updatePort(CAS_IN, 0);
-					if (DBG_LEVEL(DBG_VERBOSE))
+					if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 						cout << "End of Tape reached!\n";
 					stop();
 				}
@@ -84,7 +84,7 @@ bool TapeRecorder::startLoadFile(string tapeFile)
 	if (!mCodec->decode(tapeFile, mCasInPulses, mCasInPulseLevel, mSampleRate)) {
 		return false;
 	}
-	if (DBG_LEVEL(DBG_VERBOSE))
+	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 		cout << "CSW File with  " << mCasInPulses.size() << " pulse bytes...\n";
 	updatePort(CAS_IN, mCasInPulseLevel);
 
@@ -104,7 +104,7 @@ void TapeRecorder::play()
 {
 	mPlay = true;
 	mStartPlaying = true;
-	if (DBG_LEVEL(DBG_VERBOSE))
+	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 		cout << "PLAY\n";
 }
 
@@ -113,7 +113,7 @@ void TapeRecorder::rewind()
 	if (mLoadFromTape) {
 		mCasInPulseIndex = 0;
 		mPlay = false;
-		if (DBG_LEVEL(DBG_VERBOSE))
+		if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 			cout << "REWIND\n";
 	}
 }
@@ -122,7 +122,7 @@ void TapeRecorder::pause()
 {
 	mPlay = false;
 	mRecord = false;
-	if (DBG_LEVEL(DBG_VERBOSE))
+	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 		cout << "PAUSE\n";
 }
 
@@ -133,7 +133,7 @@ void TapeRecorder::stop()
 		mPlay = false;
 		mCasInPulses.clear();
 		updatePort(CAS_IN, 0);
-		if (DBG_LEVEL(DBG_VERBOSE))
+		if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 			cout << "STOP PLAYING\n";
 	}
 	else if (mSaveToTape) {
@@ -148,7 +148,7 @@ void TapeRecorder::stop()
 
 		mSaveToTape = false;
 		mRecord = false;
-		if (DBG_LEVEL(DBG_VERBOSE))
+		if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 			cout << "STOP RECORDING\n";
 
 		mCodec->closeTapeFileW();
@@ -159,6 +159,6 @@ void TapeRecorder::stop()
 void TapeRecorder::record()
 {
 	mRecord = true;
-	if (DBG_LEVEL(DBG_VERBOSE))
+	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 		cout << "RECORD\n";
 }

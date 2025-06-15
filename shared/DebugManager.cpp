@@ -15,6 +15,11 @@ bool DebugManager::debug(DebugLevel level)
 	return (mDbgLevel & level) != 0;
 }
 
+bool DebugManager::debug(Device *dev, DebugLevel level)
+{
+	return mInitialised && (mLogDevice == NULL || dev==mLogDevice) && (mDbgLevel & level) != 0;
+}
+
 void DebugManager::enableExecStop(uint16_t adr)
 {
 	mStopAdr = adr;
@@ -228,7 +233,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 
 void DebugManager::log(Device * dev, DebugLevel level, string line)
 {
-	if (mLogDevice != NULL && dev != mLogDevice)
+	if (!mInitialised || mLogDevice != NULL && dev != mLogDevice)
 		return;
 
 	if (mFetchAdr != mCyclicLogAdr && ((mDbgLevel & level) == 0 || mDelayed))
@@ -252,7 +257,7 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 
 void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 {
-	if (mLogDevice != NULL && dev != mLogDevice)
+	if (!mInitialised || mLogDevice != NULL && dev != mLogDevice)
 		return;
 
 	if (mFetchAdr != mCyclicLogAdr && ((mDbgLevel & level) == 0 || mDelayed))
@@ -307,7 +312,11 @@ bool DebugManager::setDevices(Devices * devices)
 		mLogPorts.push_back(device_port);
 	}
 
-	if (mTmpLogDeviceName != "" && mDevices->getDevice(mTmpLogDeviceName, dev)) {
+	if (mTmpLogDeviceName != "") {
+		if (!mDevices->getDevice(mTmpLogDeviceName, dev)) {
+			cout << "Device " << mTmpLogDeviceName << " doesn't exist!\n";
+			return false;
+		}
 		mLogDevice = dev;
 	}
 

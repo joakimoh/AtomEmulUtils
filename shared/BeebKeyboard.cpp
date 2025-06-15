@@ -144,7 +144,7 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 		updatePort(PRESSED, 0x0);
 
 
-	if (DBG_LEVEL(DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mENA != pENA || mPRESSED != old_pressed)) {
+	if (DBG_LEVEL_DEV(this,DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mENA != pENA || mPRESSED != old_pressed)) {
 		DBG_LOG(this, DBG_KEYBOARD, "ENA = " + to_string(mENA) + ",COL_SEL = " + to_string(mCOL_SEL) + 
 			", ROW_SEL = " + to_string(mROW_SEL) + ", PRESSED = " + to_string(mPRESSED) + ", ROW = " + to_string(mROW) + "\n");
 	}

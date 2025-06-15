@@ -37,7 +37,7 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugManage
 			mBreakKeyCode = key->keyCode;
 	}
 
-	if (DBG_LEVEL(DBG_VERBOSE)) {
+	if (DBG_LEVEL_DEV(this,DBG_VERBOSE)) {
 		cout << "KeyBoard initialised\n";
 		cout << "SHIFT keys have keycodes 0x" << hex << mShiftKeyCodes[0] << " and 0x" << mShiftKeyCodes[1] << dec << "\n";
 		cout << "CTRL key has keycode 0x" << hex << mCtrlKeyCode << dec << "\n";
@@ -105,7 +105,7 @@ bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 		return false;
 
 
-	if (DBG_LEVEL(DBG_KEYBOARD) && (column_L != 0xff || column_H != 0x3))
+	if (DBG_LEVEL_DEV(this,DBG_KEYBOARD) && (column_L != 0xff || column_H != 0x3))
 		cout << "column L = 0x" << hex << (int)column_L << ", column H = 0x" << (int)column_H << "\n";
 
 

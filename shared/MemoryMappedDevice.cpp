@@ -13,7 +13,7 @@ MemoryMappedDevice::MemoryMappedDevice(
 	mMemorySpace = { adr, sz };
 	mMemoryMapped = true;
 
-	if (DBG_LEVEL(DBG_VERBOSE))
+	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 		cout << _DEVICE_ID(this->devType) << " (" << this->name << ") at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
 		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
 }
@@ -38,7 +38,7 @@ void MemoryMappedDevice::addMemoryGap(uint16_t adr, uint16_t sz)
 {
 	MemoryRange gap = { adr, sz };
 	mMemoryGaps.push_back(gap);
-	if (DBG_LEVEL(DBG_VERBOSE))
+	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 		cout << "Gap in memory space for device '" << this->name << "' between " << hex << setfill('0') << setw(4) << gap.adr <<
 			" and " << gap.adr + gap.sz << "\n";
 }
@@ -103,7 +103,7 @@ bool MemoryMappedDevice::registerAccess(Device* dev, uint16_t adr, bool writeAcc
 		mTriggerOnRead = true;
 		mScheduleOnRead.push_back(dev_sch);
 	}
-	if (DBG_LEVEL(DBG_VERBOSE))
+	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 		cout << "TRIGGER " << dev->name << " ON " << this->name << " 0x" << hex << adr << (writeAccess ? " WRITE" : " READ") << " ACCESSES\n";
 	return true;
 }
