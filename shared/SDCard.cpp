@@ -174,7 +174,7 @@ void SDCard::processPortUpdate(int port)
 							mShiftRegister <<= 1;
 						updatePort(MISO, (mShiftRegister >> 7) & 0x1);
 						mSentBits++;
-						//cout << "MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" << hex << (int)mShiftRegister << "\n";
+						cout << "MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" << hex << (int)mShiftRegister << "\n";
 						int response_bits = (mSPITxMode != SPI_Tx_DATA_WAIT ? nCmdResponseBits : mDataResponseBits);
 						if (mSentBits == response_bits) {
 							if (mSPITxMode != SPI_Tx_DATA_WAIT)
