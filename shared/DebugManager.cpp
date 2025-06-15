@@ -99,7 +99,7 @@ void DebugManager::setDebugPort(string portDevice, string port)
 
 bool DebugManager::matchPort(DevicePort* port)
 {
-	if ((mDbgLevel & DBG_PORT) == 0)
+	if (!mInitialised || (mDbgLevel & DBG_PORT) == 0)
 		return false;
 
 	// If no ports were specifed (and for port debug enabled), a match will always be indicated
@@ -290,6 +290,7 @@ void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 bool DebugManager::setDevices(Devices * devices)
 {
 	mDevices = devices;
+	mInitialised = true;
 
 	if (devices == NULL)
 		return false;

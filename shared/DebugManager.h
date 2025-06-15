@@ -112,6 +112,8 @@ private:
 	bool mExtensiveLog = false;
 	bool mDelayed = false;
 
+	bool mInitialised = false;
+
 #define	INSTR_BUFFER_SIZE	100
 
 	vector<InstrLogData> mBufferedInstrLog = vector<InstrLogData>(INSTR_BUFFER_SIZE);

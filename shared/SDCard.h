@@ -126,21 +126,22 @@ private:
 		int				nBytes;
 	} SPIRspInfo;
 
+	// Response types including default content (with header '1...1' and trailing '1...1')
 	map< SPIRspEnum, SPIRspInfo> spiRspInfo = {
-		{SPI_RSP_R1,	{{0x01},								1}},
-		{SPI_RSP_R1b,	{{0x00},								1}}, // one byte, could be followed by zero bytes
-		{SPI_RSP_R2,	{{0x00, 0x00},							2}},
-		{SPI_RSP_R3,	{{0x00, 0x00, 0x00, 0x00, 0x00},		5}},
-		{SPI_RSP_R7,	{{0x08, 0x00, 0x00, 0x00, 0x00, 0x01},	6}}
+		{SPI_RSP_R1,	{{0xff, 0x01, 0xff},								3}},
+		{SPI_RSP_R1b,	{{0xff, 0x00, 0xff},								3}}, // one byte, could be followed by zero bytes
+		{SPI_RSP_R2,	{{0xff, 0x00, 0x00, 0xff},							4}},
+		{SPI_RSP_R3,	{{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff},		7}},
+		{SPI_RSP_R7,	{{0xff, 0x08, 0x00, 0x00, 0x00, 0x00, 0x01, 0xff},	8}}
 	};
 
 	SPIRspEnum mResponseType = SPI_RSP_R1;
 
 	ifstream* mCardImage = NULL;
 
-	uint8_t crc7(vector <uint8_t> &data, int n);
+	uint8_t crc7(vector <uint8_t> &data, int startPos, int len);
 
-	uint16_t crc16(vector <uint8_t>& data, int n);
+	uint16_t crc16(vector <uint8_t>& data, int startPos, int len);
 
 	string bytes2str(vector <uint8_t> data);
 

@@ -87,7 +87,7 @@ void SDCard::processPortUpdate(int port)
 	if (port == CLK) {
 		if (mCLK != pCLK) {
 			if (mCLK) {
-				//cout << "MOSI = '" << dec << (int)mMOSI << "'\n";
+				//cout << "MOSI = '" << dec << (int)mMOSI << "', MISO = '" << (int)mMISO << "'\n";
 				if (!mInitialised) {
 					if (mMOSI == 1) {
 						mReceivedBits++;
@@ -146,15 +146,14 @@ void SDCard::processPortUpdate(int port)
 
 					else { // mSPIMode == SPI_RESP_WAIT
 						if (mSentBits % 8 == 0) {
-							//cout << "RSP byte #" << mSentBytes << " = 0x" << hex << (int)mResponse[mSentBytes] << "\n";
+							//cout << "RSP byte #" << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mResponse[mSentBytes] << "\n";
 							mShiftRegister = mResponse[mSentBytes++];
 						}
 						else
-							mShiftRegister = mShiftRegister << 1;
-						updatePort(MISO, (mShiftRegister & 0x1));
+							mShiftRegister <<= 1;
+						updatePort(MISO, (mShiftRegister >> 7) & 0x1);
 						mSentBits++;
-						//cout << "SPI Response Wait Phase - " << dec << mSentBits << " bits sent - last bit was '" << (int)mMISO << "'\n"
-
+						//cout << "MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" << hex << (int)mShiftRegister << "\n";
 						if (mSentBits == nResponseBits) {
 							cout << "Response of type R" << mResponseType << " (response 0x" << hex << bytes2str(mResponse) << ") sent\n";
 							mSentBits = 0;
@@ -218,12 +217,12 @@ bool SDCard::execCmd(vector <uint8_t> request)
 			SPICmdInfo cmd_info = spiCmdInfo[SPICmdEnum(cmd)];
 			mResponseType = cmd_info.respType;
 			SPIRspInfo rsp_info = spiRspInfo[mResponseType];
-			uint8_t req_crc_byte = (crc7(request, 5) << 1) | 0x1;
+			uint8_t req_crc_byte = (crc7(request, 0, 5) << 1) | 0x1;
 			nResponseBits = rsp_info.nBytes * 8;
 			mResponse = rsp_info.okResponse;
-			cout << "Command CMD" << dec << (int)cmd << " (request 0x" << hex << bytes2str(request) << ") with expected CRC byte 0x" << (int)req_crc_byte <<
-				" received - expect a response of type R" <<
-				mResponseType << " with " << nResponseBits << " bits...\n";
+			cout << "Command CMD" << dec << (int)cmd << " (request 0x" << bytes2str(request) << ") with expected CRC byte 0x" << hex << (int)req_crc_byte <<
+				" received - will send a response of type R" << mResponseType << " (response 0x" << bytes2str(mResponse) << ")" <<
+				 " with " << dec << nResponseBits << " bits (" << rsp_info.nBytes << " bytes)...\n";
 
 
 			switch (cmd) {
@@ -242,9 +241,9 @@ bool SDCard::execCmd(vector <uint8_t> request)
 			{
 				uint8_t supply_voltage = request[3] & 0xf;
 				uint8_t check_pattern = request[4];
-				mResponse[3] |= supply_voltage;
-				mResponse[4] = check_pattern;
-				mResponse[5] = (crc7(mResponse, 5) << 1) | 0x1;
+				mResponse[4] |= supply_voltage;
+				mResponse[5] = check_pattern;
+				mResponse[6] = (crc7(mResponse, 1, 5) << 1) | 0x1;
 				break;
 			}
 
@@ -317,14 +316,10 @@ bool SDCard::execCmd(vector <uint8_t> request)
 
 			}
 
-			if (valid_cmd) {
-				//cout << "sending SPI Response of type R" << dec << cmd_info.respType << " (response 0x" << hex << bytes2str(mResponse) << ") with " << dec << nResponseBits << " bits!\n";
-
-			}
 		}
 
 		if (!valid_cmd) {
-			cout << "invalid command CMD" << dec << (int)cmd << " received before reset command CMD0 has been received!\n";
+			cout << "invalid command CMD" << dec << (int)cmd << " (request 0x" << bytes2str(request) << ") received !\n";
 		}
 
 	}
@@ -339,11 +334,11 @@ bool SDCard::execCmd(vector <uint8_t> request)
 // The CRC is the remainder you get by dividing each
 // data byte with the polynom above.
 //
-uint8_t SDCard::crc7(vector <uint8_t>& data, int n)
+uint8_t SDCard::crc7(vector <uint8_t>& data, int startPos, int len)
 {
 	uint8_t polynom = 0x89;
 	uint8_t crc = 0x0;
-	for (int i = 0; i < n; i++) {
+	for (int i = startPos; i < startPos+len; i++) {
 		crc = (crc << 1) ^ data[i];
 		crc = (crc & 0x80) ? crc ^ polynom : crc;
 		for (int j = 1; j < 8; j++) {
@@ -362,8 +357,9 @@ uint8_t SDCard::crc7(vector <uint8_t>& data, int n)
 // The CRC is the remainder you get by dividing each
 // data byte with the polynom above.
 //
-uint16_t SDCard::crc16(vector <uint8_t>& data, int n)
+uint16_t SDCard::crc16(vector <uint8_t>& data, int startPos, int len)
 {
+
 	return 0;
 }
 
