@@ -159,11 +159,16 @@ void SDCard::processPortUpdate(int port)
 					}
 					else { // mSPITxMode == SPI_Tx_RSP_WAIT, mSPITxMode == SPI_Tx_RSP_DATA_WAIT or mSPITxMode == SPI_Tx_DATA_WAIT
 						if (mSentBits % 8 == 0) {
-							//cout << "RSP byte #" << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mCmdResponse[mSentBytes] << "\n";
-							if (mSPITxMode != SPI_Tx_DATA_WAIT)
+							if (mSPITxMode != SPI_Tx_DATA_WAIT) {
+								cout << "RSP byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mCmdResponse[mSentBytes] << "\n";
+
 								mShiftRegister = mCmdResponse[mSentBytes++];
-							else
+							}
+							else {
+								cout << "RSP byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mDataResponse[mSentBytes] << "\n";
+
 								mShiftRegister = mDataResponse[mSentBytes++];
+							}
 						}
 						else
 							mShiftRegister <<= 1;

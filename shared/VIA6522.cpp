@@ -181,6 +181,9 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 			bool shift_pulse_goes_high = mCB1ShiftPulseLevel && mCB1ShiftPulseLevel != pCB1ShiftPulseLevel;
 
+			if (mShiftGenerateCB1)
+				updatePort(CB, (mCB & ~0x1) | mCB1ShiftPulseLevel);
+
 			// Shift Register Function
 			switch (shift_mode) {
 			case 0x0:	// Shift in on positive edge of CB1 - no interrupt flag set
@@ -191,7 +194,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 				if (shift_pulse_goes_high) { // shift in on HIGH CB1 shift pulse
 					mShiftRegister = (mShiftRegister << 1) | CB2;
 					DBG_LOG(this, DBG_IO_PERIPHERAL, "SHIFT IN from CB2 = '" + Utility::int2hexStr(CB2, 1) + "' => Shift Register = 0x" +
-						Utility::int2hexStr(mShiftRegister, 2) + "'\n");
+						Utility::int2hexStr(mShiftRegister, 2) + "\n");
 					mShifts = mShifts % 8;
 					if (shift_mode != 0) { // Continous shifting for mode 0 => restart of shifting very 8 bits not applicable
 						if (mShifts == 0) {
@@ -202,8 +205,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 						}
 					}
 				}
-				if (mShiftGenerateCB1)
-					updatePort(CB, (mCB & ~0x1) | mCB1ShiftPulseLevel);
+				//if (mShiftGenerateCB1)
+				//	updatePort(CB, (mCB & ~0x1) | mCB1ShiftPulseLevel);
 				break;
 			}
 			case 0x4:	// Shift out fre-running at T2 rate
@@ -224,8 +227,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 							mStartShifting = false;
 					}
 				}
-				if (mShiftGenerateCB1)
-					updatePort(CB, (mCB & ~0x1) | mCB1ShiftPulseLevel);
+				//if (mShiftGenerateCB1)
+				//	updatePort(CB, (mCB & ~0x1) | mCB1ShiftPulseLevel);
 				break;
 				break;
 			}
@@ -955,12 +958,15 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	case ACR:
 		// Auxiliary Control Register
 	{
-		if (mACR != data)
-			DBG_LOG(this, DBG_IO_PERIPHERAL, "\nWrite to ACR:\n" + ACR2Str() + "\n");
 
 		// Check for shift mode changes impacting the direction of port CB
 		uint8_t p_shift_mode = ACR_SR_CTRL;
+		uint8_t p_ACR = mACR;
 		mACR = data;
+
+		if (mACR != p_ACR)
+			DBG_LOG(this, DBG_IO_PERIPHERAL, "\nWrite to ACR:\n" + ACR2Str() + "\n");
+
 		if (ACR_SR_CTRL != p_shift_mode)
 			registerPortDirChange(CB);
 
@@ -970,10 +976,12 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Peripheral Control Register
 	{
 
-		if (mPCR != data)
-			DBG_LOG(this, DBG_IO_PERIPHERAL, "\nWrite to PCR:\n" + PCR2Str() + "\n");
-
+	
 		mPCR = data;
+		uint8_t p_PCR = mPCR;
+
+		if (mPCR != p_PCR)
+			DBG_LOG(this, DBG_IO_PERIPHERAL, "\nWrite to PCR:\n" + PCR2Str() + "\n");
 
 		// Conservatively assume changes to the PCR always result in changes in the direction of ports CA & CB
 		registerPortDirChange(CA);
