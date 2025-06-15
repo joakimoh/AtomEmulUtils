@@ -121,9 +121,9 @@ bool VIA6522::advance(uint64_t stopCycle)
 			switch (shift_mode) {
 
 			case 0x0:	// Shift in on positive edge of CB1 - no interrupt flag set
-				DBG_LOG_COND(mCB1ShiftPulseLevel != CB1, this, DBG_IO_PERIPHERAL, "Mode 0: CB1 shift in pulse '" + to_string(mCB1ShiftPulseLevel) + "' generated from CB1 input...\n");
 				mCB1ShiftPulseLevel = CB1;
-				mShiftInterrupt = false;			
+				DBG_LOG_COND(mCB1ShiftPulseLevel != CB1, this, DBG_IO_PERIPHERAL, "Mode 0: CB1 shift in pulse '" + to_string(mCB1ShiftPulseLevel) + "' generated from CB1 input...\n");
+				mShiftInterrupt = false;
 				break;
 
 			case 0x1:	// Shift in on timeout of T2 (lower bits only) and generate shift pulses on CB1 - interrupt flag set

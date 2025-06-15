@@ -36,9 +36,19 @@ private:
 	bool mInitialised = false;
 	bool mResetCmdReceived = false;
 
-	enum SPIMode {SPI_IDLE_WAIT, SPI_CMD_PREAMBLE_WAIT, SPI_CMD_WAIT, SPI_RESP_WAIT};
+	// SD Card parameters
+	uint8_t mCIDRegister[16] = {
+		0x0;
+	};
 
-	SPIMode mSPIMode = SPI_IDLE_WAIT;
+	// SD Card memory parameters
+	uint32_t mBlockLen = 0;
+
+	enum SPITxMode {SPI_Tx_WAIT, SPI_Tx_IDLE};
+	enum SPIRxMode {SPI_Rx_IDLE, SPI_Rx_PREAMBLE_WAIT, SPI_Rx_CMD_WAIT};
+
+	SPIRxMode mSPIRxMode = SPI_Rx_IDLE;
+	SPITxMode mSPITxMode = SPI_Tx_IDLE;
 
 	enum SPICmdEnum {
 							

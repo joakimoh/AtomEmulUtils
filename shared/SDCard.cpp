@@ -96,7 +96,7 @@ void SDCard::processPortUpdate(int port)
 					else
 						mReceivedBits = 0;
 					if (mReceivedBits == 74) {
-						mSPIMode = SPI_CMD_PREAMBLE_WAIT;
+						mSPIRxMode = SPI_Rx_PREAMBLE_WAIT;
 						mReceivedBits = 0;
 						mInitialised = true;
 						cout << "SD Card: SPI Reset (74 x '1') completed  - Waiting for Reset command CMD0!\n";
@@ -104,18 +104,21 @@ void SDCard::processPortUpdate(int port)
 				}
 				else if (mSEL == 0) {
 
-					if (mSPIMode == SPI_IDLE_WAIT) {
+					//
+					// Rx processing
+					//
+					if (mSPIRxMode == SPI_Rx_IDLE) {
 						if (mMOSI == 1) {
-							mSPIMode = SPI_CMD_PREAMBLE_WAIT;
-							//cout << "SD Card: Idle level '1' detected\n";
+							mSPIRxMode = SPI_Rx_PREAMBLE_WAIT;
+							//cout << "SD Card: High level '1' detected\n";
 						}
 					}
-					else if (mSPIMode == SPI_CMD_PREAMBLE_WAIT) {
+					else if (mSPIRxMode == SPI_Rx_PREAMBLE_WAIT) {
 						if (mMOSI == 0)
 							mReceivedBits++;
 						else { // mMOSI == 1
 							if (mReceivedBits == 1) {
-								mSPIMode = SPI_CMD_WAIT; // Preamble '01' detected
+								mSPIRxMode = SPI_Rx_CMD_WAIT; // Preamble '01' detected
 								mShiftRegister = 0b01; // update the command shift register with the first received '01' bits shifted left one step
 								mReceivedBits = 2;
 								mReceivedBytes = 0;
@@ -128,23 +131,31 @@ void SDCard::processPortUpdate(int port)
 							}
 						}
 					}
-					else if (mSPIMode == SPI_CMD_WAIT) {
+					else if (mSPIRxMode == SPI_Rx_CMD_WAIT) {
 						mReceivedBits++;
 						mShiftRegister = ((mShiftRegister << 1) & 0xfe) | mMOSI;
 						if (mReceivedBits % 8 == 0) {
 							//cout << "CMD byte #" << mReceivedBytes << " = 0x" << hex << (int)mShiftRegister << "\n";
 							mCommand[mReceivedBytes++] = mShiftRegister;						
 						}
+						//cout << "MOSI = " << (int)mMOSI << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" << hex << (int)mShiftRegister << "\n";
 						if (mReceivedBits == 48) {
 							execCmd(mCommand);
 							mReceivedBits = 0;
 							mReceivedBytes = 0;
 							mFirstBit = true;
-							mSPIMode = SPI_RESP_WAIT;
+							mSPIRxMode = SPI_Rx_IDLE;
 						}
+
 				}
 
-					else { // mSPIMode == SPI_RESP_WAIT
+					//
+					// Tx processing
+					//
+					if (mSPITxMode == SPI_Tx_IDLE) {
+						// Nothing to respond to => do nothing
+					}
+					else { // mSPITxMode == SPI_Tx_WAIT
 						if (mSentBits % 8 == 0) {
 							//cout << "RSP byte #" << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mResponse[mSentBytes] << "\n";
 							mShiftRegister = mResponse[mSentBytes++];
@@ -153,12 +164,12 @@ void SDCard::processPortUpdate(int port)
 							mShiftRegister <<= 1;
 						updatePort(MISO, (mShiftRegister >> 7) & 0x1);
 						mSentBits++;
-						cout << "MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" << hex << (int)mShiftRegister << "\n";
+						//cout << "MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" << hex << (int)mShiftRegister << "\n";
 						if (mSentBits == nResponseBits) {
 							cout << "Response of type R" << mResponseType << " (response 0x" << hex << bytes2str(mResponse) << ") sent\n";
 							mSentBits = 0;
 							mSentBytes = 0;
-							mSPIMode = SPI_IDLE_WAIT;
+							mSPITxMode = SPI_Tx_IDLE;
 						}
 					}
 				}
@@ -220,6 +231,7 @@ bool SDCard::execCmd(vector <uint8_t> request)
 			uint8_t req_crc_byte = (crc7(request, 0, 5) << 1) | 0x1;
 			nResponseBits = rsp_info.nBytes * 8;
 			mResponse = rsp_info.okResponse;
+			mSPITxMode = SPI_Tx_WAIT;
 			cout << "Command CMD" << dec << (int)cmd << " (request 0x" << bytes2str(request) << ") with expected CRC byte 0x" << hex << (int)req_crc_byte <<
 				" received - will send a response of type R" << mResponseType << " (response 0x" << bytes2str(mResponse) << ")" <<
 				 " with " << dec << nResponseBits << " bits (" << rsp_info.nBytes << " bytes)...\n";
@@ -228,10 +240,12 @@ bool SDCard::execCmd(vector <uint8_t> request)
 			switch (cmd) {
 
 			case SPI_CMD_0:
+				mResponse[1] = 0x1; // set idle status bit
 				mResetCmdReceived = true;
 				break;
 
 			case SPI_CMD_1:
+				mResponse[1] = 0x0; // clear idle status bit
 				break;
 
 			case SPI_CMD_6:
@@ -251,6 +265,8 @@ bool SDCard::execCmd(vector <uint8_t> request)
 				break;
 
 			case SPI_CMD_10:
+				// SEND_CID
+				mResponse[1] = 0x0; // OK status
 				break;
 
 			case SPI_CMD_12:
@@ -260,6 +276,9 @@ bool SDCard::execCmd(vector <uint8_t> request)
 				break;
 
 			case SPI_CMD_16:
+				mBlockLen = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[1];
+				cout << "CMD16 SET_BLOCKLEN: set block length to " << dec << mBlockLen << "\n";
+				mResponse[1] = 0x0; // OK status
 				break;
 
 			case SPI_CMD_17:
