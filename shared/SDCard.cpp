@@ -165,7 +165,7 @@ void SDCard::processPortUpdate(int port)
 								mShiftRegister = mCmdResponse[mSentBytes++];
 							}
 							else {
-								cout << "RSP byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mDataResponse[mSentBytes] << "\n";
+								cout << "DATA byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mDataResponse[mSentBytes] << "\n";
 
 								mShiftRegister = mDataResponse[mSentBytes++];
 							}

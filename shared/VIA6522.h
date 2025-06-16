@@ -60,6 +60,7 @@ private:
 #define ACR_PA_LATCH		((mACR >> 0) & 0x1)
 #define ACR_PB_LATCH		((mACR >> 1) & 0x1)
 #define ACR_SR_CTRL			((mACR >> 2) & 0x7)
+#define ACR_SR_CTRL_VAL(x)	((x >> 2) & 0x7)
 #define ACR_T2_CTRL			((mACR >> 5) & 0x1)
 #define ACR_T1_CTRL			((mACR >> 6) & 0x3)
 
