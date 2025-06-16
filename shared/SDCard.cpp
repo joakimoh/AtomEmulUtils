@@ -180,7 +180,7 @@ void SDCard::processPortUpdate(int port)
 							if (mSPITxMode != SPI_Tx_DATA_WAIT)
 								cout << "Response of type R" << mResponseType << " (response 0x" << hex << bytes2str(mCmdResponse) << ") sent\n";
 							else // mSPITxMode == SPI_Tx_DATA_WAIT
-								cout << "Data token sent\n";
+								cout << "Data token sent " << bytes2str(mDataResponse) << "\n";
 							mSentBits = 0;
 							mSentBytes = 0;
 							if (mSPITxMode == SPI_Tx_RSP_WAIT || mSPITxMode == SPI_Tx_DATA_WAIT) {
@@ -442,6 +442,14 @@ uint8_t SDCard::crc7(vector <uint8_t>& data, int startPos, int len)
 				crc ^= polynom;
 		}
 	}
+	/*
+	for (int i = startPos; i < startPos + len; i++) {
+		if ((i - startPos) % 16 == 0)
+			cout << "\n";
+		cout << hex << setfill('0') << setw(2) << (int)data[i] << " ";
+	}
+	cout << "\nCRC8 = 0x" << hex << crc << "\n";
+	*/
 	return crc;
 }
 
@@ -456,9 +464,9 @@ uint16_t SDCard::crc16(vector <uint8_t>& data, int startPos, int len)
 {
 
 	uint16_t polynom = 0x1021;
-	uint16_t crc = 0x0;
+	uint16_t crc = 0xffff; // init value
 	for (int i = startPos; i < startPos + len; i++) {
-		uint8_t d = data[0];
+		uint8_t d = data[i];
 		for (int i = 0; i < 8; i++) {
 			if (((crc & 0x8000) >> 8) ^ (d & 0x80)) {
 				crc = (crc << 1) ^ polynom;
@@ -469,7 +477,14 @@ uint16_t SDCard::crc16(vector <uint8_t>& data, int startPos, int len)
 			d <<= 1;
 		}
 	}
-
+	/*
+	for (int i = startPos; i < startPos + len; i++) {
+		if ((i - startPos )% 16 == 0)
+			cout << "\n";
+		cout << hex << setfill('0') << setw(2) << (int)data[i] << " ";
+	}
+	cout << "\nCRC16 = 0x" << hex << crc << "\n";
+	*/
 	return crc;
 }
 
