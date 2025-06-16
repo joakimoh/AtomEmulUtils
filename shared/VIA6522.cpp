@@ -90,6 +90,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 	uint8_t CB1_mode = PCR_CB1_CTRL;
 	uint8_t CB2_mode = PCR_CB2_CTRL;
 
+	bool shifting_active = false;
+
 	while (mCycleCount < stopCycle) {
 
 		// Advance exactly one phi2 cycle (or at least one CPU cycle)
@@ -127,7 +129,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 		// Generate shift pulse
 
-		bool shifting_active = mStartShifting || shift_mode == 0;
+		bool p_shifting_active = shifting_active;
+		shifting_active = mStartShifting || mShifts > 0 || shift_mode == 0;
 		if (shifting_active) {
 
 			// Generate shift pulse from either CB1 input, timer T2 or input clock phi2
@@ -194,8 +197,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 			}
 
 
-			bool shift_pulse_goes_high = mCB1ShiftPulseLevel && mCB1ShiftPulseLevel != pCB1ShiftPulseLevel;
-
+			bool shift_pulse_goes_high = mCB1ShiftPulseLevel && !pCB1ShiftPulseLevel;
 
 
 			// shift in or out based on shift pulse generated above
@@ -215,7 +217,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 				// Shift in CB2 data for a low to high shift pulse transition
 				if (shift_pulse_goes_high) { // shift in on HIGH CB1 shift pulse
 					mShiftRegister = (mShiftRegister << 1) | CB2;
-					DBG_LOG(this, DBG_IO_PERIPHERAL, "Shift Mode " + to_string(shift_mode) + ": " + to_string(mShifts+1) + " SHIFT IN from CB2 = '" + Utility::int2hexStr(CB2, 1) + "' => Shift Register = 0x" +
+					DBG_LOG(this, DBG_IO_PERIPHERAL, "Shift Mode " + to_string(shift_mode) + ": " + to_string(mShifts+1) + "th SHIFT IN from CB2 = '" + Utility::int2hexStr(CB2, 1) + "' => Shift Register = 0x" +
 						Utility::int2hexStr(mShiftRegister, 2) + "\n");
 					mShifts = (mShifts + 1) % 8;
 					if (shift_mode != 0) { // Continuous shifting for mode 0 => restart of shifting every 8 bits not applicable
@@ -269,6 +271,11 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 		}
 
+		else if (shifting_active != p_shifting_active) {
+			mCB1ShiftPulseLevel = 1; // Make sure that to phantom 0->1 transitions are created
+			//cout << "shifting not active: mStartShifting = "  << dec << mStartShifting << ", mShifts = " <<
+			//	(int)mShifts << ", shift_mode =" << (int)shift_mode << "\n";
+		}
 
 		//
 		// Check Timer 1
@@ -420,6 +427,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 			case 0x4:	// Handshake output
 			case 0x5:	// Pulse output
 				updatePort(CA, mCA | 0x2);
+				CA1 = mCA & 0x1;
+				CA2 = (mCA >> 1) & 0x1;
 				break;
 			default:
 				break;
@@ -638,6 +647,8 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 				break;
 			}
 		}
+
+		DBG_LOG(this, DBG_IO_PERIPHERAL, ": Read Shift Register => 0x" + Utility::int2hexStr(data,2) + "\n");
 
 		// Clear IFR's SR bit on read
 		clearIFR(IFR_SR_MASK);
