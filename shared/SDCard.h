@@ -102,35 +102,37 @@ private:
 	typedef struct SPICmdInfo_struct {
 		vector<uint8_t>		request;
 		SPIRspEnum			respType;
+		string				mnemonic;
+		string				desc;
 	} SPICmdInfo;
 
 
 	map<SPICmdEnum, SPICmdInfo> spiCmdInfo = {
-		{SPI_CMD_0,		{{0x40,0x00,0x00,0x00,0x00,0x95},	SPI_RSP_R1}},	//* GO_IDLE_STATE -				Resets the SD Memory Card
-		{SPI_CMD_1,		{{0x41,0x00,0x00,0x00,0x00,0xff},	SPI_RSP_R1}},	// SEND_OP_COND -				Sends host capacity support information and activates the card's initialization process.
-		{SPI_CMD_6,		{{0x46,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	// SWITCH_FUNC -				Checks switchable function (mode 0) and switches card function (mode 1)
-		{SPI_CMD_8,		{{0x48,0x00,0x00,0x01,0xaa,0x87},	SPI_RSP_R7}},	// SEND_IF_COND -				Sends SD Memory Card interface condition
-		{SPI_CMD_9,		{{0x49,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	// SEND_CSD -					Asks the selected card to send its card-specific data (CSD)
-		{SPI_CMD_10,	{{0x4a,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	//* SEND_CID	 -					Asks the selected card to send its card identification (CID)
-		{SPI_CMD_12,	{{0x4c,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1b}},	// STOP_TRANSMISSION -			Forces the card to stop transmission in Multiple Block Read Operation
-		{SPI_CMD_13,	{{0x4d,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R2}},	// SEND_STATUS	-				Asks the selected card to send its status register.
-		{SPI_CMD_16,	{{0x50,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	//* SET_BLOCKLEN -				Sets a block length (in bytes) for all following block commands
-		{SPI_CMD_17,	{{0x51,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	//* READ_SINGLE_BLOCK -			Reads a block of the size selected by SET_BLOCKLEN command
-		{SPI_CMD_18,	{{0x52,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	// READ_MULTIPLE_BLOCK -		Continuously transfers data blocks from card to host until interrupted by a STOP_TRANSMISSION command.
-		{SPI_CMD_24,	{{0x58,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	//* WRITE_BLOCK -				Writes a block of the size selected by the SET_BLOCKLEN command.
-		{SPI_CMD_25,	{{0x59,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	// WRITE_MULTIPLE_BLOCK -		Continuously writes blocks of data until 'Stop Tran' token is sent (instead of 'Start Block').
-		{SPI_CMD_27,	{{0x5b,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	// PROGRAM_CSD -				Programming of the programmable bits of the CSD.
-		{SPI_CMD_28,	{{0x5c,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1b}},	// SET_WRITE_PROT -				If the card has write protection features, this command sets the write protection bit of the addressed group.
-		{SPI_CMD_29,	{{0x5d,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1b}},	// CLR_WRITE_PROT -				If the card has write protection features, this command clears the write protection bit of the addressed group.
-		{SPI_CMD_30,	{{0x5e,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	// SEND_WRITE_PROT -			If the card has write protection features, this command asks the card to send the status of the write protection bits
-		{SPI_CMD_32,	{{0x60,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	// ERASE_WR_BLK_START_ADDR -	Sets the address of the first write block to be erased.
-		{SPI_CMD_33,	{{0x61,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	// ERASE_WR_BLK_END_ADDR -		Sets the address of the last write block of the continuous range to be erased.
-		{SPI_CMD_38,	{{0x66,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1b}},	// ERASE -						Erases all previously selected write blocks
-		{SPI_CMD_42,	{{0x6a,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	// LOCK_UNLOCK -				Used to Set/Reset the Password or lock/unlock the card.
-		{SPI_CMD_55,	{{0x77,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	// APP_CMD -					Defines to the card that the next command is an application specific command rather than a standard command.
-		{SPI_CMD_56,	{{0x78,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}},	// GEN_CMD -					Used either to transfer a Data Block to the card or to get a Data Block from the card.
-		{SPI_CMD_58,	{{0x7a,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R3}},	// READ_OCR -					Reads the OCR register of a card.
-		{SPI_CMD_59,	{{0x7b,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1}}	// CRC_ON_OFF -					Turns the CRC option on or off.
+		{SPI_CMD_0,		{{0x40,0x00,0x00,0x00,0x00,0x95},	SPI_RSP_R1, "GO_IDLE_STATE",			"Resets the SD Memory Card"}},
+		{SPI_CMD_1,		{{0x41,0x00,0x00,0x00,0x00,0xff},	SPI_RSP_R1, "SEND_OP_COND",				"Sends host capacity support information and activates the card's initialization process."}},
+		{SPI_CMD_6,		{{0x46,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "SWITCH_FUNC",				"Checks switchable function (mode 0) and switches card function (mode 1)"}},
+		{SPI_CMD_8,		{{0x48,0x00,0x00,0x01,0xaa,0x87},	SPI_RSP_R7, "SEND_IF_COND",				"Sends SD Memory Card interface condition"}},
+		{SPI_CMD_9,		{{0x49,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "SEND_CSD",					"Asks the selected card to send its card-specific data (CSD)"}},
+		{SPI_CMD_10,	{{0x4a,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "SEND_CID",					"Asks the selected card to send its card identification (CID)"}},
+		{SPI_CMD_12,	{{0x4c,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1b, "STOP_TRANSMISSION",		"Forces the card to stop transmission in Multiple Block Read Operation"}},
+		{SPI_CMD_13,	{{0x4d,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R2, "SEND_STATUS",				"Asks the selected card to send its status register."}},
+		{SPI_CMD_16,	{{0x50,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "SET_BLOCKLEN",				"Sets a block length (in bytes) for all following block commands"}},
+		{SPI_CMD_17,	{{0x51,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "READ_SINGLE_BLOCK",		"Reads a block of the size selected by SET_BLOCKLEN command"}},
+		{SPI_CMD_18,	{{0x52,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "READ_MULTIPLE_BLOCK",		"Continuously transfers data blocks from card to host until interrupted by a STOP_TRANSMISSION command."}},
+		{SPI_CMD_24,	{{0x58,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "WRITE_BLOCK",				"Writes a block of the size selected by the SET_BLOCKLEN command."}},
+		{SPI_CMD_25,	{{0x59,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "WRITE_MULTIPLE_BLOCK",		"Continuously writes blocks of data until 'Stop Tran' token is sent (instead of 'Start Block')."}},
+		{SPI_CMD_27,	{{0x5b,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "PROGRAM_CSD",				"Programming of the programmable bits of the CSD."}},
+		{SPI_CMD_28,	{{0x5c,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1b, "SET_WRITE_PROT",			"If the card has write protection features, this command sets the write protection bit of the addressed group."}},
+		{SPI_CMD_29,	{{0x5d,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1b, "CLR_WRITE_PROT",			"If the card has write protection features, this command clears the write protection bit of the addressed group."}},
+		{SPI_CMD_30,	{{0x5e,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "SEND_WRITE_PROT",			"If the card has write protection features, this command asks the card to send the status of the write protection bits"}},
+		{SPI_CMD_32,	{{0x60,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "ERASE_WR_BLK_START_ADDR",	"Sets the address of the first write block to be erased."}},
+		{SPI_CMD_33,	{{0x61,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "ERASE_WR_BLK_END_ADDR",	"Sets the address of the last write block of the continuous range to be erased."}},
+		{SPI_CMD_38,	{{0x66,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1b, "ERASE",					"Erases all previously selected write blocks"}},
+		{SPI_CMD_42,	{{0x6a,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "LOCK_UNLOCK",				"Used to Set/Reset the Password or lock/unlock the card."}},
+		{SPI_CMD_55,	{{0x77,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "APP_CMD",					"Defines to the card that the next command is an application specific command rather than a standard command."}},
+		{SPI_CMD_56,	{{0x78,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "GEN_CMD",					"Used either to transfer a Data Block to the card or to get a Data Block from the card."}},
+		{SPI_CMD_58,	{{0x7a,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R3, "READ_OCR",					"Reads the OCR register of a card."}},
+		{SPI_CMD_59,	{{0x7b,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "CRC_ON_OFF",				"Turns the CRC option on or off."}}
 	};
 
 	typedef struct SPIRspInfo_struct {
@@ -170,7 +172,7 @@ public:
 
 	bool execCmd(vector <uint8_t>  cmd);
 
-
+	bool createMMB(string dir);
 };
 
 #endif

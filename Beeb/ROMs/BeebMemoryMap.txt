@@ -26,7 +26,7 @@ ADD	CPU_6502		CPU													// Microprocessor 6502
 ADD	TAPREC			TAPREC												// Standard Tape Recorder
 ADD	TI4689			SOUND
 ADD	BEEBVIALATCH	VIAL												// System VIA Latch with 8 outputs, each updated by writing to Port B bits 3:0
-ADD SD_CARD			MMFS_CARD							Disc.mmb		// SD Card formated with Disc.mmb
+ADD SD_CARD			MMFS_CARD							MMC.img			// FAT32 SD Card image
 
 //
 //	Device connections

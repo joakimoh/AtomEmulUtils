@@ -5,6 +5,8 @@
 #include <filesystem>
 #include "Utility.h"
 
+namespace fs = std::filesystem;
+
 SDCard::SDCard(string name, double cpuClock, string cardImage, DebugManager* debugManager, ConnectionManager* connectionManager):
 	Device(name, SD_CARD, OTHER_DEVICE, cpuClock, debugManager, connectionManager)
 {
@@ -14,6 +16,12 @@ SDCard::SDCard(string name, double cpuClock, string cardImage, DebugManager* deb
 	registerPort("MISO",	OUT_PORT,	0x1,	MISO,	&mMISO);	// Data Out
 
 	mDataResponse.resize(512);
+
+	fs::path file_path = cardImage;
+	fs::path dir_path = file_path.parent_path();
+	fs::path MMC_dir = dir_path / "MMC";
+	createMMB(MMC_dir.string());
+
 /*
 	mCardImage = new ifstream(cardImage, ios::in | ios::binary | ios::ate);
 
@@ -28,7 +36,7 @@ SDCard::SDCard(string name, double cpuClock, string cardImage, DebugManager* deb
 	mCardImage->seekg(0, ios::end);
 	streamsize file_sz = mCardImage->tellg();
 	mCardImage->seekg(0);
-	*/
+*/	
 }
 
 SDCard::~SDCard()
@@ -180,7 +188,7 @@ void SDCard::processPortUpdate(int port)
 							if (mSPITxMode != SPI_Tx_DATA_WAIT)
 								cout << "Response of type R" << mResponseType << " (response 0x" << hex << bytes2str(mCmdResponse) << ") sent\n";
 							else // mSPITxMode == SPI_Tx_DATA_WAIT
-								cout << "Data token sent " << bytes2str(mDataResponse) << "\n";
+								cout << "Data token '" << bytes2str(mDataResponse) << "' sent\n";
 							mSentBits = 0;
 							mSentBytes = 0;
 							if (mSPITxMode == SPI_Tx_RSP_WAIT || mSPITxMode == SPI_Tx_DATA_WAIT) {
@@ -252,7 +260,7 @@ bool SDCard::execCmd(vector <uint8_t> request)
 			nCmdResponseBits = rsp_info.nBytes * 8;
 			mCmdResponse = rsp_info.okResponse;
 			mSPITxMode = SPI_Tx_RSP_WAIT;
-			cout << "Command CMD" << dec << (int)cmd << " (request 0x" << bytes2str(request) << ") with expected CRC byte 0x" << hex << (int)req_crc_byte <<
+			cout << "Command CMD" << dec << (int)cmd << " (request 0x" << bytes2str(request) << ") " << cmd_info.mnemonic << " with expected CRC byte 0x" << hex << (int)req_crc_byte <<
 				" received - will send a response of type R" << mResponseType << " (response 0x" << bytes2str(mCmdResponse) << ")" <<
 				 " with " << dec << nCmdResponseBits << " bits (" << rsp_info.nBytes << " bytes)...\n";
 
@@ -495,4 +503,76 @@ string SDCard::bytes2str(vector <uint8_t> data)
 		s += Utility::int2hexStr(data[i],2);
 
 	return s;
+}
+
+//
+// Create an MMB image
+// 
+// From https://github.com/hoglet67/MMFS/wiki/MMB-File-Format:
+// An MMB file stores between 1 and 511 200KB Acorn DFS disk images.
+// Every MMB File has an 8192 - byte header which with a signature at the start followed by 511 spaces for the disk titles
+// The first 16 bytes of the file contains a signature which is 00 01 02 03 00 00 ..
+// Each subsequent 16 Bytes stores a disk title(12 characters / bytes) then padded with 00 00 00 0F.
+// The rest of the file is a collection of 200K Byte SSD images in disk order.
+//
+bool SDCard::createMMB(string discDir)
+{
+	vector<string> SSD_files;
+
+	// This structure would distinguish a file from a
+	// directory
+	struct stat sb;
+
+	if (stat(discDir.c_str(), &sb) != 0) {
+		cout << "Directory '" << discDir << "' doesn't exist!\n";
+		return false;
+	}
+
+	fs::path dir_path = discDir;
+	fs::path MMB_path = dir_path / "MMC.img";
+	string fout_name = MMB_path.string();
+	ofstream fout(fout_name, ios::out | ios::binary | ios::ate);
+	if (!fout) {
+		cout << "can't write to file " << fout_name << "\n";
+		return false;
+	}
+	cout << "Creating MMC file '" << fout_name << "'\n";
+
+	// Write MMB signature
+	fout.write("\x00\x01\x02\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 16);
+
+	// Write disc titles
+	for (const auto& entry : fs::directory_iterator(discDir)) {
+		// Converting the path to const char * in the
+		// subsequent lines
+		fs::path file_path = entry.path();
+		if (fs::is_regular_file(fs::status(file_path.c_str())) && file_path.extension() == ".ssd") {
+			SSD_files.push_back(file_path.string());
+			string disc_title = file_path.stem().string();
+			if (disc_title.size() > 12)
+				disc_title = disc_title.substr(0, 12);
+			else if (disc_title.size() < 12)
+				disc_title.insert(disc_title.size(), 12 - disc_title.size(), '\0');
+			cout << "Adding title '" << disc_title << "' (" << disc_title.size() << ")\n";
+			disc_title = disc_title + "\x00\x00\x00\x0f";
+			fout.write(disc_title.c_str(), 16);
+		};
+	}
+	// Fill non-used disc title space wth zeros
+	for (int t = 0; t < (511 - SSD_files.size()) * 16; t++)
+		fout.put(0x0);
+
+	// Add SSD file content
+	for (int f = 0; f < SSD_files.size(); f++) {
+		ifstream fin(SSD_files[f], ios::in | ios::binary | ios::ate);
+		fin.seekg(0);
+		char c;
+		while (fin.read(&c,1))
+			fout.put(c);
+		fin.close();
+	}
+
+	fout.close();
+
+	return true;
 }
