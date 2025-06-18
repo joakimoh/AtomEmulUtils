@@ -172,7 +172,6 @@ public:
 
 	bool execCmd(vector <uint8_t>  cmd);
 
-	bool createMMB(string dir);
 };
 
 #endif
