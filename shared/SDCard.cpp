@@ -350,8 +350,9 @@ bool SDCard::execCmd(vector <uint8_t> request)
 				mDataResponse[0] = 0xfe;
 
 				// Read block into response (emulation only)
-				for (int i = 0; i < mDataResponseBits; i++)
-					mDataResponse[i + 1] = 0x0;
+				int block_adr = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[1];
+				mCardImage->seekg(block_adr * mBlockLen);
+				mCardImage->read((char*)  & mDataResponse[1], mBlockLen);
 
 				// Add CRC
 				uint16_t crc = crc16(mDataResponse, 1, mDataResponseBits - 3);
