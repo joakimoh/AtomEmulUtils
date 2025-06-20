@@ -359,6 +359,8 @@ bool SDCard::execCmd(vector <uint8_t> request)
 				mDataResponse[mBlockLen + 1] = crc >> 8;
 				mDataResponse[mBlockLen + 2] = crc & 0xff;
 
+				cout << "CMD17: address = 0x" << hex << block_adr << "\n";
+
 				mSPITxMode = SPI_Tx_RSP_DATA_WAIT;
 				break;
 				}
