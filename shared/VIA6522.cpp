@@ -224,7 +224,6 @@ bool VIA6522::advance(uint64_t stopCycle)
 						if (mShifts == 0) {
 							if (mShiftInterrupt)
 								setIFR(IFR_SR_MASK);
-							mCB1ShiftPulseLevel = 0;
 							mStartShifting = false;
 						}
 					}
@@ -249,7 +248,6 @@ bool VIA6522::advance(uint64_t stopCycle)
 					if (mShifts == 0) {
 						if (mShiftInterrupt)
 							setIFR(IFR_SR_MASK);
-						mCB1ShiftPulseLevel = 0;
 						if (shift_mode != 0x4 && shift_mode != 0x7) // shifting not to be stopped for modes 4 & 7!
 							mStartShifting = false;
 					}
