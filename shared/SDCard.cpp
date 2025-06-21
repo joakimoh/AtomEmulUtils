@@ -24,7 +24,7 @@ SDCard::SDCard(string name, double cpuClock, string cardImage, DebugManager* deb
 		throw runtime_error("couldn't open  SD Card Image");
 	}
 
-	cout << "SD Card Image '" << cardImage << " added...\n";
+	DBG_LOG(this, DBG_VERBOSE,  "SD Card Image '" + cardImage + " added...\n");
 
 	// Get file size (should normally equal ROM size)
 	mCardImage->seekg(0, ios::end);
@@ -103,7 +103,7 @@ void SDCard::processPortUpdate(int port)
 						mSPIRxMode = SPI_Rx_PREAMBLE_WAIT;
 						mReceivedBits = 0;
 						mInitialised = true;
-						cout << "SD Card: SPI Reset (74 x '1') completed  - Waiting for Reset command CMD0!\n";
+						DBG_LOG(this, DBG_SPI, "SD Card: SPI Reset (74 x '1') completed  - Waiting for Reset command CMD0!\n");
 					}
 				}
 				else if (mSEL == 0) {
@@ -146,7 +146,7 @@ void SDCard::processPortUpdate(int port)
 						if (mReceivedBits == 48) {
 							if (!execCmd(mCommand)) {			
 								// Invalid command (no action - just ignorre the receibed bit sequence and start all over again)
-								cout << "Illegal command bit sequence  '" << bytes2str(mCommand) << "'!\n";
+								DBG_LOG(this, DBG_ERROR, "Illegal command bit sequence  '" + bytes2str(mCommand) + "'!\n");
 							}
 							mSPIRxMode = SPI_Rx_IDLE;
 							mReceivedBits = 0;
@@ -184,18 +184,22 @@ void SDCard::processPortUpdate(int port)
 						//	mSentBits << " (" << response_bits << "), MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" <<
 						//	hex << (int)mShiftRegister << "\n";
 						if (mSentBits == response_bits) {
-							if (mSPITxMode != SPI_Tx_DATA_WAIT)
-								cout << "Response of type R" << mResponseType << " (response 0x" << bytes2str(mCmdResponse) << 
-								") [" << dec << response_bits << " bits] sent\n";
-							else // mSPITxMode == SPI_Tx_DATA_WAIT
-								cout << "Data token '" << bytes2str(mDataResponse) << "' [" << dec << response_bits << " bits] sent\n";
+#ifdef DBG_ON
+							if (DBG_LEVEL(DBG_SPI)) {
+								if (mSPITxMode != SPI_Tx_DATA_WAIT)
+									cout << "Response of type R" << mResponseType << " (response 0x" << bytes2str(mCmdResponse) <<
+									") [" << dec << response_bits << " bits] sent\n";
+								else // mSPITxMode == SPI_Tx_DATA_WAIT
+									cout << "Data token '" << bytes2str(mDataResponse) << "' [" << dec << response_bits << " bits] sent\n";
+							}
+#endif
 							mSentBits = 0;
 							mSentBytes = 0;
 							if (mSPITxMode == SPI_Tx_RSP_WAIT || mSPITxMode == SPI_Tx_DATA_WAIT) {
 								mSPITxMode = SPI_Tx_IDLE;
 							}
 							else { // mSPITxMode == SPI_Tx_RSP_DATA_WAIT
-								cout << "Response sent - will now be followed by a data token!\n";
+								DBG_LOG(this, DBG_SPI, "Response sent - will now be followed by a data token!\n");
 								mSPITxMode = SPI_Tx_DATA_WAIT;
 							}
 						}
@@ -263,10 +267,13 @@ bool SDCard::execCmd(vector <uint8_t> request)
 			nCmdResponseBits = rsp_info.nBytes * 8;
 			mCmdResponse = rsp_info.okResponse;
 			mSPITxMode = SPI_Tx_RSP_WAIT;
-			cout << "Command CMD" << dec << (int)cmd << " (request 0x" << bytes2str(request) << ") " << cmd_info.mnemonic << " with expected CRC byte 0x" << hex << (int)req_crc_byte <<
-				" received - will send a response of type R" << mResponseType << " (response 0x" << bytes2str(mCmdResponse) << ")" <<
-				 " with " << dec << nCmdResponseBits << " bits (" << rsp_info.nBytes << " bytes)...\n";
-
+#ifdef DBG_ON
+			if (DBG_LEVEL(DBG_SPI)) {
+				cout << "Command CMD" << dec << (int)cmd << " (request 0x" << bytes2str(request) << ") " << cmd_info.mnemonic << " with expected CRC byte 0x" << hex << (int)req_crc_byte <<
+					" received - will send a response of type R" << mResponseType << " (response 0x" << bytes2str(mCmdResponse) << ")" <<
+					" with " << dec << nCmdResponseBits << " bits (" << rsp_info.nBytes << " bytes)...\n";
+			}
+#endif
 
 			switch (cmd) {
 
@@ -339,7 +346,7 @@ bool SDCard::execCmd(vector <uint8_t> request)
 			case SPI_CMD_16:
 				// SET_BLOCKLEN
 				mBlockLen = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[1];
-				cout << "CMD16 : set block length to " << dec << mBlockLen << "\n";
+				DBG_LOG(this, DBG_SPI, "CMD16: set block length to " + to_string(mBlockLen) + "\n");
 				mCmdResponse[1] = 0x0; // OK status
 				break;
 
@@ -372,7 +379,7 @@ bool SDCard::execCmd(vector <uint8_t> request)
 				mDataResponse[content_bytes + 1] = crc >> 8;
 				mDataResponse[content_bytes + 2] = crc & 0xff;
 
-				cout << "CMD17: address = 0x" << hex << block_adr << "\n";
+				DBG_LOG(this, DBG_SPI, "CMD17: address = 0x"  + Utility::int2hexStr(block_adr,6) + "\n");
 
 				mSPITxMode = SPI_Tx_RSP_DATA_WAIT;
 				break;
@@ -432,7 +439,7 @@ bool SDCard::execCmd(vector <uint8_t> request)
 		}
 
 		if (!valid_cmd) {
-			cout << "invalid command CMD" << dec << (int)cmd << " (request 0x" << bytes2str(request) << ") received !\n";
+			DBG_LOG(this, DBG_ERROR, "invalid command CMD" + to_string(cmd) + " (request 0x" + bytes2str(request) + ") received !\n");
 		}
 
 	}
