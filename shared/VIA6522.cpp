@@ -885,7 +885,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		if (mDDRB != data) {
 			DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to DDRB at 0x" + Utility::int2hexStr(adr, 4) +
 				": DDRB = 0x" + Utility::int2hexStr(data, 2) + " (" + ddr2Str('B', data) + ")\n");
-			registerPortDirChange(PB);
+			registerPortDirChange(PB, data);
 		}
 		mDDRB = data;
 		break;
@@ -896,7 +896,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		if (mDDRA != data) {
 			DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to DDRA at 0x" + Utility::int2hexStr(adr, 4) +
 				": DDRA = 0x" + Utility::int2hexStr(data, 2) + " (" + ddr2Str('A', data) + ")\n");
-			registerPortDirChange(PA);
+			registerPortDirChange(PA, data);
 		}
 		mDDRA = data;
 		break;
@@ -1010,8 +1010,33 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		if (mACR != p_ACR)
 			DBG_LOG(this, DBG_IO_PERIPHERAL, "\nWrite to ACR:\n" + ACR2Str() + "\n");
 
-		if (ACR_SR_CTRL != p_shift_mode)
-			registerPortDirChange(CB);
+		if (ACR_SR_CTRL != p_shift_mode) {
+			switch (ACR_SR_CTRL) {
+			case 0x0:	// Shift in on positive edge of CB1 - no interrupt flag set
+			case 0x3:	// Shift in under control of external clock (on CB1) -  - interrupt flag set
+				mCB1Dir = 0x0;	// CB1 IN
+				mCB2Dir = 0x0;	// CB2 IN
+				break;
+
+			case 0x1:	// Shift in on timeout of T2 (lower bits only) and generate shift pulses on CB1 - interrupt flag set
+			case 0x2:	// Shift in under control of phi2 and generate shift pulses on CB1 - interrupt flag set
+				mCB1Dir = 0x1;	// CB1 OUT
+				mCB2Dir = 0x0;	// CB2 IN
+				break;
+			case 0x4:	// Shift out fre-running at T2 rate
+			case 0x5:	// Shift out under control of T2
+			case 0x6:	// Shift out under control of phi2
+				mCB1Dir = 0x1;	// CB1 OUT
+				mCB2Dir = 0x2;	// CB2 OUT
+				break;
+			case 0x7:	// Shift out under control of external clock (CB1 input)	
+				mCB1Dir = 0x0;	// CB1 IN
+				mCB2Dir = 0x2;	// CB2 OUT
+				break;
+			}
+			uint8_t CB_dir = mCB1Dir | mCB2Dir;
+			registerPortDirChange(CB, CB_dir);
+		}
 
 		break;
 	}
@@ -1023,22 +1048,38 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		mPCR = data;
 		uint8_t p_PCR = mPCR;
 
-		if (mPCR != p_PCR)
+		int CA1_mode = PCR_CA1_CTRL;
+		int CA2_mode = PCR_CA2_CTRL;
+		int CB1_mode = PCR_CB1_CTRL;
+		int CB2_mode = PCR_CB2_CTRL;
+
+		if (mPCR != p_PCR) {
+
 			DBG_LOG(this, DBG_IO_PERIPHERAL, "\nWrite to PCR:\n" + PCR2Str() + "\n");
 
-		// Conservatively assume changes to the PCR always result in changes in the direction of ports CA & CB
-		registerPortDirChange(CA);
-		registerPortDirChange(CB);
+			// Conservatively assume changes to the PCR always result in changes in the direction of ports CA & CB
+			// In lower modes CA2/CB2 are outputs whereas they are inputs for higher modes.
+			// CA1 is alwways an input (i.e. not a bidrectional port!)
+			// CB1 is an input for higher modes; for lower modes it is defined by the ACR shift mode instead
+			mCA1Dir = 0;
+			mCA2Dir = (CA2_mode < 0x3 ? 0x2 : 0x0); // lower mode:CA2 OUT (2), higher mode:CA2 IN (0)
+			uint8_t CA_dir = mCA1Dir | mCA2Dir;
+			mCB1Dir = (CB2_mode < 0x3 ? mCB1Dir : 0x1); // lower mode: -, higher mode: CB1 IN (0)
+			mCB2Dir = (CB2_mode < 0x3 ? 0x2 : 0x1); // lower mode:CB2 OUT (2), higher mode:CB2 IN (0):
+			uint8_t CB_dir = mCB1Dir | mCB2Dir;
+			registerPortDirChange(CA, CA_dir);
+			registerPortDirChange(CB, CB_dir);
+		}
 
 		// Check for explicit CA2 control
-		int CA2_mode = PCR_CA2_CTRL;
+
 		if (CA2_mode == 0x6) // Low output
 			updatePort(CA, mCA & ~0x2);
 		else if (CA2_mode == 0x7) // High output
 			updatePort(CA, mCA | 0x2);
 
 		// Check for explicit CB2 control
-		int CB2_mode = PCR_CB2_CTRL;
+
 		if (CB2_mode == 0x6) // Low output
 			updatePort(CB, mCB & ~0x2);
 		else if (CB2_mode == 0x7) // High output

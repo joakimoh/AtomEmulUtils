@@ -91,7 +91,7 @@ void SDCard::processPortUpdate(int port)
 	if (port == CLK) {
 		if (mCLK != pCLK) {
 			if (mCLK) {
-				//cout << "MOSI = '" << dec << (int)mMOSI << "', MISO = '" << (int)mMISO << "'\n";
+				cout << "MOSI = '" << dec << (int)mMOSI << "', MISO = '" << (int)mMISO << "'\n";
 				if (!mInitialised) {
 					if (mMOSI == 1) {
 						mReceivedBits++;
@@ -144,11 +144,14 @@ void SDCard::processPortUpdate(int port)
 						}
 						//cout << "MOSI = " << (int)mMOSI << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" << hex << (int)mShiftRegister << "\n";
 						if (mReceivedBits == 48) {
-							execCmd(mCommand);
+							if (!execCmd(mCommand)) {			
+								// Invalid command (no action - just ignorre the receibed bit sequence and start all over again)
+								cout << "Illegal command bit sequence  '" << bytes2str(mCommand) << "'!\n";
+							}
+							mSPIRxMode = SPI_Rx_IDLE;
 							mReceivedBits = 0;
 							mReceivedBytes = 0;
 							mFirstBit = true;
-							mSPIRxMode = SPI_Rx_IDLE;
 						}
 
 				}
@@ -177,9 +180,9 @@ void SDCard::processPortUpdate(int port)
 						updatePort(MISO, (mShiftRegister >> 7) & 0x1);
 						mSentBits++;
 						int response_bits = (mSPITxMode != SPI_Tx_DATA_WAIT ? nCmdResponseBits : mDataResponseBits);
-						cout << "bytes = " << dec << mSentBytes << " (" << response_bits / 8 << ")"  << ", bits = " << dec <<
-							mSentBits << " (" << response_bits << "), MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" <<
-							hex << (int)mShiftRegister << "\n";
+						//cout << mSPIRxMode << ",bytes = " << dec << mSentBytes << " (" << response_bits / 8 << ")"  << ", bits = " << dec <<
+						//	mSentBits << " (" << response_bits << "), MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" <<
+						//	hex << (int)mShiftRegister << "\n";
 						if (mSentBits == response_bits) {
 							if (mSPITxMode != SPI_Tx_DATA_WAIT)
 								cout << "Response of type R" << mResponseType << " (response 0x" << hex << bytes2str(mCmdResponse) << 
@@ -208,11 +211,14 @@ void SDCard::processPortUpdate(int port)
 bool SDCard::execCmd(vector <uint8_t> request)
 {
 	
-	uint8_t cmd = request[0] & 0x3f;
+	uint8_t cmd = request[0] & 0x3f; 
 
 	//cout << "cmd = 0x" << hex << (int)cmd << "\n";
 
-	bool valid_cmd = true;
+	bool valid_cmd = (request[0] & 0xc0) == 0x40;
+
+	if (!valid_cmd)
+		return false;
 
 	if (mResetCmdReceived || cmd == SPI_CMD_0) {
 

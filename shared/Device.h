@@ -78,6 +78,7 @@ public:
 	int						localIndex = -1;		// local device index for the I/O port
 	int						globalIndex = -1;		// unique global index for the port
 	PortDirection			dir = IO_PORT;			// I/O direction
+	uint8_t					ioDirMask = 0xff;			// I/O direction for the bits of a bidirectional port:a set bit indicates OUT, a cleared bit IN
 	uint8_t					mask = 0x1;				// mask to select only the implemented bits
 	uint8_t	*				val;					// pointer to variable holding the port's value
 	vector<InputReference>	inputs;					// connected inputs (used only if the port is an output port)
@@ -118,6 +119,8 @@ class Device {
 private:
 	bool updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal);
 	bool updateConnectedPorts(vector<InputReference>& connectedPorts, uint8_t val, DevicePort* port, bool changed);
+
+	void getPortSelection(DevicePort* srcPort, InputReference& dstPort, string& srcSel, string& dstSel);
 
 protected:
 
@@ -184,7 +187,7 @@ public:
 	bool updatePort(int index, uint8_t val, bool forceUpdate = false);
 
 	// Register that the direction of a bidirectional port (PORT_IO) has changed
-	bool registerPortDirChange(int index);
+	bool registerPortDirChange(int index, uint8_t mask);
 
 	// In the case the port value need to be processed immediately (if the qualifier 'P' was added to 'CONNECT')
 	// then this method will be called for the device receiving the port update

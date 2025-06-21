@@ -51,6 +51,12 @@ private:
 
 	uint8_t pIFR = 0x0;
 
+	// Direction for the CA/CB port - updated when the ACR and PCR registers are changed
+	uint8_t mCA1Dir = 0x0;		// CA1 is always an input!
+	uint8_t mCA2Dir = 0x0;		// CA2 direction is determined by the PCR setting (PCR_CA2_CTRL)
+	uint8_t mCB1Dir = 0x0;		// CB1 direction is detmined by the ACR shift mode (ACR_SR_CTRL)
+	uint8_t mCB2Dir = 0x0;		// CB2 direction is determined by the PCR setting (PCR_CB2_CTRL)
+
 // Auxiliary Control Register (ACR) Fields
 #define ACR_PA_LATCH_MASK	(0x1 << 0)
 #define ACR_PB_LATCH_MASK	(0x1 << 1)

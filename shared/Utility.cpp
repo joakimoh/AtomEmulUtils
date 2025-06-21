@@ -6,6 +6,18 @@
 
 using namespace std;
 
+string Utility::mask2Str(uint8_t mask)
+{
+	int msb = 7;
+	int lsb = 0;
+	for (; msb > 0 && (mask & (1 << msb)) == 0; msb--);
+	for (; lsb < 8 && (mask & (1 << lsb)) == 0; lsb++);
+	if (lsb == msb)
+		return "b" + to_string(lsb);
+	else
+		return "b" + to_string(msb) + ":b" + to_string(lsb);
+}
+
 string Utility::int2hexStr(int v, int n)
 {
 	stringstream sout;

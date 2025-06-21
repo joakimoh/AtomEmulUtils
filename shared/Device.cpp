@@ -83,7 +83,7 @@ bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &ind
 }
 
 // Used to mark a bidirectional port as having changed its direction (reset by updatePort() later)
-bool Device::registerPortDirChange(int index)
+bool Device::registerPortDirChange(int index, uint8_t mask)
 {
 	if (index < 0 && index >= mPorts.size())
 		return false;
@@ -92,8 +92,30 @@ bool Device::registerPortDirChange(int index)
 	DevicePort& port = *mPorts[index];
 
 	port.portDirChanged = true;
+	port.ioDirMask = mask;
 
 	return true;
+}
+
+// Readable output for port selection for a connection between a source port and a destination port
+void Device::getPortSelection(DevicePort *srcPort, InputReference & dstPort, string &srcSel, string &dstSel)
+{
+	DevicePort* dst_port = dstPort.port;
+	if (srcPort == NULL || srcPort->dev == NULL || dst_port == NULL || dst_port->dev == NULL)
+		return;
+
+	int shifts = dstPort.shifts;
+	int src_mask = srcPort->mask;
+	int dst_sel_mask = dstPort.mask;
+	int dst_mask = dstPort.port->mask;
+
+	uint8_t src_bits_sel = (shifts > 0 ? (dst_sel_mask & dst_mask) << shifts : (dst_sel_mask & dst_mask) >> shifts) & src_mask;
+	uint8_t dst_bits_sel = dst_sel_mask & dst_mask;
+	string src_sel = Utility::mask2Str(src_bits_sel);
+	string dst_sel = Utility::mask2Str(dst_bits_sel);
+	srcSel = srcPort->dev->name + ":" + srcPort->name + ";" + src_sel;
+	dstSel = dstPort.port->dev->name + ":" + dstPort.port->name + ";" + dst_sel;
+
 }
 
 //
@@ -203,6 +225,26 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 	else
 		nval_or = (src_val << (-shifts)) & dst_sel_mask;
 	nval = ((pval & ~dst_sel_mask) | nval_or) & dst_mask;
+
+	// Check whether the bidirectional port bits connected to the destination port are currently outputs
+	// A non-zero value means that the bidirectional port bits are currently an outputs
+	if (srcPort->dir == IO_PORT) {
+		uint8_t dst_dir_mask;
+		uint8_t src_dir_mask = srcPort->ioDirMask;
+		uint8_t dir_or;
+		if (shifts >= 0)
+			dir_or = (src_dir_mask >> shifts) & dst_sel_mask;
+		else
+			dir_or = (src_dir_mask << (-shifts)) & dst_sel_mask;
+		dst_dir_mask = dir_or & dst_mask;
+
+		string src_sel, dst_sel;
+		getPortSelection(srcPort, dstPort, src_sel, dst_sel);
+		string dst_dir_sel = Utility::mask2Str(dst_dir_mask);
+		if (dst_dir_mask != 0)
+			cout << "Destination bits " << dst_dir_sel <<  " from " << src_sel <<
+				" to " << dst_sel << " are now outputs...\n";
+	}
 
 	// Always update the destination port's recollection of the source port's value
 	int i = 0;
