@@ -91,6 +91,11 @@ bool Device::registerPortDirChange(int index, uint8_t mask)
 	// Get reference to the source port
 	DevicePort& port = *mPorts[index];
 
+	if (port.ioDirMask != mask) {
+		DBG_LOG(this, DBG_PORT, "Port " + this->name + ":" + mPorts[index]->name + " has changed direction from 0x" + Utility::int2hexStr(port.ioDirMask,8) +
+			" to 0x" + Utility::int2hexStr(mask,8) + "\n");
+	}
+
 	port.portDirChanged = true;
 	port.ioDirMask = mask;
 
@@ -238,13 +243,10 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 			dir_or = (src_dir_mask << (-shifts)) & dst_sel_mask;
 		dst_dir_mask = dir_or & dst_mask;
 
-		string src_sel, dst_sel;
-		getPortSelection(srcPort, dstPort, src_sel, dst_sel);
-		string dst_dir_sel = Utility::mask2Str(dst_dir_mask);
-		if (dst_dir_mask != 0)
-			cout << "Destination bits " << dst_dir_sel <<  " from " << src_sel <<
-				" to " << dst_sel << " are now outputs...\n";
+		// TBD Do something to avoid update for IO Port that are set as input currently...
+
 	}
+
 
 	// Always update the destination port's recollection of the source port's value
 	int i = 0;
@@ -293,6 +295,8 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 		}
 #ifdef DBG_ON
 		if (DBG_MATCH_PORT(dstPort.port) && *dst_val_p != pval) {
+			string src_sel, dst_sel;
+			getPortSelection(srcPort, dstPort, src_sel, dst_sel);
 			string shift_s, c_dir;
 			if (dstPort.shifts >= 0)
 				shift_s = "((src >> shifts) & mask)";

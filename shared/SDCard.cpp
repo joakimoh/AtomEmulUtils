@@ -91,7 +91,7 @@ void SDCard::processPortUpdate(int port)
 	if (port == CLK) {
 		if (mCLK != pCLK) {
 			if (mCLK) {
-				cout << "MOSI = '" << dec << (int)mMOSI << "', MISO = '" << (int)mMISO << "'\n";
+				//cout << "MOSI = '" << dec << (int)mMOSI << "', MISO = '" << (int)mMISO << "'\n";
 				if (!mInitialised) {
 					if (mMOSI == 1) {
 						mReceivedBits++;
@@ -185,10 +185,10 @@ void SDCard::processPortUpdate(int port)
 						//	hex << (int)mShiftRegister << "\n";
 						if (mSentBits == response_bits) {
 							if (mSPITxMode != SPI_Tx_DATA_WAIT)
-								cout << "Response of type R" << mResponseType << " (response 0x" << hex << bytes2str(mCmdResponse) << 
-								") [" << response_bits << " bits] sent\n";
+								cout << "Response of type R" << mResponseType << " (response 0x" << bytes2str(mCmdResponse) << 
+								") [" << dec << response_bits << " bits] sent\n";
 							else // mSPITxMode == SPI_Tx_DATA_WAIT
-								cout << "Data token '" << bytes2str(mDataResponse) << "' [" << response_bits << " bits] sent\n";
+								cout << "Data token '" << bytes2str(mDataResponse) << "' [" << dec << response_bits << " bits] sent\n";
 							mSentBits = 0;
 							mSentBytes = 0;
 							if (mSPITxMode == SPI_Tx_RSP_WAIT || mSPITxMode == SPI_Tx_DATA_WAIT) {
@@ -307,7 +307,8 @@ bool SDCard::execCmd(vector <uint8_t> request)
 				// CID data token response
 
 				// Define its size and make sure the response vector can hold it
-				int data_response_bytes = 128 + 3;
+				int content_bytes = 128 / 8;
+				int data_response_bytes = content_bytes + 3;
 				mDataResponseBits = data_response_bytes * 8;
 				if (mDataResponse.size() != data_response_bytes)
 					mDataResponse.resize(data_response_bytes);
@@ -316,13 +317,13 @@ bool SDCard::execCmd(vector <uint8_t> request)
 				mDataResponse[0] = 0xfe;
 
 				// Add CID  (emulation only)
-				for (int i = 0; i < data_response_bytes; i++)
-					mDataResponse[i + 1] = 0x0;
+				for (int i = 1; i < data_response_bytes-3; i++)
+					mDataResponse[i] = 0x0;
 
 				// Add CRC
 				uint16_t crc = crc16(mDataResponse, 1, data_response_bytes - 3);
-				mDataResponse[mBlockLen + 1] = crc >> 8;
-				mDataResponse[mBlockLen + 2] = crc & 0xff;
+				mDataResponse[content_bytes + 1] = crc >> 8;
+				mDataResponse[content_bytes + 2] = crc & 0xff;
 
 				mSPITxMode = SPI_Tx_RSP_DATA_WAIT;
 
@@ -352,7 +353,8 @@ bool SDCard::execCmd(vector <uint8_t> request)
 				mCmdResponse[1] = 0x0; // OK status
 
 				// Define its size and make sure the response vector can hold it
-				int data_response_bytes = mBlockLen + 3;
+				int content_bytes = mBlockLen;
+				int data_response_bytes = content_bytes + 3;
 				mDataResponseBits = data_response_bytes * 8;
 				if (mDataResponse.size() != data_response_bytes)
 					mDataResponse.resize(data_response_bytes);
@@ -363,12 +365,12 @@ bool SDCard::execCmd(vector <uint8_t> request)
 				// Read block into response (emulation only)
 				int block_adr = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[1];
 				mCardImage->seekg(block_adr, mCardImage->beg);
-				mCardImage->read((char*)  & mDataResponse[1], mBlockLen);
+				mCardImage->read((char*)  & mDataResponse[1], content_bytes);
 
 				// Add CRC
 				uint16_t crc = crc16(mDataResponse, 1, data_response_bytes - 3);
-				mDataResponse[mBlockLen + 1] = crc >> 8;
-				mDataResponse[mBlockLen + 2] = crc & 0xff;
+				mDataResponse[content_bytes + 1] = crc >> 8;
+				mDataResponse[content_bytes + 2] = crc & 0xff;
 
 				cout << "CMD17: address = 0x" << hex << block_adr << "\n";
 
