@@ -39,6 +39,12 @@ ALLEGRO_MENU_INFO main_menu[] = {
          { "E&xit",                 FILE_EXIT_ID,   0,  NULL },
          ALLEGRO_END_OF_MENU,
 
+         ALLEGRO_START_OF_MENU("&Memory Card", MMC_ID),
+         { "Eject",             MMC_EJECT_ID,           0,                          NULL },
+         { "Insert",            MMC_INSERT_ID,          ALLEGRO_MENU_ITEM_DISABLED, NULL },
+
+         ALLEGRO_END_OF_MENU,
+
       ALLEGRO_START_OF_MENU("&Speed", SPEED_ID),
          { "Real-time",         SPEED_100_ID,           ALLEGRO_MENU_ITEM_CHECKED, NULL },
          { "10%",               SPEED_10_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },

@@ -7,7 +7,7 @@
 
 namespace fs = std::filesystem;
 
-SDCard::SDCard(string name, double cpuClock, string cardImage, DebugManager* debugManager, ConnectionManager* connectionManager):
+SDCard::SDCard(string name, double cpuClock, string cardImageFile, DebugManager* debugManager, ConnectionManager* connectionManager):
 	Device(name, SD_CARD, OTHER_DEVICE, cpuClock, debugManager, connectionManager)
 {
 	registerPort("CLK",		IN_PORT,	0x1,	CLK,	&mCLK);		// Clock
@@ -17,19 +17,9 @@ SDCard::SDCard(string name, double cpuClock, string cardImage, DebugManager* deb
 
 	mDataResponse.resize(512);
 
-	mCardImage = new ifstream(cardImage, ios::in | ios::binary | ios::ate);
-
-	if (mCardImage == NULL || !mCardImage->is_open()) {
-		cout << "couldn't open SD Card Image " << cardImage << "\n";
-		throw runtime_error("couldn't open  SD Card Image");
+	if (cardImageFile != "" && !insertCard(cardImageFile)) {
+			throw runtime_error("couldn't open  SD Card Image");
 	}
-
-	DBG_LOG(this, DBG_VERBOSE,  "SD Card Image '" + cardImage + " added...\n");
-
-	// Get file size (should normally equal ROM size)
-	mCardImage->seekg(0, ios::end);
-	streamsize file_sz = mCardImage->tellg();
-	mCardImage->seekg(0);
 
 }
 
@@ -39,6 +29,47 @@ SDCard::~SDCard()
 		mCardImage->close();
 		delete mCardImage;
 	}
+}
+
+bool SDCard::cardInserted()
+{
+	return mCardImage != NULL;
+}
+
+bool SDCard::ejectCard()
+{
+	if (mCardImage != NULL) {
+		if (mCardImage->is_open())
+			mCardImage->close();
+		delete mCardImage;
+		mCardImage = NULL;
+		return true;
+	}
+	return false;
+}
+bool SDCard::insertCard(string cardImageFile)
+{
+	if (mCardImage != NULL) {
+		if (mCardImage->is_open())
+			mCardImage->close();
+		delete mCardImage;
+	}
+
+	mCardImage = new ifstream(cardImageFile, ios::in | ios::out | ios::binary);
+
+	if (mCardImage == NULL || !mCardImage->is_open()) {
+		cout << "couldn't open SD Card Image " << cardImageFile << "\n";
+		return false;
+	}
+
+	DBG_LOG(this, DBG_VERBOSE, "SD Card Image '" + cardImageFile + " added...\n");
+
+	// Get file size (should normally equal ROM size)
+	mCardImage->seekg(0, ios::end);
+	streamsize file_sz = mCardImage->tellg();
+	mCardImage->seekg(0);
+
+	return true;
 }
 
 //
@@ -85,6 +116,10 @@ SDCard::~SDCard()
 //
 void SDCard::processPortUpdate(int port)
 {
+
+	if (mCardImage == NULL)
+		return;
+
 	//cout << "Port " << port << ", SPI Clock = '" << (int)mCLK << "', SEL = '" << (int)mSEL << "', MOSI(Din) = '" << (int)mMOSI << "'\n";
 
 	// Mode 0 assumed

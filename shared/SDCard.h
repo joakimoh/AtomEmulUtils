@@ -164,9 +164,14 @@ private:
 public:
 
 
-	SDCard(string name, double cpuClock, string cardFile, DebugManager* debugManager, ConnectionManager* connectionManager);
+	SDCard(string name, double cpuClock, string cardImageFile, DebugManager* debugManager, ConnectionManager* connectionManager);
 
 	~SDCard();
+
+	bool cardInserted();
+
+	bool insertCard(string cardImageFile);
+	bool ejectCard();
 
 	void processPortUpdate(int port) override;
 

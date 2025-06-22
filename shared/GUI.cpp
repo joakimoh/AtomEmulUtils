@@ -15,8 +15,28 @@ GUI::GUI(ALLEGRO_DISPLAY* disp, ALLEGRO_MENU* menu, Devices * devices, double *s
     if (!mDevices->getDevice(DeviceId::TAPE_RECORDER_DEV, dev)) {
         //cout << "Failed to get access to Tape Recorder\n";
         //throw runtime_error("Failed to get access to Tape Recorder");
+        al_set_menu_item_flags(mMenu, TAPE_RECORDER_ID, ALLEGRO_MENU_ITEM_DISABLED);
     }
-    mTapeRec = (TapeRecorder *)dev;
+    else {
+        mTapeRec = (TapeRecorder*)dev;
+    }
+
+    if (!mDevices->getDevice(DeviceId::SD_CARD, dev)) {
+        //cout << "Failed to get access to MMC\n";
+        //throw runtime_error("Failed to get access to MMC");
+        al_set_menu_item_flags(mMenu, MMC_ID, ALLEGRO_MENU_ITEM_DISABLED);
+    }
+    else {
+        mMMC = (SDCard*)dev;
+        if (mMMC->cardInserted()) {
+            al_set_menu_item_flags(mMenu, MMC_INSERT_ID, ALLEGRO_MENU_ITEM_DISABLED);
+            al_set_menu_item_flags(mMenu, MMC_EJECT_ID, 0);
+        }
+        else {
+            al_set_menu_item_flags(mMenu, MMC_INSERT_ID, 0);
+            al_set_menu_item_flags(mMenu, MMC_EJECT_ID, ALLEGRO_MENU_ITEM_DISABLED);
+        }
+    }
 }
 
 GUI::~GUI()
@@ -31,6 +51,39 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
 
     switch (event->user.data1) {
 
+    case MMC_EJECT_ID:
+    {
+        al_set_menu_item_flags(mMenu, MMC_INSERT_ID, 0);
+        al_set_menu_item_flags(mMenu, MMC_EJECT_ID, ALLEGRO_MENU_ITEM_DISABLED);
+
+        if (mMMC != NULL && !mMMC->ejectCard()) {
+            return false;
+        }
+        break;
+    }
+    case MMC_INSERT_ID:
+    {
+        if (mMMC != NULL && !mMMC->cardInserted()) {
+
+            ALLEGRO_FILECHOOSER* filechooser;
+            filechooser = al_create_native_file_dialog("", "Select an existing MMC image", "*.*;", ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
+            al_show_native_file_dialog(mDisplay, filechooser);
+            int n = al_get_native_file_dialog_count(filechooser);
+            if (n != 1)
+                return false;
+            string file = al_get_native_file_dialog_path(filechooser, 0);
+            al_destroy_native_file_dialog(filechooser);
+
+            if (!mMMC->insertCard(file)) {
+                return false;
+            }
+
+            al_set_menu_item_flags(mMenu, MMC_INSERT_ID, ALLEGRO_MENU_ITEM_DISABLED);
+            al_set_menu_item_flags(mMenu, MMC_EJECT_ID, 0);
+
+        }
+        break;
+    }
     case SAVE_FROM_RAM:
     {
         // Select file to dump memory data into

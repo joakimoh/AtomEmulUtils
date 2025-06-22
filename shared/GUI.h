@@ -9,6 +9,7 @@
 #include "Device.h"
 #include "TapeRecorder.h"
 #include "RAM.h"
+#include "SDCard.h"
 
 using namespace std;
 
@@ -18,6 +19,10 @@ enum {
     LOAD_INTO_RAM,
     SAVE_FROM_RAM,
     FILE_EXIT_ID,
+
+    MMC_ID,
+    MMC_EJECT_ID,
+    MMC_INSERT_ID,
 
     TAPE_RECORDER_ID,
     PLAY_ID,
@@ -49,6 +54,8 @@ private:
     Devices* mDevices = NULL;
     TapeRecorder* mTapeRec = NULL;
     double *mEmulationSpeed = NULL;
+
+    SDCard *mMMC = NULL;
 
 public:
 
