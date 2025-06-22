@@ -23,17 +23,22 @@ private:
 
 	uint8_t pCLK = 0x0;
 
-	vector <uint8_t> mCmdResponse = { 0x00, 0x00, 0x00 , 0x00 , 0x00 , 0x00 };
-	vector <uint8_t> mDataResponse;
+	// Data sent by the slace
+	vector <uint8_t> mSlaveResponse;
+	vector <uint8_t> mSlaveDataToken;
+	int mSlaveResponseBits = 8;
+	int mSlaveDataTokenBits = 0;
+
+	// Data sent by the master
+	vector <uint8_t> mMasterRequest = { 0x00, 0x00, 0x00 , 0x00 , 0x00 , 0x00 };
+	vector <uint8_t> mMasterDataToken;
+	int mMasterDataTokenBits = 0;
+
 	int mReceivedBits = 0;
 	int mReceivedBytes = 0;
 	int mSentBits = 0;
 	int mSentBytes = 0;
-	vector <uint8_t> mCommand = { 0x00, 0x00, 0x00 , 0x00 , 0x00 , 0x00 };
 	bool mFirstBit = true;
-
-	int nCmdResponseBits = 8;
-	int mDataResponseBits = 0;
 
 	bool mInitialised = false;
 	bool mResetCmdReceived = false;
@@ -45,6 +50,7 @@ private:
 
 	// SD Card memory parameters
 	uint32_t mBlockLen = 0;
+	int mBlockWriteAdr = 0x0;
 
 	enum SPITxMode {SPI_Tx_RSP_WAIT, SPI_Tx_RSP_DATA_WAIT, SPI_Tx_DATA_WAIT, SPI_Tx_IDLE};
 	enum SPIRxMode {SPI_Rx_IDLE, SPI_Rx_PREAMBLE_WAIT, SPI_Rx_CMD_WAIT, SPI_Tx_CMD_DATA_WAIT, SPI_Rx_DATA_WAIT};
@@ -127,7 +133,7 @@ private:
 		{SPI_CMD_30,	{{0x5e,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "SEND_WRITE_PROT",			"If the card has write protection features, this command asks the card to send the status of the write protection bits"}},
 		{SPI_CMD_32,	{{0x60,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "ERASE_WR_BLK_START_ADDR",	"Sets the address of the first write block to be erased."}},
 		{SPI_CMD_33,	{{0x61,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "ERASE_WR_BLK_END_ADDR",	"Sets the address of the last write block of the continuous range to be erased."}},
-		{SPI_CMD_38,	{{0x66,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1b, "ERASE",					"Erases all previously selected write blocks"}},
+		{SPI_CMD_38,	{{0x66,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1b, "ERASE",					"Erases all previously selected write blocks"}},	
 		{SPI_CMD_42,	{{0x6a,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "LOCK_UNLOCK",				"Used to Set/Reset the Password or lock/unlock the card."}},
 		{SPI_CMD_55,	{{0x77,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "APP_CMD",					"Defines to the card that the next command is an application specific command rather than a standard command."}},
 		{SPI_CMD_56,	{{0x78,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "GEN_CMD",					"Used either to transfer a Data Block to the card or to get a Data Block from the card."}},
@@ -152,6 +158,7 @@ private:
 	SPIRspEnum mResponseType = SPI_RSP_R1;
 
 	ifstream* mCardImage = NULL;
+	streamsize mCardSz = 0;
 
 	uint8_t crc7(vector <uint8_t> &data, int startPos, int len);
 
@@ -160,6 +167,16 @@ private:
 	string bytes2str(vector <uint8_t> data);
 
 	uint8_t mShiftRegister = 0x0;
+
+	bool validCmd(uint8_t cmdByte);
+
+	bool mPendingAppCmd = false;
+
+	bool execCmd(vector <uint8_t>  &request);
+	bool execBaseCmd(vector <uint8_t>& reques);
+	bool execAppCmd(vector <uint8_t>& reques);
+
+	bool writeBlockData(int adr, vector <uint8_t>& data);
 
 public:
 
@@ -175,7 +192,7 @@ public:
 
 	void processPortUpdate(int port) override;
 
-	bool execCmd(vector <uint8_t>  cmd);
+
 
 };
 

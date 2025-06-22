@@ -15,7 +15,7 @@ SDCard::SDCard(string name, double cpuClock, string cardImageFile, DebugManager*
 	registerPort("SEL",		IN_PORT,	0x1,	SEL,	&mSEL);		// Select
 	registerPort("MISO",	OUT_PORT,	0x1,	MISO,	&mMISO);	// Data Out
 
-	mDataResponse.resize(512);
+	mSlaveDataToken.resize(512);
 
 	if (cardImageFile != "" && !insertCard(cardImageFile)) {
 			throw runtime_error("couldn't open  SD Card Image");
@@ -38,6 +38,8 @@ bool SDCard::cardInserted()
 
 bool SDCard::ejectCard()
 {
+	mResetCmdReceived = false;
+
 	if (mCardImage != NULL) {
 		if (mCardImage->is_open())
 			mCardImage->close();
@@ -47,6 +49,7 @@ bool SDCard::ejectCard()
 	}
 	return false;
 }
+
 bool SDCard::insertCard(string cardImageFile)
 {
 	if (mCardImage != NULL) {
@@ -111,8 +114,23 @@ bool SDCard::insertCard(string cardImageFile)
 //
 // To receive this message (data in MISO), the SD CLK signal is toggled while keeping the MOSI line high and the SEL line low.
 // 
-// Commands:
-// CMD0:	01 000000 00000000 00000000 00000000 00000000 1001010 1			0x40000000000095	RESET
+// There are five types of command responses:
+//	R1		One byte
+//	R1b		One byte potentially followed by one or more zero bytes
+//	R2		Two bytes
+//	R3		Five bytes
+//	R7		Six bytes
+// 
+// For some commands, a response could be followed by a data token. A data token is made up of:
+//		start block (0xfe byte) + user data + crc16
+// 
+// There are 25 basic commmands: 
+//	CMD0, CMD1, CMD6, CMD8, CMD9, CMD10, CMD12, CMD13, CMD16, CMD17, CMD18, CMD24, CMD25, CMD27, CMD28,
+//	CMD29, CMD30, CMD32, CMD33, CMD38, CMD42, CMD55, CMD56, CMD58 and CMD59
+// 
+// If the basic command CMD55  has been received, then a application-specific command will follow.
+// There are 6 application-specific command:
+//	ACMD13, ACMD22, ACMD23, ACMD41, ACMD42 and ACMD51
 //
 void SDCard::processPortUpdate(int port)
 {
@@ -175,13 +193,13 @@ void SDCard::processPortUpdate(int port)
 						mShiftRegister = ((mShiftRegister << 1) & 0xfe) | mMOSI;
 						if (mReceivedBits % 8 == 0) {
 							//cout << "CMD byte #" << mReceivedBytes << " = 0x" << hex << (int)mShiftRegister << "\n";
-							mCommand[mReceivedBytes++] = mShiftRegister;						
+							mMasterRequest[mReceivedBytes++] = mShiftRegister;						
 						}
 						//cout << "MOSI = " << (int)mMOSI << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" << hex << (int)mShiftRegister << "\n";
 						if (mReceivedBits == 48) {
-							if (!execCmd(mCommand)) {			
+							if (!execCmd(mMasterRequest)) {			
 								// Invalid command (no action - just ignorre the receibed bit sequence and start all over again)
-								DBG_LOG(this, DBG_ERROR, "Illegal command bit sequence  '" + bytes2str(mCommand) + "'!\n");
+								DBG_LOG(this, DBG_ERROR, "Illegal command bit sequence  '" + bytes2str(mMasterRequest) + "'!\n");
 							}
 							mSPIRxMode = SPI_Rx_IDLE;
 							mReceivedBits = 0;
@@ -189,6 +207,21 @@ void SDCard::processPortUpdate(int port)
 							mFirstBit = true;
 						}
 
+				}
+
+				else { // SPI_Rx_DATA_WAIT 
+					mReceivedBits++;
+					mShiftRegister = ((mShiftRegister << 1) & 0xfe) | mMOSI;
+					if (mReceivedBits % 8 == 0) 
+						mMasterDataToken[mReceivedBytes++] = mShiftRegister;				
+					if (mReceivedBits == mMasterDataTokenBits) {
+						if (!writeBlockData(mBlockWriteAdr, mMasterDataToken))
+							DBG_LOG(this, DBG_ERROR, "Failed to write block data!\n");
+						mSPIRxMode = SPI_Rx_IDLE;
+						mReceivedBits = 0;
+						mReceivedBytes = 0;
+						mFirstBit = true;
+					}
 				}
 
 					//
@@ -200,21 +233,21 @@ void SDCard::processPortUpdate(int port)
 					else { // mSPITxMode == SPI_Tx_RSP_WAIT, mSPITxMode == SPI_Tx_RSP_DATA_WAIT or mSPITxMode == SPI_Tx_DATA_WAIT
 						if (mSentBits % 8 == 0) {
 							if (mSPITxMode != SPI_Tx_DATA_WAIT) {
-								//cout << "RSP byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mCmdResponse[mSentBytes] << "\n";
+								//cout << "RSP byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mSlaveResponse[mSentBytes] << "\n";
 
-								mShiftRegister = mCmdResponse[mSentBytes++];
+								mShiftRegister = mSlaveResponse[mSentBytes++];
 							}
 							else {
-								//cout << "DATA byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mDataResponse[mSentBytes] << "\n";
+								//cout << "DATA byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mSlaveDataToken[mSentBytes] << "\n";
 
-								mShiftRegister = mDataResponse[mSentBytes++];
+								mShiftRegister = mSlaveDataToken[mSentBytes++];
 							}
 						}
 						else
 							mShiftRegister <<= 1;
 						updatePort(MISO, (mShiftRegister >> 7) & 0x1);
 						mSentBits++;
-						int response_bits = (mSPITxMode != SPI_Tx_DATA_WAIT ? nCmdResponseBits : mDataResponseBits);
+						int response_bits = (mSPITxMode != SPI_Tx_DATA_WAIT ? mSlaveResponseBits : mSlaveDataTokenBits);
 						//cout << mSPIRxMode << ",bytes = " << dec << mSentBytes << " (" << response_bits / 8 << ")"  << ", bits = " << dec <<
 						//	mSentBits << " (" << response_bits << "), MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" <<
 						//	hex << (int)mShiftRegister << "\n";
@@ -222,10 +255,10 @@ void SDCard::processPortUpdate(int port)
 #ifdef DBG_ON
 							if (DBG_LEVEL(DBG_SPI)) {
 								if (mSPITxMode != SPI_Tx_DATA_WAIT)
-									cout << "Response of type R" << mResponseType << " (response 0x" << bytes2str(mCmdResponse) <<
+									cout << "Response of type R" << mResponseType << " (response 0x" << bytes2str(mSlaveResponse) <<
 									") [" << dec << response_bits << " bits] sent\n";
 								else // mSPITxMode == SPI_Tx_DATA_WAIT
-									cout << "Data token '" << bytes2str(mDataResponse) << "' [" << dec << response_bits << " bits] sent\n";
+									cout << "Data token '" << bytes2str(mSlaveDataToken) << "' [" << dec << response_bits << " bits] sent\n";
 							}
 #endif
 							mSentBits = 0;
@@ -247,20 +280,360 @@ void SDCard::processPortUpdate(int port)
 	}
 }
 
-bool SDCard::execCmd(vector <uint8_t> request)
+bool SDCard::execCmd(vector <uint8_t> &request)
+{
+
+	bool valid_cmd = validCmd(request[0]);
+
+	if (!valid_cmd) {
+		DBG_LOG(this, DBG_ERROR, "invalid command CMD" + to_string(request[0]) + " (request 0x" + bytes2str(request) + ") received !\n");
+		return false;
+	}
+		
+	if (!mPendingAppCmd)
+		return execBaseCmd(request);
+	else
+		return execAppCmd(request);			
+
+}
+
+bool SDCard::execBaseCmd(vector <uint8_t>& request)
+{
+	uint8_t cmd = request[0] & 0x3f;
+
+	// Setup response
+	SPICmdInfo cmd_info = spiCmdInfo[SPICmdEnum(cmd)];
+	mResponseType = cmd_info.respType;
+	SPIRspInfo rsp_info = spiRspInfo[mResponseType];
+	uint8_t req_crc_byte = (crc7(request, 0, 5) << 1) | 0x1;
+	mSlaveResponseBits = rsp_info.nBytes * 8;
+	mSlaveResponse = rsp_info.okResponse;
+	mSPITxMode = SPI_Tx_RSP_WAIT;
+
+#ifdef DBG_ON
+	if (DBG_LEVEL(DBG_SPI)) {
+		cout << "Command CMD" << dec << (int)cmd << " (request 0x" << bytes2str(request) << ") " << cmd_info.mnemonic << " with expected CRC byte 0x" << hex << (int)req_crc_byte <<
+			" received - will send a response of type R" << mResponseType << " (response 0x" << bytes2str(mSlaveResponse) << ")" <<
+			" with " << dec << mSlaveResponseBits << " bits (" << rsp_info.nBytes << " bytes)...\n";
+	}
+#endif
+
+	switch (cmd) {
+
+		case SPI_CMD_0:
+			// GO_IDLE_STATE
+			// Resets the SD Memory Card.
+			// Response is R1.
+			// 
+			// Required by MMFS for the BBC Micro
+		{
+			mSlaveResponse[1] = 0x1; // set idle status bit
+			mResetCmdReceived = true;
+			break;
+		}
+
+		case SPI_CMD_1:
+			// SEND_OP_COND
+			// Sends host capacity support information and activates the card's initialization process.
+			// Response is R1.
+			// 
+			// Required by MMFS for the BBC Micro
+		{
+			mSlaveResponse[1] = 0x0; // clear idle status bit
+			break;
+		}
+
+		case SPI_CMD_6:
+			// SWITCH_FUNC
+			// Checks switchable function (mode 0) and switches card function (mode 1).
+			// Response is R1.
+		{
+			break;
+		}
+
+		case SPI_CMD_8:
+			// SEND_IF_COND
+			// Sends SD Memory Card interface condition.
+			// Response is R8.
+			//
+			// Required by MMFS for the BBC Micro
+		{
+			uint8_t supply_voltage = request[3] & 0xf;
+			uint8_t check_pattern = request[4];
+			mSlaveResponse[4] |= supply_voltage;
+			mSlaveResponse[5] = check_pattern;
+			mSlaveResponse[6] = (crc7(mSlaveResponse, 1, 5) << 1) | 0x1;
+			break;
+		}
+
+		case SPI_CMD_9:
+			// SEND_CSD
+			// Asks the selected card to send its card-specific data (CSD).
+			// Response is R1.
+		{
+			break;
+		}
+
+		case SPI_CMD_10:
+			// SEND_CID
+			// Asks the selected card to send its card identification (CID).
+			// Response is R1 followded by a data token response.
+			// The data token is an 128-bit Card Identifier.
+			//
+			// Required by MMFS for the BBC Micro
+		{
+			// Command response
+			mSlaveResponse[1] = 0x0; // OK status
+
+			// CID data token response
+
+			// Define its size and make sure the response vector can hold it
+			int content_bytes = 128 / 8;
+			int data_response_bytes = content_bytes + 3;
+			mSlaveDataTokenBits = data_response_bytes * 8;
+			if (mSlaveDataToken.size() != data_response_bytes)
+				mSlaveDataToken.resize(data_response_bytes);
+
+			// Add Start of block id
+			mSlaveDataToken[0] = 0xfe;
+
+			// Add CID  (emulation only)
+			for (int i = 1; i < data_response_bytes - 3; i++)
+				mSlaveDataToken[i] = 0x0;
+
+			// Add CRC
+			uint16_t crc = crc16(mSlaveDataToken, 1, data_response_bytes - 3);
+			mSlaveDataToken[content_bytes + 1] = crc >> 8;
+			mSlaveDataToken[content_bytes + 2] = crc & 0xff;
+
+			mSPITxMode = SPI_Tx_RSP_DATA_WAIT;
+
+			break;
+		}
+
+		case SPI_CMD_12:
+			// STOP_TRANSMISSION
+			// Forces the card to stop transmission in Multiple Block Read Operation.
+			// Response is R1b.
+		{
+			break;
+		}
+
+		case SPI_CMD_13:
+			// SEND_STATUS
+			// Asks the selected card to send its status register.
+			// Response is R2.
+		{
+			break;
+		}
+
+		case SPI_CMD_16:
+			// SET_BLOCKLEN
+			// Sets a block length (in bytes) for all following block commands.
+			// 
+			// Required by MMFS for the BBC Micro
+		{
+			
+			mBlockLen = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[1];
+			DBG_LOG(this, DBG_SPI, "CMD16: set block length to " + to_string(mBlockLen) + "\n");
+			mSlaveResponse[1] = 0x0; // OK status
+			break;
+		}
+
+		case SPI_CMD_17:
+		{
+			// READ_SINGLE_BLOCK
+			// Respond with R1 followed by a read block as a data token.
+			// 
+			// Required by MMFS for the BBC Micro
+
+
+			// Command response
+			mSlaveResponse[1] = 0x0; // OK status
+
+			// Define its size and make sure the response vector can hold it
+			int content_bytes = mBlockLen;
+			int data_response_bytes = content_bytes + 3;
+			mSlaveDataTokenBits = data_response_bytes * 8;
+			if (mSlaveDataToken.size() != data_response_bytes)
+				mSlaveDataToken.resize(data_response_bytes);
+
+			// Add Start of block id
+			mSlaveDataToken[0] = 0xfe;
+
+			// Read block into response (emulation only)
+			int block_adr = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[1];
+			mCardImage->seekg(block_adr, mCardImage->beg);
+			mCardImage->read((char*)&mSlaveDataToken[1], content_bytes);
+
+			// Add CRC
+			uint16_t crc = crc16(mSlaveDataToken, 1, data_response_bytes - 3);
+			mSlaveDataToken[content_bytes + 1] = crc >> 8;
+			mSlaveDataToken[content_bytes + 2] = crc & 0xff;
+
+			DBG_LOG(this, DBG_SPI, "CMD17: address = 0x" + Utility::int2hexStr(block_adr, 6) + "\n");
+
+			mSPITxMode = SPI_Tx_RSP_DATA_WAIT;
+			break;
+		}
+
+		case SPI_CMD_18:
+			break;
+
+		case SPI_CMD_24:
+			// WRITE_BLOCK
+			// Writes a block of the size selected by the SET_BLOCKLEN command.
+			// 
+			// The response is R1.
+			// 
+			// A data token from the master is received after the R1 response has been given.
+			// The card will respond to this with a one-byte data token xxx0sss1 where
+			// sss = status (2 data accepted, 5 CRC error, 6 write error)
+			// After that, the card will send zeros until the write operation has finished.
+			// When it is finished 0xff will be sent.
+			// 
+			// Required by MMFS for the BBC Micro
+		{
+
+			// Command response
+			mSlaveResponse[1] = 0x0; // OK status
+
+			// Get block write address
+			mBlockWriteAdr = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[1];
+			DBG_LOG(this, DBG_SPI, "CMD24: address = 0x" + Utility::int2hexStr(mBlockWriteAdr, 6) + "\n");
+
+			// Prepare block data buffer for reception of block to write
+			int content_bytes = mBlockLen;
+			int data_token_bytes = content_bytes + 3;
+			mMasterDataTokenBits = data_token_bytes * 8;
+			if (mMasterDataToken.size() != data_token_bytes)
+				mMasterDataToken.resize(data_token_bytes);
+
+			// Initiate wait for block data to write
+			mSPIRxMode = SPI_Rx_DATA_WAIT;
+
+			break;
+		}
+
+		case SPI_CMD_25:
+			break;
+
+		case SPI_CMD_27:
+			break;
+
+		case SPI_CMD_28:
+			break;
+
+		case SPI_CMD_29:
+			break;
+
+		case SPI_CMD_30:
+			break;
+
+		case SPI_CMD_32:
+			break;
+
+		case SPI_CMD_33:
+			break;
+
+		case SPI_CMD_38:
+			break;
+
+		case SPI_CMD_42:
+			break;
+
+		case SPI_CMD_55:
+			// APP_CMD
+			// Defines to the card that the next command is an application specific command rather than a standard command.
+			//
+			// Required by MMFS for the BBC Micro
+		{
+			break;
+		}
+
+		case SPI_CMD_56:
+			break;
+
+		case SPI_CMD_58:
+			// READ_OCR
+			// Reads the OCR register of a card.
+			// 
+			// Required by MMFS for the BBC Micro
+		{
+			break;
+		}
+
+		case SPI_CMD_59:
+			break;
+
+		default:
+			return false;
+			break;
+
+		}
+		
+	return true;
+}
+
+bool SDCard::execAppCmd(vector <uint8_t> &request)
+{
+	uint8_t cmd = request[0] & 0x3f;
+
+	switch (cmd) {
+		case SPI_A_CMD_13:
+			// SD_STATUS -					R2	Send the cards status register.
+		{
+			break;
+		}
+		case SPI_A_CMD_22:
+			// SEND_NUM_WR_BLOCKS -			R1	Send the numbers of the well written (without errors) blocks
+		{
+			break;
+		}
+		case SPI_A_CMD_23:
+			// SET_WR_BLK_ERASE_COUNT -		R1	Set the number of write blocks to be pre-erased before writing.
+		{
+			break;
+		}
+		case SPI_A_CMD_41: // Required by MMFS for the BBC Micr
+			// SD_SEND_OP_COND
+			// Response is R1.
+			// Sends host capacity support information and activates the card's initialization process.
+			//
+			// Required by MMFS for the BBC Micro
+		{
+			break;
+		}
+		case SPI_A_CMD_42:
+			// SET_CLR_CARD_DETECT -		R1	Connect ('1')/Disconnect ('0') the 50 KOhm pull-up resistor on CS (pin 1) of the card.
+		{
+			break;
+		}
+		case SPI_A_CMD_51:
+			// SEND_SCR -					R1	Reads the SD Configuration Register (SCR).
+		{
+			break;
+		}
+		default:
+		{
+			break;
+		}
+		}
+
+	return true;
+}
+
+bool SDCard::validCmd(uint8_t cmdByte)
 {
 	
-	uint8_t cmd = request[0] & 0x3f; 
+	bool valid_cmd = (cmdByte & 0xc0) == 0x40;
 
-	//cout << "cmd = 0x" << hex << (int)cmd << "\n";
+	uint8_t cmd = cmdByte & 0x3f;
 
-	bool valid_cmd = (request[0] & 0xc0) == 0x40;
-
-	if (!valid_cmd)
+	if (!mResetCmdReceived && cmd != SPI_CMD_0)
 		return false;
 
-	if (mResetCmdReceived || cmd == SPI_CMD_0) {
-
+	if (!mPendingAppCmd) {
 		switch (cmd) {
 		case SPI_CMD_0:
 		case SPI_CMD_1:
@@ -292,191 +665,20 @@ bool SDCard::execCmd(vector <uint8_t> request)
 			valid_cmd = false;
 			break;
 		}
-
-		if (valid_cmd) {
-
-			SPICmdInfo cmd_info = spiCmdInfo[SPICmdEnum(cmd)];
-			mResponseType = cmd_info.respType;
-			SPIRspInfo rsp_info = spiRspInfo[mResponseType];
-			uint8_t req_crc_byte = (crc7(request, 0, 5) << 1) | 0x1;
-			nCmdResponseBits = rsp_info.nBytes * 8;
-			mCmdResponse = rsp_info.okResponse;
-			mSPITxMode = SPI_Tx_RSP_WAIT;
-#ifdef DBG_ON
-			if (DBG_LEVEL(DBG_SPI)) {
-				cout << "Command CMD" << dec << (int)cmd << " (request 0x" << bytes2str(request) << ") " << cmd_info.mnemonic << " with expected CRC byte 0x" << hex << (int)req_crc_byte <<
-					" received - will send a response of type R" << mResponseType << " (response 0x" << bytes2str(mCmdResponse) << ")" <<
-					" with " << dec << nCmdResponseBits << " bits (" << rsp_info.nBytes << " bytes)...\n";
-			}
-#endif
-
-			switch (cmd) {
-
-			case SPI_CMD_0:
-				mCmdResponse[1] = 0x1; // set idle status bit
-				mResetCmdReceived = true;
-				break;
-
-			case SPI_CMD_1:
-				mCmdResponse[1] = 0x0; // clear idle status bit
-				break;
-
-			case SPI_CMD_6:
-				break;
-
-			case SPI_CMD_8:
-			{
-				uint8_t supply_voltage = request[3] & 0xf;
-				uint8_t check_pattern = request[4];
-				mCmdResponse[4] |= supply_voltage;
-				mCmdResponse[5] = check_pattern;
-				mCmdResponse[6] = (crc7(mCmdResponse, 1, 5) << 1) | 0x1;
-				break;
-			}
-
-			case SPI_CMD_9:
-				break;
-
-			case SPI_CMD_10:
-			{
-				// SEND_CID
-				// Respond with R1 followed by the 128-bit Card Identifier as a data token.
-				// A data token is made up of: start block (0xfe byte) + user data + crc16
-
-				// Command response
-				mCmdResponse[1] = 0x0; // OK status
-
-				// CID data token response
-
-				// Define its size and make sure the response vector can hold it
-				int content_bytes = 128 / 8;
-				int data_response_bytes = content_bytes + 3;
-				mDataResponseBits = data_response_bytes * 8;
-				if (mDataResponse.size() != data_response_bytes)
-					mDataResponse.resize(data_response_bytes);
-
-				// Add Start of block id
-				mDataResponse[0] = 0xfe;
-
-				// Add CID  (emulation only)
-				for (int i = 1; i < data_response_bytes-3; i++)
-					mDataResponse[i] = 0x0;
-
-				// Add CRC
-				uint16_t crc = crc16(mDataResponse, 1, data_response_bytes - 3);
-				mDataResponse[content_bytes + 1] = crc >> 8;
-				mDataResponse[content_bytes + 2] = crc & 0xff;
-
-				mSPITxMode = SPI_Tx_RSP_DATA_WAIT;
-
-				break;
-			}
-
-			case SPI_CMD_12:
-				break;
-
-			case SPI_CMD_13:
-				break;
-
-			case SPI_CMD_16:
-				// SET_BLOCKLEN
-				mBlockLen = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[1];
-				DBG_LOG(this, DBG_SPI, "CMD16: set block length to " + to_string(mBlockLen) + "\n");
-				mCmdResponse[1] = 0x0; // OK status
-				break;
-
-			case SPI_CMD_17:
-				{
-				// READ_SINGLE_BLOCK
-				// Respond with R1 followed by a read block as a data token.
-				// A data token is made up of: start block (0xfe byte) + user data + crc16
-
-				// Command response
-				mCmdResponse[1] = 0x0; // OK status
-
-				// Define its size and make sure the response vector can hold it
-				int content_bytes = mBlockLen;
-				int data_response_bytes = content_bytes + 3;
-				mDataResponseBits = data_response_bytes * 8;
-				if (mDataResponse.size() != data_response_bytes)
-					mDataResponse.resize(data_response_bytes);
-
-				// Add Start of block id
-				mDataResponse[0] = 0xfe;
-
-				// Read block into response (emulation only)
-				int block_adr = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[1];
-				mCardImage->seekg(block_adr, mCardImage->beg);
-				mCardImage->read((char*)  & mDataResponse[1], content_bytes);
-
-				// Add CRC
-				uint16_t crc = crc16(mDataResponse, 1, data_response_bytes - 3);
-				mDataResponse[content_bytes + 1] = crc >> 8;
-				mDataResponse[content_bytes + 2] = crc & 0xff;
-
-				DBG_LOG(this, DBG_SPI, "CMD17: address = 0x"  + Utility::int2hexStr(block_adr,6) + "\n");
-
-				mSPITxMode = SPI_Tx_RSP_DATA_WAIT;
-				break;
-				}
-
-			case SPI_CMD_18:
-				break;
-
-			case SPI_CMD_24:
-				break;
-
-			case SPI_CMD_25:
-				break;
-
-			case SPI_CMD_27:
-				break;
-
-			case SPI_CMD_28:
-				break;
-
-			case SPI_CMD_29:
-				break;
-
-			case SPI_CMD_30:
-				break;
-
-			case SPI_CMD_32:
-				break;
-
-			case SPI_CMD_33:
-				break;
-
-			case SPI_CMD_38:
-				break;
-
-			case SPI_CMD_42:
-				break;
-
-			case SPI_CMD_55:
-				break;
-
-			case SPI_CMD_56:
-				break;
-
-			case SPI_CMD_58:
-				break;
-
-			case SPI_CMD_59:
-				break;
-
-			default:
-				valid_cmd = false;
-				break;
-
-			}
-
+	}
+	else {
+		switch (cmd) {
+		case SPI_A_CMD_13:
+		case SPI_A_CMD_22:
+		case SPI_A_CMD_23:
+		case SPI_A_CMD_41:
+		case SPI_A_CMD_42:
+		case SPI_A_CMD_51:
+			break;
+		default:
+			valid_cmd = false;
+			break;
 		}
-
-		if (!valid_cmd) {
-			DBG_LOG(this, DBG_ERROR, "invalid command CMD" + to_string(cmd) + " (request 0x" + bytes2str(request) + ") received !\n");
-		}
-
 	}
 
 	return valid_cmd;
@@ -555,4 +757,11 @@ string SDCard::bytes2str(vector <uint8_t> data)
 		s += Utility::int2hexStr(data[i],2);
 
 	return s;
+}
+
+bool SDCard::writeBlockData(int adr, vector <uint8_t>& data)
+{
+	cout << "Write " << data.size() << " bytes of data to address 0x" << hex << adr << "...\n";
+
+	return true;
 }
