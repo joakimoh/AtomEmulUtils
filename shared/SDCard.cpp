@@ -142,10 +142,15 @@ void SDCard::processPortUpdate(int port)
 
 	// Mode 0 assumed
 	if (port == CLK) {
+
 		if (mCLK != pCLK) {
+			
 			if (mCLK) {
+
 				//cout << "MOSI = '" << dec << (int)mMOSI << "', MISO = '" << (int)mMISO << "'\n";
+
 				if (!mInitialised) {
+
 					if (mMOSI == 1) {
 						mReceivedBits++;
 						//cout << "SPI Not Init Phase - " << dec << mReceivedBits << " bits received - last bit was '" << (int)mMOSI << "'\n";
@@ -159,125 +164,249 @@ void SDCard::processPortUpdate(int port)
 						DBG_LOG(this, DBG_SPI, "SD Card: SPI Reset (74 x '1') completed  - Waiting for Reset command CMD0!\n");
 					}
 				}
+
 				else if (mSEL == 0) {
 
 					//
 					// Rx processing
 					//
-					if (mSPIRxMode == SPI_Rx_IDLE) {
-						if (mMOSI == 1) {
-							mSPIRxMode = SPI_Rx_PREAMBLE_WAIT;
-							//cout << "SD Card: High level '1' detected\n";
-						}
-					}
-					else if (mSPIRxMode == SPI_Rx_PREAMBLE_WAIT) {
-						if (mMOSI == 0)
-							mReceivedBits++;
-						else { // mMOSI == 1
-							if (mReceivedBits == 1) {
-								mSPIRxMode = SPI_Rx_CMD_WAIT; // Preamble '01' detected
-								mShiftRegister = 0b01; // update the command shift register with the first received '01' bits shifted left one step
-								mReceivedBits = 2;
-								mReceivedBytes = 0;
-								//cout << "SD Card: Preamble '01' detected\n";
-							}
-							else {
-								mReceivedBits = 0;// restart search for '01'
-								mReceivedBytes = 0;
-								//cout << "SD Card: Restart preamble search!\n";
-							}
-						}
-					}
-					else if (mSPIRxMode == SPI_Rx_CMD_WAIT) {
-						mReceivedBits++;
-						mShiftRegister = ((mShiftRegister << 1) & 0xfe) | mMOSI;
-						if (mReceivedBits % 8 == 0) {
-							//cout << "CMD byte #" << mReceivedBytes << " = 0x" << hex << (int)mShiftRegister << "\n";
-							mMasterRequest[mReceivedBytes++] = mShiftRegister;						
-						}
-						//cout << "MOSI = " << (int)mMOSI << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" << hex << (int)mShiftRegister << "\n";
-						if (mReceivedBits == 48) {
-							if (!execCmd(mMasterRequest)) {			
-								// Invalid command (no action - just ignorre the receibed bit sequence and start all over again)
-								DBG_LOG(this, DBG_ERROR, "Illegal command bit sequence  '" + bytes2str(mMasterRequest) + "'!\n");
-							}
-							mSPIRxMode = SPI_Rx_IDLE;
-							mReceivedBits = 0;
-							mReceivedBytes = 0;
-							mFirstBit = true;
-						}
-
-				}
-
-				else { // SPI_Rx_DATA_WAIT 
-					mReceivedBits++;
-					mShiftRegister = ((mShiftRegister << 1) & 0xfe) | mMOSI;
-					if (mReceivedBits % 8 == 0) 
-						mMasterDataToken[mReceivedBytes++] = mShiftRegister;				
-					if (mReceivedBits == mMasterDataTokenBits) {
-						if (!writeBlockData(mBlockWriteAdr, mMasterDataToken))
-							DBG_LOG(this, DBG_ERROR, "Failed to write block data!\n");
-						mSPIRxMode = SPI_Rx_IDLE;
-						mReceivedBits = 0;
-						mReceivedBytes = 0;
-						mFirstBit = true;
-					}
-				}
+					processRxBits();
 
 					//
 					// Tx processing
 					//
-					if (mSPITxMode == SPI_Tx_IDLE) {
-						// Nothing to respond to => do nothing
-					}
-					else { // mSPITxMode == SPI_Tx_RSP_WAIT, mSPITxMode == SPI_Tx_RSP_DATA_WAIT or mSPITxMode == SPI_Tx_DATA_WAIT
-						if (mSentBits % 8 == 0) {
-							if (mSPITxMode != SPI_Tx_DATA_WAIT) {
-								//cout << "RSP byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mSlaveResponse[mSentBytes] << "\n";
-
-								mShiftRegister = mSlaveResponse[mSentBytes++];
-							}
-							else {
-								//cout << "DATA byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mSlaveDataToken[mSentBytes] << "\n";
-
-								mShiftRegister = mSlaveDataToken[mSentBytes++];
-							}
-						}
-						else
-							mShiftRegister <<= 1;
-						updatePort(MISO, (mShiftRegister >> 7) & 0x1);
-						mSentBits++;
-						int response_bits = (mSPITxMode != SPI_Tx_DATA_WAIT ? mSlaveResponseBits : mSlaveDataTokenBits);
-						//cout << mSPIRxMode << ",bytes = " << dec << mSentBytes << " (" << response_bits / 8 << ")"  << ", bits = " << dec <<
-						//	mSentBits << " (" << response_bits << "), MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" <<
-						//	hex << (int)mShiftRegister << "\n";
-						if (mSentBits == response_bits) {
-#ifdef DBG_ON
-							if (DBG_LEVEL(DBG_SPI)) {
-								if (mSPITxMode != SPI_Tx_DATA_WAIT)
-									cout << "Response of type R" << mResponseType << " (response 0x" << bytes2str(mSlaveResponse) <<
-									") [" << dec << response_bits << " bits] sent\n";
-								else // mSPITxMode == SPI_Tx_DATA_WAIT
-									cout << "Data token '" << bytes2str(mSlaveDataToken) << "' [" << dec << response_bits << " bits] sent\n";
-							}
-#endif
-							mSentBits = 0;
-							mSentBytes = 0;
-							if (mSPITxMode == SPI_Tx_RSP_WAIT || mSPITxMode == SPI_Tx_DATA_WAIT) {
-								mSPITxMode = SPI_Tx_IDLE;
-							}
-							else { // mSPITxMode == SPI_Tx_RSP_DATA_WAIT
-								DBG_LOG(this, DBG_SPI, "Response sent - will now be followed by a data token!\n");
-								mSPITxMode = SPI_Tx_DATA_WAIT;
-							}
-						}
-					}
+					generateTxBits();
 				}
 			}
+
 		}
+
 		pCLK = mCLK;
 		pMOSI = mMOSI;
 	}
+}
+
+//
+// Process bit stream from the master
+//
+bool SDCard::processRxBits()
+{
+
+	if (mSPIRxMode != pSPIRxMode) {
+		DBG_LOG(this, DBG_SPI, "SPI Rx Mode "s + _SPI_RX_MODE(pSPIRxMode) + " => " + _SPI_RX_MODE(mSPIRxMode) + "\n");
+	}
+	pSPIRxMode = mSPIRxMode;
+
+	switch (mSPIRxMode) {
+	case SPI_Rx_IDLE:
+	{
+		if (mMOSI == 1) {
+			mSPIRxMode = SPI_Rx_PREAMBLE_WAIT;
+			//cout << "SD Card: High level '1' detected\n";
+		}
+		break;
+	}
+
+	case SPI_Rx_PREAMBLE_WAIT:
+	{
+		if (mMOSI == 0)
+			mReceivedBits++;
+		else { // mMOSI == 1
+			if (mReceivedBits == 1) {
+				mSPIRxMode = SPI_Rx_CMD_WAIT; // Preamble '01' detected
+				mShiftRegister = 0b01; // update the command shift register with the first received '01' bits shifted left one step
+				mReceivedBits = 2;
+				mReceivedBytes = 0;
+				//cout << "SD Card: Preamble '01' detected\n";
+			}
+			else {
+				mReceivedBits = 0;// restart search for '01'
+				mReceivedBytes = 0;
+				//cout << "SD Card: Restart preamble search!\n";
+			}
+		}
+		break;
+	}
+
+	case SPI_Rx_CMD_WAIT:
+	{
+		mReceivedBits++;
+		mShiftRegister = ((mShiftRegister << 1) & 0xfe) | mMOSI;
+		if (mReceivedBits % 8 == 0) {
+			//cout << "CMD byte #" << mReceivedBytes << " = 0x" << hex << (int)mShiftRegister << "\n";
+			mMasterRequest[mReceivedBytes++] = mShiftRegister;
+		}
+		//cout << "MOSI = " << (int)mMOSI << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" << hex << (int)mShiftRegister << "\n";
+		if (mReceivedBits == 48) {
+			if (!execCmd(mMasterRequest)) {
+				// Invalid command (no action - just ignore the received bit sequence and start all over again)
+				DBG_LOG(this, DBG_ERROR, "Illegal command bit sequence  '" + bytes2str(mMasterRequest) + "'!\n");
+				recover();
+				return false;
+			}
+		}
+		break;
+	}
+
+	case SPI_Rx_DATA_WAIT:
+	{
+		mReceivedBits++;
+		mShiftRegister = ((mShiftRegister << 1) & 0xfe) | mMOSI;
+		if (mReceivedBits % 8 == 0)
+			mMasterDataToken[mReceivedBytes++] = mShiftRegister;
+		if (mReceivedBits == mMasterDataTokenBits) {
+			if (!writeBlockData(mBlockWriteAdr, mMasterDataToken))
+				DBG_LOG(this, DBG_ERROR, "Failed to write block data!\n");
+			mSPITxMode = SPI_Tx_DATA_ACK_WAIT;
+			mSPIRxMode = SPI_Rx_IDLE;
+			mReceivedBits = 0;
+			mReceivedBytes = 0;
+			mFirstBit = true;
+		}
+		break;
+	}
+
+	default:
+	{
+		// ERROR - unknown SPI Rx Mode!
+		DBG_LOG(this, DBG_ERROR, "Unknown SPI Rx Mode " + to_string(mSPIRxMode) + "!\n");
+		// start all over again as an attempt to recover...
+		recover();
+		return false;
+	}
+	}
+
+	return true;
+}
+
+//
+// Generate bit stream to the master
+//
+bool SDCard::generateTxBits()
+{
+	if (mSPITxMode != pSPITxMode) {
+		DBG_LOG(this, DBG_SPI, "SPI Tx Mode "s + _SPI_TX_MODE(pSPITxMode) + " => " + _SPI_TX_MODE(mSPITxMode) + "\n");
+	}
+	pSPITxMode = mSPITxMode;
+
+	switch (mSPITxMode) {
+	case SPI_Tx_IDLE:
+	{
+		// Nothing to respond to => do nothing
+		break;
+	}
+	case SPI_Tx_RSP_WAIT:
+	case SPI_Tx_RSP_DATA_WAIT:
+	case SPI_Tx_DATA_WAIT:
+	case SPI_Tx_DATA_ACK_WAIT:
+	{
+		if (mSentBits % 8 == 0) {
+			if (mSPITxMode != SPI_Tx_DATA_WAIT) {
+				//cout << "RSP byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mSlaveResponse[mSentBytes] << "\n";
+
+				mShiftRegister = mSlaveResponse[mSentBytes++];
+			}
+			else {
+				//cout << "DATA byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mSlaveDataToken[mSentBytes] << "\n";
+
+				mShiftRegister = mSlaveDataToken[mSentBytes++];
+			}
+		}
+		else
+			mShiftRegister <<= 1;
+		updatePort(MISO, (mShiftRegister >> 7) & 0x1);
+		bool data_token_response = mSPITxMode == SPI_Tx_DATA_WAIT || mSPITxMode == SPI_Tx_DATA_ACK_WAIT;
+		mSentBits++;
+		int response_bits = (!data_token_response ? mSlaveResponseBits : mSlaveDataTokenBits);
+		//cout << mSPIRxMode << ",bytes = " << dec << mSentBytes << " (" << response_bits / 8 << ")"  << ", bits = " << dec <<
+		//	mSentBits << " (" << response_bits << "), MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" <<
+		//	hex << (int)mShiftRegister << "\n";
+		if (mSentBits == response_bits) {
+#ifdef DBG_ON
+			if (DBG_LEVEL(DBG_SPI)) {
+				if (mSPITxMode != SPI_Tx_DATA_WAIT)
+					cout << "Response of type R" << mResponseType << " (response 0x" << bytes2str(mSlaveResponse) <<
+					") [" << dec << response_bits << " bits] sent\n";
+				else // mSPITxMode == SPI_Tx_DATA_WAIT
+					cout << "Data token '" << bytes2str(mSlaveDataToken) << "' [" << dec << response_bits << " bits] sent\n";
+			}
+#endif
+			mSentBits = 0;
+			mSentBytes = 0;
+			if (mSPITxMode == SPI_Tx_RSP_WAIT || mSPITxMode == SPI_Tx_DATA_WAIT) {
+				mSPITxMode = SPI_Tx_IDLE;
+			}
+			else if (mSPITxMode == SPI_Tx_DATA_ACK_WAIT) {
+				mSPITxMode = SPI_Tx_BLOCK_WRITE_WAIT;
+			}
+			else if (mSPITxMode == SPI_Tx_RSP_DATA_WAIT) {
+				DBG_LOG(this, DBG_SPI, "Response sent - will now be followed by a data token!\n");
+				mSPITxMode = SPI_Tx_DATA_WAIT;
+			}
+			else {
+				// ERROR - unknown SPI Tx Mode
+				DBG_LOG(this, DBG_ERROR, "Unknown SPI Tx Mode " + to_string(mSPITxMode) + "!\n");
+				// start all over again as an attempt to recover...
+				mSPITxMode = SPI_Tx_IDLE;
+				mSPIRxMode = SPI_Rx_IDLE;
+				mReceivedBits = 0;
+				mReceivedBytes = 0;
+				mFirstBit = true;
+			}
+		}
+		break;
+	}
+	default:
+	{
+		// ERROR - unknown SPI Tx Mode!
+		DBG_LOG(this, DBG_ERROR, "Unknown SPI Tx Mode " + to_string(mSPITxMode) + "!\n");
+		// start all over again as an attempt to recover...
+		recover();
+		return false;
+	}
+	}
+
+	return true;
+}
+
+void SDCard::recover()
+{
+	// start all over again as an attempt to recover...
+	mSPITxMode = SPI_Tx_IDLE;
+	mSPIRxMode = SPI_Rx_IDLE;
+	mReceivedBits = 0;
+	mReceivedBytes = 0;
+	mFirstBit = true;
+}
+
+void SDCard::prepareNextCmd()
+{
+	mSPIRxMode = SPI_Rx_IDLE;
+	mReceivedBits = 0;
+	mReceivedBytes = 0;
+	mFirstBit = true;
+
+}
+
+void SDCard::initResponse(vector <uint8_t>& request)
+{
+	uint8_t cmd = request[0] & 0x3f;
+
+	SPICmdInfo cmd_info = spiCmdInfo[SPICmdEnum(cmd)];
+	mResponseType = cmd_info.respType;
+	SPIRspInfo rsp_info = spiRspInfo[mResponseType];
+	uint8_t req_crc_byte = (crc7(request, 0, 5) << 1) | 0x1;
+	mSlaveResponseBits = rsp_info.nBytes * 8;
+	mSlaveResponse = rsp_info.okResponse;
+	mSPITxMode = SPI_Tx_RSP_WAIT;
+
+#ifdef DBG_ON
+	if (DBG_LEVEL(DBG_SPI)) {
+		cout << "Command CMD" << dec << (int)cmd << " (request 0x" << bytes2str(request) << ") " << cmd_info.mnemonic << " with expected CRC byte 0x" << hex << (int)req_crc_byte <<
+			" received - will send a response of type R" << mResponseType << " (response 0x" << bytes2str(mSlaveResponse) << ")" <<
+			" with " << dec << mSlaveResponseBits << " bits (" << rsp_info.nBytes << " bytes)...\n";
+	}
+#endif
 }
 
 bool SDCard::execCmd(vector <uint8_t> &request)
@@ -301,22 +430,11 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 {
 	uint8_t cmd = request[0] & 0x3f;
 
-	// Setup response
-	SPICmdInfo cmd_info = spiCmdInfo[SPICmdEnum(cmd)];
-	mResponseType = cmd_info.respType;
-	SPIRspInfo rsp_info = spiRspInfo[mResponseType];
-	uint8_t req_crc_byte = (crc7(request, 0, 5) << 1) | 0x1;
-	mSlaveResponseBits = rsp_info.nBytes * 8;
-	mSlaveResponse = rsp_info.okResponse;
-	mSPITxMode = SPI_Tx_RSP_WAIT;
+	mCurrentCmd = cmd;
 
-#ifdef DBG_ON
-	if (DBG_LEVEL(DBG_SPI)) {
-		cout << "Command CMD" << dec << (int)cmd << " (request 0x" << bytes2str(request) << ") " << cmd_info.mnemonic << " with expected CRC byte 0x" << hex << (int)req_crc_byte <<
-			" received - will send a response of type R" << mResponseType << " (response 0x" << bytes2str(mSlaveResponse) << ")" <<
-			" with " << dec << mSlaveResponseBits << " bits (" << rsp_info.nBytes << " bytes)...\n";
-	}
-#endif
+	// Setup response and prepare for reception of a new command
+	initResponse(request);
+	prepareNextCmd();
 
 	switch (cmd) {
 
@@ -348,6 +466,7 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 			// Checks switchable function (mode 0) and switches card function (mode 1).
 			// Response is R1.
 		{
+			// NOT YET IMPLEMENTED!!!
 			break;
 		}
 
@@ -380,6 +499,11 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 			// Response is R1 followded by a data token response.
 			// The data token is an 128-bit Card Identifier.
 			//
+			// The complete sequence related to this command is:
+			//	1.	Master sends SEND_CID command
+			//	2.	Card responds with R1
+			//	3.	Card sends data token with CID
+			// 
 			// Required by MMFS for the BBC Micro
 		{
 			// Command response
@@ -445,6 +569,11 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 			// READ_SINGLE_BLOCK
 			// Respond with R1 followed by a read block as a data token.
 			// 
+			// The complete sequence related to this command is:
+			//	1.	Master sends READ_SINGLE_BLOCK command
+			//	2.	Card responds with R1
+			//	3.	Card sends data token with block data
+			//
 			// Required by MMFS for the BBC Micro
 
 
@@ -484,13 +613,15 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 			// WRITE_BLOCK
 			// Writes a block of the size selected by the SET_BLOCKLEN command.
 			// 
-			// The response is R1.
+			// The complete sequence related to this command is:
+			//	1.	Master send WRITE_BLOCK command
+			//	2.	Card responds with R1
+			//	3.	Master sends data token containing block data
+			//	4.	Card responds with status data token xxx0sss1 where
+			//		sss = status (2: data accepted, 5: CRC error, 6: write error)
+			//	5.	Card sends zeros until the write operation has finished
+			//	6.	Card sends 0xff
 			// 
-			// A data token from the master is received after the R1 response has been given.
-			// The card will respond to this with a one-byte data token xxx0sss1 where
-			// sss = status (2 data accepted, 5 CRC error, 6 write error)
-			// After that, the card will send zeros until the write operation has finished.
-			// When it is finished 0xff will be sent.
 			// 
 			// Required by MMFS for the BBC Micro
 		{
@@ -704,14 +835,7 @@ uint8_t SDCard::crc7(vector <uint8_t>& data, int startPos, int len)
 				crc ^= polynom;
 		}
 	}
-	/*
-	for (int i = startPos; i < startPos + len; i++) {
-		if ((i - startPos) % 16 == 0)
-			cout << "\n";
-		cout << hex << setfill('0') << setw(2) << (int)data[i] << " ";
-	}
-	cout << "\nCRC8 = 0x" << hex << crc << "\n";
-	*/
+
 	return crc;
 }
 
@@ -739,14 +863,7 @@ uint16_t SDCard::crc16(vector <uint8_t>& data, int startPos, int len)
 			d <<= 1;
 		}
 	}
-	/*
-	for (int i = startPos; i < startPos + len; i++) {
-		if ((i - startPos )% 16 == 0)
-			cout << "\n";
-		cout << hex << setfill('0') << setw(2) << (int)data[i] << " ";
-	}
-	cout << "\nCRC16 = 0x" << hex << crc << "\n";
-	*/
+
 	return crc;
 }
 

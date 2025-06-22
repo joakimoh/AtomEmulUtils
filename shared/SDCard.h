@@ -43,6 +43,8 @@ private:
 	bool mInitialised = false;
 	bool mResetCmdReceived = false;
 
+	
+
 	// SD Card parameters
 	uint8_t mCIDRegister[16] = {
 		0x0
@@ -52,11 +54,16 @@ private:
 	uint32_t mBlockLen = 0;
 	int mBlockWriteAdr = 0x0;
 
-	enum SPITxMode {SPI_Tx_RSP_WAIT, SPI_Tx_RSP_DATA_WAIT, SPI_Tx_DATA_WAIT, SPI_Tx_IDLE};
+	enum SPITxMode {SPI_Tx_RSP_WAIT, SPI_Tx_RSP_DATA_WAIT, SPI_Tx_DATA_WAIT, SPI_Tx_DATA_ACK_WAIT, SPI_Tx_BLOCK_WRITE_WAIT, SPI_Tx_IDLE};
+#define _SPI_TX_MODE(x) (x==SPI_Tx_RSP_WAIT?"SPI_Tx_RSP_WAIT":(x==SPI_Tx_RSP_DATA_WAIT?"SPI_Tx_RSP_DATA_WAIT":(x==SPI_Tx_DATA_WAIT?"SPI_Tx_DATA_WAIT":(x==SPI_Tx_DATA_ACK_WAIT?"SPI_Tx_DATA_ACK_WAIT":(x==SPI_Tx_BLOCK_WRITE_WAIT?"SPI_Tx_BLOCK_WRITE_WAIT":(x==SPI_Tx_IDLE?"SPI_Tx_IDLE":"???"))))))
 	enum SPIRxMode {SPI_Rx_IDLE, SPI_Rx_PREAMBLE_WAIT, SPI_Rx_CMD_WAIT, SPI_Tx_CMD_DATA_WAIT, SPI_Rx_DATA_WAIT};
-
+#define _SPI_RX_MODE(x) (x==SPI_Rx_IDLE?"SPI_Rx_IDLE":(x==SPI_Rx_PREAMBLE_WAIT?"SPI_Rx_PREAMBLE_WAIT":(x==SPI_Rx_CMD_WAIT?"SPI_Rx_CMD_WAIT":(x==SPI_Tx_CMD_DATA_WAIT?"SPI_Tx_CMD_DATA_WAIT":(x==SPI_Rx_DATA_WAIT?"SPI_Rx_DATA_WAIT":"???")))))
 	SPIRxMode mSPIRxMode = SPI_Rx_IDLE;
 	SPITxMode mSPITxMode = SPI_Tx_IDLE;
+
+	SPIRxMode pSPIRxMode = SPI_Rx_IDLE;
+	SPITxMode pSPITxMode = SPI_Tx_IDLE;
+
 
 	enum SPICmdEnum {
 							
@@ -84,9 +91,11 @@ private:
 		SPI_CMD_55 = 55,	
 		SPI_CMD_56 = 56,	
 		SPI_CMD_58 = 58,	
-		SPI_CMD_59 = 59		
-
+		SPI_CMD_59 = 59,		
+		SPI_CMD_ILLEGAL = 255
 	};
+
+	uint8_t mCurrentCmd = SPI_CMD_ILLEGAL;
 
 	enum SPIACmdEnum {
 		SPI_A_CMD_13 = 13,	// SD_STATUS -					R2	Send the cards status register.
@@ -94,8 +103,11 @@ private:
 		SPI_A_CMD_23 = 23,	// SET_WR_BLK_ERASE_COUNT -		R1	Set the number of write blocks to be pre-erased before writing.
 		SPI_A_CMD_41 = 41,	// SD_SEND_OP_COND -			R1	Sends host capacity support information and activates the card's initialization process.
 		SPI_A_CMD_42 = 42,	// SET_CLR_CARD_DETECT -		R1	Connect ('1')/Disconnect ('0') the 50 KOhm pull-up resistor on CS (pin 1) of the card.
-		SPI_A_CMD_51 = 51	// SEND_SCR -					R1	Reads the SD Configuration Register (SCR).
+		SPI_A_CMD_51 = 51,	// SEND_SCR -					R1	Reads the SD Configuration Register (SCR).
+		SPI_A_CMD_ILLEGAL = 255
 	};
+
+	uint8_t mCurrentAppCmd = SPI_A_CMD_ILLEGAL;
 
 	enum SPIRspEnum {
 		SPI_RSP_R1 = 1,
@@ -177,6 +189,13 @@ private:
 	bool execAppCmd(vector <uint8_t>& reques);
 
 	bool writeBlockData(int adr, vector <uint8_t>& data);
+
+
+	bool processRxBits();
+	bool generateTxBits();
+	void recover();
+	void prepareNextCmd();
+	void initResponse(vector <uint8_t>& request);
 
 public:
 
