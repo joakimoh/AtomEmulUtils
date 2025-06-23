@@ -105,7 +105,7 @@ bool SDCard::insertCard(string cardImageFile)
 // The SD card is placed into the SPI mode by setting the MOSI and SEL lines to '1' and toggle the CLK for at least 74 cycles.
 // Then the SEL line shall be set to '0' and the reset command (CMD0) shall be sent.
 // 
-// A successful reception of a command will be replied with an 8-bit respone of the format below:
+// A successful reception of a command will be replied with an 8-bit R1 respone of the format below:
 // +---+---+---+---+---+---+---+---+
 // | b7| b6| b5| b4| b3 |b2| b1| b0|		PE = Parameter Error, AE = Address Error, EE = Erase sequence Error
 // +---+---+---+---+---+---+---+---+		CE = CRC Error, IC = Illegal Command, ER = Erase Reset
@@ -114,12 +114,12 @@ bool SDCard::insertCard(string cardImageFile)
 //
 // To receive this message (data in MISO), the SD CLK signal is toggled while keeping the MOSI line high and the SEL line low.
 // 
-// There are five types of command responses:
+// There are five types of command responses (they all start with MSB '0' to ensure synchronisation)
 //	R1		One byte
-//	R1b		One byte potentially followed by one or more zero bytes
-//	R2		Two bytes
-//	R3		Five bytes
-//	R7		Six bytes
+//	R1b		One byte identical to R1 but potentially followed by one or more zero bytes
+//	R2		Two bytes (first byte = R1)
+//	R3		Five bytes (first byte = R1)
+//	R7		Six bytes (first byte = R1)
 // 
 // For some commands, a response could be followed by a data token. A data token is made up of:
 //		start block (0xfe byte) + user data + crc16
@@ -214,15 +214,13 @@ bool SDCard::processRxBits()
 		else { // mMOSI == 1
 			if (mReceivedBits == 1) {
 				mSPIRxMode = SPI_Rx_CMD_WAIT; // Preamble '01' detected
-				mShiftRegister = 0b01; // update the command shift register with the first received '01' bits shifted left one step
+				mRxShiftRegister = 0b01; // update the command shift register with the first received '01' bits shifted left one step
 				mReceivedBits = 2;
 				mReceivedBytes = 0;
-				//cout << "SD Card: Preamble '01' detected\n";
 			}
 			else {
 				mReceivedBits = 0;// restart search for '01'
 				mReceivedBytes = 0;
-				//cout << "SD Card: Restart preamble search!\n";
 			}
 		}
 		break;
@@ -231,12 +229,12 @@ bool SDCard::processRxBits()
 	case SPI_Rx_CMD_WAIT:
 	{
 		mReceivedBits++;
-		mShiftRegister = ((mShiftRegister << 1) & 0xfe) | mMOSI;
+		mRxShiftRegister = ((mRxShiftRegister << 1) & 0xfe) | mMOSI;
 		if (mReceivedBits % 8 == 0) {
-			//cout << "CMD byte #" << mReceivedBytes << " = 0x" << hex << (int)mShiftRegister << "\n";
-			mMasterRequest[mReceivedBytes++] = mShiftRegister;
+			cout << "CMD byte #" << mReceivedBytes << " = 0x" << hex << (int)mRxShiftRegister << "\n";
+			mMasterRequest[mReceivedBytes++] = mRxShiftRegister;
 		}
-		//cout << "MOSI = " << (int)mMOSI << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" << hex << (int)mShiftRegister << "\n";
+		//cout << "MOSI = " << (int)mMOSI << ", Shift Register = 0b" << Utility::int2binStr(mRxShiftRegister, 8) << " = 0x" << hex << (int)mRxShiftRegister << "\n";
 		if (mReceivedBits == 48) {
 			if (!execCmd(mMasterRequest)) {
 				// Invalid command (no action - just ignore the received bit sequence and start all over again)
@@ -251,17 +249,19 @@ bool SDCard::processRxBits()
 	case SPI_Rx_DATA_WAIT:
 	{
 		mReceivedBits++;
-		mShiftRegister = ((mShiftRegister << 1) & 0xfe) | mMOSI;
-		if (mReceivedBits % 8 == 0)
-			mMasterDataToken[mReceivedBytes++] = mShiftRegister;
+		mRxShiftRegister = ((mRxShiftRegister << 1) & 0xfe) | mMOSI;
+		if (mReceivedBits % 8 == 0) {
+			cout << "Master data byte #" << dec << mReceivedBytes << " [" << mMasterDataTokenBits/8 << "] (" << mReceivedBits << " bits) = 0x" << hex << (int)mRxShiftRegister << "\n";
+			mMasterDataToken[mReceivedBytes++] = mRxShiftRegister;
+		}
 		if (mReceivedBits == mMasterDataTokenBits) {
-			if (!writeBlockData(mBlockWriteAdr, mMasterDataToken))
-				DBG_LOG(this, DBG_ERROR, "Failed to write block data!\n");
-			mSPITxMode = SPI_Tx_DATA_ACK_WAIT;
 			mSPIRxMode = SPI_Rx_IDLE;
-			mReceivedBits = 0;
-			mReceivedBytes = 0;
-			mFirstBit = true;
+			if (!processMasterData()) {
+				// Invalid command (no action - just ignore the received bit sequence and start all over again)
+				DBG_LOG(this, DBG_ERROR, "Illegal command bit sequence  '" + bytes2str(mMasterRequest) + "'!\n");
+				recover();
+				return false;
+			}
 		}
 		break;
 	}
@@ -298,29 +298,28 @@ bool SDCard::generateTxBits()
 	case SPI_Tx_RSP_WAIT:
 	case SPI_Tx_RSP_DATA_WAIT:
 	case SPI_Tx_DATA_WAIT:
-	case SPI_Tx_DATA_ACK_WAIT:
 	{
+		int response_bits = (mSPITxMode != SPI_Tx_DATA_WAIT ? mSlaveResponseBits : mSlaveDataTokenBits);
 		if (mSentBits % 8 == 0) {
 			if (mSPITxMode != SPI_Tx_DATA_WAIT) {
-				//cout << "RSP byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mSlaveResponse[mSentBytes] << "\n";
+				cout << "Slave response byte #" << dec << mSentBytes << " [" << response_bits / 8 << "] (bits " << mSentBits << "+) = 0x" << hex << (int)mSlaveResponse[mSentBytes] << "\n";
 
-				mShiftRegister = mSlaveResponse[mSentBytes++];
+				mTxShiftRegister = mSlaveResponse[mSentBytes++];
 			}
 			else {
-				//cout << "DATA byte #" << dec << mSentBytes << " (bits " << mSentBits << "+) = 0x" << hex << (int)mSlaveDataToken[mSentBytes] << "\n";
+				cout << "Slave data byte #" << dec << mSentBytes << " [" << response_bits / 8 << "] (bits " << mSentBits << "+) = 0x" << hex << (int)mSlaveDataToken[mSentBytes] << "\n";
 
-				mShiftRegister = mSlaveDataToken[mSentBytes++];
+				mTxShiftRegister = mSlaveDataToken[mSentBytes++];
 			}
 		}
 		else
-			mShiftRegister <<= 1;
-		updatePort(MISO, (mShiftRegister >> 7) & 0x1);
-		bool data_token_response = mSPITxMode == SPI_Tx_DATA_WAIT || mSPITxMode == SPI_Tx_DATA_ACK_WAIT;
+			mTxShiftRegister <<= 1;
+		updatePort(MISO, (mTxShiftRegister >> 7) & 0x1);
 		mSentBits++;
-		int response_bits = (!data_token_response ? mSlaveResponseBits : mSlaveDataTokenBits);
+
 		//cout << mSPIRxMode << ",bytes = " << dec << mSentBytes << " (" << response_bits / 8 << ")"  << ", bits = " << dec <<
-		//	mSentBits << " (" << response_bits << "), MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mShiftRegister, 8) << " = 0x" <<
-		//	hex << (int)mShiftRegister << "\n";
+		//	mSentBits << " (" << response_bits << "), MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mTxShiftRegister, 8) << " = 0x" <<
+		//	hex << (int)mTxShiftRegister << "\n";
 		if (mSentBits == response_bits) {
 #ifdef DBG_ON
 			if (DBG_LEVEL(DBG_SPI)) {
@@ -336,9 +335,6 @@ bool SDCard::generateTxBits()
 			if (mSPITxMode == SPI_Tx_RSP_WAIT || mSPITxMode == SPI_Tx_DATA_WAIT) {
 				mSPITxMode = SPI_Tx_IDLE;
 			}
-			else if (mSPITxMode == SPI_Tx_DATA_ACK_WAIT) {
-				mSPITxMode = SPI_Tx_BLOCK_WRITE_WAIT;
-			}
 			else if (mSPITxMode == SPI_Tx_RSP_DATA_WAIT) {
 				DBG_LOG(this, DBG_SPI, "Response sent - will now be followed by a data token!\n");
 				mSPITxMode = SPI_Tx_DATA_WAIT;
@@ -347,11 +343,8 @@ bool SDCard::generateTxBits()
 				// ERROR - unknown SPI Tx Mode
 				DBG_LOG(this, DBG_ERROR, "Unknown SPI Tx Mode " + to_string(mSPITxMode) + "!\n");
 				// start all over again as an attempt to recover...
-				mSPITxMode = SPI_Tx_IDLE;
-				mSPIRxMode = SPI_Rx_IDLE;
-				mReceivedBits = 0;
-				mReceivedBytes = 0;
-				mFirstBit = true;
+				recover();
+				return false;
 			}
 		}
 		break;
@@ -399,6 +392,8 @@ void SDCard::initResponse(vector <uint8_t>& request)
 	mSlaveResponseBits = rsp_info.nBytes * 8;
 	mSlaveResponse = rsp_info.okResponse;
 	mSPITxMode = SPI_Tx_RSP_WAIT;
+	mReceivedBits = 0;
+	mReceivedBytes = 0;
 
 #ifdef DBG_ON
 	if (DBG_LEVEL(DBG_SPI)) {
@@ -513,20 +508,21 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 
 			// Define its size and make sure the response vector can hold it
 			int content_bytes = 128 / 8;
-			int data_response_bytes = content_bytes + 3;
+			int data_response_bytes = content_bytes + 4;
 			mSlaveDataTokenBits = data_response_bytes * 8;
 			if (mSlaveDataToken.size() != data_response_bytes)
 				mSlaveDataToken.resize(data_response_bytes);
 
 			// Add Start of block id
-			mSlaveDataToken[0] = 0xfe;
+			mSlaveDataToken[0] = 0xfe;							// start of data token block
+			mSlaveDataToken[data_response_bytes - 1] = 0xff;	// always end with a high level
 
 			// Add CID  (emulation only)
-			for (int i = 1; i < data_response_bytes - 3; i++)
+			for (int i = 1; i < data_response_bytes - 4; i++)
 				mSlaveDataToken[i] = 0x0;
 
 			// Add CRC
-			uint16_t crc = crc16(mSlaveDataToken, 1, data_response_bytes - 3);
+			uint16_t crc = crc16(mSlaveDataToken, 1, data_response_bytes - 4);
 			mSlaveDataToken[content_bytes + 1] = crc >> 8;
 			mSlaveDataToken[content_bytes + 2] = crc & 0xff;
 
@@ -582,25 +578,26 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 
 			// Define its size and make sure the response vector can hold it
 			int content_bytes = mBlockLen;
-			int data_response_bytes = content_bytes + 3;
+			int data_response_bytes = content_bytes + 4;
 			mSlaveDataTokenBits = data_response_bytes * 8;
 			if (mSlaveDataToken.size() != data_response_bytes)
 				mSlaveDataToken.resize(data_response_bytes);
 
 			// Add Start of block id
-			mSlaveDataToken[0] = 0xfe;
+			mSlaveDataToken[0] = 0xfe;						// start of data token block
+			mSlaveDataToken[data_response_bytes-1] = 0xff;	// always end with a high level
 
 			// Read block into response (emulation only)
-			int block_adr = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[1];
-			mCardImage->seekg(block_adr, mCardImage->beg);
+			mBlockReadAdr = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[1];
+			mCardImage->seekg(mBlockReadAdr, mCardImage->beg);
 			mCardImage->read((char*)&mSlaveDataToken[1], content_bytes);
 
 			// Add CRC
-			uint16_t crc = crc16(mSlaveDataToken, 1, data_response_bytes - 3);
+			uint16_t crc = crc16(mSlaveDataToken, 1, data_response_bytes - 4);
 			mSlaveDataToken[content_bytes + 1] = crc >> 8;
 			mSlaveDataToken[content_bytes + 2] = crc & 0xff;
 
-			DBG_LOG(this, DBG_SPI, "CMD17: address = 0x" + Utility::int2hexStr(block_adr, 6) + "\n");
+			DBG_LOG(this, DBG_SPI, "CMD17: address = 0x" + Utility::int2hexStr(mBlockReadAdr, 6) + "\n");
 
 			mSPITxMode = SPI_Tx_RSP_DATA_WAIT;
 			break;
@@ -642,6 +639,8 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 
 			// Initiate wait for block data to write
 			mSPIRxMode = SPI_Rx_DATA_WAIT;
+			mReceivedBits = 0;
+			mReceivedBytes = 0;
 
 			break;
 		}
@@ -876,9 +875,191 @@ string SDCard::bytes2str(vector <uint8_t> data)
 	return s;
 }
 
-bool SDCard::writeBlockData(int adr, vector <uint8_t>& data)
+bool SDCard::writeBlockData(int adr, vector <uint8_t>& data, int start, int len)
 {
-	cout << "Write " << data.size() << " bytes of data to address 0x" << hex << adr << "...\n";
+	cout << "Write " << dec << len << " bytes of data to address 0x" << hex << adr << "...\n";
 
 	return true;
+}
+
+bool SDCard::processCmdState()
+{
+	switch (mSPITxMode) {
+	case SPI_Tx_RSP_WAIT:
+	{
+		switch (mCurrentCmd) {
+
+		case SPI_CMD_10:
+			// SEND_CID
+			// Asks the selected card to send its card identification (CID).
+			// Response is R1 followded by a data token response.
+			// The data token is an 128-bit Card Identifier.
+			//
+			// The complete sequence related to this command is:
+			//	1.	Master sends SEND_CID command
+			//	2.	Card responds with R1
+			//	=> 3.	Card sends data token with CID
+			// 
+			// Required by MMFS for the BBC Micro
+		{
+
+			// CID data token response
+
+			// Define its size and make sure the response vector can hold it
+			int content_bytes = 128 / 8;
+			int data_response_bytes = content_bytes + 3;
+			mSlaveDataTokenBits = data_response_bytes * 8;
+			if (mSlaveDataToken.size() != data_response_bytes)
+				mSlaveDataToken.resize(data_response_bytes);
+
+			// Add Start of block id
+			mSlaveDataToken[0] = 0xfe;
+
+			// Add CID  (emulation only)
+			for (int i = 1; i < data_response_bytes - 3; i++)
+				mSlaveDataToken[i] = 0x0;
+
+			// Add CRC
+			uint16_t crc = crc16(mSlaveDataToken, 1, data_response_bytes - 3);
+			mSlaveDataToken[content_bytes + 1] = crc >> 8;
+			mSlaveDataToken[content_bytes + 2] = crc & 0xff;
+
+			mSPITxMode = SPI_Tx_DATA_WAIT;
+
+			break;
+		}
+
+		case SPI_CMD_17:
+		{
+			// READ_SINGLE_BLOCK
+			// Respond with R1 followed by a read block as a data token.
+			// 
+			// The complete sequence related to this command is:
+			//	1.	Master sends READ_SINGLE_BLOCK command
+			//	2.	Card responds with R1
+			//	=> 3.	Card sends data token with block data
+			//
+			// Required by MMFS for the BBC Micro
+
+			// Define its size and make sure the response vector can hold it
+			int content_bytes = mBlockLen;
+			int data_response_bytes = content_bytes + 3;
+			mSlaveDataTokenBits = data_response_bytes * 8;
+			if (mSlaveDataToken.size() != data_response_bytes)
+				mSlaveDataToken.resize(data_response_bytes);
+
+			// Add Start of block id
+			mSlaveDataToken[0] = 0xfe;
+
+			// Read block into response (emulation only)
+			mCardImage->seekg(mBlockReadAdr, mCardImage->beg);
+			mCardImage->read((char*)&mSlaveDataToken[1], content_bytes);
+
+			// Add CRC
+			uint16_t crc = crc16(mSlaveDataToken, 1, data_response_bytes - 3);
+			mSlaveDataToken[content_bytes + 1] = crc >> 8;
+			mSlaveDataToken[content_bytes + 2] = crc & 0xff;
+
+			DBG_LOG(this, DBG_SPI, "CMD17: address = 0x" + Utility::int2hexStr(mBlockReadAdr, 6) + "\n");
+
+			mSPITxMode = SPI_Tx_DATA_WAIT;
+			break;
+		}
+
+		default:
+		{
+			mSPITxMode = SPI_Tx_IDLE;
+			break;
+		}
+		}
+		break;
+	}
+
+	default:
+	{
+		mSPITxMode = SPI_Tx_IDLE;
+		break;
+	}
+	}
+
+	switch (mSPIRxMode) {
+	default:
+	{
+		mSPIRxMode = SPI_Rx_IDLE;
+		break;
+	}
+	}
+
+	return true;
+}
+
+bool SDCard::processMasterData() {
+
+	switch (mCurrentCmd) {
+
+	case SPI_CMD_12:
+		// STOP_TRANSMISSION
+		// Forces the card to stop transmission in Multiple Block Read Operation.
+		// Response is R1b.
+	{
+		break;
+	}
+
+	case SPI_CMD_24:
+		// WRITE_BLOCK
+		// Writes a block of the size selected by the SET_BLOCKLEN command.
+		// 
+		// The complete sequence related to this command is:
+		//	1.	Master send WRITE_BLOCK command
+		//	2.	Card responds with R1
+		//	3.	Master sends data token containing block data
+		//	=>	4.	Card responds with status data token xxx0sss1 where
+		//		sss = status (2: data accepted, 5: CRC error, 6: write error)
+		//		5.	Card sends zeros until the write operation has finished
+		//		6.	Card sends 0xff
+		// 
+		// 
+		// Required by MMFS for the BBC Micro
+	{
+
+		// Make sure the max size 811) data response token fits in slave token response
+		int data_response_bytes = 11;
+		mSlaveDataTokenBits = data_response_bytes * 8;
+		if (mSlaveDataToken.size() < data_response_bytes)
+			mSlaveDataToken.resize(data_response_bytes);
+
+		if (!writeBlockData(mBlockWriteAdr, mMasterDataToken, 1, mBlockLen)) {
+			// Write failure data response token
+			data_response_bytes = 3;
+			mSlaveDataTokenBits = data_response_bytes * 8;
+			mSlaveDataToken[0] = 0xff;
+			mSlaveDataToken[1] = (0x6 << 1) | 0x1;				// write errors
+			mSlaveDataToken[10] = 0xff;							// end with high bits
+		}
+		else {
+			// Success Data response token
+			data_response_bytes = 11;
+			mSlaveDataTokenBits = data_response_bytes * 8;
+			mSlaveDataToken[0] = 0xff;
+			mSlaveDataToken[1] = (0x2 << 1) | 0x1;					// data accepted, neither CRC nor write errors
+			for (int i = 2; i < 10; mSlaveDataToken[i++] = 0x0);	// send 10 'busy' bytes
+			mSlaveDataToken[10] = 0xff;							// end with high bits (indicating a completed write operation)
+
+		}
+
+
+		mSPITxMode = SPI_Tx_DATA_WAIT;
+		mSPIRxMode = SPI_Rx_IDLE;
+		mReceivedBits = 0;
+		mReceivedBytes = 0;
+		mFirstBit = true;
+
+		break;
+	}
+
+	default:
+		return false;
+		break;
+
+	}
 }

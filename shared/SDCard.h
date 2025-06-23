@@ -53,9 +53,10 @@ private:
 	// SD Card memory parameters
 	uint32_t mBlockLen = 0;
 	int mBlockWriteAdr = 0x0;
+	int mBlockReadAdr = 0x0;
 
-	enum SPITxMode {SPI_Tx_RSP_WAIT, SPI_Tx_RSP_DATA_WAIT, SPI_Tx_DATA_WAIT, SPI_Tx_DATA_ACK_WAIT, SPI_Tx_BLOCK_WRITE_WAIT, SPI_Tx_IDLE};
-#define _SPI_TX_MODE(x) (x==SPI_Tx_RSP_WAIT?"SPI_Tx_RSP_WAIT":(x==SPI_Tx_RSP_DATA_WAIT?"SPI_Tx_RSP_DATA_WAIT":(x==SPI_Tx_DATA_WAIT?"SPI_Tx_DATA_WAIT":(x==SPI_Tx_DATA_ACK_WAIT?"SPI_Tx_DATA_ACK_WAIT":(x==SPI_Tx_BLOCK_WRITE_WAIT?"SPI_Tx_BLOCK_WRITE_WAIT":(x==SPI_Tx_IDLE?"SPI_Tx_IDLE":"???"))))))
+	enum SPITxMode {SPI_Tx_RSP_WAIT, SPI_Tx_RSP_DATA_WAIT, SPI_Tx_DATA_WAIT, SPI_Tx_BLOCK_WRITE_WAIT, SPI_Tx_IDLE};
+#define _SPI_TX_MODE(x) (x==SPI_Tx_RSP_WAIT?"SPI_Tx_RSP_WAIT":(x==SPI_Tx_RSP_DATA_WAIT?"SPI_Tx_RSP_DATA_WAIT":(x==SPI_Tx_DATA_WAIT?"SPI_Tx_DATA_WAIT":(x==SPI_Tx_BLOCK_WRITE_WAIT?"SPI_Tx_BLOCK_WRITE_WAIT":(x==SPI_Tx_IDLE?"SPI_Tx_IDLE":"???")))))
 	enum SPIRxMode {SPI_Rx_IDLE, SPI_Rx_PREAMBLE_WAIT, SPI_Rx_CMD_WAIT, SPI_Tx_CMD_DATA_WAIT, SPI_Rx_DATA_WAIT};
 #define _SPI_RX_MODE(x) (x==SPI_Rx_IDLE?"SPI_Rx_IDLE":(x==SPI_Rx_PREAMBLE_WAIT?"SPI_Rx_PREAMBLE_WAIT":(x==SPI_Rx_CMD_WAIT?"SPI_Rx_CMD_WAIT":(x==SPI_Tx_CMD_DATA_WAIT?"SPI_Tx_CMD_DATA_WAIT":(x==SPI_Rx_DATA_WAIT?"SPI_Rx_DATA_WAIT":"???")))))
 	SPIRxMode mSPIRxMode = SPI_Rx_IDLE;
@@ -178,7 +179,8 @@ private:
 
 	string bytes2str(vector <uint8_t> data);
 
-	uint8_t mShiftRegister = 0x0;
+	uint8_t mTxShiftRegister = 0x0;
+	uint8_t mRxShiftRegister = 0x0;
 
 	bool validCmd(uint8_t cmdByte);
 
@@ -187,8 +189,9 @@ private:
 	bool execCmd(vector <uint8_t>  &request);
 	bool execBaseCmd(vector <uint8_t>& reques);
 	bool execAppCmd(vector <uint8_t>& reques);
+	bool processCmdState();
 
-	bool writeBlockData(int adr, vector <uint8_t>& data);
+	bool writeBlockData(int adr, vector <uint8_t>& data, int start, int len);
 
 
 	bool processRxBits();
@@ -196,6 +199,7 @@ private:
 	void recover();
 	void prepareNextCmd();
 	void initResponse(vector <uint8_t>& request);
+	bool processMasterData();
 
 public:
 
