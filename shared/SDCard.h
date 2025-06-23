@@ -42,6 +42,7 @@ private:
 
 	bool mInitialised = false;
 	bool mResetCmdReceived = false;
+	bool mDataStartTokenReceived = false;
 
 	
 
@@ -189,7 +190,7 @@ private:
 	bool execCmd(vector <uint8_t>  &request);
 	bool execBaseCmd(vector <uint8_t>& reques);
 	bool execAppCmd(vector <uint8_t>& reques);
-	bool processCmdState();
+
 
 	bool writeBlockData(int adr, vector <uint8_t>& data, int start, int len);
 
