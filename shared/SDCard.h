@@ -171,7 +171,7 @@ private:
 
 	SPIRspEnum mResponseType = SPI_RSP_R1;
 
-	ifstream* mCardImage = NULL;
+	fstream* mCardImage = NULL;
 	streamsize mCardSz = 0;
 
 	uint8_t crc7(vector <uint8_t> &data, int startPos, int len);

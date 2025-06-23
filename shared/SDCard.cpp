@@ -58,7 +58,7 @@ bool SDCard::insertCard(string cardImageFile)
 		delete mCardImage;
 	}
 
-	mCardImage = new ifstream(cardImageFile, ios::in | ios::out | ios::binary);
+	mCardImage = new fstream(cardImageFile, ios::in | ios::out | ios::binary);
 
 	if (mCardImage == NULL || !mCardImage->is_open()) {
 		cout << "couldn't open SD Card Image " << cardImageFile << "\n";
@@ -887,6 +887,13 @@ string SDCard::bytes2str(vector <uint8_t> data)
 bool SDCard::writeBlockData(int adr, vector <uint8_t>& data, int start, int len)
 {
 	//cout << "Write " << dec << len << " bytes of data '" << bytes2str(data) << "' to address 0x" << hex << adr << "...\n";
+	if (mCardImage == NULL) {
+		cout << "ERROR - no MMC card inserted when attempting a write operation!\n";
+		return false;
+	}
+	
+	mCardImage->seekg(adr);
+	mCardImage->write((char*)&mMasterDataToken[start], len);
 
 	return true;
 }
