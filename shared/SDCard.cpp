@@ -99,6 +99,8 @@ bool SDCard::insertCard(string cardImageFile)
 // Then the most significant bit is placed on the MOSI with Clock 0->1->0 to latch and shift the bit.
 // This is repeated until a complete command has been received.
 // 
+// MMC & SDCards use SPI mode 0 in which data is sampled on rising edge and shifted out on the falling edge
+// 
 // To respond to a command, the SD card requires the CLK signal to toggle for at least 8 cycles while
 // keeping MOSI high.
 // 
@@ -145,38 +147,38 @@ void SDCard::processPortUpdate(int port)
 
 		if (mCLK != pCLK) {
 			
-			if (!mCLK) { // Prepare slave data when CLK goes low so it can be sampled by the master on positive CLK edge
 
-				//cout << "MOSI = '" << dec << (int)mMOSI << "', MISO = '" << (int)mMISO << "'\n";
+			//cout << "MOSI = '" << dec << (int)mMOSI << "', MISO = '" << (int)mMISO << "'\n";
 
-				if (!mInitialised) {
+			if (mCLK && !mInitialised) {
 
-					if (mMOSI == 1) {
-						mReceivedBits++;
-						//cout << "SPI Not Init Phase - " << dec << mReceivedBits << " bits received - last bit was '" << (int)mMOSI << "'\n";
-					}
-					else
-						mReceivedBits = 0;
-					if (mReceivedBits == 74) {
-						mSPIRxMode = SPI_Rx_PREAMBLE_WAIT;
-						mReceivedBits = 0;
-						mInitialised = true;
-						DBG_LOG(this, DBG_SPI, "SD Card: SPI Reset (74 x '1') completed  - Waiting for Reset command CMD0!\n");
-					}
+				if (mMOSI == 1) {
+					mReceivedBits++;
+					//cout << "SPI Not Init Phase - " << dec << mReceivedBits << " bits received - last bit was '" << (int)mMOSI << "'\n";
 				}
+				else
+					mReceivedBits = 0;
+				if (mReceivedBits == 74) {
+					mSPIRxMode = SPI_Rx_PREAMBLE_WAIT;
+					mReceivedBits = 0;
+					mInitialised = true;
+					DBG_LOG(this, DBG_SPI, "SD Card: SPI Reset (74 x '1') completed  - Waiting for Reset command CMD0!\n");
+				}
+			}
 
-				else if (mSEL == 0) {
+			else if (mSEL == 0) {
 
-					//
-					// Rx processing
-					//
+				//
+				// Rx processing - sample MOSI on positive CLK edge
+				//
+				if (mCLK)
 					processRxBits();
 
-					//
-					// Tx processing
-					//
+				//
+				// Tx processing - shift out MISO on negative CLK edge
+				//
+				if(!mCLK)
 					generateTxBits();
-				}
 			}
 
 		}
@@ -413,6 +415,15 @@ void SDCard::initResponse(vector <uint8_t>& request)
 #endif
 }
 
+void SDCard::prepareFailedReponse()
+{
+	mSlaveResponseBits = 3 * 8;
+	mSlaveResponse = NegR1Rsp;
+	mSPITxMode = SPI_Tx_RSP_WAIT;
+	mReceivedBits = 0;
+	mReceivedBytes = 0;
+}
+
 bool SDCard::execCmd(vector <uint8_t> &request)
 {
 
@@ -471,6 +482,8 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 			// Response is R1.
 		{
 			// NOT YET IMPLEMENTED!!!
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD6 (SWITCH_FUNC)!\n");
 			break;
 		}
 
@@ -494,6 +507,8 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 			// Asks the selected card to send its card-specific data (CSD).
 			// Response is R1.
 		{
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD9 (SEND_CSD)!\n");
 			break;
 		}
 
@@ -545,6 +560,8 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 			// Forces the card to stop transmission in Multiple Block Read Operation.
 			// Response is R1b.
 		{
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD12 (STOP_TRANSMISSION)!\n");
 			break;
 		}
 
@@ -553,6 +570,8 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 			// Asks the selected card to send its status register.
 			// Response is R2.
 		{
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD12 (SEND_STATUS)!\n");
 			break;
 		}
 
@@ -613,6 +632,8 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 		}
 
 		case SPI_CMD_18:
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD18 (READ_MULTIPLE_BLOCK)!\n");
 			break;
 
 		case SPI_CMD_24:
@@ -655,30 +676,48 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 		}
 
 		case SPI_CMD_25:
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD25 (WRITE_MULTIPLE_BLOCK)!\n");
 			break;
 
 		case SPI_CMD_27:
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD27 (PROGRAM_CSD)!\n");
 			break;
 
 		case SPI_CMD_28:
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD28 (SET_WRITE_PROT)!\n");
 			break;
 
 		case SPI_CMD_29:
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD29 (CLR_WRITE_PROT)!\n");
 			break;
 
 		case SPI_CMD_30:
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD30 (SEND_WRITE_PROT)!\n");
 			break;
 
 		case SPI_CMD_32:
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD32 (ERASE_WR_BLK_START_ADDR)!\n");
 			break;
 
 		case SPI_CMD_33:
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD33 (ERASE_WR_BLK_END_ADDR)!\n");
 			break;
 
 		case SPI_CMD_38:
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD38 (LOCK_UNLOCK)!\n");
 			break;
 
 		case SPI_CMD_42:
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD42 (SWITCH_FUNC)!\n");
 			break;
 
 		case SPI_CMD_55:
@@ -687,6 +726,8 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 			//
 			// Required by MMFS for the BBC Micro
 		{
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD55 (APP_CMD)!\n");
 			break;
 		}
 
@@ -699,13 +740,19 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 			// 
 			// Required by MMFS for the BBC Micro
 		{
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD58 (READ_OCR)!\n");
 			break;
 		}
 
 		case SPI_CMD_59:
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command CMD59 (CRC_ON_OFF)!\n");
 			break;
 
 		default:
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Illegal SPI Basic command " + to_string(cmd) + "\n");
 			return false;
 			break;
 
@@ -722,16 +769,26 @@ bool SDCard::execAppCmd(vector <uint8_t> &request)
 		case SPI_A_CMD_13:
 			// SD_STATUS -					R2	Send the cards status register.
 		{
+			// NOT YET IMPLEMENTED!!!
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command ACMD13 (SD_STATUS)!\n");
+
 			break;
 		}
 		case SPI_A_CMD_22:
 			// SEND_NUM_WR_BLOCKS -			R1	Send the numbers of the well written (without errors) blocks
 		{
+			// NOT YET IMPLEMENTED!!!
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command ACMD22 (SEND_NUM_WR_BLOCKS)!\n");
 			break;
 		}
 		case SPI_A_CMD_23:
 			// SET_WR_BLK_ERASE_COUNT -		R1	Set the number of write blocks to be pre-erased before writing.
 		{
+			// NOT YET IMPLEMENTED!!!
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command ACMD23 (SET_WR_BLK_ERASE_COUNT)!\n");
 			break;
 		}
 		case SPI_A_CMD_41: // Required by MMFS for the BBC Micr
@@ -741,20 +798,32 @@ bool SDCard::execAppCmd(vector <uint8_t> &request)
 			//
 			// Required by MMFS for the BBC Micro
 		{
+			// NOT YET IMPLEMENTED!!!
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command ACMD41 (SD_SEND_OP_COND)!\n");
 			break;
 		}
 		case SPI_A_CMD_42:
 			// SET_CLR_CARD_DETECT -		R1	Connect ('1')/Disconnect ('0') the 50 KOhm pull-up resistor on CS (pin 1) of the card.
 		{
+			// NOT YET IMPLEMENTED!!!
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command ACMD42 (SET_CLR_CARD_DETECT)!\n");
 			break;
 		}
 		case SPI_A_CMD_51:
 			// SEND_SCR -					R1	Reads the SD Configuration Register (SCR).
 		{
+			// NOT YET IMPLEMENTED!!!
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Non-supported SPI command ACMD51 (SEND_SCR)!\n");
 			break;
 		}
 		default:
 		{
+			// ERROR !!!
+			prepareFailedReponse();
+			DBG_LOG(this, DBG_SPI, "Illegal SPI Application command " + to_string(cmd) + "\n");
 			break;
 		}
 		}

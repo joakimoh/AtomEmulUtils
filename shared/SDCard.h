@@ -160,6 +160,8 @@ private:
 		int				nBytes;
 	} SPIRspInfo;
 
+	const vector<uint8_t> NegR1Rsp = { 0xff, 0x4, 0xff }; // Illegal command bit set
+
 	// Response types including default content (with header '1...1' and trailing '1...1')
 	map< SPIRspEnum, SPIRspInfo> spiRspInfo = {
 		{SPI_RSP_R1,	{{0xff, 0x01, 0xff},								3}},
@@ -200,6 +202,7 @@ private:
 	void recover();
 	void prepareNextCmd();
 	void initResponse(vector <uint8_t>& request);
+	void prepareFailedReponse();
 	bool processMasterData();
 
 public:
