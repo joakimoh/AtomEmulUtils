@@ -11,29 +11,30 @@
 class P6502;
 class Device;
 class DevicePort;
-class Devices;
+class Devices; 
 
 using namespace std;
 
 typedef int DebugLevel;
-#define	DBG_NONE			0x0000
-#define	DBG_ERROR			0x0001
-#define	DBG_VERBOSE			0x0002
-#define	DBG_WARNING			0x0004
-#define	DBG_6502			0x0008
-#define DBG_PORT			0x0010
-#define DBG_INTERRUPTS		0x0020	// Interrupts & reset
-#define DBG_KEYBOARD		0x0040
-#define DBG_VDU				0x0080
-#define DBG_IO_PERIPHERAL	0x0100
-#define	DBG_DEVICE			0x0200
-#define DBG_TRGGERING		0x0400	// TRIGGERING
-#define DBG_TIME			0x0800
-#define DBG_AUDIO			0x1000
-#define DBG_TAPE			0x2000
-#define DBG_RESET			0x4000	// Only reset
-#define DBG_SPI				0x8000
-#define	DBG_ALL				0xffff
+#define	DBG_NONE			0x00000
+#define	DBG_ERROR			0x00001
+#define	DBG_VERBOSE			0x00002
+#define	DBG_WARNING			0x00004
+#define	DBG_6502			0x00008
+#define DBG_PORT			0x00010
+#define DBG_INTERRUPTS		0x00020	// Interrupts & reset
+#define DBG_KEYBOARD		0x00040
+#define DBG_VDU				0x00080
+#define DBG_IO_PERIPHERAL	0x00100
+#define	DBG_DEVICE			0x00200
+#define DBG_TRGGERING		0x00400	// TRIGGERING
+#define DBG_TIME			0x00800
+#define DBG_AUDIO			0x01000
+#define DBG_TAPE			0x02000
+#define DBG_RESET			0x04000	// Only reset
+#define DBG_SPI				0x08000
+#define DBG_ADC				0x10000
+#define	DBG_ALL				0xfffff
 
 #define DBG_ON
 //#define TIME_DEBUG

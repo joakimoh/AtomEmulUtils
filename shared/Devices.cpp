@@ -30,6 +30,7 @@
 #include "ConnectionManager.h"
 #include "Devices.h"
 #include "SDCard.h"
+#include "ADC7002.h"
 
 using namespace std;
 
@@ -343,6 +344,14 @@ Devices::Devices(
 					SDCard* card = new SDCard(dev_name, cpuClock, card_file_path, mDM, &connection_manager);
 					mDevices.push_back(card);
 				}
+
+				else if (dev_type == "ADC7002") {
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
+					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					ADC7002* adc = new ADC7002(dev_name, cpuClock, dev_adr, dev_sz, wait_states, mDM, &connection_manager);
+					mDevices.push_back(adc);
+					}
 
 				else {
 					cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";

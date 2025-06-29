@@ -1,0 +1,144 @@
+#include "ADC7002.h"
+#include "Utility.h"
+#include <cmath>
+
+ADC7002::ADC7002(string name, double cpuClock, uint16_t adr, uint16_t sz, int waitStates, DebugManager* debugManager, ConnectionManager* connectionManager) :
+	MemoryMappedDevice(name, ADC_7002_DEV, OTHER_DEVICE, cpuClock, waitStates, adr, sz, debugManager, connectionManager)
+{
+	registerPort("CLK", IN_PORT, 0x01, CLK, &mCLK);	// CLK input
+	registerPort("EOC", OUT_PORT, 0x01, EOC, &mEOC);	// CLK input
+
+	mSpeed12 = (int)round(mSpeed12 * cpuClock / mCLK);
+	mSpeed8 = (int)round(mSpeed8 * cpuClock / mCLK);
+}
+
+bool ADC7002::advance(uint64_t stopCycle)
+{
+	while (mCycleCount < stopCycle) {
+
+		if (mConversion) {
+
+			if (mCycleCount - mStartCycleCount >= mSpeed) {
+				mConversion = false;
+				uint16_t range = (ADC_7002_CR_12_BIT ? 0x3ff : 0xff);
+				uint16_t data = mCHInput[ADC_7002_CR_CH]  * range;
+				mDataH = data & 0xff;
+				mDataL = (ADC_7002_CR_12_BIT ? (data >> 4) & 0xf0 : 0x00);
+
+				// Set the EOC bit and assert the EOC output
+				mSR |= ADC_7002_CR_EOC_BIT_MASK;
+				updatePort(EOC, 0x0);
+
+				DBG_LOG(this, DBG_ADC, (ADC_7002_CR_12_BIT ? "12-bit"s : "8-bit"s) + " conversion for channel " + to_string(ADC_7002_CR_CH) + 
+					" completed; input voltage " + to_string(mCHInput[ADC_7002_CR_CH]) + " gave value " + Utility::int2hexStr(data,3) + "\n");
+			}
+
+		}
+
+		mCycleCount++;
+	}
+
+	return true;
+}
+
+bool ADC7002::read(uint16_t adr, uint8_t& data) {
+
+	// Call parent class to trigger scheduling of other devices when applicable
+	if (!MemoryMappedDevice::triggerBeforeRead(adr, data))
+		return false;
+
+	switch (adr & 0x3) {
+	case 0x0:
+		// Status Register
+	{
+		data = mSR;
+	}
+	case 0x1:
+	{
+		// Data High (b7:b0 of conversion data)
+		data = mDataH;
+
+		// Clear EOC bit and deassert the EOC output
+		mSR &= ~ADC_7002_CR_EOC_BIT_MASK;
+		updatePort(EOC, 0x1);
+
+		//DBG_LOG(this, DBG_ADC, "Clear EOC bit and deassert EOC output\n");
+
+		break;
+	}
+	case 0x2:
+	case 0x3:
+	{
+		// Data Low (b11:b8 of conversion data)
+		data = mDataL;
+		break;
+	}
+	default:
+		break;
+	}
+
+	return true;
+}
+
+bool ADC7002::dump(uint16_t adr, uint8_t& data)
+{
+	data = 0xff;
+	switch (adr & 0x3) {
+	case 0x0:
+		// Status Register
+		data = mSR;
+		break;
+	case 0x1:
+		// Data High (b7:b0 of conversion data)
+		data = mDataH;
+		break;
+	case 0x2:
+	case 0x3:
+	{
+		// Data Low (b11:b8 of conversion data)
+		data = mDataL;
+		break;
+	}
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+bool ADC7002::write(uint16_t adr, uint8_t data)
+{
+	switch (adr & 0x3) {
+	case 0x0:
+		// Control Register
+	{
+		mCR = data;
+		mConversionCount = 0;
+		mConversion = true;
+		mSpeed = (ADC_7002_CR_12_BIT ? mSpeed12 : mSpeed8);
+		mStartCycleCount = mCycleCount;
+
+		DBG_LOG(this, DBG_ADC, "Start "s + (ADC_7002_CR_12_BIT?"12-bit"s:"8-bit"s) + " conversion for channel " + to_string(ADC_7002_CR_CH) + "\n");
+	}
+	case 0x3:
+	{
+		// Test Mode
+		break;
+	}
+	default:
+		break;
+	}
+
+	// Call parent class to trigger scheduling of other devices when applicable
+	return MemoryMappedDevice::triggerAfterWrite(adr, data);
+}
+
+bool ADC7002::setChannelVoltage(int channel, double voltage)
+{
+	if (channel >= 0 && channel < 4 && voltage >= 0 && voltage <= mVREF) {
+		mCHInput[channel] = voltage;
+		return true;
+	}
+
+	return false;
+}

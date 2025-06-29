@@ -76,6 +76,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "\t'c' cassette tape I/O\n";
 	cout << "\t'x' measuring execution time of the different components\n";
 	cout << "\t'S' SPI devices\n";
+	cout << "\t'C' ADC devices\n";
 	cout << "\t'A' all the above\n\n";
 }
 
@@ -232,6 +233,8 @@ ArgParser::ArgParser(int argc, const char* argv[])
 				debugManager.setDebugLevel(DBG_ALL);
 			if (strstr(argv[a], "S") != NULL)
 				debugManager.setDebugLevel(DBG_SPI);
+			if (strstr(argv[a], "C") != NULL)
+				debugManager.setDebugLevel(DBG_ADC);
 		}
 		else if (strcmp(argv[a], "-port") == 0) {
 			a++;

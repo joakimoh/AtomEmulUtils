@@ -8,7 +8,7 @@ add_library(
 	 "VDU6847.h"  "PIA8255.h"  "ROM.h"  "RAM.h" "Device.h" "Tokeniser.h" "DebugManager.h" "GUI.h" "TapeRecorder.h" "AtomSpeaker.h" "VideoDisplayUnit.h"
 	"VideoDisplayUnit.h" "SoundDevice.h"  "BeebKeyboard.h" "CRTC6845.h" "TT5050.h"
 	"BeebRomSel.h"  "ACIA6850.h" "Utility.h"  "BeebSerialULA.h" "VideoSettings.h" 
-	 "ConnectionManager.h"  "Devices.h" "SDCard.cpp" "SDCard.h")
+	 "ConnectionManager.h"  "Devices.h" "SDCard.cpp" "SDCard.h" "ADC7002.cpp" "ADC7002.h")
 
 # Locate zlib
 find_package(ZLIB REQUIRED)
@@ -24,6 +24,6 @@ include_directories(
 set(installable_libs shared)
 install(TARGETS ${installable_libs} DESTINATION lib)
 install(
-	FILES Codec6502.h P6502.h Device.h PIA8255.h RAM.h ROM.h VDU6847.h VIA6522.h zpipe.h CSWCodec.h TapeRecorder.h VideoDataUnit.h Sounddevice.h
+	FILES Codec6502.h P6502.h Device.h PIA8255.h RAM.h ROM.h VDU6847.h VIA6522.h zpipe.h CSWCodec.h TapeRecorder.h VideoDataUnit.h Sounddevice.h ADC7002.h
 	DESTINATION include/shared
 )
