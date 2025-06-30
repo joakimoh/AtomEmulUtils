@@ -53,7 +53,7 @@ bool VIA6522::reset()
 	mIRA2 = 0x0;
 
 	mPA = 0x0;
-	mPB = 0x0;
+	mPB = 0xff;
 	mCA = 0x0;
 	mCB = 0x0;
 

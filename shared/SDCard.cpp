@@ -17,10 +17,6 @@ SDCard::SDCard(string name, double cpuClock, string cardImageFile, DebugManager*
 
 	mSlaveDataToken.resize(512);
 
-	if (cardImageFile != "" && !insertCard(cardImageFile)) {
-			throw runtime_error("couldn't open  SD Card Image");
-	}
-
 }
 
 SDCard::~SDCard()

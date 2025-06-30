@@ -40,8 +40,8 @@ ALLEGRO_MENU_INFO main_menu[] = {
          ALLEGRO_END_OF_MENU,
 
          ALLEGRO_START_OF_MENU("&Memory Card", MMC_ID),
-         { "Eject",             MMC_EJECT_ID,           0,                          NULL },
-         { "Insert",            MMC_INSERT_ID,          ALLEGRO_MENU_ITEM_DISABLED, NULL },
+         { "Eject",             MMC_EJECT_ID,           ALLEGRO_MENU_ITEM_DISABLED, NULL },
+         { "Insert",            MMC_INSERT_ID,          0,                          NULL },
 
          ALLEGRO_END_OF_MENU,
 

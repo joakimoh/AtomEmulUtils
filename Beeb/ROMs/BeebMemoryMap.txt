@@ -119,5 +119,6 @@ SCHED	MMFS_CARD	NONE
 //
 // Initialisation of external ports
 //
-INIT	KB:SW		0										// Keyboard switches; set to start with Mode 7 (value 0)
-INIT	VDU:INV		1										// Inverted screen for non-teletext modes OFF (value 1) or ON (value 0)
+INIT	KB:SW			0									// Keyboard switches; set to start with Mode 7 (value 0)
+INIT	VDU:INV			1									// Inverted screen for non-teletext modes OFF (value 1) or ON (value 0)
+INIT	SYS_VIA:PB		48 // 0x30							// Set System VIA PB5:PB4 High (as they should be when not connected to a game pad)

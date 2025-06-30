@@ -60,9 +60,10 @@ bool ADC7002::read(uint16_t adr, uint8_t& data) {
 
 		// Clear EOC bit and deassert the EOC output
 		mSR &= ~ADC_7002_CR_EOC_BIT_MASK;
+		uint8_t p_EOC = mEOC;
 		updatePort(EOC, 0x1);
 
-		//DBG_LOG(this, DBG_ADC, "Clear EOC bit and deassert EOC output\n");
+		DBG_LOG_COND(mEOC != p_EOC, this, DBG_ADC, "Clear EOC bit and deassert EOC output\n");
 
 		break;
 	}
