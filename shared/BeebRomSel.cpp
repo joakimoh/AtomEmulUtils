@@ -3,6 +3,15 @@
 #include <iostream>
 #include <filesystem>
 
+//
+// Emulates IC20 (74LS139) and IC76 (74LS163) on the BBC Model B.
+// 
+// These circuits together implements an addressable 4-bit latch that selects 16KB sideways ROMS and RAMs.
+// There are 16 slots but on an unmodified BBC Micro Model B, only the upper slots (12-15) can be selected.
+// These on board sideways ROM sockets are IC52 (slot 12), IC88 (slot 13), IC100 (slot 14), IC101 (slot 15),
+// left to right on the board after the OS socket.
+//
+
 BeebROMSel::BeebROMSel(string name, double cpuClock, uint8_t waitStates, uint16_t adr, DebugManager  *debugManager, ConnectionManager * connectionManager) :
 	MemoryMappedDevice(name, BEEB_PAGED_ROM_SEL_DEV, MEMORY_DEVICE, cpuClock, waitStates, adr, 1, debugManager, connectionManager)
 {

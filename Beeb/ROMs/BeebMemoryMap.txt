@@ -6,6 +6,10 @@ CLOCK	2.0	// CPU clock in MHz
 ADD	DRAM			RAM32K		0000	8000	0						// 32kB RAM	0000 -	7fff
 ADD	ROM 			BASIC		8000	4000	0			BASIC2.rom	// Paged ROM #15 (IC101 SE)	8000 - bfff
 ADD	ROM				MMFS		8000	4000	0			MMFS.rom	// Paged ROM #13 (IC52 NW)	8000 - bfff
+//ADD SRAM			SWRAM0		8000	4000	0						// Paged Sideways RAM #0	8000 - bfff
+//ADD SRAM			SWRAM1		8000	4000	0						// Paged Sideways RAM #1	8000 - bfff
+//ADD SRAM			SWRAM2		8000	4000	0						// Paged Sideways RAM #2	8000 - bfff
+//ADD SRAM			SWRAM3		8000	4000	0						// Paged Sideways RAM #3	8000 - bfff
 ADD	ROM				OS			c000	4000	0			OS12.rom	// OS (IC51)		 		c000 -	ffff
 GAP					OS			fc00	0300							// Gap in OS ROM space between fc00-ff00	
 //
