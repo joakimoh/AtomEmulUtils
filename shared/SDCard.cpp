@@ -612,7 +612,7 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 			mSlaveDataToken[data_response_bytes-1] = 0xff;	// always end with a high level
 
 			// Read block into response (emulation only)
-			mBlockReadAdr = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[1];
+			mBlockReadAdr = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[4];
 			mCardImage->seekg(mBlockReadAdr, mCardImage->beg);
 			mCardImage->read((char*)&mSlaveDataToken[1], content_bytes);
 
