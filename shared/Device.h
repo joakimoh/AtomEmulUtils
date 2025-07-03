@@ -80,7 +80,8 @@ public:
 	PortDirection			dir = IO_PORT;			// I/O direction
 	uint8_t					ioDirMask = 0xff;			// I/O direction for the bits of a bidirectional port:a set bit indicates OUT, a cleared bit IN
 	uint8_t					mask = 0x1;				// mask to select only the implemented bits
-	uint8_t	*				val;					// pointer to variable holding the port's value
+	uint8_t	*				valOut = NULL;			// pointer to variable holding an output port's value (or a bidirectional port's output value)
+	uint8_t *				valIn = NULL;			// pointer to variabel holding an input port's value (or a bidirectional port's input value)
 	vector<InputReference>	inputs;					// connected inputs (used only if the port is an output port)
 	vector<OutputReference> portSources;			// Connected outputs - used if more than one device connects to a port (e.g., an IRQ input connected to many devices)
 	bool					arbitration = false;	// true if more than one device is connected to at least to one bit slice of the port (for a destination port)
@@ -202,6 +203,7 @@ public:
 
 	// Used by a device to make a port available for routing
 	bool registerPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* val);
+	bool registerPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* valIn, uint8_t* valOut);
 
 	uint64_t getCycleCount() { return mCycleCount; }
 

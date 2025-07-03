@@ -118,7 +118,7 @@ private:
 	Key mBreakKey = { ALLEGRO_KEY_PAUSE, "BREAK" };
 
 	// Ports that can be connected to other devices
-	int  SW,ENA, COL_SEL, ROW_SEL, ROW, BREAK, PRESSED;
+	int  SW, ENA, COL_SEL, ROW_SEL, ROW, BREAK, PRESSED;
 	uint8_t mENA = 0x0;
 	uint8_t pENA = 0x0;
 	uint8_t mCOL_SEL = 0x0;			// Column Select: 0-9 BCD-coded;								connected to VIA 6522 (IC3) PA0:3 output

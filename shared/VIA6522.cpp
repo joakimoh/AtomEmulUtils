@@ -24,10 +24,10 @@ VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8
 	// Specify ports that can be connected to other devices
 	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
 	registerPort("IRQ", OUT_PORT, 0x01, IRQ, &mIRQ);
-	registerPort("PA", IO_PORT, 0xff, PA, &mPA);
-	registerPort("PB", IO_PORT, 0xff, PB, &mPB);
-	registerPort("CA", IO_PORT, 0x03, CA, &mCA);
-	registerPort("CB", IO_PORT, 0x03, CB, &mCB);
+	registerPort("PA", IO_PORT, 0xff, PA, &mPAIn, &mPAOut);
+	registerPort("PB", IO_PORT, 0xff, PB, &mPBIn, &mPBOut);
+	registerPort("CA", IO_PORT, 0x03, CA, &mCAIn, &mCAOut);
+	registerPort("CB", IO_PORT, 0x03, CB, &mCBIn, &mCBOut);
 
 	DBG_LOG(this, DBG_VERBOSE, "VIA 6522 '" + name + "' at address 0x" + Utility::int2hexStr(mMemorySpace.adr,4) +
 		" to 0x" + Utility::int2hexStr(mMemorySpace.adr + mMemorySpace.sz - 1,4) + " (" + to_string(mMemorySpace.sz) + " bytes)\n");
@@ -38,10 +38,7 @@ bool VIA6522::reset()
 {
 	Device::reset();
 
-	mIRB = 0x0;
-	mORB = 0x0;	
-	mIRA = 0x0;
-	mORA = 0x0;	
+	
 	mDDRB = 0x0;
 	mDDRA = 0x0;
 	mShiftRegister = 0x0;
@@ -49,13 +46,11 @@ bool VIA6522::reset()
 	mPCR = 0x0;
 	mIFR = 0x0;
 	mIER = 0x0;
-	mORA2 = 0x0;
-	mIRA2 = 0x0;
 
-	mPA = 0x0;
-	mPB = 0xff;
-	mCA = 0x0;
-	mCB = 0x0;
+	mPAOut = 0xff;
+	mPBOut = 0xff;
+	mCAOut = 0xff;
+	mCBOut = 0xff;
 
 	pIFR = 0xff;
 
@@ -99,28 +94,32 @@ bool VIA6522::advance(uint64_t stopCycle)
 		mCycleCount += max(1, one_phi2_cycle);
 
 		// Ports
-		uint8_t CA1 = mCA & 0x1;
-		uint8_t pCA1 = pCA & 0x1;
-		uint8_t CA2 = (mCA >> 1) & 0x1;
-		uint8_t pCA2 = (pCA >> 1) & 0x1;
-		uint8_t CB1 = mCB & 0x1;
-		uint8_t pCB1 = pCB & 0x1;
-		uint8_t CB2 = (mCB >> 1) & 0x1;
-		uint8_t pCB2 = (pCB >> 1) & 0x1;
+		uint8_t CA1_In = mCAIn & 0x1;
+		uint8_t CA1_Out = mCAOut & 0x1;
+		uint8_t pCA1_In = pCAIn & 0x1;
+		uint8_t CA2_In = (mCAIn >> 1) & 0x1;
+		uint8_t CA2_Out = (mCAOut >> 1) & 0x1;
+		uint8_t pCA2_In = (pCAIn >> 1) & 0x1;
+		uint8_t CB1_In = mCBIn & 0x1;
+		uint8_t CB1_Out = mCBOut & 0x1;
+		uint8_t pCB1_In = pCBIn & 0x1;
+		uint8_t CB2_In = (mCBIn >> 1) & 0x1;
+		uint8_t CB2_Out = (mCBOut >> 1) & 0x1;
+		uint8_t pCB2_In = (pCBIn >> 1) & 0x1;
 
-		uint8_t PB6 = (mPB >> 6) & 0x1;
-		uint8_t pPB6 = (pPB >> 6) & 0x1;
+		uint8_t PB6_In = (mPBIn >> 6) & 0x1;
+		uint8_t pPB6_In = (pPBIn >> 6) & 0x1;
 
 
-		if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL) && (mCA & 0x2) != (pCA & 0x2)) {
-			DBG_LOG(this, DBG_IO_PERIPHERAL, "CA1 = " + to_string(mCA & 0x1) + ", CA2 = " + to_string((mCA >> 1) & 0x1) + "\n");
+		if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL) && (mCAIn & 0x2) != (pCAIn & 0x2)) {
+			DBG_LOG(this, DBG_IO_PERIPHERAL, "CA1 (in) = " + to_string(mCAIn & 0x1) + ", CA2 (in) = " + to_string((mCAIn >> 1) & 0x1) + "\n");
 		}
 
-		if (ACR_PA_LATCH && CA1) // PA shall be latched on a high CA1
-			mPA_latched = mPA;
+		if (ACR_PA_LATCH && CA1_In) // PA shall be latched on a high CA1
+			mPA_latched = mPAIn;
 
-		if (ACR_PB_LATCH && CB1) // PB shall be latched on a high CB1
-			mPB_latched = mPB;
+		if (ACR_PB_LATCH && CB1_In) // PB shall be latched on a high CB1
+			mPB_latched = mPBIn;
 
 
 		//
@@ -138,8 +137,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 			switch (shift_mode) {
 
 			case 0x0:	// Shift in on positive edge of CB1 - no interrupt flag set
-				mCB1ShiftPulseLevel = CB1;
-				DBG_LOG_COND(mCB1ShiftPulseLevel != CB1, this, DBG_IO_PERIPHERAL, "Mode 0: CB1 shift in pulse '" + to_string(mCB1ShiftPulseLevel) + "' generated from CB1 input...\n");
+				mCB1ShiftPulseLevel = CB1_In;
+				DBG_LOG_COND(mCB1ShiftPulseLevel != CB1_In, this, DBG_IO_PERIPHERAL, "Mode 0: CB1 shift in pulse '" + to_string(mCB1ShiftPulseLevel) + "' generated from CB1 input...\n");
 				mShiftInterrupt = false;
 				break;
 
@@ -161,8 +160,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 				break;
 
 			case 0x3:	// Shift in under control of external clock (on CB1) -  - interrupt flag set
-				DBG_LOG_COND(mCB1ShiftPulseLevel != CB1, this, DBG_IO_PERIPHERAL, "Mode 3: CB1 shift in pulse '" + to_string(mCB1ShiftPulseLevel) + "' generated from CB1 input...\n"); 
-				mCB1ShiftPulseLevel = CB1;
+				DBG_LOG_COND(mCB1ShiftPulseLevel != CB1_In, this, DBG_IO_PERIPHERAL, "Mode 3: CB1 shift in pulse '" + to_string(mCB1ShiftPulseLevel) + "' generated from CB1 input...\n"); 
+				mCB1ShiftPulseLevel = CB1_In;
 				mShiftInterrupt = true;	
 				break;
 
@@ -190,8 +189,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 				break;
 
 			case 0x7:	// Shift out under control of external clock (CB1 input)
-				mCB1ShiftPulseLevel = CB1;
-				DBG_LOG_COND(mCB1ShiftPulseLevel != CB1, this, DBG_IO_PERIPHERAL, "Mode 7: CB1 shift out pulse '" + to_string(mCB1ShiftPulseLevel) + "' generated from CB1 input...\n");
+				mCB1ShiftPulseLevel = CB1_In;
+				DBG_LOG_COND(mCB1ShiftPulseLevel != CB1_In, this, DBG_IO_PERIPHERAL, "Mode 7: CB1 shift out pulse '" + to_string(mCB1ShiftPulseLevel) + "' generated from CB1 input...\n");
 				break;
 
 			}
@@ -209,15 +208,15 @@ bool VIA6522::advance(uint64_t stopCycle)
 			{
 				// Update CB1 shift clock output to trigger a connected device to update the CB2 data input for shift in operations
 				if (mShiftGenerateCB1) {
-					updatePort(CB, (mCB & ~0x1) | mCB1ShiftPulseLevel);
-					CB1 = mCB & 0x1;
-					CB2 = (mCB >> 1) & 0x1;
+					updatePort(CB, (mCBOut & ~0x1) | mCB1ShiftPulseLevel);
+					CB1_Out = mCBOut & 0x1;
+					CB2_In = (mCBIn >> 1) & 0x1;
 				}
 
 				// Shift in CB2 data for a low to high shift pulse transition
 				if (shift_pulse_goes_high) { // shift in on HIGH CB1 shift pulse
-					mShiftRegister = (mShiftRegister << 1) | CB2;
-					DBG_LOG(this, DBG_IO_PERIPHERAL, "Shift Mode " + to_string(shift_mode) + ": " + to_string(mShifts+1) + "th SHIFT IN from CB2 = '" + Utility::int2hexStr(CB2, 1) + "' => Shift Register = 0x" +
+					mShiftRegister = (mShiftRegister << 1) | CB2_In;
+					DBG_LOG(this, DBG_IO_PERIPHERAL, "Shift Mode " + to_string(shift_mode) + ": " + to_string(mShifts+1) + "th SHIFT IN from CB2 = '" + Utility::int2hexStr(CB2_In, 1) + "' => Shift Register = 0x" +
 						Utility::int2hexStr(mShiftRegister, 2) + "\n");
 					mShifts = (mShifts + 1) % 8;
 					if (shift_mode != 0) { // Continuous shifting for mode 0 => restart of shifting every 8 bits not applicable
@@ -238,12 +237,12 @@ bool VIA6522::advance(uint64_t stopCycle)
 				// Shift out data on CB2 for a low to high shift pulse transition
 				if (shift_pulse_goes_high) {
 					DBG_LOG(this, DBG_IO_PERIPHERAL, "SHIFT OUT\n");
-					updatePort(CB, (mCB & ~0x2) | ((mShiftRegister & 0x1) << 1)); // output b0 on CB2
-					CB1 = mCB & 0x1;
-					CB2 = (mCB >> 1) & 0x1;
+					updatePort(CB, (mCBOut & ~0x2) | ((mShiftRegister & 0x1) << 1)); // output b0 on CB2
+					CB1_Out = mCBOut & 0x1;
+					CB2_Out = (mCBOut >> 1) & 0x1;
 					mShiftRegister = (mShiftRegister >> 1) | ((mShiftRegister << 7) & 0x80); // shift register right one bit with b0 going into b7
 					mShifts = (mShifts + 1) % 8;
-					DBG_LOG(this, DBG_IO_PERIPHERAL, "Shift Mode " + to_string(shift_mode) + ": " + to_string(mShifts + 1) + " SHIFT OUT from CB2 = '" + Utility::int2hexStr(CB2, 1) + "' => Shift Register = 0x" +
+					DBG_LOG(this, DBG_IO_PERIPHERAL, "Shift Mode " + to_string(shift_mode) + ": " + to_string(mShifts + 1) + " SHIFT OUT from CB2 = '" + Utility::int2hexStr(CB2_Out, 1) + "' => Shift Register = 0x" +
 						Utility::int2hexStr(mShiftRegister, 2) + "\n");
 					if (mShifts == 0) {
 						if (mShiftInterrupt)
@@ -255,9 +254,9 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 				// Update CB1 shift clock output to trigger a connected device to read the now updated CB2 data output for shift out operations
 				if (mShiftGenerateCB1) {
-					updatePort(CB, (mCB & ~0x1) | mCB1ShiftPulseLevel);
-					CB1 = mCB & 0x1;
-					CB2 = (mCB >> 1) & 0x1;
+					updatePort(CB, (mCBOut & ~0x1) | mCB1ShiftPulseLevel);
+					CB1_Out = mCBOut & 0x1;
+					CB2_Out = (mCBOut >> 1) & 0x1;
 				}
 				break;
 			}
@@ -302,11 +301,11 @@ bool VIA6522::advance(uint64_t stopCycle)
 					break;
 				case 0x2:	// One-shot Interrupt (One-Shot Mode), PB7 low when timer starts and back high when timer reaches zero
 					mTimer1Running = false;
-					updatePort(PB, mPB | 0x80);
+					updatePort(PB, mPBOut | 0x80);
 					break;
 				case 0x3:	// Continuous interrupts (Fre-Run Mode), PB7 toggled
 					mTimer1Counter = (mTimer1LatchHigh << 8) | mTimer1LatchLow;
-					updatePort(PB, mPB ^ 0x80);
+					updatePort(PB, mPBOut ^ 0x80);
 					break;
 				default:
 					break;
@@ -323,7 +322,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 		case 0x1:	// Count down with pulses on PB6
 		{
 
-			if (PB6 != pPB6) {
+			if (PB6_In != pPB6_In) {
 				mTimer2Counter = mTimer2Counter - 1;
 			}
 			break;
@@ -340,7 +339,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 		}
 
 		// If no handshaking
-		mIRA2 = mPA;
+		//mIRA2 = mPAIn;
 
 
 
@@ -353,13 +352,13 @@ bool VIA6522::advance(uint64_t stopCycle)
 		switch (CA2_mode) {
 		case 0x0:	// Input, negative edge
 		case 0x1:	// Interrupt input, negative edge
-			if (!CA2 && CA2 != pCA2) {
+			if (!CA2_In && CA2_In != pCA2_In) {
 				setIFR(IFR_CA2_MASK);
 			}
 			break;
 		case 0x2:	// Input, positive edge
 		case 0x3:	// Interrupt input, positive edge
-			if (CA2 && CA2 != pCA2) {
+			if (CA2_In && CA2_In != pCA2_In) {
 				setIFR(IFR_CA2_MASK);
 			}
 			break;
@@ -378,13 +377,13 @@ bool VIA6522::advance(uint64_t stopCycle)
 		switch (CB2_mode) {
 		case 0x0:	// Input, negative edge
 		case 0x1:	// Interrupt input, negative edge
-			if (!CB2 && CB2 != pCB2) {
+			if (!CB2_In && CB2_In != pCB2_In) {
 				setIFR(IFR_CB2_MASK);
 			}
 			break;
 		case 0x2:	// Input, positive edge
 		case 0x3:	// Interrupt input, positive edge
-			if (CB2 && CB2 != pCB2) {
+			if (CB2_In && CB2_In != pCB2_In) {
 				setIFR(IFR_CB2_MASK);
 			}
 			break;
@@ -406,13 +405,13 @@ bool VIA6522::advance(uint64_t stopCycle)
 		// Generate IRQ if enabled.
 		bool CA1_edge = false;
 		if (CA1_mode == 0x0) { // Interrupt input, negative edge
-			if (!CA1 && CA1 != pCA1) {
+			if (!CA1_In && CA1_In != pCA1_In) {
 				setIFR(IFR_CA1_MASK);
 				CA1_edge = true;
 			}
 		}
 		else { // Interrupt input, positive edge
-			if (CA1 && CA1 != pCA1) {
+			if (CA1_In && CA1_In != pCA1_In) {
 				setIFR(IFR_CA1_MASK);
 				CA1_edge = true;
 			}
@@ -424,9 +423,9 @@ bool VIA6522::advance(uint64_t stopCycle)
 			switch (CA2_mode) {
 			case 0x4:	// Handshake output
 			case 0x5:	// Pulse output
-				updatePort(CA, mCA | 0x2);
-				CA1 = mCA & 0x1;
-				CA2 = (mCA >> 1) & 0x1;
+				updatePort(CA, mCAOut | 0x2);
+				CA1_Out = mCAOut & 0x1;
+				CA2_Out = (mCAOut >> 1) & 0x1;
 				break;
 			default:
 				break;
@@ -443,14 +442,14 @@ bool VIA6522::advance(uint64_t stopCycle)
 		// Check for "Data Taken" input CB1. 
 		bool CB1_edge = false;
 		if (CB1_mode == 0x0) { // Interrupt input, negative edge
-			if (!CB1 && CB1 != pCB1) {
+			if (!CB1_In && CB1_In != pCB1_In) {
 				setIFR(IFR_CB1_MASK);
 				CB1_edge = true;
 			}
 
 		}
 		else { // Interrupt input, positive edge
-			if (CB1 && CB1 != pCB1) {
+			if (CB1_In && CB1_In != pCB1_In) {
 				setIFR(IFR_CB1_MASK);
 				CB1_edge = true;
 			}
@@ -461,19 +460,19 @@ bool VIA6522::advance(uint64_t stopCycle)
 			switch (CB2_mode) {
 			case 0x4:	// Handshake output
 			case 0x5:	// Pulse output
-				updatePort(CB, mCB | 0x2);
-				CB1 = mCB & 0x1;
-				CB2 = (mCB >> 1) & 0x1;
+				updatePort(CB, mCBOut | 0x2);
+				CB1_Out = mCBOut & 0x1;
+				CB2_Out = (mCBOut >> 1) & 0x1;
 				break;
 			default:
 				break;
 			}
 		}
 
-		pCA = mCA;
-		pCB = mCB;
-		pPA = mPA;
-		pPB = mPB;
+		pCAIn = mCAIn;
+		pCBIn = mCBIn;
+		pPAIn = mPAIn;
+		pPBIn = mPBIn;
 
 
 		pCB1ShiftPulseLevel = mCB1ShiftPulseLevel;
@@ -542,12 +541,12 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 	switch (a) {
 
 	case IRB:
-		// Input Register B - if PBi is acting as input: if latching is disabled (ACR b1=0) IRB reflects PB; if not (ACR b1=1) the PB value latched by CB1
+		// Input Register B - if PB is acting as input: if latching is disabled (ACR b1=0) IRB reflects PB; if not (ACR b1=1) the PB value latched by CB1
 	{
 		if (mACR & 0x2) // PB is latched
-			data = (mIRB & mDDRB) | (mPB_latched & ~mDDRB);
+			data = (mPBOut & mDDRB) | (mPB_latched & ~mDDRB);
 		else
-			data = (mIRB & mDDRB) | (mPB & ~mDDRB);
+			data = (mPBOut & mDDRB) | (mPBIn & ~mDDRB);
 		break;
 
 	}
@@ -557,9 +556,9 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 	{
 		// Get latched or non-latched Port A data
 		if (mACR & 0x1) // PA is latched
-			data = (mIRA & mDDRA) | (mPA_latched & ~mDDRA);
+			data = (mPAOut & mDDRA) | (mPA_latched & ~mDDRA);
 		else
-			data = (mIRA & mDDRA) | (mPA & ~mDDRA);
+			data = (mPAOut & mDDRA) | (mPAIn & ~mDDRA);
 
 		// Clear IFR's CA2 active edge bit if read handshaking (without interrupt) was configured
 		uint8_t CA2_mode = (mPCR >> 1) & 0x7;
@@ -682,8 +681,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 	case IRA2:
 		// Input Register A when no handshaking
 		{
-			mIRA2 = (mIRA2 & mDDRA) | (mPA & ~mDDRA);
-		data = mIRA2;
+		data = (mPAOut & mDDRA) | (mPAIn & ~mDDRA);
 		break;
 	}
 
@@ -709,9 +707,9 @@ bool VIA6522::dump(uint16_t adr, uint8_t& data)
 			// Input Register B - if PBi is acting as input: if latching is disabled (ACR b1=0) IRB reflects PB; if not (ACR b1=1) the PB value latched by CB1
 		{
 			if (mACR & 0x2) // PB is latched
-				data = (mIRB & mDDRB) | (mPB_latched & ~mDDRB);
+				data = (mPBOut & mDDRB) | (mPB_latched & ~mDDRB);
 			else
-				data = (mIRB & mDDRB) | (mPB & ~mDDRB);
+				data = (mPBOut & mDDRB) | (mPBIn & ~mDDRB);
 			break;
 
 		}
@@ -721,9 +719,9 @@ bool VIA6522::dump(uint16_t adr, uint8_t& data)
 		{
 			// Get latched or non-latched Port A data
 			if (mACR & 0x1) // PA is latched
-				data = (mIRA & mDDRA) | (mPA_latched & ~mDDRA);
+				data = (mPAOut & mDDRA) | (mPA_latched & ~mDDRA);
 			else
-				data = (mIRA & mDDRA) | (mPA & ~mDDRA);
+				data = (mPAOut & mDDRA) | (mPAIn & ~mDDRA);
 
 
 			break;
@@ -804,9 +802,8 @@ bool VIA6522::dump(uint16_t adr, uint8_t& data)
 
 		case IRA2:
 			// Input Register A when no handshaking
-		{
-			mIRA2 = (mIRA2 & mDDRA) | (mPA & ~mDDRA);
-			data = mIRA2;
+		{ 
+			data = (mPAOut & mDDRA) | (mPAIn & ~mDDRA);;
 			break;
 		}
 
@@ -843,22 +840,22 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 			break;
 		}
 
-		uint8_t oPB = mPB;
+		uint8_t oPB = mPBOut;
 		// PB 0x2
 		// data 0x3
 		// DDR 0xf
 		// (0x2 & ~0xf) | (0x3 & 0xf) = (0x2 & 0xf0) | 0x3 = 0x3;
-		if (!updatePort(PB, (mPB & ~mDDRB) | (data & mDDRB)))
+		if (!updatePort(PB, (mPBOut & ~mDDRB) | (data & mDDRB)))
 			return false;
 
-		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to PB with DDR 0x" + Utility::int2hexStr(mDDRB,2) + " and PB 0x" + Utility::int2hexStr(oPB,2) + " => 0x" + Utility::int2hexStr(mPB,2) + "\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to PB with DDR 0x" + Utility::int2hexStr(mDDRB,2) + " and PB 0x" + Utility::int2hexStr(oPB,2) + " => 0x" + Utility::int2hexStr(mPBOut,2) + "\n");
 		break;
 	}
 	case ORA:
 		// Output Register A - when PA acts as output, the bit value in ORA will be output on PA; otherwise the "old" value of PA will be kept
 	{
 
-		if (!updatePort(PA, (mPA & ~mDDRA) | (data & mDDRA)))
+		if (!updatePort(PA, (mPAOut & ~mDDRA) | (data & mDDRA)))
 			return false;
 		
 
@@ -930,10 +927,10 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		case 0x1:	// Continuous interrupts, PB7 inactive
 			break;
 		case 0x2:	// One-shot Interrupt, PB7 low when timer starts and back high when timer reaches zero
-			updatePort(PB, mPB & ~0x80);
+			updatePort(PB, mPBOut & ~0x80);
 			break;
 		case 0x3:	// Continuous interrupts, PB7 toggled
-			updatePort(PB, mPB ^ 0x80);
+			updatePort(PB, mPBOut ^ 0x80);
 			break;
 		default:
 			break;
@@ -1074,16 +1071,16 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Check for explicit CA2 control
 
 		if (CA2_mode == 0x6) // Low output
-			updatePort(CA, mCA & ~0x2);
+			updatePort(CA, mCAOut & ~0x2);
 		else if (CA2_mode == 0x7) // High output
-			updatePort(CA, mCA | 0x2);
+			updatePort(CA, mCAOut | 0x2);
 
 		// Check for explicit CB2 control
 
 		if (CB2_mode == 0x6) // Low output
-			updatePort(CB, mCB & ~0x2);
+			updatePort(CB, mCBOut & ~0x2);
 		else if (CB2_mode == 0x7) // High output
-			updatePort(CB, mCB | 0x2);
+			updatePort(CB, mCBOut | 0x2);
 
 		break;
 	}
@@ -1113,11 +1110,10 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	case ORA2:
 		// Output Register A when no handshaking
 	{
-		mORA2 = data;
-		uint8_t oPA = mPA;
-		updatePort(PA, (mPA & ~mDDRA) | (data & mDDRA));
+		uint8_t oPA = mPAOut;
+		updatePort(PA, (mPAOut & ~mDDRA) | (data & mDDRA));
 
-		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to PA with DDR 0x" + Utility::int2hexStr(mDDRA,2) + " and PA 0x" + Utility::int2hexStr(oPA,2) + " => 0x" + Utility::int2hexStr(mPA,2) + "\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to PA with DDR 0x" + Utility::int2hexStr(mDDRA,2) + " and PA 0x" + Utility::int2hexStr(oPA,2) + " => 0x" + Utility::int2hexStr(mPAOut,2) + "\n");
 
 
 		break;

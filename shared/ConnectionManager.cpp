@@ -78,8 +78,10 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 
 		// Get port
 		DevicePort * device_port;
-		if (!dev->getPortIndex(port_name, device_port))
-				return false;
+		if (!dev->getPortIndex(port_name, device_port)) {
+			cout << "Failed to find port '" << port_name << "' for device '" << dev->name << "'!\n";
+			return false;
+		}
 
 		// Get bit range (if present)
 		string hb_s, lb_s;

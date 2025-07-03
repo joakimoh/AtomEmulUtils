@@ -11,9 +11,9 @@ using namespace std;
 bool PIA8255::reset()
 {
 	Device::reset();
-	mPortA = 0xff;
-	mPortB = 0xff;
-	mPortC = 0xff;
+	mPAOut = 0xff;
+	mPBOut = 0xff;
+	mPBOut = 0xff;
 	mCR = 0x1b; // All ports are set to the input mode
 
 
@@ -193,9 +193,9 @@ PIA8255::PIA8255(string name, double cpuclock, uint8_t waitStates, uint16_t adr,
 {
 	// Specify ports that can be connected to other devices
 	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
-	registerPort("PortA", IO_PORT, 0xff, PIA_PORT_A, &mPortA);
-	registerPort("PortB", IO_PORT, 0xff, PIA_PORT_B, &mPortB);
-	registerPort("PortC", IO_PORT, 0xff, PIA_PORT_C, &mPortC);
+	registerPort("PortA", IO_PORT, 0xff, PIA_PORT_A, &mPAIn, &mPAOut);
+	registerPort("PortB", IO_PORT, 0xff, PIA_PORT_B, &mPBIn, &mPBOut);
+	registerPort("PortC", IO_PORT, 0xff, PIA_PORT_C, &mPCIn, &mPCOut);
 
 	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 		cout << "PIA 8255 at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
@@ -212,7 +212,8 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 		return false;
 
 	if (adr == PIA8255_PORT_A) {
-		data = mPortA;
+		bool port_A_input = (mCR >> 4) & 0x1;
+		data = (port_A_input ? mPAIn : mPAOut);
 	}
 
 	else if (adr == PIA8255_PORT_B)
@@ -221,7 +222,8 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 		//	6		CTRL key (low when pressed)
 		//	7		SHIFT key (low when pressed)
 	{		
-		data = mPortB;
+		bool port_B_input = (mCR >> 1) & 0x1;
+		data = (port_B_input ? mPBIn : mPBOut);
 	}
 
 	else if (adr == PIA8255_PORT_C)
@@ -239,8 +241,9 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 		//  6		Input		REPT key (low when pressed)
 		//  7		Input		60 Hz sync signal
 	{
-
-		data = mPortC;
+		bool port_C_lower_input = mCR & 0x1;
+		bool port_C_upper_input = (mCR >> 3) & 0x1;
+		data = (port_C_lower_input ? mPCIn & 0xf : mPCOut & 0xf) | (port_C_upper_input?mPCIn & 0xf0:mPCOut & 0xf0);
 
 		if (DBG_LEVEL_DEV(this, DBG_DEVICE))
 			cout << "PIA EXECUTED READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
@@ -257,12 +260,19 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 bool PIA8255::dump(uint16_t adr, uint8_t& data)
 {
 	if (selected(adr)) {
-		if (adr == PIA8255_PORT_A)
-			data = mPortA;
-		else if (adr == PIA8255_PORT_B)		
-			data = mPortB;
-		else if (adr == PIA8255_PORT_C)	
-			data = mPortC;
+		if (adr == PIA8255_PORT_A) {
+			bool port_A_input = (mCR >> 4) & 0x1;
+			data = (port_A_input ? mPAIn : 0xff);
+		}
+		else if (adr == PIA8255_PORT_B) {
+			bool port_A_input = (mCR >> 4) & 0x1;
+			data = (port_A_input ? mPAIn : 0xff);
+		}
+		else if (adr == PIA8255_PORT_C) {
+			bool port_C_lower_input = mCR & 0x1;
+			bool port_C_upper_input = (mCR >> 3) & 0x1;
+			data = (port_C_lower_input ? mPCIn & 0xf : 0xf) | (port_C_upper_input ? mPCIn & 0xf0 : 0xf0);
+		}
 		else
 			data = mCR;
 		return true;
@@ -312,18 +322,8 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		//  6		Input		REPT key (low when pressed)
 		//  7		Input		60 Hz sync signal
 	{
-		uint8_t new_portC = mPortC;
 
-		if (!port_C_lower_input) {
-			new_portC &= 0xf0;
-			new_portC |= data & 0x0f;
-		}
-		if (!port_C_upper_input) {
-			new_portC &= 0x0f;
-			new_portC |= (data << 4) & 0xf0;
-		}
-
-		updatePort(PIA_PORT_C, new_portC);
+		updatePort(PIA_PORT_C, data);
 
 		
 	}
@@ -385,12 +385,12 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 		{
 			uint8_t bit = (data >> 1) & 0x7;
 			uint8_t val = data & 0x1;
-			uint8_t port_C_data = mPortC;
+			uint8_t port_C_data = mPCOut;
 			port_C_data &= ~(1 << bit);
 			port_C_data |= (val << bit);
 			updatePort(PIA_PORT_C, port_C_data);
 			if (DBG_LEVEL_DEV(this, DBG_DEVICE))
-				cout << "Set PIA PortSelection C b" << (int) bit << " to 0x" << hex << (int) val << " => PortC = 0x" << hex << (int) mPortC << dec << "\n";
+				cout << "Set PIA PortSelection C b" << (int) bit << " to 0x" << hex << (int) val << " => PortC = 0x" << hex << (int) mPCOut << dec << "\n";
 		}
 	}
 

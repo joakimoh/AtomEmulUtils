@@ -496,17 +496,24 @@ Devices::Devices(
 				}
 			}
 			else if (cmd == "INIT") {
-				string port_s;
-				sin >> port_s;
+				string dst_port_s;
+				sin >> dst_port_s;
 				uint8_t port_val = (uint8_t)(getIntVal(sin) & 0xff);
-				PortSelection port_sel;
-				if (!connection_manager.extractPort(port_s, port_sel) || port_s.find(";") != string::npos) {
-					cout << "Invalid port '" << port_s << "' in INIT statement!\n";
+				PortSelection dst_port_sel;
+				if (
+					!connection_manager.extractPort(dst_port_s, dst_port_sel) &&
+					!(dst_port_sel.port->dir == IN_PORT || dst_port_sel.port->dir == IO_PORT)) {
+					cout << "Invalid port '" << dst_port_s << "' in INIT statement!\n";
 					throw runtime_error("Syntax error");
 				}
-				DevicePort* dev_port = port_sel.port;
-				Device* dev = dev_port->dev;
-				*(dev_port->val) = port_val;
+				DevicePort* dst_port = dst_port_sel.port;
+				Device* dev = dst_port->dev;
+				uint8_t pval = *(dst_port->valIn);
+				uint8_t mask = dst_port_sel.bits.mask;
+				uint8_t shifts = dst_port_sel.bits.lowBit;
+				uint8_t nval = ((pval & ~mask) | ((port_val << shifts) & mask)) & mask;
+				*(dst_port->valIn) = nval;
+				//cout << "INIT " << dst_port_s << " " << hex << (int)port_val << " => value change from 0x" << (int)pval << " to 0x" << (int)nval << "\n";
 			}
 
 			else {

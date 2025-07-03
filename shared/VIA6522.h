@@ -16,15 +16,15 @@ private:
 	// Ports that can be connected to other devices
 	uint8_t mIRQ = 0x1;
 	uint8_t pIRQ = 0x1;
-	uint8_t mPA = 0xff;
-	uint8_t mPB = 0xff;
-	uint8_t mCA = 0x3;
-	uint8_t mCB = 0x3;
+	uint8_t mPAIn = 0, mPAOut = 0xff;
+	uint8_t mPBIn = 0, mPBOut = 0xff;
+	uint8_t mCAIn = 0, mCAOut = 0x3;
+	uint8_t mCBIn = 0, mCBOut = 0x3;
 	int IRQ, RESET, PA, PB, CA, CB;
-	uint8_t pPA = 0xff;
-	uint8_t pPB = 0xff;
-	uint8_t pCA = 0x3;
-	uint8_t pCB = 0x3;
+	uint8_t pPAIn = 0xff;
+	uint8_t pPBIn = 0xff;
+	uint8_t pCAIn = 0x3;
+	uint8_t pCBIn = 0x3;
 
 	// Latched content of PA & PB (when latching is enabled, PA/PB are latched by CA1/CB1
 	uint8_t mPA_latched = 0xff;
@@ -32,8 +32,8 @@ private:
 
 	// Registers
 	//												WRITE						READ
-	uint8_t mIRB = 0x0, mORB = 0x0;		// base address + 0x00	Output Register B			Input Register B
-	uint8_t mIRA = 0x0, mORA = 0x0;		// base address + 0x01	Output Register A			Input Register A
+	//uint8_t mIRB = 0x0, mORB = 0x0;		// base address + 0x00	Output Register B			Input Register B
+	//uint8_t mIRA = 0x0, mORA = 0x0;		// base address + 0x01	Output Register A			Input Register A
 	uint8_t mDDRB = 0x0;			// base address + 0x02	Data Direction Register B =>
 	uint8_t mDDRA = 0x0;			// base address + 0x03	Data Direction Register A =>
 	//uint8_t mT1CL;			// base address + 0x04	T1 Low-Order Latches		T1 Low-Order Counter
@@ -47,7 +47,7 @@ private:
 	uint8_t mPCR = 0x0;			// base address + 0x0c	Peripheral Control Register =>
 	uint8_t mIFR = 0x0;			// base address + 0x0d	Interrupt Flag Register =>
 	uint8_t mIER = 0x0;			// base address + 0x0e	Interrupt Enable Register =>
-	uint8_t mORA2 = 0x0, mIRA2 = 0x0;	// base address + 0x0f	Output Register A*			Input Register A (when no handshaking)
+	//uint8_t mORA2 = 0x0, mIRA2 = 0x0;	// base address + 0x0f	Output Register A*			Input Register A (when no handshaking)
 
 	uint8_t pIFR = 0x0;
 

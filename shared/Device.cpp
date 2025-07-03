@@ -56,7 +56,20 @@ bool Device::connectDevice(Device* dev)
 }
 
 // Used by a device to make a port available for routing
-bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &index, uint8_t *val)
+bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* val)
+{
+	if (dir == IN_PORT)
+		registerPort(name, dir, mask, index, val, NULL);
+	else if (dir == OUT_PORT)
+		registerPort(name, dir, mask, index, NULL, val);
+	else
+		return false;
+
+	return true;
+}
+
+// Used by a device to make a port available for routing
+bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &index, uint8_t *valIn, uint8_t *valOut)
 {
 	
 	index = mPortIndex++;
@@ -66,7 +79,17 @@ bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &ind
 	device_port->dir = dir;
 	device_port->mask = mask;
 	device_port->localIndex = index;
-	device_port->val = val;
+	if (dir == IN_PORT)
+		device_port->valIn = valIn;
+	else if (dir == OUT_PORT)
+		device_port->valOut = valOut;
+	else if (dir == IO_PORT) {
+		device_port->valIn = valIn;
+		device_port->valOut = valOut;
+	}
+	else
+		return false;
+
 	device_port->globalIndex = -1;
 	if (DBG_LEVEL_DEV(this, DBG_DEVICE))
 		cout << "DEVICE ADDS PORT " << mConnectionManager->printDevicePort(device_port) << "\n";
@@ -140,7 +163,7 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 
 	// No need to propagate value if there are no connected ports...
 	if (port.fanOut < 1) {
-		*port.val = val; // still update the source port even if it is not connected!
+		*port.valOut = val; // still update the source port even if it is not connected!
 		return true;
 	}
 
@@ -151,17 +174,17 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 	}
 
 	// Get reference to the current source port value
-	uint8_t& port_val = *port.val;
+	uint8_t& port_val = *port.valOut;
 
 	// No need to progate value if the source port is unchanged unless connected to a destination port that is bidirectional.
 	// (A change of the dst port from IN->OUT->IN would then require it to be updated to "get back" the old src port value.)
 	bool changed = port_val != val || forceUpdate;
-	if (!changed && !port.conToBiDirP)
+	if (!changed)// && !port.conToBiDirP)
 		return true;
 
 #ifdef DBG_ON
 	if (DBG_MATCH_PORT(&port) && changed) {
-		DBG_LOG(this, DBG_PORT, "SRC PORT '" + port.dev->name + ":" + port.name + " " + to_string(port_val) + " => " + to_string(val) + "\n");
+		DBG_LOG(this, DBG_PORT, "SRC PORT '" + port.dev->name + ":" + port.name + " 0x" + Utility::int2hexStr(port_val,2) + " => 0x" + Utility::int2hexStr(val,2) + "\n");
 	}
 #endif
 
@@ -183,16 +206,6 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 		if (!changed && input.port->dir == IN_PORT)
 			continue;
 
-		uint8_t pval = *(input.port->val);
-		uint8_t nval = val;
-		if (input.invert)
-			nval = ~val;
-		uint8_t n_ival;
-		if (input.shifts >= 0)
-			n_ival = ((pval & ~input.mask) | ((nval >> input.shifts) & input.mask)) & input.port->mask;
-		else
-			n_ival = ((pval & ~input.mask) | ((nval << (-input.shifts)) & input.mask)) & input.port->mask;
-
 		if (updateDstPortValue(port, input,val)) { // update destination port on change or always for a bidirectional port
 
 			// Call direct processing on the receiving device - if specified by configuration
@@ -213,7 +226,7 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 //
 bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal)
 {
-	uint8_t* dst_val_p = dstPort.port->val;
+	uint8_t* dst_val_p = dstPort.port->valIn;
 	uint8_t pval = *dst_val_p;
 
 	// Calculate new port val based on source port value
@@ -328,7 +341,7 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 bool Device::updatePorts()
 {
 	for (int i = 0; i < mPorts.size(); i++) {
-		if (!updatePort(i, *(mPorts[i]->val), true)) // force update of each connected port
+		if ((mPorts[i]->dir == OUT_PORT || mPorts[i]->dir == IO_PORT) && !updatePort(i, *(mPorts[i]->valOut), true)) // force update of each connected output/bidirectional port
 			return false;
 	}
 
