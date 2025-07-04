@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <filesystem>
+#include "Utility.h"
 
 //
 // Emulates IC20 (74LS139) and IC76 (74LS163) on the BBC Model B.
@@ -19,6 +20,9 @@ BeebROMSel::BeebROMSel(string name, double cpuClock, uint8_t waitStates, uint16_
 	registerPort("NE", OUT_PORT, 0x1, NE, &mNE);
 	registerPort("SW", OUT_PORT, 0x1, SW, &mSW);
 	registerPort("SE", OUT_PORT, 0x1, SE, &mSE);
+	registerPort("B0", OUT_PORT, 0xf, B0, &mB0);
+	registerPort("B1", OUT_PORT, 0xf, B1, &mB1);
+	registerPort("B2", OUT_PORT, 0xf, B2, &mB2);
 
 }
 
@@ -53,38 +57,17 @@ bool BeebROMSel::write(uint16_t adr, uint8_t data)
 	uint8_t p_reg = mReg & 0x3;
 	uint8_t reg = data & 0x3;
 	mReg = data;
-	switch (mReg & 0x3) {
-	case 0x3:
-		updatePort(NW, 0x0);
-		updatePort(NE, 0x1);
-		updatePort(SW, 0x1);
-		updatePort(SE, 0x1);
-		DBG_LOG_COND(reg != p_reg, this, DBG_VERBOSE, "ROMSel: Slot 12 NW - IC52 (Normally DFS) Selected\n");
-		break;
-	case 0x2:
-		updatePort(NW, 0x1);
-		updatePort(NE, 0x0);
-		updatePort(SW, 0x1);
-		updatePort(SE, 0x1);
-		DBG_LOG_COND(reg != p_reg, this, DBG_VERBOSE, "ROMSel: Slot 13 NE - IC88 (Normally Aux ROM) Selected\n");
-		break;
-	case 0x1:
-		updatePort(NW, 0x1);
-		updatePort(NE, 0x1);
-		updatePort(SW, 0x0);
-		updatePort(SE, 0x1);
-		DBG_LOG_COND(reg != p_reg, this, DBG_VERBOSE, "ROMSel: Slot 14 SW- IC100 (Normally Aux ROM) Selected\n");
-		break;
-	case 0x0:
-		updatePort(NW, 0x1);
-		updatePort(NE, 0x1);
-		updatePort(SW, 0x1);
-		updatePort(SE, 0x0);
-		DBG_LOG_COND(reg != p_reg, this, DBG_VERBOSE, "ROMSel: Slot 15 SE - IC101 (Normally BASIC) Selected\n");
-		break;
-	default:
-		break;
-	}
+
+	// Select a bank (default is bank #3)
+	uint16_t bank_sel = ~(1 << (mReg & 0xf));
+	updatePort(B0, bank_sel & 0xf);
+	updatePort(B1, (bank_sel >> 4) & 0xf);
+	updatePort(B2, (bank_sel >> 8) & 0xf);
+	updatePort(NW, (bank_sel >> 8) & 0x1);
+	updatePort(NE, (bank_sel >> 9) & 0x1);
+	updatePort(SW, (bank_sel >> 10) & 0x1);
+	updatePort(SE, (bank_sel >> 11) & 0x1);
+	DBG_LOG_COND(reg != p_reg, this, DBG_VERBOSE, "ROMSel: Slot " + to_string(mReg & 0xf) + " selected => Bank Selection " + Utility::int2binStr(bank_sel, 16) + "\n");
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	return MemoryMappedDevice::triggerAfterWrite(adr, data);
