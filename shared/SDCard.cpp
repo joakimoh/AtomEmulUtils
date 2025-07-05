@@ -341,7 +341,7 @@ bool SDCard::generateTxBits()
 				mSPITxMode = SPI_Tx_IDLE;
 			}
 			else if (mSPITxMode == SPI_Tx_RSP_DATA_WAIT) {
-				DBG_LOG(this, DBG_SPI, "Response sent - will now be followed by a data token!\n");
+				DBG_LOG(this, DBG_SPI, "Response sent - will now be followed by a data token of length " + to_string(mSlaveDataTokenBits) + " bits\n");
 				mSPITxMode = SPI_Tx_DATA_WAIT;
 			}
 			else {
@@ -540,6 +540,7 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 			// Add CID  (emulation only)
 			for (int i = 1; i < data_response_bytes - 4; i++)
 				mSlaveDataToken[i] = 0x0;
+			mSlaveDataToken[content_bytes] = 0x1;			// b0 of the 128 CID bits is a stop bit and shall always be '1'
 
 			// Add CRC
 			uint16_t crc = crc16(mSlaveDataToken, 1, data_response_bytes - 4);

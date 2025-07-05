@@ -66,7 +66,32 @@ private:
 	SPIRxMode pSPIRxMode = SPI_Rx_IDLE;
 	SPITxMode pSPITxMode = SPI_Tx_IDLE;
 
-
+	//
+	// The complete set of SPI commands for an MMC/SDCard
+	// 
+	// The MMFS for the BBC Micro only requires the following subset of commands to be supported:
+	//		CMD0  "GO_IDLE_STATE"
+	//		CMD1  "SEND_OP_COND"
+	//		CMD8  "SEND_IF_COND"
+	//		CMD10 "SEND_CID"
+	//		CMD16 "SET_BLOCKLEN"
+	//		CDM17 "READ_SINGLE_BLOCK"
+	//		CMD24 "WRITE_BLOCK"
+	//		CMD55 "APP_CMD"
+	//		CMD58 "READ_OCR"
+	//
+	//	The SD Card classed below are defined for SPI access of an SD Card:
+	// 
+	//	Class			Description							Supported commands
+	//														0  1  9 10 12 13 16 17 18 24 25 27 28 29 30 32 33 38 42 55 56 58 59
+	//	0			Basic									x  x  x  x  x  x                                               x  x
+	//	2			Block read									             x  x  x
+	//	4			Block write										                   x  x  x
+	//	5			Erase								                                             x  x  x
+	//	6			Write-protection											                x  x  x
+	//	7			Lock Card												                                      x
+	//	8			Application specific										                                     x   x
+	//
 	enum SPICmdEnum {
 							
 		SPI_CMD_0 = 0,		
@@ -97,8 +122,11 @@ private:
 		SPI_CMD_ILLEGAL = 255
 	};
 
-	uint8_t mCurrentCmd = SPI_CMD_ILLEGAL;
-
+	//
+	// The complete set of SPI application commands for an MMC/SDCard
+	// 
+	// The MMFS for the BBC Micro ony requires ACMD41 SD_SEND_OP_COND
+	//
 	enum SPIACmdEnum {
 		SPI_A_CMD_13 = 13,	// SD_STATUS -					R2	Send the cards status register.
 		SPI_A_CMD_22 = 22,	// SEND_NUM_WR_BLOCKS -			R1	Send the numbers of the well written (without errors) blocks
@@ -109,7 +137,8 @@ private:
 		SPI_A_CMD_ILLEGAL = 255
 	};
 
-	uint8_t mCurrentAppCmd = SPI_A_CMD_ILLEGAL;
+	uint8_t mCurrentCmd = SPI_CMD_ILLEGAL;
+
 
 	enum SPIRspEnum {
 		SPI_RSP_R1 = 1,
@@ -155,6 +184,11 @@ private:
 		{SPI_CMD_59,	{{0x7b,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "CRC_ON_OFF",				"Turns the CRC option on or off."}}
 	};
 
+
+
+	uint8_t mCurrentAppCmd = SPI_A_CMD_ILLEGAL;
+
+
 	typedef struct SPIRspInfo_struct {
 		vector<uint8_t>	okResponse;
 		int				nBytes;
@@ -164,7 +198,7 @@ private:
 
 	// Response types including default content (with header '1...1' and trailing '1...1')
 	map< SPIRspEnum, SPIRspInfo> spiRspInfo = {
-		{SPI_RSP_R1,	{{0xff, 0x01, 0xff},								3}},
+		{SPI_RSP_R1,	{{0xff, 0x00, 0xff},								3}},
 		{SPI_RSP_R1b,	{{0xff, 0x00, 0xff},								3}}, // one byte, could be followed by zero bytes
 		{SPI_RSP_R2,	{{0xff, 0x00, 0x00, 0xff},							4}},
 		{SPI_RSP_R3,	{{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff},		7}},
