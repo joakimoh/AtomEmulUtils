@@ -13,7 +13,6 @@ class ROM : public MemoryMappedDevice {
 
 public:
 
-	int CS;
 	bool mRead = false;
 
 public:

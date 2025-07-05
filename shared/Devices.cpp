@@ -744,7 +744,7 @@ bool Devices::getMemoryDevices(vector<MemoryMappedDevice*>& devices)
 		if (mDevices[i]->category == MEMORY_DEVICE) {
 			devices.push_back((MemoryMappedDevice*)mDevices[i]);
 			if (DBG_LEVEL(DBG_VERBOSE))
-				cout << "Adding memory device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
+				cout << "Adding memory '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
 	return true;

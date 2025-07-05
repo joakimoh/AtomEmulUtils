@@ -12,8 +12,6 @@ class RAM : public MemoryMappedDevice {
 
 private:
 
-	int CS;
-	uint8_t mCS = 0x0;
 
 public:
 

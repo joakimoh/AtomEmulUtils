@@ -233,7 +233,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 
 void DebugManager::log(Device * dev, DebugLevel level, string line)
 {
-	if (!mInitialised || mLogDevice != NULL && dev != mLogDevice)
+	if (!mInitialised && level != DBG_VERBOSE || mLogDevice != NULL && dev != mLogDevice)
 		return;
 
 	if (mFetchAdr != mCyclicLogAdr && ((mDbgLevel & level) == 0 || mDelayed))
@@ -257,7 +257,7 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 
 void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 {
-	if (!mInitialised || mLogDevice != NULL && dev != mLogDevice)
+	if (!mInitialised && level != DBG_VERBOSE || mLogDevice != NULL && dev != mLogDevice)
 		return;
 
 	if (mFetchAdr != mCyclicLogAdr && ((mDbgLevel & level) == 0 || mDelayed))

@@ -114,7 +114,7 @@ bool Device::registerPortDirChange(int index, uint8_t mask)
 	// Get reference to the source port
 	DevicePort& port = *mPorts[index];
 
-	if (port.ioDirMask != mask) {
+	if (DBG_MATCH_PORT(&port) && port.ioDirMask != mask) {	
 		DBG_LOG(this, DBG_PORT, "Port " + this->name + ":" + mPorts[index]->name + " has changed direction from 0x" + Utility::int2hexStr(port.ioDirMask,8) +
 			" to 0x" + Utility::int2hexStr(mask,8) + "\n");
 	}
@@ -244,6 +244,12 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 		nval_or = (src_val << (-shifts)) & dst_sel_mask;
 	nval = ((pval & ~dst_sel_mask) | nval_or) & dst_mask;
 
+	if (DBG_MATCH_PORT(srcPort))
+		DBG_LOG(this, DBG_PORT, "Update connected port " + dstPort.port->dev->name + ":" + dstPort.port->name +
+			" with value 0x" + Utility::int2hexStr(nval, 2) + " (0x" + Utility::int2hexStr(pval, 2) + ")\n");
+
+
+
 	// Check whether the bidirectional port bits connected to the destination port are currently outputs
 	// A non-zero value means that the bidirectional port bits are currently an outputs
 	if (srcPort->dir == IO_PORT) {
@@ -341,10 +347,11 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 bool Device::updatePorts()
 {
 	for (int i = 0; i < mPorts.size(); i++) {
-		if ((mPorts[i]->dir == OUT_PORT || mPorts[i]->dir == IO_PORT) && !updatePort(i, *(mPorts[i]->valOut), true)) // force update of each connected output/bidirectional port
-			return false;
+		if ((mPorts[i]->dir == OUT_PORT || mPorts[i]->dir == IO_PORT)) {
+			if (!updatePort(i, *(mPorts[i]->valOut), true)) // force update of each connected output/bidirectional port
+				return false;
+		}
 	}
-
 	DBG_LOG(this, DBG_VERBOSE, "All ports for "  + this->name + " have been shared...\n");
 
 	return true;
