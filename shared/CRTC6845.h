@@ -5,6 +5,7 @@
 #include "VideoDisplayUnit.h"
 #include "RAM.h"
 #include <cmath>
+#include <vector>
 
 
 class CRTC6845 : public VideoDisplayUnit {
@@ -37,32 +38,6 @@ public:
 	uint8_t mReg[18];
 	int mRegWriteCnt[16] = { 0 };
 	int mRegUpdates = 0;
-	typedef struct RegInfo {
-		uint8_t	mask;
-		bool	writable;
-		bool	readable;
-	} RegInfo;
-
-	const RegInfo mRegInfo[18] = {
-		{0xff, true, false},	// R0 -		HorizontalTotal (8 bits)
-		{0xff, true, false},	// R1 -		HorizontalDisplayed (8 bits)
-		{0xff, true, false},	// R2 -		HSYncPosition (8 bits)
-		{0xff, true, false},	// R3 -		SyncWidth (8 bits)
-		{0x7f, true, false},	// R4 -		VerticalTotal
-		{0x1f, true, false},	// R5 -		VerticalTotalAdjust
-		{0x7f, true, false},	// R6 -		VerticalDisplayed
-		{0x7f, true, false},	// R7 -		VSyncPosition
-		{0xf3, true, false},	// R8 -		InterlaceAndSkew
-		{0x1f, true, false},	// R9 -		MaxScanLineAddress
-		{0x7f, true, false},	// R10 -	CursorStartRaster
-		{0x1f, true, false},	// R11 -	CursorEndraster
-		{0x3f, true, false},	// R12 -	StartAddressH	
-		{0xff, true, false},	// R13 -	StartAddress
-		{0x3f, true, true},		// R14 -	CursorH
-		{0xff, true, true},		// R15 -	CursorL
-		{0x3f, false, true},	// R16 -	LightPenH	
-		{0xff, false, true}		// R17 -	LightPenL
-	};
 	uint8_t mAddressRegister = 0x0; // M6845 base address + 0	- Selects one of the 18 registers below (5 bits)
 	enum M6845RegEnum {
 		R0_HorizontalTotal = 0,		// HorizontalTotal		Horizontal frequency HS; Displayed + non-displayed chars per line - 1 (chars/line must be even)
@@ -100,12 +75,41 @@ public:
 		R11_CursorEnd = 11,			// CursorEndRaster
 									// b4:b0 cursor end raster line (0-31)
 		R12_StartAddressH = 12,		// StartAddressH		Start refresh address after vertical blanking
-		R13_StartAddressL = 13,		// StartAddress		-""-
+		R13_StartAddressL = 13,		// StartAddressL		-""-
 		R14_CursorH = 14,			// CursorH				Cursor location (14 bits <=> 16K positions) -  display address of the char cell holding the cursor
 		R15_CursorL = 15,			// CursorL				-"--
 		R16_LightPenL = 16,			// LightPenH			Value of StartAddress when light pen is detected
 		R17_LightPenH = 17			// LightPenL			-""-
 		// In the Interlace Sync & Video Mode, the register instead holds scan lines/char row -2
+	};
+
+	typedef struct RegInfo {
+		uint8_t	mask;
+		bool	writable;
+		bool	readable;
+		string	descShort;
+		string	descLong;
+	} RegInfo;
+
+	const RegInfo mRegInfo[18] = {
+		{0xff, true, false, "R0  HorizontalTotal    ", "b7:b0       Total horizontal chars per line - 1 (must be even for interlaced modes)"},
+		{0xff, true, false, "R1  HorizontalDisplayed", "b7:b0       Visible chars per line"},
+		{0xff, true, false, "R2  HSYncPosition      ", "b7:b0       Horizontal sync pos - 1"},
+		{0xff, true, false, "R3  SyncWidth          ", "b7:b0       Width of horizontal sync pulse(b3:b0 1-15) and vertical sync pulse(b7:b4 1-16; 0 <=> 16)"},
+		{0x7f, true, false, "R4  VerticalTotal      ", "b6:b0       Integer part of no of character lines - 1"},
+		{0x1f, true, false, "R5  VerticalTotalAdjust", "b4:b0       Fraction part in unit scan lines"},
+		{0x7f, true, false, "R6  VerticalDisplayed  ", "b6:b0       No of visible char rows"},
+		{0x7f, true, false, "R7  VSyncPosition      ", "b6:b0       Vertical sync pos in char row"},
+		{0xf3, true, false, "R8  InterlaceAndSkew   ", "b7:b4,b1:b0 b1b0 : mode(*0:non-interlaced,01:sync,11:video), b54 : char skew, b7b6 : cursor skew"},
+		{0x1f, true, false, "R9  MaxScanLineAddress ", "b4:b0       Scan lines / char row - 1"},
+		{0x7f, true, false, "R10 CursorStartRaster  ", "b6:b0       b4:b0: address(0:31), b6b5 : blinking"},
+		{0x1f, true, false, "R11 CursorEndRaster    ", "b4:b0       b4:b0: address(0 - 31)"},
+		{0x3f, true, false, "R12 StartAddressH      ", "b5:b0       Start refresh address after vertical blanking - MSB"},	
+		{0xff, true, false, "R13 StartAddressL      ", "b7:b0       Start refresh address after vertical blanking - LSB"},
+		{0x3f, true, true,  "R14 CursorH            ", "b5:b0       Cursor location(14 bits <=> 16K positions) - MSB"},
+		{0xff, true, true,  "R15 CursorL            ", "b7:b0       Cursor location(14 bits <=> 16K positions) - LSB"},
+		{0x3f, false, true, "R16 LightPenH          ", "b5:b0       Value of StartAddress when light pen is detected - MSB"},	
+		{0xff, false, true, "R17 LightPenL          ", "b7:b0       Value of StartAddress when light pen is detected - LSB"}		
 	};
 
 	int mCharRow = 0;

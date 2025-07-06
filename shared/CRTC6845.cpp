@@ -509,10 +509,10 @@ void CRTC6845::printSettings()
 
 	cout << dec;
 	for (int i = 0; i < 18; i++)
-		cout << "R" << setw(2) <<  setfill('0') << i << ": 0x" << hex << setfill('0') << setw(2) << (int)mReg[i] << dec << "\n";
+		cout << mRegInfo[i].descShort << hex << " = 0x" << setw(2) << setfill('0') << (int)mReg[i] << dec << " " << mRegInfo[i].descLong << "\n";
 
- 	cout << "CLK:                                                " << (int) mCLK << "\tMhz\n";
-	cout << "Scan Line duration: [R0,CLK]                        " << mCharCols_R0 * Tc << "\tus\n";
+	cout << "CLK:                                                " << (int)mCLK << "\tMhz\n";
+	cout << "Scan Line duration: [R0,CLK]                 i]       " << mCharCols_R0 * Tc << "\tus\n";
 	cout << "Total no of characters per line [R0]:               " << mCharCols_R0 << "\tchars\n";
 	cout << "Active characters per line [R1]:                    " << mActiveRowChars_R1 << "\tchars\n";
 	cout << "Horizontal sync position [R2]:                      " << mHzSyncPos_R2 << " chars (" << round(mHzSyncPos_R2 * Tc) << " us)\n";
