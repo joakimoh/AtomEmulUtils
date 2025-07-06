@@ -725,8 +725,35 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	else
 		updatePort(CRTC_CLK, 1);
 
-	mNCols = (1 << getCRField(CR_N_COLS)) * 10;
-	mPixelRate = 1 << (getCRField(CR_N_COLS) + 1); // pixel rate: 2, 4, 8 or 16 MHz
+	//
+	// The Pixel Rate is given by the NCol field
+	//
+	// NCOL	Pixel Rate	BBC Model B Mode Examples
+	//	0	1 * CLK		N/A
+	//	1	2 * CLK		2. CLK = 2 => 4 MHz,	5:			CLK = 1 => 2 MHz
+	//	2	4 * CLK		1: CLK = 2 => 8 MHz,	4,6(,7):	CLK = 1 => 4 MHz
+	//	3	8 * CLK		0: CLK = 2  => 16 MHz,	3:			CLK = 1 => 8 MHz
+	//
+	// The normalised rate (pixel rate / CLK rate) is the one of interest	
+	int pixel_rate = 1 << (getCRField(CR_N_COLS) + 1);
+	mNormalisedPixelRate = pixel_rate / mCRTC_CLK;
+
+	//mNCols = (1 << getCRField(CR_N_COLS)) * 10;
+
+	//
+	// The no of columns depends on the pixel rate and the no of active chars per row
+	//
+	// No of columns = 'active chars per row' x  'normalised pixel rate' / 8
+	//
+	//	Pixel Rate		Active Chars per row	CLK		Normalised pixel rate	No of columns	BBC Model B Mode Examples
+	//	16 MHz			80						2 MHz	8 per CLK				80				Modes 0, 3
+	//	8 MHz			80						2 MHz	4 per CLK				40				Modes 1 
+	//  8 MHz			40						1 MHz	8 per CLK				40				Modes 4, 6
+	//	4 MHz			80						2 MHz	2 per CLK				20				Mode 2
+	//	4 MHz			40						1 MHz	4 per CLK				20				Mode 5	
+	// 	4 MHz			64						2 MHz	2 per CLK				32				Example of a user-defined mode (common in games)
+	//
+	mNCols = getActiveCharsPerLine()  * mNormalisedPixelRate / 8;
 
 
 
@@ -745,7 +772,7 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	//
 
 	// Pixel width in "actual pixels" for a 640-pixel wide screen
-	mPixelW = 16 / mPixelRate; 
+	mPixelW = 16 / pixel_rate;
 	if (teletext)
 		mPixelW = 1;
 
@@ -779,8 +806,14 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 		&& (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 	) {
 		cout << "\n" << dec;
-		cout << "Video ULA Control Register: 0x" << hex << (int)mControlRegister << dec << "\n";
-		cout << "Video ULA PixelRate:       " << mPixelRate << " MHz\n";
+		cout << "Video ULA Control Register: 0x" << hex << (int)mControlRegister << " (" <<
+			"Flash: 0x" << (int)CR_FLASH <<
+			", Teletext: 0x" << (int)CR_TELETEXT <<
+			", NCOL: 0x" << (int)CR_N_COLS <<
+			", Clock Rate: 0x" << (int)CR_CLOCK_RATE <<
+			", Cursor Segment: 0x" << (int)CR_CURSOR_SEGMENT <<
+			dec << ")\n";
+		cout << "Video ULA PixelRate:       " << mNormalisedPixelRate << " MHz\n";
 		cout << "Video ULA PixelWidth:      " << (int)mPixelW << "\n";
 		cout << "Video ULA Pixels/byte:     " << (int)mPixelsPerCharacter << "\n";
 		cout << "Video ULA CRTC Clock:      " << (int)mCRTC_CLK << " MHz\n";
