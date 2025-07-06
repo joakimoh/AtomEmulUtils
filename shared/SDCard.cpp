@@ -173,7 +173,7 @@ void SDCard::processPortUpdate(int port)
 				//
 				// Tx processing - shift out MISO on negative CLK edge
 				//
-				if(!mCLK)
+				if (!mCLK)
 					generateTxBits();
 			}
 

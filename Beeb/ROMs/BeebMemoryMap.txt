@@ -74,7 +74,30 @@ CONNECT		ROMSel:B1;3			SWRAM3:CS
 //
 // SD Card for MMFS connected to the User VIA
 //
-// VIA CB1/CB2 are used for clock/data during shift in to VIA amd PB1/PB0 for clock/data during shift out from VIA
+// ----------------.        .-----------------------------
+//                 |        |
+//            CB1  |<>-+--->| CLK
+//  (shift in:OUT) |   |    |
+//  (shift out:IN) |   |    |
+//                 |   |    |
+//     V I A       |   |    |    M M C / S D  C A R D
+//    6 5 2 2      |   |    |
+//            PB1  |>--'    |    S P I   I N T E R F A C E
+// (shift out:OUT) |        |
+//                 |        |
+//            PB0  |>------>| MOSI (data in)
+//                 |        |
+//                 |        |
+//            CB2  |<------<| MISO (data out)
+//                 |        |
+//                 |  0V -->| CS
+//                 |        |
+// ----------------'        `------------------------------
+//
+// VIA CB1/CB2 are used for clock/data during shift in to VIA and PB1/PB0 for clock/data during shift out from VIA
+//
+// Note that CB[0] <=> CB1, CB[1] <=> CB2 (this is because there is no CB0 - only CB1 & CB2)
+//
 CONNECT:P	USER_VIA:CB;0			MMFS_CARD:CLK		// Clock - CB1 used to provide shift clock to the card (shift in to VIA as well as shift out from VIA)
 CONNECT:P	USER_VIA:PB;1			USER_VIA:CB;0		// Clock - PB1 used to generate the CB1 shift clock (shift out from VIA only; otherwise PB1 is input)
 CONNECT:P	USER_VIA:PB;1			MMFS_CARD:CLK		// -""-

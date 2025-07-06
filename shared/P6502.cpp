@@ -223,7 +223,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 #endif
 	if (!getOperand(instr, operand, calc_op_adr, read_val)) {
 		operand_success = false;
-		DBG_LOG(this, DBG_ERROR, "Failed to get operand for instruction " + Utility::int2hexStr(opcode, 2) + " at address 0x" + Utility::int2hexStr(opcode_PC, 4) + "!\n");
+		DBG_LOG(this, DBG_ERROR, "Failed to get operand for instruction with opcode 0x" + Utility::int2hexStr(opcode, 2) + " at address 0x" + Utility::int2hexStr(opcode_PC, 4) + "!\n");
 	}
 	success = success && operand_success;
 #ifdef DBG_UC_TIME
