@@ -40,6 +40,9 @@ bool RAM::read(uint16_t adr, uint8_t& data)
 	
 	data = mMem[adr - mMemorySpace.adr];
 
+	//if (adr >= 0x8000 && adr <= 0xbfff)
+	//	cout << "*** READ FROM " << this->name << ": [0x" << hex << adr << "] = 0x" << (int)data << "\n";
+
 	return true;
 
 }
@@ -61,6 +64,9 @@ bool RAM::write(uint16_t adr, uint8_t data)
 		return false;
 
 	mMem[adr - mMemorySpace.adr] = data;
+
+	//if (adr >= 0x8000 && adr <= 0xbfff)
+	//	cout << "*** WRITE TO " << this->name << ": [0x" << hex << adr << "] = 0x" << (int)data << "\n";
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	return !mTriggerOnWrite || MemoryMappedDevice::triggerAfterWrite(adr, data);

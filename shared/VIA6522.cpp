@@ -153,7 +153,7 @@ bool VIA6522::advance(uint64_t stopCycle)
 				break;
 
 			case 0x2:	// Shift in under control of phi2 and generate shift pulses on CB1 - interrupt flag set
-				mCB1ShiftPulseLevel = 1 - mCB1ShiftPulseLevel;
+				mCB1ShiftPulseLevel = 1 - mCB1ShiftPulseLevel; // the loop advances mCycleCount one phi2 cycle => CB1 can be toggled each loop
 				mShiftInterrupt = true;
 				mShiftGenerateCB1 = true;
 				DBG_LOG(this, DBG_IO_PERIPHERAL, "Mode 2: CB1 shift in pulse '" + to_string(mCB1ShiftPulseLevel) + "' generated from phi2 system clock...\n");
@@ -210,22 +210,33 @@ bool VIA6522::advance(uint64_t stopCycle)
 				if (mShiftGenerateCB1) {
 					updatePort(CB, (mCBOut & ~0x1) | mCB1ShiftPulseLevel);
 					CB1_Out = mCBOut & 0x1;
-					CB2_In = (mCBIn >> 1) & 0x1;
 				}
 
-				// Shift in CB2 data for a low to high shift pulse transition
-				if (shift_pulse_goes_high) { // shift in on HIGH CB1 shift pulse
-					mShiftRegister = (mShiftRegister << 1) | CB2_In;
-					DBG_LOG(this, DBG_IO_PERIPHERAL, "Shift Mode " + to_string(shift_mode) + ": " + to_string(mShifts+1) + "th SHIFT IN from CB2 = '" + Utility::int2hexStr(CB2_In, 1) + "' => Shift Register = 0x" +
-						Utility::int2hexStr(mShiftRegister, 2) + "\n");
-					mShifts = (mShifts + 1) % 8;
+				// Shift in CB2 data for a low to high shift CB1 pulse transition
+				if (shift_pulse_goes_high) {
+
+					CB2_In = (mCBIn >> 1) & 0x1; // update data from connected device on CB2 input 
+					mShiftRegister = (mShiftRegister << 1) | CB2_In; // shift the data into the shift register
+			
 					if (shift_mode != 0) { // Continuous shifting for mode 0 => restart of shifting every 8 bits not applicable
+						mShifts = (mShifts + 1) % 8;
 						if (mShifts == 0) {
 							if (mShiftInterrupt)
 								setIFR(IFR_SR_MASK);
 							mStartShifting = false;
+							mShiftedInBytes++;
 						}
 					}
+					else
+						mShiftedInBytes = 0;
+
+					DBG_LOG(
+						this, DBG_IO_PERIPHERAL,
+						"Shift Mode " + to_string(shift_mode) + ": " + to_string(mShifts==0?8:mShifts) + "th SHIFT IN of byte #" +
+						to_string(mShiftedInBytes) + " from CB2 = '" + Utility::int2hexStr(CB2_In, 1) + "' = > Shift Register = 0x" +
+						Utility::int2hexStr(mShiftRegister, 2) + "\n"
+					);
+
 				}
 				break;
 			}
@@ -268,8 +279,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 		}
 
-		else if (shifting_active != p_shifting_active) {
-			mCB1ShiftPulseLevel = 1; // Make sure that to phantom 0->1 transitions are created
+		else if (!shifting_active && shifting_active != p_shifting_active) {
+			//mCB1ShiftPulseLevel = 1; // Make sure that no phantom 0->1 transitions are created
 			//cout << "shifting not active: mStartShifting = "  << dec << mStartShifting << ", mShifts = " <<
 			//	(int)mShifts << ", shift_mode =" << (int)shift_mode << "\n";
 		}

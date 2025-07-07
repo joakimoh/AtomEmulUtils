@@ -313,7 +313,7 @@ bool SDCard::generateTxBits()
 			}
 			else {
 				//cout << "Slave data byte #" << dec << mSentBytes << " [" << response_bits / 8 << "] (bits " << mSentBits << "+) = 0x" << hex << (int)mSlaveDataToken[mSentBytes] << "\n";
-
+				DBG_LOG(this, DBG_SPI, "Shift out of byte #" + Utility::int2hexStr(mSentBytes,4) + " = 0x" + Utility::int2hexStr(mSlaveDataToken[mSentBytes], 2) + "\n");
 				mTxShiftRegister = mSlaveDataToken[mSentBytes++];
 			}
 		}
@@ -341,7 +341,7 @@ bool SDCard::generateTxBits()
 				mSPITxMode = SPI_Tx_IDLE;
 			}
 			else if (mSPITxMode == SPI_Tx_RSP_DATA_WAIT) {
-				DBG_LOG(this, DBG_SPI, "Response sent - will now be followed by a data token of length " + to_string(mSlaveDataTokenBits) + " bits\n");
+				DBG_LOG(this, DBG_SPI, "Response sent - will now be followed by a data token '" + bytes2str(mSlaveDataToken) + "' of length " + to_string(mSlaveDataTokenBits) + " bits\n");
 				mSPITxMode = SPI_Tx_DATA_WAIT;
 			}
 			else {

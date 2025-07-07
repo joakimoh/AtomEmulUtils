@@ -134,6 +134,7 @@ private:
 	uint16_t pTimer1Counter = 0x0;
 	uint16_t pTimer2Counter = 0x0;
 	uint8_t mShifts = 0;
+	int mShiftedInBytes = 0;
 	uint8_t mCB1ShiftPulseLevel = 0;
 	uint8_t pCB1ShiftPulseLevel = 0;
 	bool mStartShifting = false;
