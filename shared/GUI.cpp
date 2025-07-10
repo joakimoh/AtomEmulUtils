@@ -4,13 +4,40 @@
 #include <fstream>
 #include "Tokeniser.h"
 #include "Devices.h"
+#include "Debugger.h"
+#include <thread>
+#include "Device.h"
+#include <allegro5/allegro_image.h>
+#include "allegro5/allegro_native_dialog.h"
+#include "VideoSettings.h"
+#include "Display.h"
 
 using namespace std;
 
-
-GUI::GUI(ALLEGRO_DISPLAY* disp, ALLEGRO_MENU* menu, Devices * devices, double *speed): mMenu(menu), mDisplay(disp), mDevices(devices),
-    mEmulationSpeed(speed)
+GUI::GUI(ALLEGRO_EVENT_QUEUE* queue, ALLEGRO_DISPLAY* disp, Devices * devices, double *speed, DebugManager* dm): mDevices(devices), mDisplay(disp), mEmulationSpeed(speed), mDM(dm)
 {
+    // 
+    // Create menu
+    mMenu = al_build_menu(mMainMenu);
+    if (mMenu == NULL) {
+        cout << "Failed to build menu!\n";
+        throw runtime_error("Failed to build menu!");
+    }
+    if (!al_set_display_menu(mDisplay, mMenu)) {
+        cout << "Failed to set menu display!\n";
+        ALLEGRO_MENU* pmenu = al_clone_menu_for_popup(mMenu);
+        mPopupMenuOnly = true;
+        al_destroy_menu(mMenu);
+        mMenu = pmenu;
+        if (!pmenu) {
+            cout << "Failed to clone to popup menu!\n";
+            throw runtime_error("Failed to clone to popup menu!");
+        }
+    }
+    al_register_event_source(queue, al_get_default_menu_event_source());
+    //al_register_event_source(queue, al_get_mouse_event_source());
+
+    // Check for a Tape Recorder
     Device* dev;
     if (!mDevices->getDevice(DeviceId::TAPE_RECORDER_DEV, dev)) {
         //cout << "Failed to get access to Tape Recorder\n";
@@ -21,6 +48,7 @@ GUI::GUI(ALLEGRO_DISPLAY* disp, ALLEGRO_MENU* menu, Devices * devices, double *s
         mTapeRec = (TapeRecorder*)dev;
     }
 
+    // Check for an SD Card
     if (!mDevices->getDevice(DeviceId::SD_CARD, dev)) {
         //cout << "Failed to get access to MMC\n";
         //throw runtime_error("Failed to get access to MMC");
@@ -37,11 +65,12 @@ GUI::GUI(ALLEGRO_DISPLAY* disp, ALLEGRO_MENU* menu, Devices * devices, double *s
             al_set_menu_item_flags(mMenu, MMC_EJECT_ID, ALLEGRO_MENU_ITEM_DISABLED);
         }
     }
+
 }
 
 GUI::~GUI()
 {
-    
+    al_destroy_menu(mMenu);
 }
 
 bool GUI::itemSelected(ALLEGRO_EVENT* event)
@@ -50,6 +79,25 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         return false;
 
     switch (event->user.data1) {
+
+    case ENTER_DBG_ID:
+    {
+        al_set_menu_item_flags(mMenu, ENTER_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
+        al_set_menu_item_flags(mMenu, EXIT_DBG_ID, 0);
+        mDebugger = new Debugger(mDevices, mDM);
+        mDebugThread = thread(&Debugger::debug, mDebugger);
+        break;
+    }
+
+    case EXIT_DBG_ID:
+    {
+        al_set_menu_item_flags(mMenu, ENTER_DBG_ID, 0);
+        al_set_menu_item_flags(mMenu, EXIT_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
+        mDebugThread.join();
+        delete mDebugger;
+        mDebugger = NULL;
+        break;
+    }
 
     case MMC_EJECT_ID:
     {
@@ -181,7 +229,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         uint32_t load_adr;
         info_f >> hex >> load_adr;
         //cout << "Program '" << program << "' with load address 0x" << hex << load_adr << "\n";
-        Program data = { program_file_name, load_adr };
+        Program data = { program_file_name, (int)load_adr };
         if (!mDevices->loadData(data))
             return false;
         
@@ -416,6 +464,16 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         return false;
     }
 
+    }
+
+    return true;
+}
+
+bool GUI::popupMenu()
+{
+    if (mPopupMenuOnly) {
+        if (!al_popup_menu(mMenu, mDisplay))
+            cout << "Failed to launch popup menu!\n";
     }
 
     return true;

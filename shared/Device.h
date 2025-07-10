@@ -21,6 +21,7 @@ class MemoryMappedDevice;
 class VideoDisplayUnit;
 class P6502;
 class RAM;
+class DebugManager;
 
 enum Scheduling {FIELD, HLINE, INSTR, NONE};
 #define _SCHEDULING(x) (x==FIELD?"Field":(x==HLINE?"1/2 line":(x==INSTR?"Instruction":"None")))
@@ -44,10 +45,11 @@ enum DeviceCategory {
 #define _DEVICE_CATEGORY(x) (\
 	x==MICROROCESSOR_DEVICE?"Microprocessor":(x== PERIPHERAL?"Peripheral":(x==MEMORY_DEVICE?"Memory":(x==VDU_DEVICE?"Video Data Unit":(x==SOUND_DEVICE?"Sound Device":(x==KEYBOARD_DEVICE?"Keyboard":"Other Device"))))))
 
-typedef struct Program_struct {
+class Program {
+public:
 	string fileName = "";
 	int loadAdr = -1;
-} Program;
+};
 
 
 class DevicePort;

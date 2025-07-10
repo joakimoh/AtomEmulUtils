@@ -17,57 +17,65 @@
 #include "../shared/Codec6502.h"
 #include "../shared/VideoDisplayUnit.h"
 #include "../shared/GUI.h"
+#include "../shared/Engine.h"
 #include "../shared/DebugManager.h"
 #include "../shared/ConnectionManager.h"
 #include "../shared/Devices.h"
 #include "../shared/SoundDevice.h"
+#include "../shared/Debugger.h"
+#include <thread>
 
 #include <chrono>
 #include <cmath>
 
 
-
+/*
 using namespace std;
 
 ALLEGRO_MENU_INFO main_menu[] = {
 
-      ALLEGRO_START_OF_MENU("&File", FILE_ID),
-         { "&Load data into RAM",   LOAD_INTO_RAM,  0,  NULL },
-         ALLEGRO_MENU_SEPARATOR,
-         { "&Save memory data to file",   SAVE_FROM_RAM,  0,  NULL },
-         ALLEGRO_MENU_SEPARATOR,
-         { "E&xit",                 FILE_EXIT_ID,   0,  NULL },
-         ALLEGRO_END_OF_MENU,
+    ALLEGRO_START_OF_MENU("&File", FILE_ID),
+        { "&Load data into RAM",   LOAD_INTO_RAM,  0,  NULL },
+    ALLEGRO_MENU_SEPARATOR,
+        { "&Save memory data to file",   SAVE_FROM_RAM,  0,  NULL },
+    ALLEGRO_MENU_SEPARATOR,
+        { "E&xit",                 FILE_EXIT_ID,   0,  NULL },
+    ALLEGRO_END_OF_MENU,
 
-         ALLEGRO_START_OF_MENU("&Memory Card", MMC_ID),
-         { "Eject",             MMC_EJECT_ID,           ALLEGRO_MENU_ITEM_DISABLED, NULL },
-         { "Insert",            MMC_INSERT_ID,          0,                          NULL },
+    ALLEGRO_START_OF_MENU("&Memory Card", MMC_ID),
+        { "Eject",             MMC_EJECT_ID,           ALLEGRO_MENU_ITEM_DISABLED, NULL },
+     { "Insert",            MMC_INSERT_ID,          0,                          NULL },
 
-         ALLEGRO_END_OF_MENU,
+    ALLEGRO_END_OF_MENU,
 
-      ALLEGRO_START_OF_MENU("&Speed", SPEED_ID),
-         { "Real-time",         SPEED_100_ID,           ALLEGRO_MENU_ITEM_CHECKED, NULL },
-         { "10%",               SPEED_10_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-         { "25%",               SPEED_25_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-         { "50%",               SPEED_50_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-         { "200%",              SPEED_200_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-         { "300%",              SPEED_300_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-         { "500%",              SPEED_500_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-         ALLEGRO_END_OF_MENU,
+    ALLEGRO_START_OF_MENU("&Speed", SPEED_ID),
+        { "Real-time",         SPEED_100_ID,           ALLEGRO_MENU_ITEM_CHECKED, NULL },
+        { "10%",               SPEED_10_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+        { "25%",               SPEED_25_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+        { "50%",               SPEED_50_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+        { "200%",              SPEED_200_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+        { "300%",              SPEED_300_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+        { "500%",              SPEED_500_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+        ALLEGRO_END_OF_MENU,
 
-      ALLEGRO_START_OF_MENU("&Tape Recorder", TAPE_RECORDER_ID),
-         { "&Play",             PLAY_ID,                ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-         { "&Record",           RECORD_ID,              ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-         { "Pause",             PAUSE_ID,               ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-         { "Rewind",            REWIND_ID,              ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-         { "Stop",              STOP_ID,                ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-         { "&Load from Tape",   LOAD_TAPE_ID,           0,                                                      NULL },
-         { "&Save to Tape",     SAVE_TAPE_ID,           0,                                                      NULL },
-         ALLEGRO_END_OF_MENU,
+    ALLEGRO_START_OF_MENU("&Tape Recorder", TAPE_RECORDER_ID),
+        { "&Play",             PLAY_ID,                ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+        { "&Record",           RECORD_ID,              ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+        { "Pause",             PAUSE_ID,               ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+        { "Rewind",            REWIND_ID,              ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+        { "Stop",               STOP_ID,                ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+        { "&Load from Tape",    LOAD_TAPE_ID,           0,                                                      NULL },
+        { "&Save to Tape",      SAVE_TAPE_ID,           0,                                                      NULL },
+        ALLEGRO_END_OF_MENU,
 
-      ALLEGRO_START_OF_MENU("&Help", 0),
-         { "&About",             HELP_ABOUT_ID,               0,                                                      NULL },
-         ALLEGRO_END_OF_MENU,
+    ALLEGRO_START_OF_MENU("&Help", 0),
+        { "&About",             HELP_ABOUT_ID,               0,                                                 NULL },
+        ALLEGRO_END_OF_MENU,
+
+    ALLEGRO_START_OF_MENU("&Debugger", DBG_ID),
+        { "Enter",              ENTER_DBG_ID,           0,                                                      NULL },
+        { "Exit",               EXIT_DBG_ID,            ALLEGRO_MENU_ITEM_DISABLED,                             NULL },
+        ALLEGRO_END_OF_MENU,
 
       ALLEGRO_END_OF_MENU
 };
@@ -85,11 +93,11 @@ int field_cnt = 0;
 
 ALLEGRO_KEYBOARD_STATE keyboard_state;
 
-/*
- *    Simple (incomplete) test of pixel format conversions.
- *
- *    This should be made comprehensive.
- */
+//
+//    Simple (incomplete) test of pixel format conversions.
+//
+//   This should be made comprehensive.
+//
 typedef struct FORMAT
 {
     int format;
@@ -137,15 +145,27 @@ const char* get_format_name(int format)
     }
     return "unknown";
 }
-
-
-
-
+*/
 
 
 int main(int argc, const char* argv[])
 {
 
+    ArgParser arg_parser = ArgParser(argc, argv);
+
+    if (arg_parser.failed())
+        return -1;
+
+    Engine engine(
+        arg_parser.mapFileName, arg_parser.program, arg_parser.data,
+        arg_parser.emulationSpeed, arg_parser.videoFormat, arg_parser.hwAcc, &arg_parser.debugManager
+    );
+
+    engine.run();
+
+    return 0;
+
+/*
     bool key_pressed = false;
 
     if (!al_init())
@@ -281,7 +301,7 @@ int main(int argc, const char* argv[])
 
 
 
-    GUI gui(disp, menu, &devices, &speed_factor);
+    GUI gui(disp, menu, &devices, &speed_factor, &arg_parser.debugManager);
      
     uint64_t cycle_count = 0;
 
@@ -596,5 +616,6 @@ int main(int argc, const char* argv[])
 
   
     return 0;
+    */
 
 }

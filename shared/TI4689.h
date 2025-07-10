@@ -57,7 +57,7 @@ private:
 		uint16_t		freq = 0;				// 10-bit frequency - from bits b3:b0 (LSB) of first data byte written to register and b7:b0 (MSB) of second data byte
 		NoiseType		noiseType = NO_NOISE;	// Only used for the noise generator source: Noise type - from bit b2 of data byte written to register
 		NoiseRate		shiftRate = NO_RATE;	//  Only used for for the noise generator source: Shift rate for noise - from bits b1:b0 of data byte written to register
-		int				att;					// 4-bit attenuation in dB (0xf <=> OFF) - from bits b3:b0 of data byte written to register
+		int				att = 0xf;				// 4-bit attenuation in dB (0xf <=> OFF) - from bits b3:b0 of data byte written to register
 	} SndGenSrc;
 
 	enum GenSrc { GEN_1 = 0, GEN_2 = 1, GEN_3 = 2, NOISE_GEN = 3};

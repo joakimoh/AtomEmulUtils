@@ -9,16 +9,19 @@
 #include <allegro5/allegro_primitives.h>
 #include <iostream>
 #include "VideoSettings.h"
+#include "Device.h"
 
 
 using namespace std;
 
 // Forward references to classed defined later on to allow them being referenced before they are declared
 class ConnectionManager;
-class Device;
 class MemoryMappedDevice;
 class VideoDisplayUnit;
 class SoundDevice;
+class Program;
+class P6502;
+class RAM;
 
 
 class Devices {
@@ -55,38 +58,10 @@ public:
 
 	bool loadData(Program data);
 
+	bool getDevice(string name, Device*& device);
+	bool getDevice(DeviceId id, Device*& device);
 
-	bool getDevice(string name, Device*& device) {
-		device = NULL;
-		for (int i = 0; i < mDevices.size(); i++) {
-			if (mDevices[i]->name == name) {
-				device = mDevices[i];
-				return true;
-			}
-		}
-		return false;
-	}
-
-	//
-	// Find a device of a certain type.
-	// If more than one device of this type is found,
-	// the first one is returned but an error is also indicated.
-	//
-	bool getDevice(DeviceId id, Device*& device) {
-		bool found = false;
-		device = NULL;
-		for (int i = 0; i < mDevices.size(); i++) {
-			if (mDevices[i]->devType == id) {
-				if (!found) {
-					device = mDevices[i];
-					found = true;
-				}
-				else
-					return false;
-			}
-		}
-		return found;
-	}
+	
 
 	int size() { return (int)mDevices.size(); }
 
