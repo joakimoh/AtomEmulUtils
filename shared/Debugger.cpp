@@ -49,11 +49,16 @@ bool Debugger::dumpCmd(istream  &sin)
 
 bool Debugger::stepCmd(istream &sin)
 {
+	int n = 1;
+	if (sin.tellg() > 0)
+		sin >> n;
+	mEngine->step(n);
 	return true;
 }
 
 bool Debugger::contCmd(istream &sin)
 {
+	mEngine->cont();
 	return true;
 }
 
@@ -64,6 +69,16 @@ bool Debugger::exitCmd(istream &sin)
 
 bool Debugger::breakCmd(istream& sin)
 {
+	int a;
+	sin >> hex >> a;
+	mEngine->setBreakPoint(a);
+
+	return true;
+}
+
+bool Debugger::haltCmd(istream& sin)
+{
+	mEngine->halt();
 	return true;
 }
 
@@ -84,8 +99,10 @@ void Debugger::debug()
 			stepCmd(sin);
 		else if (cmd == "cont")
 			contCmd(sin);
-		else if (cmd == "exit")
-			exitCmd(sin);
+		else if (cmd == "halt")
+			haltCmd(sin);
+		else if (cmd == "break")
+			breakCmd(sin);
 		else if (cmd == "exit")
 			exitCmd(sin);
 		else

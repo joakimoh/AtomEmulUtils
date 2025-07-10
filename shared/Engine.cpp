@@ -9,6 +9,7 @@
 
 
 
+
 #include "ConnectionManager.h"
 #include "Devices.h"
 #include "VideoDisplayUnit.h"
@@ -122,6 +123,9 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
     al_register_event_source(mQueue, al_get_timer_event_source(mfieldTimer));
     al_start_timer(mfieldTimer);
 
+    // Create mutex for debug purpose
+    mutex mExecMutex;
+
 }
 
 Engine::~Engine()
@@ -164,110 +168,133 @@ bool Engine::run()
 
     while (!mQuit)
     {
-        int p_field_rate = mFieldRate;
-        double field_rate_d = mVDU->getFieldRate();
-        mFieldRate = (int)round(field_rate_d);
 
-        //
-        // Update field timer and sound timing when either the field rate or the emulation speed is updated
-        //
-        if (p_speed_factor != mSpeedFactor || (mFieldRate != p_field_rate && mFieldRate > 10)) {
-            p_field_rate = mFieldRate;
-            p_speed_factor = mSpeedFactor;
-            if (mfieldTimer != NULL) {
-                al_stop_timer(mfieldTimer);
-                al_unregister_event_source(mQueue, al_get_timer_event_source(mfieldTimer));
-                al_destroy_timer(mfieldTimer);
-                mfieldTimer = NULL;
-            }
-            mfieldTimer = al_create_timer(1.0 / mFieldRate / mSpeedFactor);
-            al_register_event_source(mQueue, al_get_timer_event_source(mfieldTimer));
-            al_start_timer(mfieldTimer);
+        if (mState != ENG_HALT) {
 
-            if (mSoundDevice != NULL)
-                mSoundDevice->setFieldRate(mFieldRate, mSpeedFactor);
-        }
+            int p_field_rate = mFieldRate;
+            double field_rate_d = mVDU->getFieldRate();
+            mFieldRate = (int)round(field_rate_d);
 
-
-        // Get field duration (in CPU cycles).
-        // Required for the cases these parameters are not hard-coded but can be reconfigured by
-        // the software.
-        int cycles_per_field = (int)round(mCPUClock * 1e6 / field_rate_d);
-
-        // Advance time for each devices that is scheduled on field basis
-        for (int i = 0; i < mFieldScheduledDevices.size(); i++)
-            mFieldScheduledDevices[i]->advance(mCycleCount + cycles_per_field);
-
-        //
-        // Advance time one field scan line at a time until a complete field has been scanned
-        // 
-        // For interlaced modes, only every second scan line will be processed...
-        //
-        bool end_of_field = false;
-        bool add_half_line = false;
-        //cout << "\n\n*** START OF FIELD\n";
-        while (!end_of_field) {
-            int screen_scan_line = mVDU->getScreenScanLine();
-            int field = mVDU->fieldScanLineOffset();
-            int active_lines = mVDU->getActiveLines();
-            int adjusted_scanline = screen_scan_line - field;
-            int n_screen_scan_lines = mVDU->getScreenScanLines();
-            bool interlaced_mode = mVDU->interlaceOn();
-
-            // Scan one field screen scan line and save time passed in target cycle count to be used as reference
-            // target time for the 6502 and the other devices (PIA, VIA, Sound, Tape Recorder, RAM & ROM). This
-            // is required to keep execution synchronised with the field updating.
-            uint64_t target_cycle_count;
-            uint64_t start_count = mCycleCount;
-
-            // Advance time for the VDU corresponding to one scan line (1/2 scan line if it is the last line and interlace is enabled)
-            if (interlaced_mode && add_half_line) {
-                mVDU->advanceHalfLine(target_cycle_count);
-                line_count += 0.5;
-                end_of_field = true;
-            }
-            else {
-                mVDU->advanceLine(target_cycle_count);
-                line_count++;
-             }
-
-            uint64_t half_line_step = (target_cycle_count - start_count) / 2;
-            uint64_t start_target_cnt = start_count + half_line_step;
-            for (int half_line = 0; half_line < 2; half_line++) {
-                uint64_t half_line_target = start_target_cnt + half_line_step * half_line;
-
-                // update devices scheduled on half line basis
-                for (int i = 0; i < mHalfLineScheduledDevices.size(); i++)
-                    mHalfLineScheduledDevices[i]->advance(half_line_target);
-
-                // update devices scheduled on instruction basis in a tight loop
-                while (mCycleCount < half_line_target) {
-                    // Execute one microprocessor instruction and advance time accordingly (cycle_count updated)
-                    if (!mMicroprocessor->advanceInstr(mCycleCount)) {
-                        // Execution stopped - exit
-                        return 0;
-                    }
-
-                    // Advance time for each device scheduled on instruction basis so that it matches the time
-                    // of the microprocessor.
-                    for (int d = 0; d < mInstrScheduledDevices.size(); d++)
-                        mInstrScheduledDevices[d]->advance(mCycleCount);
-
+            //
+            // Update field timer and sound timing when either the field rate or the emulation speed is updated
+            //
+            if (p_speed_factor != mSpeedFactor || (mFieldRate != p_field_rate && mFieldRate > 10)) {
+                p_field_rate = mFieldRate;
+                p_speed_factor = mSpeedFactor;
+                if (mfieldTimer != NULL) {
+                    al_stop_timer(mfieldTimer);
+                    al_unregister_event_source(mQueue, al_get_timer_event_source(mfieldTimer));
+                    al_destroy_timer(mfieldTimer);
+                    mfieldTimer = NULL;
                 }
+                mfieldTimer = al_create_timer(1.0 / mFieldRate / mSpeedFactor);
+                al_register_event_source(mQueue, al_get_timer_event_source(mfieldTimer));
+                al_start_timer(mfieldTimer);
+
+                if (mSoundDevice != NULL)
+                    mSoundDevice->setFieldRate(mFieldRate, mSpeedFactor);
             }
 
-            // Check for end of field
-            if (interlaced_mode && adjusted_scanline == n_screen_scan_lines - 2) {
-                add_half_line = true;
+
+            // Get field duration (in CPU cycles).
+            // Required for the cases these parameters are not hard-coded but can be reconfigured by
+            // the software.
+            int cycles_per_field = (int)round(mCPUClock * 1e6 / field_rate_d);
+
+            // Advance time for each devices that is scheduled on field basis
+            for (int i = 0; i < mFieldScheduledDevices.size(); i++)
+                mFieldScheduledDevices[i]->advance(mCycleCount + cycles_per_field);
+
+            //
+            // Advance time one field scan line at a time until a complete field has been scanned
+            // 
+            // For interlaced modes, only every second scan line will be processed...
+            //
+            bool end_of_field = false;
+            bool add_half_line = false;
+            //cout << "\n\n*** START OF FIELD\n";
+            while (!end_of_field) {
+                int screen_scan_line = mVDU->getScreenScanLine();
+                int field = mVDU->fieldScanLineOffset();
+                int active_lines = mVDU->getActiveLines();
+                int adjusted_scanline = screen_scan_line - field;
+                int n_screen_scan_lines = mVDU->getScreenScanLines();
+                bool interlaced_mode = mVDU->interlaceOn();
+
+                // Scan one field screen scan line and save time passed in target cycle count to be used as reference
+                // target time for the 6502 and the other devices (PIA, VIA, Sound, Tape Recorder, RAM & ROM). This
+                // is required to keep execution synchronised with the field updating.
+                uint64_t target_cycle_count;
+                uint64_t start_count = mCycleCount;
+
+                // Advance time for the VDU corresponding to one scan line (1/2 scan line if it is the last line and interlace is enabled)
+                if (interlaced_mode && add_half_line) {
+                    mVDU->advanceHalfLine(target_cycle_count);
+                    line_count += 0.5;
+                    end_of_field = true;
+                }
+                else {
+                    mVDU->advanceLine(target_cycle_count);
+                    line_count++;
+                }
+
+                uint64_t half_line_step = (target_cycle_count - start_count) / 2;
+                uint64_t start_target_cnt = start_count + half_line_step;
+                for (int half_line = 0; half_line < 2; half_line++) {
+                    uint64_t half_line_target = start_target_cnt + half_line_step * half_line;
+
+                    // update devices scheduled on half line basis
+                    for (int i = 0; i < mHalfLineScheduledDevices.size(); i++)
+                        mHalfLineScheduledDevices[i]->advance(half_line_target);
+
+                    // update devices scheduled on instruction basis in a tight loop
+                    while (mCycleCount < half_line_target) {
+
+                        // Acquire execution mutex
+                        mExecMutex.lock();
+
+                        if (mState != ENG_HALT) {
+
+                            // Execute one microprocessor instruction and advance time accordingly (cycle_count updated)
+                            if (!mMicroprocessor->advanceInstr(mCycleCount)) {
+                                // Execution stopped - exit
+                                return 0;
+                            }
+
+                            // Advance time for each device scheduled on instruction basis so that it matches the time
+                            // of the microprocessor.
+                            for (int d = 0; d < mInstrScheduledDevices.size(); d++)
+                                mInstrScheduledDevices[d]->advance(mCycleCount);
+
+                            if (mMicroprocessor->getPC() == mBreakAdr)
+                                mState = ENG_HALT;
+
+                            if (mState == ENG_STEP) {
+                                if (mSteps == 1)
+                                    mState = ENG_HALT;
+                                else
+                                    mSteps--;
+                            }
+                        }
+                        // Release execution mutex
+                        mExecMutex.unlock();
+                    }
+                }
+
+                // Check for end of field
+                if (interlaced_mode && adjusted_scanline == n_screen_scan_lines - 2) {
+                    add_half_line = true;
+                }
+                else if (!interlaced_mode && adjusted_scanline == n_screen_scan_lines - 2) {
+                    end_of_field = true;
+                }
+
             }
-            else if (!interlaced_mode && adjusted_scanline == n_screen_scan_lines - 2) {
-                end_of_field = true;
-            }
+
+
+            field_cnt = (field_cnt + 1) % mFieldRate;
 
         }
-
-
-        field_cnt = (field_cnt + 1) % mFieldRate;
 
         // wait for event
         al_wait_for_event(mQueue, &event);
@@ -343,20 +370,48 @@ bool Engine::run()
 
 bool Engine::halt()
 {
-    mRun = false;
+    mExecMutex.lock();
+    mState = ENG_HALT;
+    mDM->toggleLogging();
+    mExecMutex.unlock();
     return true;
 }
 
 bool Engine::cont()
 {
-    mRun = true;
-    mStep = false;
+    mExecMutex.lock();
+    mDM->toggleLogging();
+    mState = ENG_RUN;
+    mExecMutex.unlock();
     return true;
 }
 
-bool Engine::step()
+bool Engine::step(int n)
 {
-    mRun = false;
-    mStep = true;
+    bool wait = true;
+    mExecMutex.lock();
+    mSteps = n;
+    mState = ENG_STEP;
+    mExecMutex.unlock();
+    while (wait) {
+        mExecMutex.lock();
+        wait = (mState == ENG_STEP);
+        mExecMutex.unlock();
+    }
+    return true;
+}
+
+bool Engine::setBreakPoint(uint16_t adr)
+{
+    mBreakAdr = (int)adr;
+    bool wait = true;
+    mExecMutex.lock();
+    mState = ENG_BRK;
+    mExecMutex.unlock();
+    while (wait) {
+        mExecMutex.lock();
+        wait = (mState == ENG_BRK);
+        mExecMutex.unlock();
+    }
     return true;
 }

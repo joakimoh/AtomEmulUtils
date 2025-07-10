@@ -136,6 +136,8 @@ public:
 	// Advance one instruction if the stop cycle hasn't already been reached
 	bool advanceInstr(uint64_t& endCycle);
 
+	int getPC() { return (int)mProgramCounter; }
+
 };
 
 #endif

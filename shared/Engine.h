@@ -13,8 +13,13 @@
 #include "VideoSettings.h"
 #include "DebugManager.h"
 #include "Display.h"
+#include <mutex>
+#include <semaphore>
+#include <thread>
 
 class SoundDevice;
+
+using namespace std;
 
 class Engine {
 
@@ -23,9 +28,6 @@ class Engine {
 private:
 
 	Display* mDisplay = NULL;
-
-	bool mRun = true;
-	bool mStep = false;
 
 	double mSpeedFactor = 1;
 
@@ -51,10 +53,16 @@ private:
 
 	GUI *mGUI = NULL;
 
+	// Debugger state
+	enum RunState {ENG_RUN, ENG_HALT, ENG_STEP, ENG_BRK};
+	RunState mState = ENG_RUN;
+	int mSteps = 0;
+	int mBreakAdr = -1;
+
+	// Create mutex for debug purpose
+	mutex mExecMutex;
 
 	bool allegroInit();
-
-	bool allegroExit();
 
 public:
 
@@ -67,7 +75,9 @@ public:
 
 	bool cont();
 
-	bool step();
+	bool step(int n);
+
+	bool setBreakPoint(uint16_t adr);
 };
 
 

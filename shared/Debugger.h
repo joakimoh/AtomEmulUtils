@@ -26,10 +26,14 @@ public:
 	void debug();
 
 	bool dumpCmd(istream &sin);
+
+	bool haltCmd(istream& sin);
 	bool stepCmd(istream &sin);
 	bool contCmd(istream &sin);
-	bool exitCmd(istream &sin);
+
 	bool breakCmd(istream& sin);
+
+	bool exitCmd(istream& sin);
 
 };
 
