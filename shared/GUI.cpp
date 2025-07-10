@@ -11,10 +11,12 @@
 #include "allegro5/allegro_native_dialog.h"
 #include "VideoSettings.h"
 #include "Display.h"
+#include "Engine.h"
 
 using namespace std;
 
-GUI::GUI(ALLEGRO_EVENT_QUEUE* queue, ALLEGRO_DISPLAY* disp, Devices * devices, double *speed, DebugManager* dm): mDevices(devices), mDisplay(disp), mEmulationSpeed(speed), mDM(dm)
+GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, ALLEGRO_DISPLAY* disp, Devices * devices, double *speed, DebugManager* dm):
+    mDevices(devices), mDisplay(disp), mEmulationSpeed(speed), mDM(dm), mEngine(engine)
 {
     // 
     // Create menu
@@ -84,7 +86,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
     {
         al_set_menu_item_flags(mMenu, ENTER_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
         al_set_menu_item_flags(mMenu, EXIT_DBG_ID, 0);
-        mDebugger = new Debugger(mDevices, mDM);
+        mDebugger = new Debugger(mEngine, mDevices, mDM);
         mDebugThread = thread(&Debugger::debug, mDebugger);
         break;
     }

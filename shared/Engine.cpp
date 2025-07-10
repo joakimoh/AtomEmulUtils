@@ -115,7 +115,7 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
     }
 
     // Create GUI with menu and callbacks
-    mGUI = new GUI(mQueue, mAllegroDisplay, mDevices, &mSpeedFactor, mDM);
+    mGUI = new GUI(this, mQueue, mAllegroDisplay, mDevices, &mSpeedFactor, mDM);
 
     // Setup emulation timer
     mfieldTimer = al_create_timer(1.0 / mFieldRate / mSpeedFactor);

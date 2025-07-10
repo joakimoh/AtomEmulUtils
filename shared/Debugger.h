@@ -2,9 +2,14 @@
 #define DEBUGGER_H
 
 #include <iostream>
+#include <string>
+#include <sstream>
+
+using namespace std;
 
 class Devices;
 class DebugManager;
+class Engine;
 
 class Debugger {
 
@@ -12,12 +17,19 @@ private:
 
 	DebugManager* mDM = NULL;
 	Devices *mDevices = NULL;
+	Engine* mEngine = NULL;
 
 public:
 
-	Debugger(Devices *devices, DebugManager *debugManager);
+	Debugger(Engine *engine, Devices *devices, DebugManager *debugManager);
 
 	void debug();
+
+	bool dumpCmd(istream &sin);
+	bool stepCmd(istream &sin);
+	bool contCmd(istream &sin);
+	bool exitCmd(istream &sin);
+	bool breakCmd(istream& sin);
 
 };
 

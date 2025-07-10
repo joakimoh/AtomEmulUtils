@@ -55,6 +55,7 @@ enum {
 };
 
 class Display;
+class Engine;
 
 class GUI {
 
@@ -122,9 +123,11 @@ private:
 
     thread mDebugThread;
 
+	Engine *mEngine = NULL;
+
 public:
 
-    GUI(ALLEGRO_EVENT_QUEUE *queue, ALLEGRO_DISPLAY* disp, Devices * devices, double *emulationSpeed, DebugManager *dm);
+    GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, ALLEGRO_DISPLAY* disp, Devices * devices, double *emulationSpeed, DebugManager *dm);
     ~GUI();
 
 	bool itemSelected(ALLEGRO_EVENT  *event);
