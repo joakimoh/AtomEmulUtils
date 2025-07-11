@@ -65,10 +65,17 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 	fin.seekg(0);
 	uint8_t opcode = 0x0;
 	while (!fin.fail()) {
+
 		uint16_t operand = 0x0;
+
+		vector<char> instr_bytes;
+
 		fin.read((char*)&opcode, sizeof(opcode));
+		instr_bytes.push_back(opcode);
+
 		uint16_t PC_for_opcode = mProgramCounter;
-		InstructionInfo instr = mOpcodeDict[opcode];		
+		InstructionInfo instr = mOpcodeDict[opcode];
+
 		switch (instr.mode) {
 					case Accumulator:	// OPC A
 					case Implied:		// 
@@ -82,7 +89,10 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 					case PostInd_Y:	// OPC (&12),Y
 					{
 						uint8_t op8 = 0x0;
+
 						fin.read((char*)&op8, sizeof(op8));
+						instr_bytes.push_back(op8);
+
 						operand = op8;
 						mProgramCounter++;
 						break;
@@ -93,8 +103,13 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 					case Indirect:		// OPC (&1234)			
 					{
 						uint8_t op16_L = 0x0, op16_H = 0x0;
+
 						fin.read((char*)&op16_L, sizeof(op16_L));
+						instr_bytes.push_back(op16_L);
+
 						fin.read((char*)&op16_H, sizeof(op16_H));
+						instr_bytes.push_back(op16_H);
+
 						operand = op16_H * 256 + op16_L;
 						mProgramCounter += 2;
 						break;
@@ -102,7 +117,19 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 					default:
 						break;
 			}
-		fout << decode(PC_for_opcode, opcode, operand) << "\n";
+
+		stringstream ss;
+		fout << left << setw(30) << decode(PC_for_opcode, opcode, operand);
+		for (int i = 0; i < instr_bytes.size(); i++) {
+			char c = (char)instr_bytes[i];
+			if (c >= 0x20 && c < 0x7f)
+				ss << c;
+			else
+				ss << '.';
+		}
+
+		fout << ss.str() << "\n";
+
 		mProgramCounter++;
 	}
 	fin.close();
@@ -255,7 +282,18 @@ bool Codec6502::decodeInstrFromBytes(uint16_t &pc, vector<uint8_t> bytes, string
 	default:
 		break;
 	}
-	decodedInstr = decode(PC_for_opcode, opcode, operand);
+
+	stringstream ss;
+	ss << left << setw(30) << decode(PC_for_opcode, opcode, operand);
+	for (int i = 0; i < pos; i++) {
+		char c = (char) bytes[i];
+		if (c >= 0x20 && c < 0x7f)
+			ss << c;
+		else
+			ss << '.';
+	}
+
+	decodedInstr = ss.str();
 
 	pc++;
 
