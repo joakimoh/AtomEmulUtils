@@ -266,7 +266,11 @@ bool Engine::run()
                             for (int d = 0; d < mInstrScheduledDevices.size(); d++)
                                 mInstrScheduledDevices[d]->advance(mCycleCount);
 
-                            if (mState == ENG_BRK_WAIT && mMicroprocessor->getPC() == mBreakAdr)
+                            if (
+                                mState == ENG_X_BRK_WAIT && mMicroprocessor->getOpcodePC() == mBreakAdr ||
+                                (mState == ENG_R_BRK_WAIT || mState == ENG_RW_BRK_WAIT) && mMicroprocessor->readAdr(mReadData) == mBreakAdr ||
+                                (mState == ENG_W_BRK_WAIT || mState == ENG_RW_BRK_WAIT) && mMicroprocessor->writtenAdr(mWrittenData) == mBreakAdr
+                            )
                                 mState = ENG_BRK_DET;
 
                             if (mState == ENG_STEP) {
@@ -401,17 +405,35 @@ bool Engine::step(int n)
     return true;
 }
 
-bool Engine::setBreakPointAndWait(uint16_t adr)
+bool Engine::setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData)
 {
     mBreakAdr = (int)adr;
     bool triggered = false;
     mExecMutex.lock();
-    mState = ENG_BRK_WAIT;
+    switch (mode) {
+    case 0: 
+        mState = ENG_X_BRK_WAIT;
+        break;
+    case 1:
+        mState = ENG_R_BRK_WAIT;
+        break;
+    case 2:
+        mState = ENG_W_BRK_WAIT;
+        break;
+    case 3:
+        mState = ENG_RW_BRK_WAIT;
+        break;
+    default:
+        return false;
+    }
+    
     mExecMutex.unlock();
     while (!triggered) {
         mExecMutex.lock();
         triggered = (mState == ENG_BRK_DET);
         if (triggered) {
+            readData = mReadData;
+            writtenData = mWrittenData;
             mState == ENG_HALT;
         }
         mExecMutex.unlock();

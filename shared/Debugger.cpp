@@ -27,6 +27,19 @@ bool Debugger::dumpDevCmd(istream& sin)
 	return true;
 }
 
+bool Debugger::dumpUcCmd(istream& sin)
+{
+	Device* dev = NULL;
+	
+	if (!mDevices->getUc(dev)) {
+		return false;
+	}
+
+	dev->outputState(cout);
+
+	return true;
+}
+
 bool Debugger::listDevicesCmd(istream& sin)
 {
 	vector<Device*> devices;
@@ -95,9 +108,28 @@ bool Debugger::exitCmd(istream &sin)
 
 bool Debugger::breakCmd(istream& sin)
 {
+	string sub_cmd;
+	sin >> sub_cmd;
 	int a;
 	sin >> hex >> a;
-	mEngine->setBreakPointAndWait(a);
+	if (sub_cmd == "x") {
+		mAccessMode = 0;
+		mEngine->setBreakPointAndWait(0, a, mReadData, mWrittenData);
+	}
+	else if (sub_cmd == "r") {
+		mAccessMode = 1;
+		mEngine->setBreakPointAndWait(1, a, mReadData, mWrittenData);
+	}
+	else if (sub_cmd == "w") {
+		mAccessMode = 2;
+		mEngine->setBreakPointAndWait(2, a, mReadData, mWrittenData);
+	}
+	else if (sub_cmd == "rw") {
+		mAccessMode = 3;
+		mEngine->setBreakPointAndWait(3, a, mReadData, mWrittenData);
+	}
+	else
+		return false;
 
 	return true;
 }
@@ -123,6 +155,8 @@ void Debugger::debug()
 			dumpMemCmd(sin);
 		else if (cmd == "state")
 			dumpDevCmd(sin);
+		else if (cmd == "uc")
+			dumpUcCmd(sin);
 		else if (cmd == "devices")
 			listDevicesCmd(sin);
 		else if (cmd == "step")
@@ -135,7 +169,7 @@ void Debugger::debug()
 			breakCmd(sin);
 		else if (cmd == "exit")
 			exitCmd(sin);
-		else
+		else if (cmd != "")
 			cout << "Unknown command '" << cmd << "'!\n";
 	}
 }

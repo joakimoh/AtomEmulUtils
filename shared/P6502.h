@@ -89,6 +89,14 @@ private:
 	uint8_t pNMI = 0x1;
 	uint8_t pIRQ = 0x1;
 
+	int mRAccAdr = -1;
+	int mWAccAdr = -1;
+	uint8_t mReadVal = 0xff;
+	uint8_t mWrittenVal = 0xff;
+	uint16_t mOpcodePC = 0xffff;
+	uint8_t mOpcode = 0xff;
+	uint16_t mOperand = 0xffff;
+
 	MemoryMappedDevice* mLastPgmDevice = NULL;
 	
 	
@@ -137,6 +145,14 @@ public:
 	bool advanceInstr(uint64_t& endCycle);
 
 	int getPC() { return (int)mProgramCounter; }
+	int getOpcodePC() { return (int)mOpcodePC; }
+
+	// Outputs the internal state of the device
+	bool outputState(ostream& sout) override;
+
+	int readAdr(uint8_t& data) { data = mReadVal;  return (int)mRAccAdr; }
+	int writtenAdr(uint8_t& data) { data = mWrittenVal;  return (int)mWAccAdr; }
+
 
 };
 

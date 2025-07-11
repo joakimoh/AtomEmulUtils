@@ -31,6 +31,7 @@ private:
 	vector<Device*> mDevices;
 	vector<MemoryMappedDevice*> mMemoryMappedDevices;
 	DebugManager* mDM = NULL;
+	Device *mMicroprocessor = NULL;
 
 	string getFileName(string& path, stringstream& sin);
 	uint16_t getHexVal(stringstream& sin);
@@ -60,6 +61,7 @@ public:
 
 	bool getDevice(string name, Device*& device);
 	bool getDevice(DeviceId id, Device*& device);
+	bool getUc(Device* &device) { device = mMicroprocessor; return true; }
 
 	
 

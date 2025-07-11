@@ -19,6 +19,10 @@ private:
 	Devices *mDevices = NULL;
 	Engine* mEngine = NULL;
 
+	int mAccessMode = -1;
+	uint8_t mReadData = 0xff;
+	uint8_t mWrittenData = 0xff;
+
 public:
 
 	Debugger(Engine *engine, Devices *devices, DebugManager *debugManager);
@@ -27,6 +31,7 @@ public:
 
 	bool dumpMemCmd(istream &sin);
 	bool dumpDevCmd(istream& sin);
+	bool dumpUcCmd(istream& sin);
 	bool listDevicesCmd(istream& sin);
 
 	bool haltCmd(istream& sin);

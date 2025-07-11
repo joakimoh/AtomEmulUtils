@@ -194,6 +194,7 @@ Devices::Devices(
 
 					microprocessor = new P6502(dev_name, cpuClock, mDM, &connection_manager);
 					mDevices.push_back(microprocessor);
+					mMicroprocessor = microprocessor;
 
 				}
 

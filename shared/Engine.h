@@ -54,10 +54,12 @@ private:
 	GUI *mGUI = NULL;
 
 	// Debugger state
-	enum RunState {ENG_RUN, ENG_HALT, ENG_STEP, ENG_BRK_WAIT, ENG_BRK_DET};
+	enum RunState {ENG_RUN, ENG_HALT, ENG_STEP, ENG_X_BRK_WAIT, ENG_R_BRK_WAIT, ENG_W_BRK_WAIT, ENG_RW_BRK_WAIT, ENG_BRK_DET};
 	RunState mState = ENG_RUN;
 	int mSteps = 0;
 	int mBreakAdr = -1;
+	uint8_t mReadData = 0xff;
+	uint8_t mWrittenData = 0xff;
 
 	// Create mutex for debug purpose
 	mutex mExecMutex;
@@ -77,7 +79,7 @@ public:
 
 	bool step(int n);
 
-	bool setBreakPointAndWait(uint16_t adr);
+	bool setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData);
 };
 
 

@@ -187,23 +187,22 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		return false;
 	}
 
-	// Get opcode of next instruction
-	uint8_t opcode;
-	uint16_t opcode_PC = mProgramCounter;
+	// Get mOpcode of next instruction
+	mOpcodePC = mProgramCounter;
 #ifdef DBG_UC_TIME
 	auto opcode_start = chrono::high_resolution_clock::now();
 #endif
-	if (!readProgramMem(mProgramCounter++, opcode)) {
+	if (!readProgramMem(mProgramCounter++, mOpcode)) {
 		success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to read instruction!\n");
 	}
 
-	// Decode the opcode
+	// Decode the mOpcode
 	Codec6502::InstructionInfo instr;
 	bool decode_success = true;
-	if (!mCodec.decodeInstruction(opcode, instr)) {
+	if (!mCodec.decodeInstruction(mOpcode, instr)) {
 		decode_success = false;
-		DBG_LOG(this, DBG_ERROR, "Invalid instruction 0x" + Utility::int2hexStr(opcode, 2) + " at address 0x" + Utility::int2hexStr(opcode_PC, 4) + "!\n");
+		DBG_LOG(this, DBG_ERROR, "Invalid instruction 0x" + Utility::int2hexStr(mOpcode, 2) + " at address 0x" + Utility::int2hexStr(mOpcodePC, 4) + "!\n");
 
 	}
 	success = success && decode_success;
@@ -213,17 +212,16 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	mOpcodeCnt += opcode_dur.count();
 #endif
 
-	// Get the operand
-	uint16_t operand = 0x0;
+	// Get the mOperand
 	uint16_t calc_op_adr = 0x0;
-	uint8_t read_val = 0x0;
+	uint8_t mReadVal = 0x0;
 	bool operand_success = true;
 #ifdef DBG_UC_TIME
 	auto operand_start = chrono::high_resolution_clock::now();
 #endif
-	if (!getOperand(instr, operand, calc_op_adr, read_val)) {
+	if (!getOperand(instr, mOperand, calc_op_adr, mReadVal)) {
 		operand_success = false;
-		DBG_LOG(this, DBG_ERROR, "Failed to get operand for instruction with opcode 0x" + Utility::int2hexStr(opcode, 2) + " at address 0x" + Utility::int2hexStr(opcode_PC, 4) + "!\n");
+		DBG_LOG(this, DBG_ERROR, "Failed to get mOperand for instruction with mOpcode 0x" + Utility::int2hexStr(mOpcode, 2) + " at address 0x" + Utility::int2hexStr(mOpcodePC, 4) + "!\n");
 	}
 	success = success && operand_success;
 #ifdef DBG_UC_TIME
@@ -232,26 +230,31 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	mOperandCnt += operand_dur.count();
 #endif
 	
-	// After reading the operand, the PC points at the next instruction...
+	// After reading the mOperand, the PC points at the next instruction...
 
 	// Execute the instruction
-	uint8_t written_val;
+	uint8_t mWrittenVal;
 	bool exec_success = true;
 	uint8_t oI_flag = I_flag;
 #ifdef DBG_UC_TIME
 	auto exec_start = chrono::high_resolution_clock::now();
 #endif
-	if (!executeInstr(instr, opcode_PC, operand, calc_op_adr, read_val, written_val)) {
+	if (!executeInstr(instr, mOpcodePC, mOperand, calc_op_adr, mReadVal, mWrittenVal)) {
 		exec_success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to execute instruction!\n");
 	}
+	mRAccAdr = mWAccAdr = -1;
+	if (instr.readsMem)
+		mRAccAdr = calc_op_adr;
+	if (instr.writesMem)
+		mWAccAdr = calc_op_adr;
 	success = success && exec_success;
 #ifdef DBG_UC_TIME
 	auto exec_stop = chrono::high_resolution_clock::now();
 	auto exec_dur = chrono::duration_cast<chrono::nanoseconds>(exec_stop - exec_start);
 	mExecCnt += exec_dur.count();
 #endif
-	DBG_LOG_COND(false && I_flag != oI_flag, this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[instr.instruction] + " at address 0x" + Utility::int2hexStr(opcode_PC,4) + "\n");
+	DBG_LOG_COND(false && I_flag != oI_flag, this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[instr.instruction] + " at address 0x" + Utility::int2hexStr(mOpcodePC,4) + "\n");
 
 #ifdef DBG_UC_TIME
 	if (DBG_LEVEL_DEV(this,DBG_TIME) && mCycleCount % mCycles_1s == 0) {
@@ -277,17 +280,17 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			instr_log_data.Y = mRegisterY;
 			instr_log_data.SP = mStackPointer;
 			instr_log_data.SR = mStatusRegister;
-			instr_log_data.opcodePC = opcode_PC;
+			instr_log_data.opcodePC = mOpcodePC;
 			instr_log_data.PC = mProgramCounter;
-			instr_log_data.opcode = opcode;
-			instr_log_data.operand = operand;
+			instr_log_data.opcode = mOpcode;
+			instr_log_data.operand = mOperand;
 			instr_log_data.accessAdr = calc_op_adr;
 			instr_log_data.activeIRQ = (!mIRQ && mIrqTransition);
 			instr_log_data.activeNMI = (!mNMI && mNmiTransition);
 			instr_log_data.execFailure = !exec_success;
 			instr_log_data.rwFailure = !operand_success;
-			instr_log_data.readVal = read_val;
-			instr_log_data.writtenVal = written_val;
+			instr_log_data.readVal = mReadVal;
+			instr_log_data.writtenVal = mWrittenVal;
 			instr_log_data.decodeFailure = !decode_success;
 			uint16_t a = (0x100 + mStackPointer + 1) & 0x1ff;
 			uint8_t l, h;
@@ -300,16 +303,16 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		}
 		else {
 
-			string instr_s = mCodec.decode(opcode_PC, opcode, operand);
+			string instr_s = mCodec.decode(mOpcodePC, mOpcode, mOperand);
 			stringstream sout;
 			sout << setfill(' ') << setw(30) << left << instr_s << right <<
 				" " << getState();
 			if (instr.readsMem || instr.writesMem)
 				sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << calc_op_adr;
 			if (instr.readsMem)
-				sout << " READ 0x" << setw(2) << (int)read_val;
+				sout << " READ 0x" << setw(2) << (int)mReadVal;
 			if (instr.writesMem)
-				sout << " WROTE 0x" << setw(2) << (int)written_val;
+				sout << " WROTE 0x" << setw(2) << (int)mWrittenVal;
 			sout << " " << stack2Str();
 			if (!decode_success)
 				sout << "UNKNOWN INSTR";
@@ -1729,4 +1732,27 @@ void P6502::printCallStack()
 		s += "\tmem[0x" + Utility::int2hexStr(a, 4) + "] = 0x" + Utility::int2hexStr(d, 2) + "\n";
 	}
 	DBG_LOG(this, DBG_INTERRUPTS, s);
+}
+
+// Outputs the internal state of the device
+bool P6502::outputState(ostream& sout)
+{
+	string instr_s = mCodec.decode(mOpcodePC, mOpcode, mOperand);
+	sout << setfill(' ') << setw(30) << left << instr_s << right <<
+		" " << getState();
+	int adr = -1;
+	if (mRAccAdr >= 0)
+		adr = mRAccAdr;
+	else if (mWAccAdr >= 0)
+		adr = mWAccAdr;
+	if (adr >= 0) {
+		sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << (uint16_t) adr;
+		if (mRAccAdr >= 0)
+			sout << " READ 0x" << setw(2) << (int)mReadVal;
+		if (mWAccAdr >= 0)
+			sout << " WROTE 0x" << setw(2) << (int)mWrittenVal;
+	}
+	sout << "\n";
+
+	return true;
 }
