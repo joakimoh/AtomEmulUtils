@@ -5,6 +5,7 @@
 #include "Utility.h"
 #include "Engine.h"
 #include <iomanip>
+#include <sstream>
 
 using namespace std;
 
@@ -51,7 +52,37 @@ bool Debugger::listDevicesCmd(istream& sin)
 	return true;
 }
 
-bool Debugger::dumpMemCmd(istream  &sin)
+bool Debugger::writeMemCmd(istream& sin)
+{
+	int a, data;
+	sin >> hex >> a;
+	while (!sin.eof()) {
+		sin >> hex >> data;
+		if (!mDevices->writeMemoryMappedDevice(a++, data)) {
+			cout << "Failed to write to memory-mapped device at address 0x" << hex << a << "!\n";
+			return false;
+		}
+	}
+	return true;
+}
+
+bool Debugger::writeMemStrCmd(istream & sin)
+{
+	int a;
+	char c;
+	sin >> hex >> a >> skipws >> c;
+	if (c != '"')
+		return false;
+	while (sin.get(c) && c != '"') {
+		if (!mDevices->writeMemoryMappedDevice(a++, (uint8_t)c)) {
+			cout << "Failed to write to memory-mapped device at address 0x" << hex << a << "!\n";
+			return false;
+		}
+	}
+	return true;
+}
+
+bool Debugger::readMemCmd(istream  &sin)
 {
 	int a1, a2;
 	sin >> hex >> a1;
@@ -114,7 +145,7 @@ bool Debugger::breakCmd(istream& sin)
 	sin >> hex >> a;
 	if (sub_cmd == "x") {
 		mAccessMode = 0;
-		mEngine->setBreakPointAndWait(0, a, mReadData, mWrittenData);
+		mEngine->setBreakPointAndWait(0, a, mReadData, mWrittenData);		
 	}
 	else if (sub_cmd == "r") {
 		mAccessMode = 1;
@@ -151,8 +182,12 @@ void Debugger::debug()
 		string cmd;
 		sin >> cmd;
 
-		if (cmd == "mem")
-			dumpMemCmd(sin);
+		if (cmd == "read")
+			readMemCmd(sin);
+		else if (cmd == "write")
+			writeMemCmd(sin);
+		else if (cmd == "swrite")
+			writeMemStrCmd(sin);
 		else if (cmd == "state")
 			dumpDevCmd(sin);
 		else if (cmd == "uc")

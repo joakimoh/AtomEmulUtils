@@ -818,3 +818,15 @@ bool Devices::getDevice(DeviceId id, Device*& device) {
 	}
 	return found;
 }
+
+// Write to a memory-mapped device (for debugger use only)
+bool Devices::writeMemoryMappedDevice(uint16_t adr, uint8_t data)
+{
+	for (int i = 0; i < mMemoryMappedDevices.size(); i++) {
+		MemoryMappedDevice* dev = mMemoryMappedDevices[i];
+		if (dev->selected(adr)) {
+			return dev->write(adr, data);
+		}
+	}
+	return false;
+}

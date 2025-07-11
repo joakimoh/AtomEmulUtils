@@ -29,7 +29,9 @@ public:
 
 	void debug();
 
-	bool dumpMemCmd(istream &sin);
+	bool readMemCmd(istream &sin);
+	bool writeMemCmd(istream& sin);
+	bool writeMemStrCmd(istream& sin);
 	bool dumpDevCmd(istream& sin);
 	bool dumpUcCmd(istream& sin);
 	bool listDevicesCmd(istream& sin);

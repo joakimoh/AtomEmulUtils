@@ -72,6 +72,9 @@ public:
 	// the method will return false.
 	bool dumpDeviceMemory(uint16_t adr, uint8_t& data);
 
+	// Write to a memory-mapped device (for debugger use only)
+	bool writeMemoryMappedDevice(uint16_t adr, uint8_t data);
+
 
 };
 
