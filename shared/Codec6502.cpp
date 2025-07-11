@@ -204,3 +204,60 @@ string Codec6502::decode(uint16_t PC, uint8_t opcode, uint16_t operand)
 
 	return sout.str();
 }
+
+bool Codec6502::decodeInstrFromBytes(uint16_t &pc, vector<uint8_t> bytes, string &decodedInstr)
+{
+	int pos = 0;
+	uint16_t operand = 0x0;
+
+	if (bytes.size() < 2)
+		return false;
+
+	uint8_t opcode = bytes[pos++];
+	if (pos >= bytes.size())
+		return false;
+
+	uint16_t PC_for_opcode = pc;
+	InstructionInfo instr = mOpcodeDict[opcode];
+	switch (instr.mode) {
+	case Accumulator:	// OPC A
+	case Implied:		// 
+		break;
+	case Relative:		// OPC <branch target>
+	case Immediate:		// OPC #&12
+	case ZeroPage:		// OPC &12
+	case ZeroPage_X:	// OPC &12,X
+	case ZeroPage_Y:	// OPC &12,Y
+	case PreInd_X:	// OPC (&12,X)
+	case PostInd_Y:	// OPC (&12),Y
+	{
+		uint8_t op8 = 0x0;
+		op8 = bytes[pos++];
+		operand = op8;
+		pc++;
+		break;
+	}
+	case Absolute:		// OPC &1234
+	case Absolute_X:	// OPC &1234,X
+	case Absolute_Y:	// OPC &1234,Y
+	case Indirect:		// OPC (&1234)			
+	{
+		uint8_t op16_L = 0x0, op16_H = 0x0;
+		if (pos + 2 >= bytes.size())
+			return false;
+		op16_L = bytes[pos++];
+		op16_H = bytes[pos++];
+
+		operand = op16_H * 256 + op16_L;
+		pc += 2;
+		break;
+	}
+	default:
+		break;
+	}
+	decodedInstr = decode(PC_for_opcode, opcode, operand);
+
+	pc++;
+
+	return true;
+}

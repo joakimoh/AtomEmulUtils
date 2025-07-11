@@ -82,6 +82,38 @@ bool Debugger::writeMemStrCmd(istream & sin)
 	return true;
 }
 
+bool Debugger::disCmd(istream& sin)
+{
+	Codec6502 mCodec;
+	int a1, a2;
+	sin >> hex >> a1;
+	sin >> hex >> a2;
+	vector<uint8_t> bytes;
+	uint16_t pc = a1;
+	uint8_t data;
+
+	for (int a = a1; a <= a2; a++) {
+		string s;
+		if (!mDevices->dumpDeviceMemory(a, data)) {
+			cout << "Illegal address 0x" << hex << a1 << "\n";
+			break;
+		}
+		bytes.push_back(data);
+		if (bytes.size() >= 4 || a == a2) {
+			int old_pc = pc;
+			if (!mCodec.decodeInstrFromBytes(pc, bytes, s)) {
+				cout << "Failed to decode instruction at address 0x" << hex << pc << "\n";
+				break;
+			}
+			int consumed_bytes = pc - old_pc;
+			bytes.erase(bytes.begin(), bytes.begin() + consumed_bytes);
+			cout << s << "\n";
+		}
+	}
+	
+	return true;
+}
+
 bool Debugger::readMemCmd(istream  &sin)
 {
 	int a1, a2;
@@ -184,6 +216,8 @@ void Debugger::debug()
 
 		if (cmd == "read")
 			readMemCmd(sin);
+		else if (cmd == "dis")
+			disCmd(sin);
 		else if (cmd == "write")
 			writeMemCmd(sin);
 		else if (cmd == "swrite")

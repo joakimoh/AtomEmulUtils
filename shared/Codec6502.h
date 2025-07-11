@@ -302,6 +302,8 @@ public:
 
 	string decode(uint16_t PC, uint8_t opcode, uint16_t operand);
 
+	bool decodeInstrFromBytes(uint16_t& pc, vector<uint8_t> bytes, string& decodedInstr);
+
 };
 
 #endif
