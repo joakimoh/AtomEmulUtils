@@ -54,7 +54,7 @@ private:
 	GUI *mGUI = NULL;
 
 	// Debugger state
-	enum RunState {ENG_RUN, ENG_HALT, ENG_STEP, ENG_BRK};
+	enum RunState {ENG_RUN, ENG_HALT, ENG_STEP, ENG_BRK_WAIT, ENG_BRK_DET};
 	RunState mState = ENG_RUN;
 	int mSteps = 0;
 	int mBreakAdr = -1;
@@ -77,7 +77,7 @@ public:
 
 	bool step(int n);
 
-	bool setBreakPoint(uint16_t adr);
+	bool setBreakPointAndWait(uint16_t adr);
 };
 
 

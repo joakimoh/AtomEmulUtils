@@ -42,7 +42,7 @@ void DebugManager::toggleCondition()
 	mBufferedTraceLines.clear();
 }
 
-void DebugManager::toggleLogging()
+void DebugManager::toggleUCdebug()
 {
 	mTraceAdr = -1;
 	mLogAdr = -1;
@@ -89,9 +89,19 @@ bool DebugManager::tracing()
 	return ((mDbgLevel & DBG_6502) != 0 || mFetchAdr == mCyclicLogAdr || (mTraceAdr > 0 && !mEndOfTracingReached));
 }
 
-void DebugManager::setDebugLevel(DebugLevel level)
+void DebugManager::addDebugLevel(DebugLevel level)
 {
 	mDbgLevel |= level;
+}
+
+void DebugManager::setDebugLevel(DebugLevel level)
+{
+	mDbgLevel = level;
+}
+
+DebugLevel DebugManager::getDebugLevel()
+{
+	return mDbgLevel;
 }
 
 void DebugManager::setDebugPort(string portDevice, string port)

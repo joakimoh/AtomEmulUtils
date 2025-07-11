@@ -805,27 +805,8 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 		)
 		&& (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 	) {
-		cout << "\n" << dec;
-		cout << "Video ULA Control Register: 0x" << hex << (int)mControlRegister << " (" <<
-			"Flash: 0x" << (int)CR_FLASH <<
-			", Teletext: 0x" << (int)CR_TELETEXT <<
-			", NCOL: 0x" << (int)CR_N_COLS <<
-			", Clock Rate: 0x" << (int)CR_CLOCK_RATE <<
-			", Cursor Segment: 0x" << (int)CR_CURSOR_SEGMENT <<
-			dec << ")\n";
-		cout << "Video ULA PixelRate:       " << mNormalisedPixelRate << " MHz\n";
-		cout << "Video ULA PixelWidth:      " << (int)mPixelW << "\n";
-		cout << "Video ULA Pixels/byte:     " << (int)mPixelsPerCharacter << "\n";
-		cout << "Video ULA CRTC Clock:      " << (int)mCRTC_CLK << " MHz\n";
-		cout << "Video ULA No of cols:      " << dec << mNCols << "\n";
-		cout << "Video ULA Teletext:        " << (getCRField(CR_TELETEXT) ? "ON" : "OFF") << "\n";
-		cout << "Video ULA Cursor Segments: " << hex << (int)getCRField(CR_CURSOR_SEGMENT) << "\n";
-		cout << "Video ULA Pixel Width:     " << dec << (int)mPixelW << "\n";
-		cout << "Video ULA Pixels/byte:     " << dec << mPixelsPerCharacter << "\n";
-		cout << "Video ULA Scan Line:       " << dec << mScanLine << "\n";
-		cout << "Video ULA Scan Lines:      " << dec << mScreenScanLines << "\n";
-		cout << "Video ULA Vertical Sync:   " << dec << mVerticalSyncPos << "\n";
-		cout << "\n";
+		outputState(cout);
+
 	}
 #endif
 	
@@ -1098,4 +1079,32 @@ void BeebVideoULA::updateHwScrollConstant() {
 		cout << "Video ULA CR = 0x" << hex << (int)mControlRegister << "\n";
 	}
 #endif
+}
+
+// Outputs the internal state of the device
+bool BeebVideoULA::outputState(ostream& sout)
+{
+	sout << "\n" << dec;
+	sout << "Video ULA Control Register: 0x" << hex << (int)mControlRegister << " (" <<
+		"Flash: 0x" << (int)CR_FLASH <<
+		", Teletext: 0x" << (int)CR_TELETEXT <<
+		", NCOL: 0x" << (int)CR_N_COLS <<
+		", Clock Rate: 0x" << (int)CR_CLOCK_RATE <<
+		", Cursor Segment: 0x" << (int)CR_CURSOR_SEGMENT <<
+		dec << ")\n";
+	sout << "Video ULA PixelRate:       " << mNormalisedPixelRate << " MHz\n";
+	sout << "Video ULA PixelWidth:      " << (int)mPixelW << "\n";
+	sout << "Video ULA Pixels/byte:     " << (int)mPixelsPerCharacter << "\n";
+	sout << "Video ULA CRTC Clock:      " << (int)mCRTC_CLK << " MHz\n";
+	sout << "Video ULA No of cols:      " << dec << mNCols << "\n";
+	sout << "Video ULA Teletext:        " << (getCRField(CR_TELETEXT) ? "ON" : "OFF") << "\n";
+	sout << "Video ULA Cursor Segments: " << hex << (int)getCRField(CR_CURSOR_SEGMENT) << "\n";
+	sout << "Video ULA Pixel Width:     " << dec << (int)mPixelW << "\n";
+	sout << "Video ULA Pixels/byte:     " << dec << mPixelsPerCharacter << "\n";
+	sout << "Video ULA Scan Line:       " << dec << mScanLine << "\n";
+	sout << "Video ULA Scan Lines:      " << dec << mScreenScanLines << "\n";
+	sout << "Video ULA Vertical Sync:   " << dec << mVerticalSyncPos << "\n";
+	sout << "\n";
+	
+	return true;
 }

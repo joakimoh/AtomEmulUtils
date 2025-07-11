@@ -185,7 +185,9 @@ public:
 
 	void setMemLogAdr(uint16_t adr);
 
+	void addDebugLevel(DebugLevel level);
 	void setDebugLevel(DebugLevel level);
+	DebugLevel getDebugLevel();
 	void setDebugPort(string portDevice, string port);
 	void clearDebugLevel(DebugLevel level);
 
@@ -193,7 +195,8 @@ public:
 	void triggerLogging(uint16_t adr);
 	bool triggerExecutionStop(P6502 * cpu, uint16_t adr);
 
-	void toggleLogging();
+	void toggleUCdebug();
+
 
 	void preBuffer(uint16_t adr, uint8_t X, uint8_t Y, uint8_t A);
 

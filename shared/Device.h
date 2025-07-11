@@ -223,6 +223,9 @@ public:
 	// Called by a other device when the device is asked to process/transform data.
 	virtual bool getDeviceData(uint8_t dIn, uint8_t& dOut) { dOut = 0xff;  return false; }
 
+	// Called by debugger normally to dump a periphal device's register content
+	virtual bool outputState(ostream& sout) { return true; }
+
 };
 
 #endif

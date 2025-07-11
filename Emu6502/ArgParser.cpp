@@ -193,7 +193,7 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			a++;
 		}
 		else if (strcmp(argv[a], "-v") == 0) {
-			debugManager.setDebugLevel(DBG_VERBOSE);
+			debugManager.addDebugLevel(DBG_VERBOSE);
 		}
 		else if (strcmp(argv[a], "-dbg") == 0) {
 			a++;
@@ -202,39 +202,39 @@ ArgParser::ArgParser(int argc, const char* argv[])
 				return;
 			}
 			if (strstr(argv[a ], "e") != NULL)
-				debugManager.setDebugLevel(DBG_ERROR);
+				debugManager.addDebugLevel(DBG_ERROR);
 			if (strstr(argv[a], "w") != NULL)
-				debugManager.setDebugLevel(DBG_WARNING);
+				debugManager.addDebugLevel(DBG_WARNING);
 			if (strstr(argv[a], "d") != NULL)
-				debugManager.setDebugLevel(DBG_DEVICE);
+				debugManager.addDebugLevel(DBG_DEVICE);
 			if (strstr(argv[a], "u") != NULL)
-				debugManager.setDebugLevel(DBG_6502);
+				debugManager.addDebugLevel(DBG_6502);
 			if (strstr(argv[a], "p") != NULL)
-				debugManager.setDebugLevel(DBG_PORT);
+				debugManager.addDebugLevel(DBG_PORT);
 			if (strstr(argv[a], "i") != NULL)
-				debugManager.setDebugLevel(DBG_INTERRUPTS | DBG_RESET);
+				debugManager.addDebugLevel(DBG_INTERRUPTS | DBG_RESET);
 			if (strstr(argv[a], "r") != NULL)
-				debugManager.setDebugLevel(DBG_RESET);
+				debugManager.addDebugLevel(DBG_RESET);
 			if (strstr(argv[a], "k") != NULL)
-				debugManager.setDebugLevel(DBG_KEYBOARD);
+				debugManager.addDebugLevel(DBG_KEYBOARD);
 			if (strstr(argv[a], "v") != NULL)
-				debugManager.setDebugLevel(DBG_VDU);
+				debugManager.addDebugLevel(DBG_VDU);
 			if (strstr(argv[a], "s") != NULL)
-				debugManager.setDebugLevel(DBG_IO_PERIPHERAL);
+				debugManager.addDebugLevel(DBG_IO_PERIPHERAL);
 			if (strstr(argv[a], "t") != NULL)
-				debugManager.setDebugLevel(DBG_TRGGERING); 
+				debugManager.addDebugLevel(DBG_TRGGERING); 
 			if (strstr(argv[a], "x") != NULL)
-				debugManager.setDebugLevel(DBG_TIME);
+				debugManager.addDebugLevel(DBG_TIME);
 			if (strstr(argv[a], "a") != NULL)
-				debugManager.setDebugLevel(DBG_AUDIO);
+				debugManager.addDebugLevel(DBG_AUDIO);
 			if (strstr(argv[a], "c") != NULL)
-				debugManager.setDebugLevel(DBG_TAPE);
+				debugManager.addDebugLevel(DBG_TAPE);
 			if (strstr(argv[a], "A") != NULL)
-				debugManager.setDebugLevel(DBG_ALL);
+				debugManager.addDebugLevel(DBG_ALL);
 			if (strstr(argv[a], "S") != NULL)
-				debugManager.setDebugLevel(DBG_SPI);
+				debugManager.addDebugLevel(DBG_SPI);
 			if (strstr(argv[a], "C") != NULL)
-				debugManager.setDebugLevel(DBG_ADC);
+				debugManager.addDebugLevel(DBG_ADC);
 		}
 		else if (strcmp(argv[a], "-port") == 0) {
 			a++;

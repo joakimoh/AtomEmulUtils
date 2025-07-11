@@ -4,6 +4,7 @@
 #include <iostream>
 #include "Utility.h"
 #include "Engine.h"
+#include <iomanip>
 
 using namespace std;
 
@@ -12,7 +13,32 @@ Debugger::Debugger(Engine *engine, Devices  *devices, DebugManager *debugManager
 
 }
 
-bool Debugger::dumpCmd(istream  &sin)
+bool Debugger::dumpDevCmd(istream& sin)
+{
+	string dev_name;
+	sin >> dev_name;
+	Device* dev = NULL;
+	if (!mDevices->getDevice(dev_name, dev)) {
+		cout << "Non-existing device '" << dev_name << "!\n";
+		return false;
+	}
+	dev->outputState(cout);
+
+	return true;
+}
+
+bool Debugger::listDevicesCmd(istream& sin)
+{
+	vector<Device*> devices;
+	mDevices->getPeripherals(devices);
+	for (int i = 0; i < devices.size();i++) {
+		cout << left << setw(20) << devices[i]->name << ": " << setw(25) << _DEVICE_ID(devices[i]->devType) << "\n";
+	}
+
+	return true;
+}
+
+bool Debugger::dumpMemCmd(istream  &sin)
 {
 	int a1, a2;
 	sin >> hex >> a1;
@@ -71,7 +97,7 @@ bool Debugger::breakCmd(istream& sin)
 {
 	int a;
 	sin >> hex >> a;
-	mEngine->setBreakPoint(a);
+	mEngine->setBreakPointAndWait(a);
 
 	return true;
 }
@@ -93,8 +119,12 @@ void Debugger::debug()
 		string cmd;
 		sin >> cmd;
 
-		if (cmd == "dump")
-			dumpCmd(sin);
+		if (cmd == "mem")
+			dumpMemCmd(sin);
+		else if (cmd == "state")
+			dumpDevCmd(sin);
+		else if (cmd == "devices")
+			listDevicesCmd(sin);
 		else if (cmd == "step")
 			stepCmd(sin);
 		else if (cmd == "cont")

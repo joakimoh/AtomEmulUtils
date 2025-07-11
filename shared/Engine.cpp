@@ -253,7 +253,7 @@ bool Engine::run()
                         // Acquire execution mutex
                         mExecMutex.lock();
 
-                        if (mState != ENG_HALT) {
+                        if (mState != ENG_HALT && mState != ENG_BRK_DET) {
 
                             // Execute one microprocessor instruction and advance time accordingly (cycle_count updated)
                             if (!mMicroprocessor->advanceInstr(mCycleCount)) {
@@ -266,8 +266,8 @@ bool Engine::run()
                             for (int d = 0; d < mInstrScheduledDevices.size(); d++)
                                 mInstrScheduledDevices[d]->advance(mCycleCount);
 
-                            if (mMicroprocessor->getPC() == mBreakAdr)
-                                mState = ENG_HALT;
+                            if (mState == ENG_BRK_WAIT && mMicroprocessor->getPC() == mBreakAdr)
+                                mState = ENG_BRK_DET;
 
                             if (mState == ENG_STEP) {
                                 if (mSteps == 1)
@@ -334,7 +334,7 @@ bool Engine::run()
 
             // Start microprocessor debugging (tracing) if user presses <CTRL-D>
             if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_D)) {
-                mDM->toggleLogging();
+                mDM->toggleUCdebug();
                 key_pressed = true;
             }
 
@@ -347,7 +347,7 @@ bool Engine::run()
 
             // Start video display unit tracing if user presses <CTRL-V>
             else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_V)) {
-               mDM->setDebugLevel(DBG_VDU);
+               mDM->addDebugLevel(DBG_VDU);
                 key_pressed = true;
             }
         }
@@ -372,7 +372,6 @@ bool Engine::halt()
 {
     mExecMutex.lock();
     mState = ENG_HALT;
-    mDM->toggleLogging();
     mExecMutex.unlock();
     return true;
 }
@@ -380,7 +379,6 @@ bool Engine::halt()
 bool Engine::cont()
 {
     mExecMutex.lock();
-    mDM->toggleLogging();
     mState = ENG_RUN;
     mExecMutex.unlock();
     return true;
@@ -392,26 +390,31 @@ bool Engine::step(int n)
     mExecMutex.lock();
     mSteps = n;
     mState = ENG_STEP;
+    mDM->setDebugLevel(DBG_6502);
     mExecMutex.unlock();
     while (wait) {
         mExecMutex.lock();
         wait = (mState == ENG_STEP);
         mExecMutex.unlock();
     }
+    mDM->setDebugLevel(DBG_NONE);
     return true;
 }
 
-bool Engine::setBreakPoint(uint16_t adr)
+bool Engine::setBreakPointAndWait(uint16_t adr)
 {
     mBreakAdr = (int)adr;
-    bool wait = true;
+    bool triggered = false;
     mExecMutex.lock();
-    mState = ENG_BRK;
+    mState = ENG_BRK_WAIT;
     mExecMutex.unlock();
-    while (wait) {
+    while (!triggered) {
         mExecMutex.lock();
-        wait = (mState == ENG_BRK);
+        triggered = (mState == ENG_BRK_DET);
+        if (triggered) {
+            mState == ENG_HALT;
+        }
         mExecMutex.unlock();
-    }
+    } 
     return true;
 }

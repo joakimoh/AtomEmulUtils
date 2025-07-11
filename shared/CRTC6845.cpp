@@ -503,39 +503,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 
 void CRTC6845::printSettings()
 {
-
-	// Update parameters based on the register update														
-	double Tc = 1.0 / mCLK;	
-
-	cout << dec;
-	for (int i = 0; i < 18; i++)
-		cout << mRegInfo[i].descShort << hex << " = 0x" << setw(2) << setfill('0') << (int)mReg[i] << dec << " " << mRegInfo[i].descLong << "\n";
-
-	cout << "CLK:                                                " << (int)mCLK << "\tMhz\n";
-	cout << "Scan Line duration: [R0,CLK]                 i]       " << mCharCols_R0 * Tc << "\tus\n";
-	cout << "Total no of characters per line [R0]:               " << mCharCols_R0 << "\tchars\n";
-	cout << "Active characters per line [R1]:                    " << mActiveRowChars_R1 << "\tchars\n";
-	cout << "Horizontal sync position [R2]:                      " << mHzSyncPos_R2 << " chars (" << round(mHzSyncPos_R2 * Tc) << " us)\n";
-	cout << "Horizontal sync pulse width [R3]:                   " << mHzSyncPulseW_R3 << " chars (" << round(mHzSyncPulseW_R3 * Tc) << " us)\n";
-	cout << "Vertical sync pulse width [R3]:                     " << mScreenVSyncPulseH << " lines (" << round(mScreenVSyncPulseH * mCharCols_R0 * Tc) << " us)\n";
-	cout << "No of character rows per field [R4]:                " << mCharRows_R4 << "\tRows\n";
-	cout << "No of scan lines per field [R4,R9,R5]:              " << getScanLinesPerField() << "\tlines\n";
-	cout << "No of unique scan lines per frame [R4,R9,R5]:       " << mScreenScanLines << "\tlines\n";
-	cout << "No of character rows per field [R4]:                " << mCharRows_R4 << "\tRows\n";
-	cout << "No of active character rows per field [R6]:         " << mActiveRows_R6 << "\tRows\n";
-	cout << "Active scan lines per screen [R6,R9]:               " << mScreenActiveLines << "\tlines\n";
-	cout << "Vertical sync position [R7]:                        " << mScreenVSyncLine << " lines (" << round(mScreenVSyncLine * mCharCols_R0 * Tc / 1000) << " ms)\n";
-	cout << "Interlace mode[R8]:                                 " << _INTERLACE_MODE(mInterlaceMode_R8) << "\n";
-	cout << "Character skew [R8]:                                " << mCharSkew_R8 << "\tchars\n";
-	cout << "Cursor skew [R8]:                                   " << mCursSkew_R8 << "\tchars\n";
-	cout << "Scan Lines per Character [R9]:                      " << mCharLines_R9 << "\tlines\n";
-	cout << "Cursor raster lines [R10:R11]                       [" << dec << (int)(mReg[R10_CursorStart] & 0x1f) << ":" << (int)mReg[R11_CursorEnd] << "]\n";
-	cout << "Start address [R12:R13]:                            0x" << hex << mStartAdr_R12_R13 << dec << "\n";
-	cout << "Cursor position [R14:R15]:                          0x" << hex << ((mReg[R14_CursorH] << 8) | mReg[R15_CursorL]) << dec << "\n";
-	cout << "Field Rate [CLK,R0,R4,R9,R5]:                       " << getFieldRate() << "\tHz\n";
-	int cursor_disp_mode = (mReg[R10_CursorStart] >> 5) & 0x3; // 00: Non-blink,  01: non-display, 10: blink 16-field, 11: blink 32-field
-	cout << "Cursor mode:                                        " << (cursor_disp_mode==0?"Fixed":(cursor_disp_mode==1?"None":(cursor_disp_mode==2?"Blink-16":"Blink-32"))) <<
-		"\n";
+	outputState(cout);
 }
 
 
@@ -620,4 +588,42 @@ inline bool CRTC6845::interlaceOn()
 int CRTC6845::fieldScanLineOffset()
 {
 	return (mField % 2);
+}
+
+bool CRTC6845::outputState(ostream& sout)
+{
+	// Update parameters based on the register update														
+	double Tc = 1.0 / mCLK;
+
+	sout << dec;
+	for (int i = 0; i < 18; i++)
+		sout << mRegInfo[i].descShort << hex << " = 0x" << setw(2) << setfill('0') << (int)mReg[i] << dec << " " << mRegInfo[i].descLong << "\n";
+
+	sout << "CLK:                                                " << (int)mCLK << "\tMhz\n";
+	sout << "Scan Line duration: [R0,CLK]                 i]       " << mCharCols_R0 * Tc << "\tus\n";
+	sout << "Total no of characters per line [R0]:               " << mCharCols_R0 << "\tchars\n";
+	sout << "Active characters per line [R1]:                    " << mActiveRowChars_R1 << "\tchars\n";
+	sout << "Horizontal sync position [R2]:                      " << mHzSyncPos_R2 << " chars (" << round(mHzSyncPos_R2 * Tc) << " us)\n";
+	sout << "Horizontal sync pulse width [R3]:                   " << mHzSyncPulseW_R3 << " chars (" << round(mHzSyncPulseW_R3 * Tc) << " us)\n";
+	sout << "Vertical sync pulse width [R3]:                     " << mScreenVSyncPulseH << " lines (" << round(mScreenVSyncPulseH * mCharCols_R0 * Tc) << " us)\n";
+	sout << "No of character rows per field [R4]:                " << mCharRows_R4 << "\tRows\n";
+	sout << "No of scan lines per field [R4,R9,R5]:              " << getScanLinesPerField() << "\tlines\n";
+	sout << "No of unique scan lines per frame [R4,R9,R5]:       " << mScreenScanLines << "\tlines\n";
+	sout << "No of character rows per field [R4]:                " << mCharRows_R4 << "\tRows\n";
+	sout << "No of active character rows per field [R6]:         " << mActiveRows_R6 << "\tRows\n";
+	sout << "Active scan lines per screen [R6,R9]:               " << mScreenActiveLines << "\tlines\n";
+	sout << "Vertical sync position [R7]:                        " << mScreenVSyncLine << " lines (" << round(mScreenVSyncLine * mCharCols_R0 * Tc / 1000) << " ms)\n";
+	sout << "Interlace mode[R8]:                                 " << _INTERLACE_MODE(mInterlaceMode_R8) << "\n";
+	sout << "Character skew [R8]:                                " << mCharSkew_R8 << "\tchars\n";
+	sout << "Cursor skew [R8]:                                   " << mCursSkew_R8 << "\tchars\n";
+	sout << "Scan Lines per Character [R9]:                      " << mCharLines_R9 << "\tlines\n";
+	sout << "Cursor raster lines [R10:R11]                       [" << dec << (int)(mReg[R10_CursorStart] & 0x1f) << ":" << (int)mReg[R11_CursorEnd] << "]\n";
+	sout << "Start address [R12:R13]:                            0x" << hex << mStartAdr_R12_R13 << dec << "\n";
+	sout << "Cursor position [R14:R15]:                          0x" << hex << ((mReg[R14_CursorH] << 8) | mReg[R15_CursorL]) << dec << "\n";
+	sout << "Field Rate [CLK,R0,R4,R9,R5]:                       " << getFieldRate() << "\tHz\n";
+	int cursor_disp_mode = (mReg[R10_CursorStart] >> 5) & 0x3; // 00: Non-blink,  01: non-display, 10: blink 16-field, 11: blink 32-field
+	sout << "Cursor mode:                                        " << (cursor_disp_mode == 0 ? "Fixed" : (cursor_disp_mode == 1 ? "None" : (cursor_disp_mode == 2 ? "Blink-16" : "Blink-32"))) <<
+		"\n";
+
+	return true;
 }

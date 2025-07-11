@@ -688,7 +688,7 @@ bool Devices::loadData(Program data)
 bool Devices::getPeripherals(vector<Device*>& devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
-		if (mDevices[i]->category == PERIPHERAL || mDevices[i]->category == VDU_DEVICE) {
+		if (mDevices[i]->category != MEMORY_DEVICE && mDevices[i]->category != MICROROCESSOR_DEVICE) {
 			devices.push_back(mDevices[i]);
 			if (DBG_LEVEL(DBG_VERBOSE))
 				cout << "Adding peripheral '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";

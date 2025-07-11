@@ -225,6 +225,9 @@ public:
 
 	bool initialised() { return mInitialised; }
 
+	// Outputs the internal state of the device
+	bool outputState(ostream& sout) override;
+
 };
 
 #endif
