@@ -138,6 +138,7 @@ private:
 	};
 
 	uint8_t mCurrentCmd = SPI_CMD_ILLEGAL;
+	uint8_t mCurrenAppCmd = SPI_A_CMD_ILLEGAL;
 
 
 	enum SPIRspEnum {
@@ -145,7 +146,8 @@ private:
 		SPI_RSP_R1b = 11,
 		SPI_RSP_R2 = 2,
 		SPI_RSP_R3 = 3,
-		SPI_RSP_R7 = 7
+		SPI_RSP_R7 = 7,
+		SPI_RSP_ILLEGAL = 15
 	};
 
 	typedef struct SPICmdInfo_struct {
@@ -181,9 +183,20 @@ private:
 		{SPI_CMD_55,	{{0x77,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "APP_CMD",					"Defines to the card that the next command is an application specific command rather than a standard command."}},
 		{SPI_CMD_56,	{{0x78,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "GEN_CMD",					"Used either to transfer a Data Block to the card or to get a Data Block from the card."}},
 		{SPI_CMD_58,	{{0x7a,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R3, "READ_OCR",					"Reads the OCR register of a card."}},
-		{SPI_CMD_59,	{{0x7b,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "CRC_ON_OFF",				"Turns the CRC option on or off."}}
+		{SPI_CMD_59,	{{0x7b,0x00,0x00,0x00,0x00,0x00},	SPI_RSP_R1, "CRC_ON_OFF",				"Turns the CRC option on or off."}},
+		{SPI_CMD_ILLEGAL, {{0x40,0x00,0x00,0x00,0x00,0x95},	SPI_RSP_R1, "ILLEGAL_CMD",				"Unknown command"}}
 	};
 
+	map<SPIACmdEnum, SPICmdInfo> spiAppCmdInfo = {
+		{SPI_A_CMD_13,		{{0x40,0x00,0x00,0x00,0x00,0x95},	SPI_RSP_R2, "SD_STATUS",			"Send the cards status register"}},
+		{SPI_A_CMD_22,		{{0x40,0x00,0x00,0x00,0x00,0x95},	SPI_RSP_R1, "SEND_NUM_WR_BLOCKS",	"Send the numbers of the well written (without errors) blocks"}},
+		{SPI_A_CMD_23,		{{0x40,0x00,0x00,0x00,0x00,0x95},	SPI_RSP_R1, "SET_WR_BLK_ERASE_COUNT","Set the number of write blocks to be pre-erased before writing"}},
+		{SPI_A_CMD_41,		{{0x40,0x00,0x00,0x00,0x00,0x95},	SPI_RSP_R1, "SD_SEND_OP_COND",		"Sends host capacity support information and activates the card's initialization process"}},
+		{SPI_A_CMD_42,		{{0x40,0x00,0x00,0x00,0x00,0x95},	SPI_RSP_R1, "SET_CLR_CARD_DETECT",	"Connect ('1')/Disconnect ('0') the 50 KOhm pull-up resistor on CS (pin 1) of the card"}},
+		{SPI_A_CMD_51,		{{0x40,0x00,0x00,0x00,0x00,0x95},	SPI_RSP_R1, "SEND_SCR",				"Reads the SD Configuration Register (SCRr"}},
+		{SPI_A_CMD_13,		{{0x40,0x00,0x00,0x00,0x00,0x95},	SPI_RSP_R1, "SD_STATUS",			"Send the cards status register"}},
+		{SPI_A_CMD_ILLEGAL, {{0x40,0x00,0x00,0x00,0x00,0x95},	SPI_RSP_R1, "ILLEGAL_CMD",			"Unknown command"}}
+	};
 
 
 	uint8_t mCurrentAppCmd = SPI_A_CMD_ILLEGAL;
@@ -205,7 +218,7 @@ private:
 		{SPI_RSP_R7,	{{0xff, 0x08, 0x00, 0x00, 0x00, 0x00, 0x01, 0xff},	8}}
 	};
 
-	SPIRspEnum mResponseType = SPI_RSP_R1;
+	SPIRspEnum mResponseType = SPI_RSP_ILLEGAL;
 
 	fstream* mCardImage = NULL;
 	streamsize mCardSz = 0;

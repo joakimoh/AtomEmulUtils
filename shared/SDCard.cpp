@@ -198,6 +198,9 @@ bool SDCard::processRxBits()
 	switch (mSPIRxMode) {
 	case SPI_Rx_IDLE:
 	{
+		mCurrentCmd = SPI_CMD_ILLEGAL;
+		mCurrenAppCmd = SPI_A_CMD_ILLEGAL;
+		mResponseType = SPI_RSP_ILLEGAL;
 		if (mMOSI == 1) {
 			mSPIRxMode = SPI_Rx_PREAMBLE_WAIT;
 			//cout << "SD Card: High level '1' detected\n";
@@ -1039,12 +1042,43 @@ bool SDCard::processMasterData() {
 // Outputs the internal state of the device
 bool SDCard::outputState(ostream& sout)
 {
+	SPICmdEnum cmd = SPICmdEnum(mCurrentCmd);
+	if (spiCmdInfo.find(cmd) == spiCmdInfo.end())
+		cmd = SPI_CMD_ILLEGAL;
 
-	sout << "Block length  = " << dec << mBlockLen << "\n";
-	sout << "Read address  = 0x" << Utility::int2hexStr(mBlockReadAdr, 8) << "\n";
-	sout << "Write address = 0x" << Utility::int2hexStr(mBlockWriteAdr, 8) << "\n";
-	sout << "Rx Mode       = " << _SPI_RX_MODE(mSPIRxMode) << "\n";
-	sout << "Tx Mode       = " << _SPI_TX_MODE(mSPITxMode) << "\n";
+	SPIACmdEnum app_cmd = SPIACmdEnum(mCurrentAppCmd);
+	if (spiAppCmdInfo.find(app_cmd) == spiAppCmdInfo.end())
+		app_cmd = SPI_A_CMD_ILLEGAL;
+
+	SPICmdInfo cmd_info = spiCmdInfo[cmd];
+	SPICmdInfo app_cmd_info = spiAppCmdInfo[app_cmd];
+
+	if (cmd != SPI_CMD_ILLEGAL) {
+		sout << "Current base command   = " << cmd_info.mnemonic << ": " << cmd_info.desc << "\n";
+		sout << "Current request        = " << bytes2str(mMasterRequest) << "\n";
+		if (mMasterDataTokenBits != 0)
+			sout << "Current master data    = " << bytes2str(mMasterDataToken) << "\n";
+		if (mSlaveDataTokenBits != 0)
+			sout << "Current slave data     = " << bytes2str(mSlaveDataToken) << "\n";
+	}
+	if (mResponseType != SPI_RSP_ILLEGAL) {
+		sout << "Response type          = " << "R" << mResponseType << "\n";
+		sout << "Current response       = " << bytes2str(mSlaveResponse) << "\n";
+	}
+	if (app_cmd != SPI_A_CMD_ILLEGAL) {
+		sout << "Current app command    = " << app_cmd_info.mnemonic << ": " << app_cmd_info.desc << "\n";
+	}
+	sout << "Block length           = " << dec << mBlockLen << "\n";
+	sout << "Read address           = 0x" << Utility::int2hexStr(mBlockReadAdr, 8) << "\n";
+	sout << "Write address          = 0x" << Utility::int2hexStr(mBlockWriteAdr, 8) << "\n";
+	sout << "Rx Mode                = " << _SPI_RX_MODE(mSPIRxMode) << "\n";
+	sout << "Tx Mode                = " << _SPI_TX_MODE(mSPITxMode) << "\n";
+	sout << "Slave data token bits  = " << mSlaveDataTokenBits << " (" << mSlaveDataTokenBits / 8 << " bytes)\n";
+	sout << "Master data token bits = " << mMasterDataTokenBits << " (" << mMasterDataTokenBits / 8 << " bytes)\n";
+	sout << "Received bits          = " << mReceivedBits << " (" << mReceivedBytes << " bytes)\n";
+	sout << "Sent bits              = " << mSentBits << " (" << mSentBytes << " bytes)\n";
+	sout << "Rx shift register      = 0x" << Utility::int2hexStr(mRxShiftRegister, 2) << " (0b" << Utility::int2binStr(mRxShiftRegister, 8) << ")\n";
+	sout << "Tx shift register      = 0x" << Utility::int2hexStr(mTxShiftRegister, 2) << " (0b" << Utility::int2binStr(mTxShiftRegister, 8) << ")\n";
 
 	return true;
 }

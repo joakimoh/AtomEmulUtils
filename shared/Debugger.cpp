@@ -14,6 +14,33 @@ Debugger::Debugger(Engine *engine, Devices  *devices, DebugManager *debugManager
 
 }
 
+bool Debugger::bufferCmd(istream& sin)
+{
+	string sub_cmd;
+	sin >> sub_cmd;
+	if (sub_cmd == "out") {
+		if (!mDM->emptyBuffer(cout)) {
+			cout << "Buffering needs to be enabled first!\n";
+			return false;
+		}
+	}
+	else if (sub_cmd == "set") {
+		int len;
+		sin >> len;
+		if (!mDM->enableBuffering(len)) {
+			cout << "Buffering size needs to be in the interval [1,1000]!\n";
+			return false;
+		}
+	}
+	else if (sub_cmd == "dis") {
+		mDM->disableBuffering();
+	}
+	else {
+		return false;
+	}
+
+	return true;
+}
 bool Debugger::dumpDevCmd(istream& sin)
 {
 	string dev_name;
@@ -216,6 +243,8 @@ void Debugger::debug()
 
 		if (cmd == "read")
 			readMemCmd(sin);
+		else if (cmd == "buf")
+			bufferCmd(sin);
 		else if (cmd == "dis")
 			disCmd(sin);
 		else if (cmd == "write")

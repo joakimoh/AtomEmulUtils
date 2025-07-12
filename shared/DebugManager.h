@@ -126,6 +126,8 @@ private:
 	int mBufferInstrWriteIndex = 0;
 	int mBufferInstrSize = 0;
 
+	bool mBufferingEnabled = false; // if true, pre buffering will be made
+
 	bool mEndOfTracingReached = false;
 	bool mEndofPrebufferingReached = false;
 	uint16_t mFetchAdr = 0x0;
@@ -167,12 +169,16 @@ private:
 
 	Devices* mDevices = NULL;
 
-	void printInstrLogData(InstrLogData instrLogData);
+	void printInstrLogData(ostream &sout, InstrLogData instrLogData);
 
 public:
 
 	bool debug(Device* dev, DebugLevel level);
 	bool debug(DebugLevel level);
+
+	bool enableBuffering(int len);
+	void disableBuffering();
+	bool emptyBuffer(ostream& sout);
 
 	void toggleCondition();
 	void enableLogging(uint16_t adr);

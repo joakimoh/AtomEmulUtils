@@ -29,6 +29,7 @@ public:
 
 	void debug();
 
+	bool bufferCmd(istream& sin);
 	bool disCmd(istream &sin);
 	bool readMemCmd(istream& sin);
 	bool writeMemCmd(istream& sin);

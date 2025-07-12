@@ -71,6 +71,47 @@ void DebugManager::enableInterruptLogging(uint16_t adr)
 	mInterruptLogAdr = adr;
 }
 
+bool DebugManager::enableBuffering(int len)
+{
+	if (len <= 0 || len > 1000)
+		return false;
+
+	mPreTraceLen = len;
+	mEndOfTracingReached = false;
+	mBufferingEnabled = true;
+
+	return true;
+}
+
+void  DebugManager::disableBuffering()
+{
+	mBufferingEnabled = false;
+	mEndOfTracingReached = true;
+}
+
+bool DebugManager::emptyBuffer(ostream& sout)
+{
+	if (mBufferInstrSize == 0)
+		return false;
+
+	if (mExtensiveLog) {
+		for (int i = 0; i < mBufferedTraceLines.size(); i++)
+			sout << mBufferedTraceLines[i];
+		mBufferedTraceLines.clear();
+	}
+	else {
+		int read_pos = mBufferInstrReadIndex;
+		for (int i = 0; i < mBufferInstrSize; i++) {
+			printInstrLogData(sout, mBufferedInstrLog[read_pos]);
+			read_pos = (read_pos + 1) % mPreTraceLen;
+		}
+		mBufferInstrSize = 0;
+		mBufferInstrReadIndex = 0;
+	}
+
+	return true;
+}
+
 void DebugManager::enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring, bool extensive, bool delayed)
 {
 	mDbgLevel = DBG_6502;
@@ -86,7 +127,7 @@ void DebugManager::enableTracing(uint16_t adr, int preTraceLen, int postTraceLen
 
 bool DebugManager::tracing()
 {
-	return ((mDbgLevel & DBG_6502) != 0 || mFetchAdr == mCyclicLogAdr || (mTraceAdr > 0 && !mEndOfTracingReached));
+	return (mBufferingEnabled || (mDbgLevel & DBG_6502) != 0 || mFetchAdr == mCyclicLogAdr || (mTraceAdr > 0 && !mEndOfTracingReached));
 }
 
 void DebugManager::addDebugLevel(DebugLevel level)
@@ -183,7 +224,9 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 	mY = Y;
 	mA = A;
 
-	if (mTraceAdr > 0 && !mDelayed) {
+	bool buffering_enabled = mTraceAdr > 0 || mBufferingEnabled;
+
+	if (buffering_enabled && !mDelayed) {
 
 		if (!mEndofPrebufferingReached && !mEndOfTracingReached) {
 			if (mExtensiveLog) {
@@ -202,20 +245,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 			mTraceCount = 0;
 			if (mRecurringTracing)
 				std::cout << "-----------------------------------------------------------------------------------------------------------------------------------\n";
-			if (mExtensiveLog) {
-				for (int i = 0; i < mBufferedTraceLines.size(); i++)
-					std::cout << mBufferedTraceLines[i];
-				mBufferedTraceLines.clear();
-			}
-			else {
-				int read_pos = mBufferInstrReadIndex;
-				for (int i = 0; i < mBufferInstrSize; i++) {
-					printInstrLogData(mBufferedInstrLog[read_pos]);
-					read_pos = (read_pos + 1) % mPreTraceLen;
-				}
-				mBufferInstrSize = 0;
-				mBufferInstrReadIndex = 0;				
-			}
+			emptyBuffer(cout);
 			mEndofPrebufferingReached = true;
 			cout << "****\n";
 		}
@@ -223,9 +253,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 		if (mEndofPrebufferingReached && mTraceCount > mPostTraceLen) {
 
 			if (mRecurringTracing) {
-				//mEndOfTracingReached = true;
 				mEndofPrebufferingReached = false;
-				//mDbgLevel |= DBG_6502;
 			} else
 			{
 				mDbgLevel &= ~DBG_6502;
@@ -267,14 +295,14 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 
 void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 {
-	if (!mInitialised && level != DBG_VERBOSE || mLogDevice != NULL && dev != mLogDevice)
+	if (!mBufferingEnabled && (!mInitialised && level != DBG_VERBOSE || mLogDevice != NULL && dev != mLogDevice))
 		return;
 
-	if (mFetchAdr != mCyclicLogAdr && ((mDbgLevel & level) == 0 || mDelayed))
+	if (!mBufferingEnabled && (mFetchAdr != mCyclicLogAdr && ((mDbgLevel & level) == 0 || mDelayed)))
 		return;
 
 	if (mFetchAdr == mCyclicLogAdr) {
-		printInstrLogData(instrLogData);
+		printInstrLogData(cout, instrLogData);
 		return;
 	}
 
@@ -284,7 +312,7 @@ void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 		instrLogData.memContent = (int)data;
 	}
 
-	if (mTraceAdr > 0) {
+	if (mTraceAdr > 0 || mBufferingEnabled) {
 		// Update circular buffer
 		mBufferedInstrLog[mBufferInstrWriteIndex] = instrLogData;
 		if (mBufferInstrWriteIndex == mBufferInstrReadIndex)
@@ -295,7 +323,7 @@ void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 	}
 
 	if ((mDbgLevel & level) != 0 && (mTraceAdr <= 0 || (mEndofPrebufferingReached && !mEndOfTracingReached ))) {
-		printInstrLogData(instrLogData);
+		printInstrLogData(cout, instrLogData);
 		mTraceCount++;
 	}
 	
@@ -335,11 +363,10 @@ bool DebugManager::setDevices(Devices * devices)
 
 
 
-void DebugManager::printInstrLogData(InstrLogData instrLogData)
+void DebugManager::printInstrLogData(ostream &sout, InstrLogData instrLogData)
 {
 	string instr_s = mCodec.decode(instrLogData.opcodePC, instrLogData.opcode, instrLogData.operand);
 	Codec6502::InstructionInfo instr = instrLogData.instr;
-	stringstream sout;
 
 	string t_s = Utility::encodeCPUTime(instrLogData.logTime);
 
@@ -378,5 +405,4 @@ void DebugManager::printInstrLogData(InstrLogData instrLogData)
 		sout << " Mem[0x" << hex << mMemLogAdr << "]=0x" << instrLogData.memContent;
 	sout << "\n";
 
-	cout << sout.str();
 }
