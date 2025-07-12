@@ -481,3 +481,14 @@ bool BeebSerialULA::connectDevice(Device* dev)
 
 	return true;
 }
+
+// Outputs the internal state of the device
+bool BeebSerialULA::outputState(ostream& sout)
+{
+	sout << "Serial ULA CR = 0x" + Utility::int2hexStr(mCR, 2) + "/0b" + Utility::int2binStr(mCR, 8) + " [" +
+		"Motor (b7): " + (SER_ULA_CR_CAS_MOT ? "On" : "Off") +
+		", Mode (b6): " + (SER_ULA_CR_ENA_SER ? "Serial" : "Cassette") +
+		", RxClk (b5:b3): " + to_string(mRxClkRate) + ", TxClk (b2:b0): " + to_string(mTxClkRate) << "]\n";
+
+	return true;
+}

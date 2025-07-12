@@ -1035,3 +1035,16 @@ bool SDCard::processMasterData() {
 
 	return true;
 }
+
+// Outputs the internal state of the device
+bool SDCard::outputState(ostream& sout)
+{
+
+	sout << "Block length  = " << dec << mBlockLen << "\n";
+	sout << "Read address  = 0x" << Utility::int2hexStr(mBlockReadAdr, 8) << "\n";
+	sout << "Write address = 0x" << Utility::int2hexStr(mBlockWriteAdr, 8) << "\n";
+	sout << "Rx Mode       = " << _SPI_RX_MODE(mSPIRxMode) << "\n";
+	sout << "Tx Mode       = " << _SPI_TX_MODE(mSPITxMode) << "\n";
+
+	return true;
+}

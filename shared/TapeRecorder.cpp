@@ -162,3 +162,11 @@ void TapeRecorder::record()
 	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 		cout << "RECORD\n";
 }
+
+// Outputs the internal state of the device
+bool TapeRecorder::outputState(ostream& sout)
+{
+	sout << "Playing =    " << (mPlay ? "Yes" : "No") << "\n";
+	sout << "Recording =  " << (mRecord ? "Yes" : "No") << "\n";
+	return true;
+}

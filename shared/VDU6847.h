@@ -236,6 +236,9 @@ public:
 	void lockDisplay();
 	void unlockDisplay();
 
+	// Outputs the internal state of the device
+	bool outputState(ostream& sout) override;
+
 };
 
 #endif

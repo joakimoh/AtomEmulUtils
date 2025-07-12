@@ -5,6 +5,7 @@
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_font.h>
 #include "Device.h"
+#include "Utility.h"
 
 using namespace std;
 
@@ -399,4 +400,41 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	return MemoryMappedDevice::triggerAfterWrite(adr, data);
+}
+
+// Outputs the internal state of the device
+bool PIA8255::outputState(ostream& sout)
+{
+	uint8_t group_A_mode = (mCR >> 5) & 0x3;
+	uint8_t group_B_mode = (mCR >> 2) & 0x1;
+	bool port_A_input = (mCR >> 4) & 0x1;
+	bool port_B_input = (mCR >> 1) & 0x1;
+	bool port_C_lower_input = mCR & 0x1;
+	bool port_C_upper_input = (mCR >> 3) & 0x1;
+	uint8_t BSR_mode = 1 - ((mCR >> 7) & 0x1);
+	uint8_t port_A_dir_mask = (port_A_input ? 0x00 : 0xff);
+	uint8_t port_B_dir_mask = (port_B_input ? 0x00 : 0xff);
+	uint8_t port_C_lower_dir_mask = (port_C_lower_input ? 0x00 : 0x0f);
+	uint8_t port_C_upper_dir_mask = (port_C_upper_input ? 0x00 : 0xf0);
+	uint8_t port_C_dir_mask = port_C_lower_dir_mask | port_C_upper_dir_mask;
+
+	sout << "mCR = 0x" << Utility::int2hexStr(mCR, 2) << " <=>\n";
+
+	if (!BSR_mode) {
+		sout << "\tI/O Mode\n";
+		sout << "\tPort A " << (mCR & 0x10 ? "IN" : "OUT") << "; mode is " << (mCR & 0x40 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2")) << " " << "\n";
+		sout << "\tPort B " << (mCR & 0x02 ? "IN" : "OUT") << "; mode is " << (mCR & 0x04 ? "M1" : "M0") << " " << "\n";
+		sout << "\tPort C upper " << (mCR & 0x08 ? "IN" : "OUT") << "\n";
+		sout << "\tPort C lower " << (mCR & 0x01 ? "IN" : "OUT") << "\n";
+		sout << "\tM0 <=> Mode 0: Simple I/O without interrupts\n";
+		sout << "\tM1 <=> Mode 1: Handshake I/O or strobed I/O; C used for handshaking\n";
+		sout << "\tM2 <=> Mode 2: A is bidirectional; C used for handshaking\n";
+	}
+	else {
+		uint8_t bit = (mCR >> 1) & 0x7;
+		uint8_t val = mCR & 0x1;
+		sout << "\tPIA PortSelection C b" << (int)bit << " to 0x" << hex << (int) val << " => PortC = 0x" << hex << (int)mPCOut << dec << "\n";
+	}
+
+	return true;
 }

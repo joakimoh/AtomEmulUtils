@@ -171,6 +171,10 @@ public:
 	bool advance(uint64_t stopCycle);
 
 	void processPortUpdate(int index);
+
+	// Outputs the internal state of the device
+	bool outputState(ostream& sout) override;
+
 };
 
 #endif

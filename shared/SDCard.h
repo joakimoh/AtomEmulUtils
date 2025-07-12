@@ -253,7 +253,8 @@ public:
 
 	void processPortUpdate(int port) override;
 
-
+	// Outputs the internal state of the device
+	bool outputState(ostream& sout) override;
 
 };
 

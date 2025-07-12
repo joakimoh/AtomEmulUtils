@@ -65,6 +65,9 @@ public:
 
 	bool setChannelVoltage(int channel, double voltage);
 
+	// Outputs the internal state of the device
+	bool outputState(ostream& sout) override;
+
 
 };
 

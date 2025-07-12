@@ -27,6 +27,9 @@ public:
 
 	bool advance(uint64_t stopCycle);
 
+	// Outputs the internal state of the device
+	bool outputState(ostream& sout) override;
+
 };
 
 

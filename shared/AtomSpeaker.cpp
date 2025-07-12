@@ -130,3 +130,11 @@ bool AtomSpeaker::updateAudio(uint8_t val)
 	
 	return true;
 }
+
+// Outputs the internal state of the device
+bool AtomSpeaker::outputState(ostream& sout)
+{
+	sout << "The Acorn Atom Sound Device is stateless!\n";
+
+	return true;
+}

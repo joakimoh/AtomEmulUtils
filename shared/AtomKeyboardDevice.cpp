@@ -121,3 +121,12 @@ bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 	
 	return true;
 }
+
+// Outputs the internal state of the device
+bool AtomKeyboardDevice::outputState(ostream& sout)
+{
+	sout << "COL_L = " << (int)KB_COL_L << "\n";
+	sout << "COL_H = " << (int)KB_COL_H << "\n";
+
+	return true;
+}

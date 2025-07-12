@@ -55,3 +55,10 @@ bool AtomCUTSInterface::advance(uint64_t stopCycle)
 
 	return true;
 }
+
+// Outputs the internal state of the device
+bool AtomCUTSInterface::outputState(ostream& sout)
+{
+	sout << "The Acorn Atom CUTS interface is stateless!\n";
+	return true;
+}

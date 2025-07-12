@@ -1225,7 +1225,7 @@ string VIA6522::ACR2Str()
 	sout << "0x" << hex << (int)mACR <<  " <=> ";
 	sout << "PA Latch:" << ACRLE2Str(ACR_PA_LATCH);
 	sout << ", PB Latch:" << ACRLE2Str(ACR_PB_LATCH);
-	sout << ", SR:" << ACRSR2Str(ACR_SR_CTRL);
+	sout << ", Shifting:" << ACRSR2Str(ACR_SR_CTRL);
 	sout << ", T2:" << ACRT22Str(ACR_T2_CTRL);
 	sout << ", T1:" << ACRT12Str(ACR_T1_CTRL);
 
@@ -1342,4 +1342,26 @@ string VIA6522::ddr2Str(char port, uint8_t ddr)
 		}
 	}
 	return sout.str();
+}
+
+// Outputs the internal state of the device
+bool VIA6522::outputState(ostream& sout)
+{
+	sout << "IER = " << IER2Str() << "\n";
+	sout << "IFR = " << IFR2Str() << "\n";
+	sout << "ACR = " << ACR2Str() << "\n";
+	sout << "PCR = " << PCR2Str() << "\n";
+	sout << "PA = 0x" << Utility::int2hexStr(mPAIn, 2) << " (In) 0x" << Utility::int2hexStr(mPAOut, 2) << " (out) 0b" <<
+		Utility::int2binStr(mDDRA,8) << " (dir mask - '1' <=> Out)\n";
+	sout << "PB = 0x" << Utility::int2hexStr(mPBIn, 2) << " (In) 0x" << Utility::int2hexStr(mPBOut, 2) << " (out) 0b" <<
+		Utility::int2binStr(mDDRB,8) << " (dir mask - '1' <=> Out)\n";
+	sout << "CA1 = 0x" << Utility::int2hexStr(mCAIn & 0x1, 1) << " (In) " << Utility::int2hexStr(mCAOut & 1, 1) << " (out)\n";
+	sout << "CA2 = 0x" << Utility::int2hexStr((mCAIn >> 1) & 0x1, 1) << " (In) " << Utility::int2hexStr((mCAOut >> 1) & 1, 1) << " (out)\n";
+	sout << "CB1 = 0x" << Utility::int2hexStr(mCBIn & 0x1, 1) << " (In) " << Utility::int2hexStr(mCBOut & 1, 1) << " (out)\n";
+	sout << "CB2 = 0x" << Utility::int2hexStr((mCBIn >> 1) & 0x1, 1) << " (In) " << Utility::int2hexStr((mCBOut >> 1) & 1, 1) << " (out)\n";
+	sout << "Shift Register = 0x" << Utility::int2hexStr(mShiftRegister, 2) << "\n";
+	sout << "T1 Counter = 0x" << Utility::int2hexStr(mTimer1Counter & 0xffff, 4) << "\n";
+	sout << "T2 Counter = 0x" << Utility::int2hexStr(mTimer2Counter & 0xffff, 4) << "\n";
+
+	return true;
 }

@@ -1,5 +1,6 @@
 #include "ACIA6850.h"
 #include <cmath>
+#include "Utility.h"
 
 ACIA6850::ACIA6850(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugManager  *debugManager, ConnectionManager* connectionManager) :
 	MemoryMappedDevice(name, ACIA6850_DEV, PERIPHERAL, cpuClock, waitStates, adr, 0x08, debugManager, connectionManager), mClock(clock)
@@ -236,23 +237,8 @@ void ACIA6850::update_settings()
 	mTxDivCycles = (int)round(mCPUClock * 1e6 / mTxDivClkRate);
 
 	if (DBG_LEVEL_DEV(this,DBG_VERBOSE) && change) {
-		cout << "\nACIA Settings:\n" << dec <<
-			"Ena Rx IRQ =        " << (int)ACIA_CR_RIE << "\n" <<
-			"Ena Tx IRQ =        " << (int)ACIA_CR_TIE << "\n" <<
-			"Tx State =          " << _ACIA_STATE(mTxState) << "\n" <<
-			"Clock Div =         " << (int)mClkDiv << "\n" <<
-			"No of data bits =   " << (int)mNDataBits << "\n" <<
-			"Parity =            " << (int)mParity << "\n" <<
-			"No of stop bits =   " << (int)mStopBits << "\n" <<
-			"No of Rx bits =     " << (int)mInBits << "\n" <<
-			"Rx DIV clock rate = " << mRxDivClkRate << "\n" <<
-			"Tx DIV clock rate = " << mTxDivClkRate << "\n" <<
-			"Rx DIV cycles =     " << mRxDivCycles << "\n" <<
-			"Tx DIV cycles =     " << mTxDivCycles << "\n" <<
-			"Rx Clock rate =     " << mRxClkRate << "\n" <<
-			"Tx Clock rate =     " << mRxClkRate << "\n" <<
-			"Rx Sample cycles =  " << mRxClkCycles << "\n" <<
-			"Tx Sample cycles =  " << mTxClkCycles << "\n";
+		cout << "\nACIA Settings:\n";
+		outputState(cout);
 	}
 
 }
@@ -545,4 +531,26 @@ void ACIA6850::setTxClkRate(long clkRate) {
 	//cout << "ACIA Tx Clock set to " << dec << mTxClkRate << " Hz, and CPU cycles per Tx Clock cycles set to " << mTxClkCycles << 
 	//	" for a CPU Clock of " << mCPUClock << " MHz\n";
 	update_settings();
+}
+
+// Outputs the internal state of the device
+bool ACIA6850::outputState(ostream& sout)
+{
+	sout << "Receive Data register =  0x" << Utility::int2hexStr(mRDR, 2) << "\n";
+	sout << "Transmit Data register = 0x" << Utility::int2hexStr(mTDR, 2) << "\n";
+	sout << "Rx Bit State =           " << _ACIA_STATE(mRxState) << "\n";
+	sout << "Tx BitState =            " << _ACIA_STATE(mTxState) << "\n";
+	sout << "Control Register =       0x" << Utility::int2hexStr(mCR, 2) << " <=> \n";
+	sout << "\tEna Rx IRQ =             " << (int)ACIA_CR_RIE << "\n";
+	sout << "\tEna Tx IRQ =             " << (int)ACIA_CR_TIE << "\n";
+	sout << "\tClock Div =              " << (int)mClkDiv << "\n";
+	sout << "\tNo of data bits =        " << (int)mNDataBits << "\n";
+	sout << "\tParity =                 " << (mParity==0?"Even":(mParity==1?"Odd":"None")) << "\n";
+	sout << "\tNo of stop bits =        " << (int)mStopBits << "\n";
+	sout << "\tRx DIV clock rate =      " << mRxDivClkRate << "\n";
+	sout << "\tTx DIV clock rate =      " << mTxDivClkRate << "\n";
+	sout << "\tRx Clock rate =          " << mRxClkRate << "\n";
+	sout << "\tTx Clock rate =          " << mRxClkRate << "\n";
+
+	return true;
 }

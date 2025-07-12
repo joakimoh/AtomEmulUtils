@@ -121,6 +121,9 @@ public:
 	// Get pointer to the ACIA device to be able to call its methods
 	bool connectDevice(Device* dev);
 
+	// Outputs the internal state of the device
+	bool outputState(ostream& sout) override;
+
 };
 
 #endif

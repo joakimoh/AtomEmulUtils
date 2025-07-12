@@ -156,3 +156,11 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 
 	return true;
 }
+
+// Outputs the internal state of the device
+bool BeebKeyboard::outputState(ostream& sout)
+{
+	sout << "PRESSED =    " << (int) mPRESSED << "\n";
+	sout << "BREAK =      " << (int) mBREAK << "\n";
+	return true;
+}

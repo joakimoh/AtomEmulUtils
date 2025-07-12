@@ -144,6 +144,9 @@ public:
 	void setRxClkRate(long clkRate);
 	void setTxClkRate(long clkRate);
 
+	// Outputs the internal state of the device
+	bool outputState(ostream& sout) override;
+
 };
 
 #endif

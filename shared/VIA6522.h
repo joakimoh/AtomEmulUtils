@@ -192,6 +192,9 @@ public:
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
 
+	// Outputs the internal state of the device
+	bool outputState(ostream& sout) override;
+
 };
 
 #endif

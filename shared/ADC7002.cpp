@@ -143,3 +143,22 @@ bool ADC7002::setChannelVoltage(int channel, double voltage)
 
 	return false;
 }
+
+// Outputs the internal state of the device
+bool ADC7002::outputState(ostream& sout)
+{
+	sout << "Control Register = 0x" << Utility::int2hexStr(mCR, 2) << " <=>\n";
+	sout << "\tConversion bits =  " << (ADC_7002_CR_12_BIT ? 12 : 8) << "\n";
+	sout << "\tSelected channel = " << (int)ADC_7002_CR_CH << "\n";
+	sout << "\tFLAG =             " << (int)ADC_7002_CR_FLAG << "\n";
+	sout << "Status register = 0x" << Utility::int2hexStr(mSR, 2) << " <=>\n";
+	sout << "\tBUSY =             " << (int)ADC_7002_SR_BUSY << "\n";
+	sout << "\tChannel =          " << (int)ADC_7002_SR_CH << "\n";
+	sout << "\tEOC =              " << (int)ADC_7002_SR_EOC << "\n";
+	sout << "\tFLAG =             " << (int)ADC_7002_SR_FLAG << "\n";
+	sout << "\tMSB =              " << (int)ADC_7002_SR_MSB << "\n";
+	for (int i = 0; i < 4; i++)
+		sout << "Channel " << i << " Voltage =         " << mCHInput[i] << " V\n";
+
+	return true;
+}

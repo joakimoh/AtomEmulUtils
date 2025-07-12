@@ -91,6 +91,7 @@ private:
 
 	uint8_t mFirstByte = 0xff;
 
+	string noiseChannelFrequency2Str();
 
 public:
 
@@ -104,6 +105,10 @@ public:
 
 	// Process input port changes directly (i.e. don't wait until the next call of the advance() method)
 	void processPortUpdate(int index);
+
+	// Outputs the internal state of the device
+	bool outputState(ostream& sout) override;
+
 };
 
 

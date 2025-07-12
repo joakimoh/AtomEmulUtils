@@ -254,6 +254,9 @@ public:
 	// Process a port update directly (and not just next time the advance() method is called)
 	void processPortUpdate(int index) override;
 
+	// Outputs the internal state of the device
+	bool outputState(ostream& sout) override;
+
 };
 
 #endif

@@ -1,4 +1,5 @@
 #include "BeebViaLatch.h"
+#include "Utility.h"
 
 BeebViaLatch::BeebViaLatch(string name, double cpuClock, DebugManager* debugManager, ConnectionManager* connectionManager):
 	Device(name, BEEB_VIA_LATCH, PERIPHERAL, cpuClock, debugManager, connectionManager)
@@ -20,4 +21,12 @@ void BeebViaLatch::processPortUpdate(int index)
 		updatePort(Q, new_val);
 		
 	}
+}
+
+// Outputs the internal state of the device
+bool BeebViaLatch::outputState(ostream& sout)
+{
+	sout << "Q = 0x" << Utility::int2hexStr(mQ, 2) << " <=> 0b" << Utility::int2binStr(mQ, 8) << "\n";
+
+	return true;
 }

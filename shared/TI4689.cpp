@@ -1,5 +1,6 @@
 #include "TI4689.h"
 #include <cmath>
+#include "Utility.h"
 
 //
 // Model of the TI4689 Sound Chip from the 1980's
@@ -292,20 +293,20 @@ void TI4689::processPortUpdate(int index)
 						}
 					}
 					double freq = 0;
-					
+
 					if (mGenSrc[channel].freq > 0) {
 						freq = 1e6 * mCLK / (32 * mGenSrc[channel].freq);
 						mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / freq);
 						mOutput[channel] = 1;
 					}
 					else {
-						mChannelHalfCycleSamples[channel] = 0;		
+						mChannelHalfCycleSamples[channel] = 0;
 						mOutput[channel] = 0;
 					}
-					if (DBG_LEVEL_DEV(this,DBG_AUDIO)) {
+					if (DBG_LEVEL_DEV(this, DBG_AUDIO)) {
 						cout << " <=> Frequency " <<
 							dec << freq << " Hz (0x" <<
-							hex << mGenSrc[channel].freq << ")" << " and " << mChannelHalfCycleSamples[channel] << " samples per tone 1/2 cycle " << 
+							hex << mGenSrc[channel].freq << ")" << " and " << mChannelHalfCycleSamples[channel] << " samples per tone 1/2 cycle " <<
 							"\n";
 
 					}
@@ -332,9 +333,9 @@ void TI4689::processPortUpdate(int index)
 						mOutput[channel] = 0;
 					}
 					else
-						mChannelVolume[channel] = (int) round (mChannelLevelMax * pow(10, - a / 10.0));
-					if (DBG_LEVEL_DEV(this,DBG_AUDIO)) {
-						cout << "Set Attenuation for " << generator <<  " to 0x" << hex << a << " = > Attenuation " <<
+						mChannelVolume[channel] = (int)round(mChannelLevelMax * pow(10, -a / 10.0));
+					if (DBG_LEVEL_DEV(this, DBG_AUDIO)) {
+						cout << "Set Attenuation for " << generator << " to 0x" << hex << a << " = > Attenuation " <<
 							_TI6847_ATTENUATION(a) << " => Volume " << dec << mChannelVolume[channel] << "\n";
 					}
 				}
@@ -374,9 +375,9 @@ void TI4689::processPortUpdate(int index)
 				else
 					mNoiseShiftSamples = -1;
 
-				if (DBG_LEVEL_DEV(this,DBG_AUDIO)) {
+				if (DBG_LEVEL_DEV(this, DBG_AUDIO)) {
 					cout << "Set Noise Generator Type to " << _TI6847_NOISE_TYPE(mGenSrc[channel].noiseType) <<
-						", No of noise shift samples to " << dec << mNoiseShiftSamples << 
+						", No of noise shift samples to " << dec << mNoiseShiftSamples <<
 						" and noise rate to " << _TI6847_NOISE_RATE(mGenSrc[channel].shiftRate) << "\n";
 				}
 				break;
@@ -389,4 +390,54 @@ void TI4689::processPortUpdate(int index)
 		pWE = mWE;
 	}
 
+}
+
+string TI4689::noiseChannelFrequency2Str()
+{
+	stringstream ss;
+
+	switch (mGenSrc[TI4689_NOISE_GENERATOR].shiftRate) {
+	case DIV_512:
+		ss << 1e6 * mCLK / 512;
+		break;
+	case DIV_1024:
+		ss << 1e6 * mCLK / 1024;
+		break;
+	case DIV_2048:
+		ss << 1e6 * mCLK / 2048;;
+		break;
+	default:
+		ss << "Given by Tone Generator 3";
+		break;
+
+	}
+
+	return ss.str();
+}
+
+// Outputs the internal state of the device
+bool TI4689::outputState(ostream& sout)
+{
+
+	for (int i = 0; i < 4; i++) {
+		
+		int a = mGenSrc[i].att;
+		if (TI4689_ATT_OFF(a)) {
+			sout << "Channel " << i << " Attenuation = 0x" << Utility::int2hexStr(a,2) << "   <=> OFF" << "\n";
+		}
+		else
+			sout << "Channel " << i << " Attenuation = 0x" << Utility::int2hexStr(a,2) << "   <=> -" << a << " dB \n";
+
+		if (i == TI4689_NOISE_GENERATOR) {
+			sout << "Channel " << i << " Noise Type  = 0x" << Utility::int2hexStr(mGenSrc[i].noiseType,2) << "   <=> " << (mGenSrc[i].noiseType == WHITE_NOISE ? "White Noise" : "Periodic Noise") << "\n";
+			sout << "Channel " << i << " Shift Rate  = 0x" << Utility::int2hexStr(mGenSrc[i].shiftRate,2) << "   <=> " << noiseChannelFrequency2Str() << " Hz\n";
+		}
+		else {
+			int f = mGenSrc[i].freq;
+			sout << "Channel " << i << " Frequency   = 0x" << Utility::int2hexStr(f,4) << " <=> " << 1e6 * mCLK / (32 * f) << " Hz\n";
+
+		}
+	}
+
+	return true;
 }

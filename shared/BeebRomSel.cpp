@@ -72,3 +72,17 @@ bool BeebROMSel::write(uint16_t adr, uint8_t data)
 	// Call parent class to trigger scheduling of other devices when applicable
 	return MemoryMappedDevice::triggerAfterWrite(adr, data);
 }
+
+// Outputs the internal state of the device
+bool BeebROMSel::outputState(ostream& sout)
+{
+	uint16_t bank_sel = ~(1 << (mReg & 0xf));
+	sout << "Bank = 0x" << hex << (int)(mReg & 0xf) << " <=>\n";
+	sout << "\tSelection strobe = " << Utility::int2binStr(bank_sel, 16) << "\n";
+	sout << "\tNW =               " << (int)mNW << "\n";
+	sout << "\tNE =               " << (int)mNE << "\n";
+	sout << "\tSW =               " << (int)mSW << "\n";
+	sout << "\tSE =               " << (int)mSE << "\n";
+
+	return true;
+}

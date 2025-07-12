@@ -501,3 +501,34 @@ int VDU6847::fieldScanLineOffset()
 {
 	return (mField % 2);
 }
+
+// Outputs the internal state of the device
+bool VDU6847::outputState(ostream& sout)
+{
+	sout << "AS      = " << mAS     << " <=> " << (mAS ? "alphanumeric" : "semigraphics") << "\n";
+	sout << "AG      = " << mAG     << " <=> " << (mAG ? "alphanumeric/semigraphics" : "graphics") << "\n";
+	sout << "CSS     = " << mCSS    << " <=> " << (mCSS ? "Cya, Magenta, Orange" : "Black, Green, Yellow, Blue & Red") << "\n";
+	switch (mGM & 0x7) {
+	case 0:
+		sout << "GM      = " << mGM << " <=>  64 x 64 pixels, 4 colours, 1kB graphics memory\n"; break;
+	case 1:
+		sout << "GM      = " << mGM << " <=> 128 x 64 pixels, 2 colours, 1kB graphics memory\n"; break;
+	case 2:
+		sout << "GM      = " << mGM << " <=> 128 x 64 pixels, 4 colours, 2kB graphics memory\n"; break;
+	case 3:
+		sout << "GM      = " << mGM << " <=> 128 x 96 pixels, 2 colours, 1.5kB graphics memory\n"; break;
+	case 4:
+		sout << "GM      = " << mGM << " <=> 128 x 96 pixels, 4 colours, 3kB graphics memory\n"; break;
+	case 5:
+		sout << "GM      = " << mGM << " <=> 128 x 192 pixels, 2 colours, 3kB graphics memory\n"; break;
+	case 6:
+		sout << "GM      = " << mGM << " <=> 128 x 192 pixels, 4 colours, 6kB graphics memory\n"; break;
+	default: // 7
+		sout << "GM      = " << mGM << " <=> 256 x 192 pixels, 2 colours, 6kB graphics memory\n"; break;
+	}
+	sout << "INV     = " << mInv    << " <=> " << (mInv ? "Inverted Characters" : "Non-inverted Characters") << "\n";
+	sout << "INT/EXT = " << mIntExt << " <=> " << (mIntExt ? "External Character ROM" : "Internal Character ROM") << "\n";
+	sout << "FS      = " << mFS << " <=> " << (mFS ? "Sync active" : "Sync inactive") << "\n";
+
+	return true;
+}

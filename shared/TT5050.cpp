@@ -2,6 +2,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include "Utility.h"
 
 using namespace std;
 
@@ -415,4 +416,23 @@ void  TT5050::processPortUpdate(int index)
 		pDEW = mDEW;
 	}
 
+}
+
+// Outputs the internal state of the device
+bool TT5050::outputState(ostream& sout)
+{
+	sout << "LOSE [Start of visible line] = " << (int)mLOSE << " <=> " << (mLOSE ? "Active" : "Inactive") << "\n";
+	sout << "CRS  [Field polarity       ] = " << (int)mCRS << " <=> " << (mCRS ? "Even field":"Odd field") << "\n";
+	sout << "DEW  [Start of line        ] = " << (int)mDEW << " <=> " << (mDEW ? "Active" : "Inactive") << "\n";
+	sout << "GLR  [Start of field       ] = " << (int)mGLR << " <=> " << (mGLR ? "Inactive" : "Active") << "\n";
+
+	sout << "Graphic symbols              = " << (mGraphicSymbols ? "True" : "False") << "\n";
+	sout << "Flash                        = " << (mFlash ? "True" : "False") << "\n";
+	sout << "Double height                = " << (mDoubleHeight ? "True" : "False") << "\n";
+	sout << "Separated graphics           = " << (mSeparatedGraphics ? "True" : "False") << "\n";
+	sout << "Hidden text                  = " << (mHiddenText ? "True" : "False") << "\n";
+	sout << "Held graphics                = " << (mHeldGraphics ? "True" : "False") << "\n";
+	sout << "Raster line                  = " << dec << (int)mCharRasterLine << "\n";
+
+	return true;
 }
