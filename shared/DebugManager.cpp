@@ -71,27 +71,30 @@ void DebugManager::enableInterruptLogging(uint16_t adr)
 	mInterruptLogAdr = adr;
 }
 
-bool DebugManager::enableBuffering(int len)
+bool DebugManager::enableBuffering(int len, bool extensive)
 {
 	if (len <= 0 || len > 1000)
 		return false;
-
+	mExtensiveLog = extensive;
 	mPreTraceLen = len;
 	mEndOfTracingReached = false;
 	mBufferingEnabled = true;
+	mEndofPrebufferingReached = false;
 
 	return true;
 }
 
-void  DebugManager::disableBuffering()
+void DebugManager::disableBuffering()
 {
+	mExtensiveLog = false;
 	mBufferingEnabled = false;
 	mEndOfTracingReached = true;
+	mEndofPrebufferingReached = true;
 }
 
 bool DebugManager::emptyBuffer(ostream& sout)
 {
-	if (mBufferInstrSize == 0)
+	if (mBufferInstrSize == 0 && mBufferedTraceLines.size() == 0)
 		return false;
 
 	if (mExtensiveLog) {
@@ -228,6 +231,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 
 	if (buffering_enabled && !mDelayed) {
 
+		// Make the extensive buffering (if enabled)
 		if (!mEndofPrebufferingReached && !mEndOfTracingReached) {
 			if (mExtensiveLog) {
 				string s = mSout.str();
@@ -240,6 +244,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 			}
 		}
 
+		// Output pre-buffered log data (which could be of either the simpe or extensive type) when the triggering point is detected
 		if (matchFetchAddress(mTraceAdr) && !mEndofPrebufferingReached) {
 			mDbgLevel |= DBG_6502;
 			mTraceCount = 0;
@@ -250,6 +255,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 			cout << "****\n";
 		}
 
+		// Stop post-triggering point logging
 		if (mEndofPrebufferingReached && mTraceCount > mPostTraceLen) {
 
 			if (mRecurringTracing) {
@@ -269,18 +275,22 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 
 }
 
+//
+// Slower logging of any kind of device data
+//
 void DebugManager::log(Device * dev, DebugLevel level, string line)
 {
-	if (!mInitialised && level != DBG_VERBOSE || mLogDevice != NULL && dev != mLogDevice)
+	if (!mBufferingEnabled && !mInitialised && level != DBG_VERBOSE || mLogDevice != NULL && dev != mLogDevice)
 		return;
 
-	if (mFetchAdr != mCyclicLogAdr && ((mDbgLevel & level) == 0 || mDelayed))
+	if (!mBufferingEnabled && mFetchAdr != mCyclicLogAdr && ((mDbgLevel & level) == 0 || mDelayed))
 		return;
 
 	double t = dev->getCycleCount() / (dev->mCPUClock * 1e6);
 	string t_s = Utility::encodeCPUTime(t);
 	string prefix = t_s + " " + dev->name + " ";
-	if (mExtensiveLog && mTraceAdr > 0 && (level == DBG_6502 || (mDbgLevel & level) != 0)) {
+	bool buffering_enabled = (mTraceAdr > 0 && (level == DBG_6502 || (mDbgLevel & level) != 0)) || mBufferingEnabled;
+	if (mExtensiveLog && buffering_enabled) {
 		if (!mEndOfTracingReached && !mEndofPrebufferingReached)
 			mSout << prefix << line;
 	}
@@ -293,6 +303,9 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 
 }
 
+//
+// Quick logging of instruction data only
+//
 void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 {
 	if (!mBufferingEnabled && (!mInitialised && level != DBG_VERBOSE || mLogDevice != NULL && dev != mLogDevice))

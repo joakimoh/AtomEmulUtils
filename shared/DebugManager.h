@@ -176,7 +176,7 @@ public:
 	bool debug(Device* dev, DebugLevel level);
 	bool debug(DebugLevel level);
 
-	bool enableBuffering(int len);
+	bool enableBuffering(int len, bool extensive);
 	void disableBuffering();
 	bool emptyBuffer(ostream& sout);
 

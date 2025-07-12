@@ -27,7 +27,15 @@ bool Debugger::bufferCmd(istream& sin)
 	else if (sub_cmd == "set") {
 		int len;
 		sin >> len;
-		if (!mDM->enableBuffering(len)) {
+		if (!mDM->enableBuffering(len, false)) {
+			cout << "Buffering size needs to be in the interval [1,1000]!\n";
+			return false;
+		}
+	}
+	else if (sub_cmd == "xset") {
+		int len;
+		sin >> len;
+		if (!mDM->enableBuffering(len, true)) {
 			cout << "Buffering size needs to be in the interval [1,1000]!\n";
 			return false;
 		}
@@ -36,6 +44,7 @@ bool Debugger::bufferCmd(istream& sin)
 		mDM->disableBuffering();
 	}
 	else {
+		cout << "Invalid sub command to buf - valid sub command is one of out, set, xset and dis!\n";
 		return false;
 	}
 
@@ -218,8 +227,10 @@ bool Debugger::breakCmd(istream& sin)
 		mAccessMode = 3;
 		mEngine->setBreakPointAndWait(3, a, mReadData, mWrittenData);
 	}
-	else
+	else {
+		cout << "Illegal sub command - valid sub command to break is one of x,r,w and rw!\n";
 		return false;
+	}
 
 	return true;
 }
