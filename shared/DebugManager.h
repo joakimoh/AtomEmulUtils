@@ -110,8 +110,7 @@ private:
 
 	Codec6502 mCodec;
 
-	int mTraceCount = 0;
-	vector<string> mBufferedTraceLines;
+
 
 	bool mExtensiveLog = false;
 	bool mDelayed = false;
@@ -121,13 +120,21 @@ private:
 #define	INSTR_BUFFER_SIZE	100
 
 	vector<InstrLogData> mBufferedInstrLog = vector<InstrLogData>(INSTR_BUFFER_SIZE);
-
+	vector<string> mBufferedTraceLines;
 	int mBufferInstrReadIndex = 0;
 	int mBufferInstrWriteIndex = 0;
 	int mBufferInstrSize = 0;
+	int mPreTraceInstrCount = 0;
+	int mPostTraceInstrCount = 0;
+	int pPreTraceInstrCount = 0;
+	int pPostTraceInstrCount = 0;
+	bool mMatch = false;
+	bool pMatch = false;
 
 	enum TracingState {PREBUF_TRACING, POST_TRACING, TRACING_ON, TRACING_OFF};
+#define _TRACING_STATE(x) (x==PREBUF_TRACING?"Pre-buffering":(x==POST_TRACING?"Post tracing":(x==TRACING_ON?"Tracing ON":"Tracing OFF")))
 	TracingState mTracingState = TRACING_OFF;
+	TracingState pTracingState = TRACING_OFF;
 ;
 	uint16_t mFetchAdr = 0x0;
 	stringstream mSout;
@@ -165,6 +172,7 @@ private:
 	bool matchFetchAddress(uint16_t fetchAdr);
 
 	Devices* mDevices = NULL;
+	Device* mMicrocontroller = NULL;
 
 	void printInstrLogData(ostream &sout, InstrLogData instrLogData);
 	bool string2debugLevel(string debugLevelS, DebugLevel &debugLevel);
@@ -175,7 +183,7 @@ public:
 	bool debugLevelIs(DebugLevel level);
 
 	// Enable/disable prebuffering - used by the Debugger
-	bool enableBuffering(int len, bool extensive);
+	bool enableBuffering(int preTraceLen, int postTraceLen, bool extensive);
 	void disableBuffering();
 	bool emptyBuffer(ostream& sout);
 
@@ -222,6 +230,7 @@ public:
 	bool matchPort(DevicePort* port);
 
 	bool setDevices(Devices *devices);
+	bool setMicrocontroller(Device* microcontrollerDevice);
 
 	bool quickTracing() { return !mExtensiveLog; }
 

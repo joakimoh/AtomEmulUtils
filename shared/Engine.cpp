@@ -110,6 +110,10 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
         cout << "No microprocessor defined!\n";
         throw runtime_error("No microprocessor defined!");
     }
+    if (!mDM->setMicrocontroller(mMicroprocessor)) {
+        cout << "Failed to initialise debug manager with microconroller info!\n";
+        throw runtime_error("Failed to initialise debug manager with microconroller info!\n");
+    }
     if (mVDU == NULL) {
         cout << "No video display unit defined!\n";
         throw runtime_error("No video display unit defined!");

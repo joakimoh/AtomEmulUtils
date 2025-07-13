@@ -19,15 +19,16 @@ bool Debugger::levelCmd(istream& sin)
 	string sub_cmd, level;
 
 	sin >> sub_cmd;
-	sin >> level;
 
 	if (sub_cmd == "set") {
+		sin >> level;
 		if (!mDM->setDebugLevel(level)) {
 			cout << "Invalid parameter '" << level << "'!\n";
 			return false;
 		}
 	}
 	else if (sub_cmd == "clr") {
+		sin >> level;
 		if (!mDM->clearDebugLevel(level)) {
 			cout << "Invalid parameter '" << level << "'!\n";
 			return false;
@@ -55,18 +56,16 @@ bool Debugger::bufferCmd(istream& sin)
 		}
 	}
 	else if (sub_cmd == "set") {
-		int len;
-		sin >> len;
-		if (!mDM->enableBuffering(len, false)) {
-			cout << "Buffering size needs to be in the interval [1,1000]!\n";
+		int pre_trace_len, post_trace_len;
+		sin >> pre_trace_len >> post_trace_len;
+		if (!mDM->enableBuffering(pre_trace_len, post_trace_len, false)) {
 			return false;
 		}
 	}
 	else if (sub_cmd == "xset") {
-		int len;
-		sin >> len;
-		if (!mDM->enableBuffering(len, true)) {
-			cout << "Buffering size needs to be in the interval [1,1000]!\n";
+		int pre_trace_len, post_trace_len;
+		sin >> pre_trace_len >> post_trace_len;
+		if (!mDM->enableBuffering(pre_trace_len, post_trace_len, true)) {
 			return false;
 		}
 	}

@@ -125,7 +125,7 @@ void DebugManager::setUcDebug()
 	mDbgLevel = DBG_6502;
 	mTracingState = TRACING_ON;
 	mBufferInstrReadIndex = mBufferInstrWriteIndex = mBufferInstrSize = 0;
-	mTraceCount = 0;
+	mPostTraceInstrCount = 0;
 	mBufferedTraceLines.clear();
 }
 
@@ -162,12 +162,25 @@ void DebugManager::enableInterruptLogging(uint16_t adr)
 	mInterruptLogAdr = adr;
 }
 
-bool DebugManager::enableBuffering(int len, bool extensive)
+bool DebugManager::enableBuffering(int preTraceLen, int postTraceLen, bool extensive)
 {
-	if (len <= 0 || len > 1000)
+	if (preTraceLen <= 0 || preTraceLen > INSTR_BUFFER_SIZE) {
+		cout << "Pre-buffering size must be in the range [1," << INSTR_BUFFER_SIZE << "]!n";
 		return false;
+	}
+
+	// Check that no other tracing than microcontroller debugging is enabled for quick tracing
+	if (!extensive) {
+		if (mDbgLevel == DBG_NONE)
+			mDbgLevel = DBG_6502;
+		else
+			return false;
+	}
+
 	mExtensiveLog = extensive;
-	mPreTraceLen = len;
+	mPreTraceLen = preTraceLen;
+	mPostTraceLen = postTraceLen;
+	mDelayed = false;
 	mTracingState = PREBUF_TRACING;
 
 	return true;
@@ -197,6 +210,12 @@ bool DebugManager::emptyBuffer(ostream& sout)
 		mBufferInstrSize = 0;
 		mBufferInstrReadIndex = 0;
 	}
+	if (mRecurringTracing)
+		mTracingState = PREBUF_TRACING;
+	else
+		mTracingState = TRACING_OFF;
+
+	mPreTraceInstrCount = 0;
 
 	return true;
 }
@@ -314,28 +333,41 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 	mY = Y;
 	mA = A;
 
+	mMatch = matchFetchAddress(mTraceAdr);
+	//if (mTracingState != pTracingState || mPreTraceInstrCount != pPreTraceInstrCount || mPostTraceInstrCount != pPostTraceInstrCount || mMatch != pMatch)
+	//	cout << "mTracingState = " << _TRACING_STATE(mTracingState) << ", mPreTraceInstrCount = " << mPreTraceInstrCount << ", mPostTraceInstrCount = " <<
+	//		mPostTraceInstrCount << ", match address = " << (matchFetchAddress(mTraceAdr)?"Yes":"No") << "\n";
+	pTracingState = mTracingState;
+	pPreTraceInstrCount = mPreTraceInstrCount;
+	pPostTraceInstrCount = mPostTraceInstrCount;
+	pMatch = matchFetchAddress(mTraceAdr);
+
+
 	if (mTracingState == PREBUF_TRACING) {
+
+		mPreTraceInstrCount++;
 
 		// Save the extensive buffering that has been recorded since the last instruction (if extensive recording is enabled)
 		if (mExtensiveLog) {
 			string s = mSout.str();
 			if (s != "") {
 				mBufferedTraceLines.push_back(s);
-				if (mBufferedTraceLines.size() > mPreTraceLen)
+				if (mPreTraceInstrCount > mPreTraceLen)
 					mBufferedTraceLines.erase(mBufferedTraceLines.begin(), mBufferedTraceLines.end() - mPreTraceLen);
 				mSout.str(""); // flush string stream
 
 			}
 		}
 
-		if (matchFetchAddress(mTraceAdr) && mTracingState == PREBUF_TRACING) {
+		if (matchFetchAddress(mTraceAdr)) {
 
 			// Output pre-buffered log data (which could be of either the simpe or extensive type) when the triggering point is detected
-			mTraceCount = 0;
+			mPostTraceInstrCount = 0;
 			if (mRecurringTracing)
 				std::cout << "-----------------------------------------------------------------------------------------------------------------------------------\n";
 			emptyBuffer(cout);
 			mTracingState = POST_TRACING;
+			mPostTraceInstrCount = 0;
 			cout << "****\n";
 		}
 	}
@@ -343,8 +375,12 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 
 	else if (mTracingState == POST_TRACING) {
 
+		mPostTraceInstrCount++;
+
 		// Stop post-triggering point logging
-		if (mTraceCount > mPostTraceLen) {
+		if (mPostTraceInstrCount > mPostTraceLen) {
+
+			mPostTraceInstrCount = 0;
 
 			if (mRecurringTracing) {
 				mTracingState = PREBUF_TRACING;
@@ -381,8 +417,6 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 	// Log the data if the debug level is enabled and buffering is not ongoing
 	if (mTracingState == POST_TRACING || mTracingState == TRACING_ON) {
 		cout << prefix << line;
-		if (mTracingState == POST_TRACING)
-			mTraceCount++;
 	}
 
 }
@@ -421,10 +455,15 @@ void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 	// Log the instruction data if the debug level is enabled and buffering is not ongoing
 	if (mTracingState == POST_TRACING || mTracingState == TRACING_ON) {
 		printInstrLogData(cout, instrLogData);
-		mTraceCount++;
 	}
 	
 
+}
+
+bool DebugManager::setMicrocontroller(Device* microcontrollerDevice)
+{
+	mMicrocontroller = microcontrollerDevice;
+	return true;
 }
 
 bool DebugManager::setDevices(Devices * devices)
