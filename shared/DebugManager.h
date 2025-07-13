@@ -182,10 +182,11 @@ public:
 	void enableLogging(uint16_t adr);
 	void enableCyclicLogging(uint16_t adr);
 	void enableInterruptLogging(uint16_t adr);
-	bool enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring, bool extensive, bool delayed);
 	void enableMemDump(uint16_t adr, int sz);
 	void enableExecStop(uint16_t adr);
 
+	// Start tracing
+	bool enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring, bool extensive, bool delayed);
 
 	bool tracingEnabled();
 	bool tracingActive();
@@ -207,17 +208,13 @@ public:
 
 	void toggleUCdebug();
 
-	// Buffer tracing before a break point is triggered
+	// Buffer tracing data before a break point is triggered
 	void preBuffer(uint16_t adr, uint8_t X, uint8_t Y, uint8_t A);
 
-	//
 	// Slower (but more extensive) logging of all the types of device data that are currently enabled
-	//
 	void log(Device * dev, DebugLevel level, string line);
 
-	//
 	// Quick logging of instruction data only
-	//
 	void log(Device* dev, DebugLevel level, InstrLogData instrLogData);
 
 	bool matchPort(DevicePort* port);
