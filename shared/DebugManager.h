@@ -207,6 +207,7 @@ public:
 	void triggerLogging(uint16_t adr);
 	bool triggerExecutionStop(P6502 * cpu, uint16_t adr);
 
+	// Turn on/off microcontroller tracing
 	void toggleUCdebug();
 
 	// Buffer tracing data before a break point is triggered
