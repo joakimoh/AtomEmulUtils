@@ -262,6 +262,7 @@ bool Engine::run()
                             // Execute one microprocessor instruction and advance time accordingly (cycle_count updated)
                             if (!mMicroprocessor->advanceInstr(mCycleCount)) {
                                 // Execution stopped - exit
+                                mExecMutex.unlock();
                                 return 0;
                             }
 

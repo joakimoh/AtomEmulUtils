@@ -56,16 +56,16 @@ bool Debugger::bufferCmd(istream& sin)
 		}
 	}
 	else if (sub_cmd == "set") {
-		int pre_trace_len, post_trace_len;
-		sin >> pre_trace_len >> post_trace_len;
-		if (!mDM->enableBuffering(pre_trace_len, post_trace_len, false)) {
+		int pre_trace_len;
+		sin >> pre_trace_len;
+		if (!mDM->enableBuffering(pre_trace_len, 1, false)) {
 			return false;
 		}
 	}
 	else if (sub_cmd == "xset") {
-		int pre_trace_len, post_trace_len;
-		sin >> pre_trace_len >> post_trace_len;
-		if (!mDM->enableBuffering(pre_trace_len, post_trace_len, true)) {
+		int pre_trace_len;
+		sin >> pre_trace_len;
+		if (!mDM->enableBuffering(pre_trace_len, 1, true)) {
 			return false;
 		}
 	}

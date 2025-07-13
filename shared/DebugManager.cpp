@@ -193,6 +193,8 @@ bool DebugManager::enableBuffering(int preTraceLen, int postTraceLen, bool exten
 	mDelayed = false;
 	mTracingState = PREBUF_TRACING;
 
+	cout << levels2str(mDbgLevel) << "\n";
+
 	return true;
 }
 
@@ -247,7 +249,7 @@ bool DebugManager::enableTracing(uint16_t adr, int preTraceLen, int postTraceLen
 	if (!extensive) {
 		if (mDbgLevel == DBG_NONE)
 			mDbgLevel = DBG_6502;
-		else
+		else if ((mDbgLevel & DBG_6502) == 0)
 			return false;
 	}
 
