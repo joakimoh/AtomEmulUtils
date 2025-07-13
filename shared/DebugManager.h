@@ -212,6 +212,9 @@ public:
 
 	void log(Device * dev, DebugLevel level, string line);
 
+	//
+	// Quick logging of instruction data only
+	//
 	void log(Device* dev, DebugLevel level, InstrLogData instrLogData);
 
 	bool matchPort(DevicePort* port);
