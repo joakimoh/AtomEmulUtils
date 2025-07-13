@@ -14,6 +14,36 @@ Debugger::Debugger(Engine *engine, Devices  *devices, DebugManager *debugManager
 
 }
 
+bool Debugger::levelCmd(istream& sin)
+{
+	string sub_cmd, level;
+
+	sin >> sub_cmd;
+	sin >> level;
+
+	if (sub_cmd == "set") {
+		if (!mDM->setDebugLevel(level)) {
+			cout << "Invalid parameter '" << level << "'!\n";
+			return false;
+		}
+	}
+	else if (sub_cmd == "clr") {
+		if (!mDM->clearDebugLevel(level)) {
+			cout << "Invalid parameter '" << level << "'!\n";
+			return false;
+		}
+	}
+	else if (sub_cmd == "off") {
+		mDM->clearDebugLevel();
+	}
+	else {
+		cout << "Invalid sub command to dbg - a valid command is one of 'set' and 'clr'!\n";
+		return true;
+	}
+
+	return true;
+}
+
 bool Debugger::bufferCmd(istream& sin)
 {
 	string sub_cmd;
@@ -50,6 +80,7 @@ bool Debugger::bufferCmd(istream& sin)
 
 	return true;
 }
+
 bool Debugger::dumpDevCmd(istream& sin)
 {
 	string dev_name;
@@ -241,7 +272,7 @@ bool Debugger::haltCmd(istream& sin)
 	return true;
 }
 
-void Debugger::debug()
+void Debugger::run()
 {
 	while (true) {
 
@@ -254,6 +285,8 @@ void Debugger::debug()
 
 		if (cmd == "read")
 			readMemCmd(sin);
+		else if (cmd == "dbg")
+			levelCmd(sin);
 		else if (cmd == "buf")
 			bufferCmd(sin);
 		else if (cmd == "dis")

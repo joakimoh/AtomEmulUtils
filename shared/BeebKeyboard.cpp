@@ -129,7 +129,7 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 					column_key_pressed = true;
 					DBG_LOG(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!\n");
 //					if (key.keyName == "B")
-//						mDM->addDebugLevel(DBG_INTERRUPTS | DBG_KEYBOARD | DBG_IO_PERIPHERAL | DBG_PORT | DBG_6502);
+//						mDM->setDebugLevel(DBG_INTERRUPTS | DBG_KEYBOARD | DBG_IO_PERIPHERAL | DBG_PORT | DBG_6502);
 					break;
 				}
 			}

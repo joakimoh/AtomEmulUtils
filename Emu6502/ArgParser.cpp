@@ -48,9 +48,14 @@ void ArgParser::printUsage(const char* name)
 	cout << "-stop <hex address>: stop execution at this address\n\n";
 	cout << "-dump <hex address> <hex size>: dump memory content address to address+size-1 after stopping execution\n\n";
 	cout << "-trace <hex address> <pre trace len> <post trace len>: debug around a certain fetch address\n";
-	cout << "-xtrace <hex address> <pre trace len> <post trace len>: same as -trace but with more information (and therefoe slower)\n";
 	cout << "-ctrace <hex address> <pre trace len> <post trace len>: as trace but the debugging will be repeated every time the fetch address is encountered\n";
 	cout << "-ktrace <hex address> <pre trace len> <post trace len>: as trace but the debugging condition only checked for after user presses <CTRL-T>\n";
+	cout << "-xtrace <hex address> <pre trace len> <post trace len>: same as -trace but with more information (and therefoe slower)\n";
+	cout << "-kctrace <hex address> <pre trace len> <post trace len>: combinaton of ktrace and ctrace\n";
+	cout << "-xtrace <hex address> <pre trace len> <post trace len>: same as -trace but with more information (and therefoe slower)\n";
+	cout << "-xctrace <hex address> <pre trace len> <post trace len>: same as -ctrace but with more information (and therefoe slower)\n";
+	cout << "-xktrace <hex address> <pre trace len> <post trace len>: as ktrace but but with more information (and therefoe slower)\n";
+	cout << "-xkctrace <hex address> <pre trace len> <post trace len>: as kctrace but but with more information (and therefoe slower)\n";
 	cout << "\tor written to. The tracing starts <pre trace len> instructions prior to the trigger and lasts <post trace len>\n";
 	cout << "\tinstructions after the trigger.\n\n";
 	cout << "-log <hex adr>:\n\tStart logging instruction execution after execution reaches the specified address\n";
@@ -137,11 +142,23 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			debugManager.enableExecStop(stoi(argv[a + 1], 0, 16));
 			a++;
 		}
-		else if (strcmp(argv[a], "-trace") == 0 || strcmp(argv[a], "-ctrace") == 0 || strcmp(argv[a], "-xtrace") == 0 || strcmp(argv[a], "-ktrace") == 0) {
+		else if (
+			strcmp(argv[a], "-trace") == 0 ||
+			strcmp(argv[a], "-ctrace") == 0 ||
+			strcmp(argv[a], "-ktrace") == 0 ||
+			strcmp(argv[a], "-kctrace") == 0 ||
+			strcmp(argv[a], "-xtrace") == 0 ||
+			strcmp(argv[a], "-xctrace") == 0 ||
+			strcmp(argv[a], "-xktrace") == 0 ||
+			strcmp(argv[a], "-xkctrace") == 0
+
+		) {
 			uint16_t adr = stoi(argv[a + 1], 0, 16);
-			bool recurring = strcmp(argv[a], "-ctrace") == 0;
-			bool quick_trace = strcmp(argv[a], "-xqtrace") != 0 || recurring;
-			bool kb_triggered_start = strcmp(argv[a], "-ktrace") == 0;
+			bool recurring = strcmp(argv[a], "-ctrace") == 0 || strcmp(argv[a], "-xkctrace") == 0 || strcmp(argv[a], "-xctrace") == 0 ||
+				strcmp(argv[a], "-xkctrace") == 0;
+			bool quick_trace = strcmp(argv[a], "-trace") == 0 || strcmp(argv[a], "-ctrace") == 0 || strcmp(argv[a], "-ktrace") == 0 ||
+				strcmp(argv[a], "-kctrace") == 0;
+			bool kb_triggered_start = strcmp(argv[a], "-ktrace") == 0 || strcmp(argv[a], "-kctrace") == 0 || strcmp(argv[a], "-xktrace") == 0;
 			a++;
 			if (a >= argc) {
 				printUsage(argv[0]);
@@ -154,7 +171,11 @@ ArgParser::ArgParser(int argc, const char* argv[])
 				return;
 			}
 			int post_trace_len = stoi(argv[a + 1]); 
-			debugManager.enableTracing(adr, pre_trace_len, post_trace_len, recurring, !quick_trace, kb_triggered_start);
+			if (!debugManager.enableTracing(adr, pre_trace_len, post_trace_len, recurring, !quick_trace, kb_triggered_start)) {
+				cout << "Quick tracing only allows microcontroller debugging!\n\n";
+				printUsage(argv[0]);
+				return;
+			}
 			a++;
 		}
 		else if(strcmp(argv[a], "-dump") == 0) {
@@ -193,7 +214,7 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			a++;
 		}
 		else if (strcmp(argv[a], "-v") == 0) {
-			debugManager.addDebugLevel(DBG_VERBOSE);
+			debugManager.setDebugLevel(DBG_VERBOSE);
 		}
 		else if (strcmp(argv[a], "-dbg") == 0) {
 			a++;
@@ -201,40 +222,12 @@ ArgParser::ArgParser(int argc, const char* argv[])
 				printUsage(argv[0]);
 				return;
 			}
-			if (strstr(argv[a ], "e") != NULL)
-				debugManager.addDebugLevel(DBG_ERROR);
-			if (strstr(argv[a], "w") != NULL)
-				debugManager.addDebugLevel(DBG_WARNING);
-			if (strstr(argv[a], "d") != NULL)
-				debugManager.addDebugLevel(DBG_DEVICE);
-			if (strstr(argv[a], "u") != NULL)
-				debugManager.addDebugLevel(DBG_6502);
-			if (strstr(argv[a], "p") != NULL)
-				debugManager.addDebugLevel(DBG_PORT);
-			if (strstr(argv[a], "i") != NULL)
-				debugManager.addDebugLevel(DBG_INTERRUPTS | DBG_RESET);
-			if (strstr(argv[a], "r") != NULL)
-				debugManager.addDebugLevel(DBG_RESET);
-			if (strstr(argv[a], "k") != NULL)
-				debugManager.addDebugLevel(DBG_KEYBOARD);
-			if (strstr(argv[a], "v") != NULL)
-				debugManager.addDebugLevel(DBG_VDU);
-			if (strstr(argv[a], "s") != NULL)
-				debugManager.addDebugLevel(DBG_IO_PERIPHERAL);
-			if (strstr(argv[a], "t") != NULL)
-				debugManager.addDebugLevel(DBG_TRGGERING); 
-			if (strstr(argv[a], "x") != NULL)
-				debugManager.addDebugLevel(DBG_TIME);
-			if (strstr(argv[a], "a") != NULL)
-				debugManager.addDebugLevel(DBG_AUDIO);
-			if (strstr(argv[a], "c") != NULL)
-				debugManager.addDebugLevel(DBG_TAPE);
-			if (strstr(argv[a], "A") != NULL)
-				debugManager.addDebugLevel(DBG_ALL);
-			if (strstr(argv[a], "S") != NULL)
-				debugManager.addDebugLevel(DBG_SPI);
-			if (strstr(argv[a], "C") != NULL)
-				debugManager.addDebugLevel(DBG_ADC);
+			if (!debugManager.setDebugLevel(argv[a])) {
+				cout << "Unknown parameter to -dbg '" << argv[a] << "'!\n";
+				printUsage(argv[0]);
+				return;
+			}
+
 		}
 		else if (strcmp(argv[a], "-port") == 0) {
 			a++;

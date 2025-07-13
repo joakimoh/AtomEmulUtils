@@ -87,7 +87,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         al_set_menu_item_flags(mMenu, ENTER_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
         al_set_menu_item_flags(mMenu, EXIT_DBG_ID, 0);
         mDebugger = new Debugger(mEngine, mDevices, mDM);
-        mDebugThread = thread(&Debugger::debug, mDebugger);
+        mDebugThread = thread(&Debugger::run, mDebugger);
         break;
     }
 

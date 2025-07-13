@@ -57,7 +57,7 @@ bool SDCard::insertCard(string cardImageFile)
 	mCardImage = new fstream(cardImageFile, ios::in | ios::out | ios::binary);
 
 	if (mCardImage == NULL || !mCardImage->is_open()) {
-		cout << "couldn't open SD Card Image " << cardImageFile << "\n";
+		DBG_LOG(this, DBG_ERROR, "couldn't open SD Card Image " + cardImageFile + "\n");
 		return false;
 	}
 
@@ -332,10 +332,10 @@ bool SDCard::generateTxBits()
 #ifdef DBG_ON
 			if (DBG_LEVEL(DBG_SPI)) {
 				if (mSPITxMode != SPI_Tx_DATA_WAIT)
-					cout << "Response of type R" << mResponseType << " (response 0x" << bytes2str(mSlaveResponse) <<
-					") [" << dec << response_bits << " bits] sent\n";
+					DBG_LOG(this, DBG_SPI, "Response of type R" + to_string(mResponseType) + " (response 0x" + bytes2str(mSlaveResponse) +
+						") [" + to_string(response_bits) + " bits] sent\n");
 				else // mSPITxMode == SPI_Tx_DATA_WAIT
-					cout << "Data token '" << bytes2str(mSlaveDataToken) << "' [" << dec << response_bits << " bits] sent\n";
+					DBG_LOG(this, DBG_SPI, "Data token '" + bytes2str(mSlaveDataToken) + "' [" + to_string(response_bits) + " bits] sent\n");
 			}
 #endif
 			mSentBits = 0;
@@ -407,9 +407,10 @@ void SDCard::initResponse(vector <uint8_t>& request)
 
 #ifdef DBG_ON
 	if (DBG_LEVEL(DBG_SPI)) {
-		cout << "Command CMD" << dec << (int)cmd << " (request 0x" << bytes2str(request) << ") " << cmd_info.mnemonic << " with expected CRC byte 0x" << hex << (int)req_crc_byte <<
-			" received - will send a response of type R" << mResponseType << " (response 0x" << bytes2str(mSlaveResponse) << ")" <<
-			" with " << dec << mSlaveResponseBits << " bits (" << rsp_info.nBytes << " bytes)...\n";
+		DBG_LOG(this, DBG_SPI, "Command CMD" + to_string(cmd) + " (request 0x" + bytes2str(request) + ") " + cmd_info.mnemonic + " with expected CRC byte 0x" +
+			Utility::int2hexStr(req_crc_byte,2) +
+			" received - will send a response of type R" + to_string(mResponseType) + " (response 0x" + bytes2str(mSlaveResponse) + ")" +
+			" with " + to_string(mSlaveResponseBits) + " bits (" + to_string(rsp_info.nBytes) + " bytes)...\n");
 	}
 #endif
 }
@@ -957,7 +958,7 @@ bool SDCard::writeBlockData(int adr, vector <uint8_t>& data, int start, int len)
 {
 	//cout << "Write " << dec << len << " bytes of data '" << bytes2str(data) << "' to address 0x" << hex << adr << "...\n";
 	if (mCardImage == NULL) {
-		cout << "ERROR - no MMC card inserted when attempting a write operation!\n";
+		DBG_LOG(this, DBG_ERROR, "ERROR - no MMC card inserted when attempting a write operation!\n");
 		return false;
 	}
 	

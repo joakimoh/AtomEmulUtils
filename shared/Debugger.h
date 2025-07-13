@@ -27,8 +27,9 @@ public:
 
 	Debugger(Engine *engine, Devices *devices, DebugManager *debugManager);
 
-	void debug();
+	void run();
 
+	bool levelCmd(istream& sin);
 	bool bufferCmd(istream& sin);
 	bool disCmd(istream &sin);
 	bool readMemCmd(istream& sin);

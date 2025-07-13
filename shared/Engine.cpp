@@ -345,13 +345,13 @@ bool Engine::run()
             // Enable microprocessor debugging (tracing) if user presses <CTRL-T>
             // Debugging starts after the user has pressed <CTRl-T> and the specified triggering condition is met
             else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_T)) {
-                mDM->toggleCondition();
+                mDM->setUcDebug();
                 key_pressed = true;
             }
 
             // Start video display unit tracing if user presses <CTRL-V>
             else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_V)) {
-               mDM->addDebugLevel(DBG_VDU);
+               mDM->setDebugLevel(DBG_VDU);
                 key_pressed = true;
             }
         }
@@ -394,14 +394,14 @@ bool Engine::step(int n)
     mExecMutex.lock();
     mSteps = n;
     mState = ENG_STEP;
-    mDM->setDebugLevel(DBG_6502);
+    mDM->clearDebugLevel(DBG_6502);
     mExecMutex.unlock();
     while (wait) {
         mExecMutex.lock();
         wait = (mState == ENG_STEP);
         mExecMutex.unlock();
     }
-    mDM->setDebugLevel(DBG_NONE);
+    mDM->clearDebugLevel(DBG_NONE);
     return true;
 }
 

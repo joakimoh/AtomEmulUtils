@@ -43,14 +43,14 @@ typedef int DebugLevel;
 
 #ifdef DBG_ON
 
-#define DBG_TRACING()				mDM->tracing()
+#define DBG_TRACING()				mDM->tracingEnabled()
 #define DBG_LOG(...)				mDM->log(__VA_ARGS__)
 #define DBG_LOG_COND(cond,...)		if(cond) mDM->log(__VA_ARGS__)
 #define DBG_PBUF(...)				mDM->preBuffer(__VA_ARGS__)
-#define DBG_LEVEL(...)				mDM->debug(__VA_ARGS__)
-#define DBG_LEVEL_DEV(...)			mDM->debug(__VA_ARGS__)
+#define DBG_LEVEL(...)				mDM->debugLevelIs(__VA_ARGS__)
+#define DBG_LEVEL_DEV(...)			mDM->debugLevelIs(__VA_ARGS__)
 #define DBG_TRACING_OR_LEVEL(level)	(DBG_LEVEL_DEV(level) || DBG_TRACING())
-#define DBG_COND_TRACING(cond, ...)	DBG_LOG_COND(cond || mDM->tracing(), __VA_ARGS__)
+#define DBG_COND_TRACING(cond, ...)	DBG_LOG_COND(cond || mDM->tracingEnabled(), __VA_ARGS__)
 #define DBG_ADR_INT_TRIGGER(...)	mDM->triggerInterruptLogging(__VA_ARGS__)
 #define DBG_ADR_TRIGGER(...)		mDM->triggerLogging(__VA_ARGS__)
 #define DBG_STOP(...)				mDM->triggerExecutionStop(__VA_ARGS__)
@@ -126,15 +126,15 @@ private:
 	int mBufferInstrWriteIndex = 0;
 	int mBufferInstrSize = 0;
 
-	bool mBufferingEnabled = false; // if true, pre buffering will be made
-
-	bool mEndOfTracingReached = false;
-	bool mEndofPrebufferingReached = false;
+	enum TracingState {PREBUF_TRACING, POST_TRACING, TRACING_ON, TRACING_OFF};
+	TracingState mTracingState = TRACING_OFF;
+;
 	uint16_t mFetchAdr = 0x0;
 	stringstream mSout;
 
 	Device* mLogDevice = NULL;
 	string mTmpLogDeviceName;
+
 
 	int mInterruptLogAdr = -1;
 	int mCyclicLogAdr = -1;
@@ -153,9 +153,6 @@ private:
 	int mX = -1;
 	int mY = -1;
 	int mA = -1;
-	int mMatchX = -1;
-	int mMatchY = -1;
-	int mMatchA = -1;
 
 	vector <LogPort> mTmpLogPorts;
 	vector <DevicePort*> mLogPorts;
@@ -170,32 +167,39 @@ private:
 	Devices* mDevices = NULL;
 
 	void printInstrLogData(ostream &sout, InstrLogData instrLogData);
+	bool string2debugLevel(string debugLevelS, DebugLevel &debugLevel);
 
 public:
 
-	bool debug(Device* dev, DebugLevel level);
-	bool debug(DebugLevel level);
+	bool debugLevelIs(Device* dev, DebugLevel level);
+	bool debugLevelIs(DebugLevel level);
 
 	bool enableBuffering(int len, bool extensive);
 	void disableBuffering();
 	bool emptyBuffer(ostream& sout);
 
-	void toggleCondition();
+	void setUcDebug();
 	void enableLogging(uint16_t adr);
 	void enableCyclicLogging(uint16_t adr);
 	void enableInterruptLogging(uint16_t adr);
-	void enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring, bool extensive, bool delayed);
+	bool enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring, bool extensive, bool delayed);
 	void enableMemDump(uint16_t adr, int sz);
 	void enableExecStop(uint16_t adr);
-	bool tracing();
+
+
+	bool tracingEnabled();
+	bool tracingActive();
 
 	void setMemLogAdr(uint16_t adr);
 
-	void addDebugLevel(DebugLevel level);
-	void setDebugLevel(DebugLevel level);
+	bool setDebugLevel(DebugLevel level);
+	bool setDebugLevel(string level);
+	bool clearDebugLevel(DebugLevel level);
+	bool clearDebugLevel(string level);
+	void clearDebugLevel();
 	DebugLevel getDebugLevel();
+
 	void setDebugPort(string portDevice, string port);
-	void clearDebugLevel(DebugLevel level);
 
 	void triggerInterruptLogging(uint16_t adr, bool condition);
 	void triggerLogging(uint16_t adr);

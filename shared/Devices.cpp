@@ -602,7 +602,7 @@ Devices::Devices(
 		if (DBG_LEVEL(DBG_VERBOSE))
 			cout << d->name << " scheduled on " << _SCHEDULING(d->scheduling) << " basis\n";
 	}
-	if (debugManager->debug(DBG_VERBOSE))
+	if (debugManager->debugLevelIs(DBG_VERBOSE))
 		cout << "Each device now powered on (reset) and each of its port's output have been shared with the connected devices...\n";
 
 	if (!getPageMemDevice(microprocessor->mZPMemDev, 0)) {
