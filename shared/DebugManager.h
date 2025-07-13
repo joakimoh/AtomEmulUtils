@@ -174,6 +174,7 @@ public:
 	bool debugLevelIs(Device* dev, DebugLevel level);
 	bool debugLevelIs(DebugLevel level);
 
+	// Enable/disable prebuffering - used by the Debugger
 	bool enableBuffering(int len, bool extensive);
 	void disableBuffering();
 	bool emptyBuffer(ostream& sout);
