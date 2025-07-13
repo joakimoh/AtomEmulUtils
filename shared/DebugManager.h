@@ -210,6 +210,9 @@ public:
 
 	void preBuffer(uint16_t adr, uint8_t X, uint8_t Y, uint8_t A);
 
+	//
+	// Slower (but more extensive) logging of all the types of device data that are currently enabled
+	//
 	void log(Device * dev, DebugLevel level, string line);
 
 	//
