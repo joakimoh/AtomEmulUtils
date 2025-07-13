@@ -120,16 +120,12 @@ private:
 #define	INSTR_BUFFER_SIZE	100
 
 	vector<InstrLogData> mBufferedInstrLog = vector<InstrLogData>(INSTR_BUFFER_SIZE);
-	vector<string> mBufferedTraceLines;
+	vector<string> mBufferedTraceLines = vector<string>(INSTR_BUFFER_SIZE);
+	string mTmpExtensiveTracingLog;
 	int mBufferInstrReadIndex = 0;
 	int mBufferInstrWriteIndex = 0;
 	int mBufferInstrSize = 0;
-	int mPreTraceInstrCount = 0;
 	int mPostTraceInstrCount = 0;
-	int pPreTraceInstrCount = 0;
-	int pPostTraceInstrCount = 0;
-	bool mMatch = false;
-	bool pMatch = false;
 
 	enum TracingState {PREBUF_TRACING, POST_TRACING, TRACING_ON, TRACING_OFF};
 #define _TRACING_STATE(x) (x==PREBUF_TRACING?"Pre-buffering":(x==POST_TRACING?"Post tracing":(x==TRACING_ON?"Tracing ON":"Tracing OFF")))
@@ -137,7 +133,7 @@ private:
 	TracingState pTracingState = TRACING_OFF;
 ;
 	uint16_t mFetchAdr = 0x0;
-	stringstream mSout;
+	
 
 	Device* mLogDevice = NULL;
 	string mTmpLogDeviceName;
@@ -176,6 +172,7 @@ private:
 
 	void printInstrLogData(ostream &sout, InstrLogData instrLogData);
 	bool string2debugLevel(string debugLevelS, DebugLevel &debugLevel);
+	static string levels2str(DebugLevel debugLevel);
 
 public:
 
@@ -196,6 +193,7 @@ public:
 
 	// Start tracing
 	bool enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring, bool extensive, bool delayed);
+	bool enableTracing();
 
 	bool tracingEnabled();
 	bool tracingActive();

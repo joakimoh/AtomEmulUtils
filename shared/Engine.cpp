@@ -438,7 +438,7 @@ bool Engine::setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uin
         if (triggered) {
             readData = mReadData;
             writtenData = mWrittenData;
-            mState == ENG_HALT;
+            mState = ENG_HALT;
         }
         mExecMutex.unlock();
     } 

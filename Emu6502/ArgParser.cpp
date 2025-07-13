@@ -260,5 +260,9 @@ ArgParser::ArgParser(int argc, const char* argv[])
 		return;
 	}
 
+	// If no conditional tracing was selected, but still a debug level was defined, then enable unconditional tracing
+	if (!debugManager.tracingEnabled() && debugManager.getDebugLevel() != DBG_NONE)
+		debugManager.enableTracing();
+
 	mParseSuccess = true;
 }

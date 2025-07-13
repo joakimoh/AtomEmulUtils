@@ -10,6 +10,16 @@
 
 using namespace std;
 
+string DebugManager::levels2str(DebugLevel debugLevel)
+{
+	string s;
+	if ((debugLevel &  DBG_ERROR) != 0)
+		s += " ERROR";	if ((debugLevel & 
+		DBG_VERBOSE) != 0) s += " VERBOSE";	if ((debugLevel & DBG_WARNING) != 0)		s += " WARNING";	if ((debugLevel & DBG_6502) != 0)		s += " 6502";	if ((debugLevel & DBG_PORT) != 0)		s += " PORT";	if ((debugLevel & DBG_INTERRUPTS) != 0)
+		s += " INTERRUPTS";	if ((debugLevel & DBG_KEYBOARD) != 0)		s += " KEYBOARD";	if ((debugLevel & DBG_VDU) != 0) s += " VDU";	if ((debugLevel & DBG_IO_PERIPHERAL) != 0)		s += " IO_PERIPHERAL";	if ((debugLevel & DBG_DEVICE) != 0)		s += " DEVICE";	if ((debugLevel & DBG_TRGGERING) != 0)		s += " TRGGERING";	if ((debugLevel & DBG_TIME) != 0)		s += " TIME";	if ((debugLevel & DBG_AUDIO) != 0)		s += " AUDIO";	if ((debugLevel & DBG_TAPE) != 0)		s += " TAPE";	if ((debugLevel & DBG_RESET) != 0) 		s += " RESET";	if ((debugLevel & DBG_SPI) != 0)		s += " SPI";	if ((debugLevel & DBG_ADC) != 0)		s += " ADC";
+	return s;
+}
+
 bool DebugManager::string2debugLevel(string level, DebugLevel& debugLevel)
 {
 	debugLevel = DBG_NONE;
@@ -196,27 +206,38 @@ bool DebugManager::emptyBuffer(ostream& sout)
 	if (mBufferInstrSize == 0 && mBufferedTraceLines.size() == 0)
 		return false;
 
+	int read_pos = mBufferInstrReadIndex;
 	if (mExtensiveLog) {
-		for (int i = 0; i < mBufferedTraceLines.size(); i++)
-			sout << mBufferedTraceLines[i];
-		mBufferedTraceLines.clear();
+		for (int i = 0; i < mBufferInstrSize; i++) {
+			sout << mBufferedTraceLines[read_pos];
+			read_pos = (read_pos + 1) % mPreTraceLen;
+		}
 	}
 	else {
-		int read_pos = mBufferInstrReadIndex;
 		for (int i = 0; i < mBufferInstrSize; i++) {
 			printInstrLogData(sout, mBufferedInstrLog[read_pos]);
 			read_pos = (read_pos + 1) % mPreTraceLen;
 		}
-		mBufferInstrSize = 0;
-		mBufferInstrReadIndex = 0;
 	}
+	mBufferInstrSize = 0;
+	mBufferInstrReadIndex = 0;
+	mBufferInstrReadIndex = mBufferInstrWriteIndex = mBufferInstrSize = 0;
+
 	if (mRecurringTracing)
 		mTracingState = PREBUF_TRACING;
 	else
 		mTracingState = TRACING_OFF;
 
-	mPreTraceInstrCount = 0;
+	return true;
+}
 
+bool DebugManager::enableTracing()
+{
+	mTracingState = TRACING_ON;
+	if ((mDbgLevel & DBG_6502) != 0)
+		mExtensiveLog = false;
+	else
+		mExtensiveLog = true;
 	return true;
 }
 
@@ -333,29 +354,19 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 	mY = Y;
 	mA = A;
 
-	mMatch = matchFetchAddress(mTraceAdr);
-	//if (mTracingState != pTracingState || mPreTraceInstrCount != pPreTraceInstrCount || mPostTraceInstrCount != pPostTraceInstrCount || mMatch != pMatch)
-	//	cout << "mTracingState = " << _TRACING_STATE(mTracingState) << ", mPreTraceInstrCount = " << mPreTraceInstrCount << ", mPostTraceInstrCount = " <<
-	//		mPostTraceInstrCount << ", match address = " << (matchFetchAddress(mTraceAdr)?"Yes":"No") << "\n";
-	pTracingState = mTracingState;
-	pPreTraceInstrCount = mPreTraceInstrCount;
-	pPostTraceInstrCount = mPostTraceInstrCount;
-	pMatch = matchFetchAddress(mTraceAdr);
-
-
 	if (mTracingState == PREBUF_TRACING) {
-
-		mPreTraceInstrCount++;
 
 		// Save the extensive buffering that has been recorded since the last instruction (if extensive recording is enabled)
 		if (mExtensiveLog) {
-			string s = mSout.str();
-			if (s != "") {
-				mBufferedTraceLines.push_back(s);
-				if (mPreTraceInstrCount > mPreTraceLen)
-					mBufferedTraceLines.erase(mBufferedTraceLines.begin(), mBufferedTraceLines.end() - mPreTraceLen);
-				mSout.str(""); // flush string stream
-
+			// Update circular buffer
+			if (mTmpExtensiveTracingLog.size() != 0) {
+				mBufferedTraceLines[mBufferInstrWriteIndex] = mTmpExtensiveTracingLog;
+				if (mBufferInstrWriteIndex == mBufferInstrReadIndex)
+					mBufferInstrReadIndex = (mBufferInstrReadIndex + 1) % mPreTraceLen;
+				mBufferInstrWriteIndex = (mBufferInstrWriteIndex + 1) % mPreTraceLen;
+				if (mBufferInstrSize < mPreTraceLen)
+					mBufferInstrSize++;
+				mTmpExtensiveTracingLog.clear();
 			}
 		}
 
@@ -411,7 +422,8 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 
 	// Buffer the data (instead of outputting it directly) when extensive buffering is ongoing
 	if (mExtensiveLog && mTracingState == PREBUF_TRACING) {
-		mSout << prefix << line;
+		//cout << "\n* " << mBufferedTraceLines.size() << " *\n" << line << "\n\n";
+		mTmpExtensiveTracingLog += prefix + line;
 	}
 
 	// Log the data if the debug level is enabled and buffering is not ongoing
