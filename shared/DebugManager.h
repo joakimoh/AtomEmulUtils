@@ -207,7 +207,7 @@ public:
 
 	void toggleUCdebug();
 
-
+	// Buffer tracing before a break point is triggered
 	void preBuffer(uint16_t adr, uint8_t X, uint8_t Y, uint8_t A);
 
 	//
