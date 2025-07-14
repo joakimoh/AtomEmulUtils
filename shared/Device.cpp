@@ -244,9 +244,10 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 		nval_or = (src_val << (-shifts)) & dst_sel_mask;
 	nval = ((pval & ~dst_sel_mask) | nval_or) & dst_mask;
 
-	if (DBG_MATCH_PORT(srcPort))
+	if (DBG_MATCH_PORT(srcPort)) {
 		DBG_LOG(this, DBG_PORT, "Update connected port " + dstPort.port->dev->name + ":" + dstPort.port->name +
 			" with value 0x" + Utility::int2hexStr(nval, 2) + " (0x" + Utility::int2hexStr(pval, 2) + ")\n");
+	}
 
 
 

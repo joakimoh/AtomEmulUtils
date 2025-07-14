@@ -83,7 +83,7 @@ bool DebugManager::setDebugLevel(string levelS)
 }
 bool DebugManager::clearDebugLevel(DebugLevel level)
 {
-	mDbgLevel = level;
+	mDbgLevel &= ~level;
 	return true;
 }
 
@@ -128,30 +128,19 @@ void DebugManager::enableMemDump(uint16_t adr, int sz)
 }
 
 // 
-// Delayed tracing (mDelayed = true) is triggered by calling this
+// Delayed tracing (mTriggeringArmed = true) is triggered by calling this
 // method.
 //
-void DebugManager::setUcDebug()
+void DebugManager::armTriggering()
 {
-	mDelayed = false;
-	mDbgLevel = DBG_6502;
-	mTracingState = TRACING_ON;
-	mBufferInstrReadIndex = mBufferInstrWriteIndex = mBufferInstrSize = 0;
-	mPostTraceInstrCount = 0;
-	mBufferedTraceLines.clear();
+	mTriggeringArmed = true;
 }
 
-void DebugManager::toggleUCdebug()
+void DebugManager::disarmTriggering()
 {
-	mTraceAdr = -1;
-	mLogAdr = -1;
-	mCyclicLogAdr = -1;
-	mInterruptLogAdr = -1;
-	mDbgLevel = DBG_6502;
-	if (mTracingState == TRACING_ON)
-		mTracingState = TRACING_OFF;
-	else
-		mTracingState = TRACING_ON;
+	mTriggeringArmed = false;
+	if (mTracingState == POST_TRACING)
+		mTracingState = PREBUF_TRACING;
 }
 
 void DebugManager::setMemLogAdr(uint16_t adr)
@@ -174,7 +163,7 @@ void DebugManager::enableInterruptLogging(uint16_t adr)
 	mInterruptLogAdr = adr;
 }
 
-bool DebugManager::enableBuffering(int preTraceLen, int postTraceLen, bool extensive)
+bool DebugManager::enableBuffering(int preTraceLen, int postTraceLen, bool extensive, bool recurring)
 {
 
 	if (preTraceLen <= 0 || preTraceLen > INSTR_BUFFER_SIZE) {
@@ -190,6 +179,8 @@ bool DebugManager::enableBuffering(int preTraceLen, int postTraceLen, bool exten
 			return false;
 	}
 
+	mRecurringTracing = recurring;
+
 	// Reset buffering
 	mBufferInstrSize = 0;
 	mBufferInstrReadIndex = 0;
@@ -198,7 +189,7 @@ bool DebugManager::enableBuffering(int preTraceLen, int postTraceLen, bool exten
 	mExtensiveLog = extensive;
 	mPreTraceLen = preTraceLen;
 	mPostTraceLen = postTraceLen;
-	mDelayed = false;
+	mTriggeringArmed = true;
 	mTracingState = PREBUF_TRACING;
 
 	return true;
@@ -249,10 +240,16 @@ bool DebugManager::emptyBuffer(ostream& sout)
 bool DebugManager::enableTracing()
 {
 	mTracingState = TRACING_ON;
-	if ((mDbgLevel & DBG_6502) != 0)
+	if ((mDbgLevel & DBG_6502) == DBG_6502)
 		mExtensiveLog = false;
 	else
 		mExtensiveLog = true;
+	return true;
+}
+
+bool DebugManager::disableTracing()
+{
+	mTracingState = TRACING_OFF;
 	return true;
 }
 
@@ -276,7 +273,7 @@ bool DebugManager::enableTracing(uint16_t adr, int preTraceLen, int postTraceLen
 	mPostTraceLen = postTraceLen;
 	mRecurringTracing = recurring;
 	mExtensiveLog = extensive;
-	mDelayed = delayed;
+	mTriggeringArmed = !delayed;
 	if (!mExtensiveLog)
 		mPreTraceLen = min(INSTR_BUFFER_SIZE, preTraceLen);
 
@@ -390,16 +387,15 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 			}
 		}
 
-		if (matchFetchAddress(mTraceAdr)) {
+		if (mTriggeringArmed && matchFetchAddress(mTraceAdr)) {
 
-			// Output pre-buffered log data (which could be of either the simpe or extensive type) when the triggering point is detected
+			// Output pre-buffered log data (which could be of either the instruction only or extensive type) when the triggering point is detected
 			mPostTraceInstrCount = 0;
 			if (mRecurringTracing)
 				std::cout << "-----------------------------------------------------------------------------------------------------------------------------------\n";
 			emptyBuffer(cout);
 			mTracingState = POST_TRACING;
 			mPostTraceInstrCount = 0;
-			cout << "****\n";
 		}
 	}
 
@@ -415,7 +411,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 
 			if (mRecurringTracing) {
 				mTracingState = PREBUF_TRACING;
-				mDelayed = false;
+				mTriggeringArmed = true;
 			}
 			else {
 				mTracingState = TRACING_OFF;				
@@ -446,8 +442,8 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 		mTmpExtensiveTracingLog += prefix + line;
 	}
 
-	// Log the data if the debug level is enabled and buffering is not ongoing
-	if (mTracingState == POST_TRACING || mTracingState == TRACING_ON) {
+	// Log the data if the debugging is enabled (armed) and buffering is not ongoing
+	if (mTriggeringArmed && (mTracingState == POST_TRACING || mTracingState == TRACING_ON)) {
 		cout << prefix << line;
 	}
 
@@ -461,7 +457,7 @@ void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 	if (mTracingState == TRACING_OFF || (mDbgLevel & level) == 0)
 		return;
 
-	if (mFetchAdr == mCyclicLogAdr) {
+	if (mTriggeringArmed && mFetchAdr == mCyclicLogAdr) {
 		mTracingState = POST_TRACING;
 		printInstrLogData(cout, instrLogData);
 		return;
@@ -484,8 +480,8 @@ void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 			mBufferInstrSize++;
 	}
 
-	// Log the instruction data if the debug level is enabled and buffering is not ongoing
-	if (mTracingState == POST_TRACING || mTracingState == TRACING_ON) {
+	// Log the data if the debugging is enabled (armed) and buffering is not ongoing
+	if (mTriggeringArmed && (mTracingState == POST_TRACING || mTracingState == TRACING_ON)) {
 		printInstrLogData(cout, instrLogData);
 	}
 	

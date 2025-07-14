@@ -48,7 +48,7 @@ private:
 	ALLEGRO_TIMER* mfieldTimer = NULL;
 
 	DebugManager *mDM = NULL;
-
+	bool mRecurringTracing = false;
 
 
 	GUI *mGUI = NULL;
@@ -66,6 +66,8 @@ private:
 
 	bool allegroInit();
 
+	bool toggleTracing(DebugLevel level);
+
 public:
 
 	Engine(string mapFileName, Program &program, Program &data, double emulationSpeed, VideoFormat videoFormat, bool enableHWAcc, DebugManager *debugManager);
@@ -79,7 +81,7 @@ public:
 
 	bool step(int n);
 
-	bool setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData);
+	bool setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, bool repetition);
 };
 
 

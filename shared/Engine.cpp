@@ -339,24 +339,32 @@ bool Engine::run()
         // Get keyboard state
         al_get_keyboard_state(&keyboard_state);
 
-        if (!key_pressed) {
+        if (!key_pressed ) {
 
             // Start microprocessor debugging (tracing) if user presses <CTRL-D>
             if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_D)) {
-                mDM->toggleUCdebug();
+                toggleTracing(DBG_6502);
                 key_pressed = true;
+
             }
 
-            // Enable microprocessor debugging (tracing) if user presses <CTRL-T>
+            // Arm the delayed triggering-based debugging (tracing) if user presses <CTRL-T>
             // Debugging starts after the user has pressed <CTRl-T> and the specified triggering condition is met
             else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_T)) {
-                mDM->setUcDebug();
+                mDM->armTriggering();
                 key_pressed = true;
             }
 
-            // Start video display unit tracing if user presses <CTRL-V>
-            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_V)) {
-               mDM->setDebugLevel(DBG_VDU);
+            // Start/stop video display unit tracing if user presses <CTRL-V>
+            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_V)) {     
+                toggleTracing(DBG_VDU);
+                key_pressed = true;
+            }
+
+            // Stop any ongoing continuous debugger tracing if user presses <CTRL-B>
+            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_B)) {
+                mDM->disableBuffering();
+                mRecurringTracing = false;
                 key_pressed = true;
             }
         }
@@ -364,14 +372,27 @@ bool Engine::run()
             if (!al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) &&
                 !al_key_down(&keyboard_state, ALLEGRO_KEY_D) &&
                 !al_key_down(&keyboard_state, ALLEGRO_KEY_T) &&
-                !al_key_down(&keyboard_state, ALLEGRO_KEY_V)
-                ) {
+                !al_key_down(&keyboard_state, ALLEGRO_KEY_V) &&
+                !al_key_down(&keyboard_state, ALLEGRO_KEY_B)
+            )
                 key_pressed = false;
-            }
         }
 
+    }
 
-        }
+    return true;
+}
+
+bool Engine::toggleTracing(DebugLevel level)
+{
+    if (mDM->tracingActive()) {
+        mDM->clearDebugLevel(level);
+        mDM->disableTracing();
+    }
+    else {
+        mDM->setDebugLevel(level);
+        mDM->enableTracing();
+    }
 
     return true;
 }
@@ -408,9 +429,10 @@ bool Engine::step(int n)
     return true;
 }
 
-bool Engine::setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData)
+bool Engine::setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, bool repetition)
 {
     mBreakAdr = (int)adr;
+    mRecurringTracing = repetition;
     bool triggered = false;
     mExecMutex.lock();
     switch (mode) {
@@ -430,6 +452,7 @@ bool Engine::setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uin
         return false;
     }
     
+    RunState p_state = mState;
     mExecMutex.unlock();
     while (!triggered) {
         mExecMutex.lock();
@@ -437,7 +460,14 @@ bool Engine::setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uin
         if (triggered) {
             readData = mReadData;
             writtenData = mWrittenData;
-            mState = ENG_HALT;
+            if (mRecurringTracing) {
+                mState = p_state;
+                triggered = false;
+                cout << "-----------------------------------------------------------------------------------------------------------------------------------\n";
+            }
+            else
+                mState = ENG_HALT;
+            mDM->emptyBuffer(cout);
         }
         mExecMutex.unlock();
     } 

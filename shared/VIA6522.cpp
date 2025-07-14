@@ -1015,8 +1015,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		uint8_t p_ACR = mACR;
 		mACR = data;
 
-		if (mACR != p_ACR)
-			DBG_LOG(this, DBG_IO_PERIPHERAL, "\nWrite to ACR:\n" + ACR2Str() + "\n");
+		DBG_LOG_COND(mACR != p_ACR, this, DBG_IO_PERIPHERAL, "\nWrite to ACR:\n" + ACR2Str() + "\n");
 
 		if (ACR_SR_CTRL != p_shift_mode) {
 			switch (ACR_SR_CTRL) {

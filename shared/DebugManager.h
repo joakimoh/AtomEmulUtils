@@ -64,8 +64,8 @@ typedef int DebugLevel;
 #define DBG_LOG(...)
 #define DBG_LOG_COND(...)
 #define DBG_PBUF(...)
-#define DBG_LEVEL(x)				false
-#define DBG_LEVEL_DEV(x)			false
+#define DBG_LEVEL(...)				false
+#define DBG_LEVEL_DEV(...)			false
 #define DBG_COND_TRACING(...)		false
 #define DBG_ADR_INT_TRIGGER(...)
 #define DBG_ADR_TRIGGER(...)
@@ -113,7 +113,7 @@ private:
 
 
 	bool mExtensiveLog = false;
-	bool mDelayed = false;
+	bool mTriggeringArmed = true;
 
 	bool mInitialised = false;
 
@@ -180,12 +180,13 @@ public:
 	bool debugLevelIs(DebugLevel level);
 
 	// Enable/disable prebuffering - used by the Debugger
-	bool enableBuffering(int preTraceLen, int postTraceLen, bool extensive);
+	bool enableBuffering(int preTraceLen, int postTraceLen, bool extensive, bool recurring);
 	void disableBuffering();
 	bool emptyBuffer(ostream& sout);
 	bool bufferingEnabled() { return mTracingState == PREBUF_TRACING; }
 
-	void setUcDebug();
+	void armTriggering();
+	void disarmTriggering();
 	void enableLogging(uint16_t adr);
 	void enableCyclicLogging(uint16_t adr);
 	void enableInterruptLogging(uint16_t adr);
@@ -195,6 +196,7 @@ public:
 	// Start tracing
 	bool enableTracing(uint16_t adr, int preTraceLen, int postTraceLen, bool recurring, bool extensive, bool delayed);
 	bool enableTracing();
+	bool disableTracing();
 
 	bool tracingEnabled();
 	bool tracingActive();
@@ -213,9 +215,6 @@ public:
 	void triggerInterruptLogging(uint16_t adr, bool condition);
 	void triggerLogging(uint16_t adr);
 	bool triggerExecutionStop(P6502 * cpu, uint16_t adr);
-
-	// Turn on/off microcontroller tracing
-	void toggleUCdebug();
 
 	// Buffer tracing data before a break point is triggered
 	void preBuffer(uint16_t adr, uint8_t X, uint8_t Y, uint8_t A);

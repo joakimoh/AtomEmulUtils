@@ -129,12 +129,14 @@ bool Debugger::levelCmd(istream& sin)
 	return true;
 }
 
-bool Debugger::bufferCmd(istream& sin)
+bool Debugger::bufferCmd(istream& sin, bool recurring)
 {
 	string sub_cmd;
 
 	if (!readString(sin, sub_cmd))
 		return false;
+
+	mRecurringTracing = recurring;
 
 	if (sub_cmd == "set") {
 
@@ -143,7 +145,7 @@ bool Debugger::bufferCmd(istream& sin)
 
 		mExtensiveTracing = false;
 
-		if (!mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing)) {
+		if (!mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, recurring)) {
 			return false;
 		}
 
@@ -154,9 +156,9 @@ bool Debugger::bufferCmd(istream& sin)
 		if (!readPosInt(sin, mPretraceLen))
 			return false;
 
-		mExtensiveTracing = false;
+		mExtensiveTracing = true;
 
-		if (!mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing)) {
+		if (!mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, recurring)) {
 			return false;
 		}
 
@@ -164,10 +166,11 @@ bool Debugger::bufferCmd(istream& sin)
 	}
 	else if (sub_cmd == "off") {
 
-		mTracingEnabled = false;
-
 		mDM->disableBuffering();
+
+		mTracingEnabled = false;
 	}
+
 	else {
 		cout << "Invalid sub command to buf - valid sub command is one of set, xset and off!\n";
 		return false;
@@ -345,7 +348,7 @@ bool Debugger::readMemCmd(istream  &sin)
 	return true;
 }
 
-bool Debugger::stepCmd(istream &sin, bool extensive)
+bool Debugger::stepCmd(istream &sin)
 {
 	int n = 1;
 
@@ -355,7 +358,7 @@ bool Debugger::stepCmd(istream &sin, bool extensive)
 
 	// Turn on tracing if previously enabled
 	if (mTracingEnabled)
-		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing);
+		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, false);
 
 	mEngine->step(n);
 
@@ -371,7 +374,7 @@ bool Debugger::contCmd(istream &sin)
 {
 	// Turn on tracing if previously enabled
 	if (mTracingEnabled)
-		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing);
+		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, false);
 
 	mEngine->cont();
 	return true;
@@ -394,35 +397,35 @@ bool Debugger::breakCmd(istream& sin)
 
 	// Turn on tracing if previously enabled
 	if (mTracingEnabled)
-		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing);
+		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, mRecurringTracing);
 
 
 	if (sub_cmd == "x") {
 		mAccessMode = 0;
-		mEngine->setBreakPointAndWait(0, a, mReadData, mWrittenData);		
+		mEngine->setBreakPointAndWait(0, a, mReadData, mWrittenData, mRecurringTracing);
 	}
 	else if (sub_cmd == "r") {
 		mAccessMode = 1;
-		mEngine->setBreakPointAndWait(1, a, mReadData, mWrittenData);
+		mEngine->setBreakPointAndWait(1, a, mReadData, mWrittenData, mRecurringTracing);
 	}
 	else if (sub_cmd == "w") {
 		mAccessMode = 2;
-		mEngine->setBreakPointAndWait(2, a, mReadData, mWrittenData);
+		mEngine->setBreakPointAndWait(2, a, mReadData, mWrittenData, mRecurringTracing);
 	}
 	else if (sub_cmd == "rw") {
 		mAccessMode = 3;
-		mEngine->setBreakPointAndWait(3, a, mReadData, mWrittenData);
+		mEngine->setBreakPointAndWait(3, a, mReadData, mWrittenData, mRecurringTracing);
 	}
 	else {
 		cout << "Illegal sub command - valid sub command to break is one of x,r,w and rw!\n";
 		return false;
 	}
-
+	/*/
 	if (mTracingEnabled && !mDM->emptyBuffer(cout)) {
 		cout << "Trace not possible to retrieve!\n";
 		return false;
 	}
-
+	*/
 
 	return true;
 }
@@ -450,8 +453,8 @@ void Debugger::help()
 	cout << "state <name of device>:                             get a device's state\n";
 	cout << "dbg set|clr <flags>:                                set or clear any of the debug flags ewdupirkvstxacASC\n";
 	cout << "dbg off:                                            clear all debug flags\n";
-	cout << "buf set <tracing window size>:                      set the size of the tracing window - (quick) instruction tracing only\n";
-	cout << "buf xset <tracing window size>:                     set the size of the tracing window - (slow) extended tracing\n";
+	cout << "(c)buf set <tracing window size>:                   set the size of the tracing window - (quick) instruction tracing only (cbuf <=> recurring)\n";
+	cout << "(c)buf xset <tracing window size>:                  set the size of the tracing window - (slow) extended tracing (cbuf <=> recurring)\n";
 	cout << "buf off:                                            disable tracing\n";
 	cout << "uc:                                                 get the microcontroller's state\n";
 	cout << "step [<no of instructions>]:                        execute the specifed no of instructions (default is 1) and then stop (instruction tracing only)\n";
@@ -484,7 +487,9 @@ void Debugger::run()
 			else if (cmd == "dbg")
 				success = levelCmd(sin);
 			else if (cmd == "buf")
-				success = bufferCmd(sin);
+				success = bufferCmd(sin, false);
+			else if (cmd == "cbuf")
+				success = bufferCmd(sin, true);
 			else if (cmd == "dis")
 				success = disCmd(sin);
 			else if (cmd == "write")
@@ -498,9 +503,7 @@ void Debugger::run()
 			else if (cmd == "devices")
 				success = listDevicesCmd(sin);
 			else if (cmd == "step")
-				success = stepCmd(sin, false);
-			else if (cmd == "xstep")
-				success = stepCmd(sin, true);
+				success = stepCmd(sin);
 			else if (cmd == "cont")
 				success = contCmd(sin);
 			else if (cmd == "halt")

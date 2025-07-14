@@ -26,6 +26,7 @@ private:
 	bool mTracingEnabled = false;
 	int mPretraceLen = 10;
 	bool mExtensiveTracing = false;
+	bool mRecurringTracing = false;
 
 	bool readString(istream& sin, string& s);
 	bool readOptString(istream& sin, string& s);
@@ -44,7 +45,7 @@ public:
 	void help();
 
 	bool levelCmd(istream& sin);
-	bool bufferCmd(istream& sin);
+	bool bufferCmd(istream& sin, bool recurring);
 	bool disCmd(istream &sin);
 	bool readMemCmd(istream& sin);
 	bool writeMemCmd(istream& sin);
@@ -54,7 +55,7 @@ public:
 	bool listDevicesCmd(istream& sin);
 
 	bool haltCmd(istream& sin);
-	bool stepCmd(istream &sin, bool extensive);
+	bool stepCmd(istream &sin);
 	bool contCmd(istream &sin);
 
 	bool breakCmd(istream& sin);
