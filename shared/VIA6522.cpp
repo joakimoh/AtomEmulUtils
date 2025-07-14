@@ -1071,8 +1071,8 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 			mCA1Dir = 0;
 			mCA2Dir = (CA2_mode < 0x3 ? 0x2 : 0x0); // lower mode:CA2 OUT (2), higher mode:CA2 IN (0)
 			uint8_t CA_dir = mCA1Dir | mCA2Dir;
-			mCB1Dir = (CB2_mode < 0x3 ? mCB1Dir : 0x1); // lower mode: -, higher mode: CB1 IN (0)
-			mCB2Dir = (CB2_mode < 0x3 ? 0x2 : 0x1); // lower mode:CB2 OUT (2), higher mode:CB2 IN (0):
+			mCB1Dir = (CB2_mode < 0x3 ? mCB1Dir : 0x0); // lower mode: -, higher mode: CB1 IN (0)
+			mCB2Dir = (CB2_mode < 0x3 ? 0x2 : 0x0); // lower mode:CB2 OUT (2), higher mode:CB2 IN (0):
 			uint8_t CB_dir = mCB1Dir | mCB2Dir;
 			registerPortDirChange(CA, CA_dir);
 			registerPortDirChange(CB, CB_dir);

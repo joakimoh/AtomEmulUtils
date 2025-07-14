@@ -433,6 +433,8 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 		return;
 
 	double t = dev->getCycleCount() / (dev->mCPUClock * 1e6);
+	if (t == 0) // For device's not keeping time, use the microcontroller's time as reference instead!
+		t = mMicrocontroller->getCycleCount() / (dev->mCPUClock * 1e6);
 	string t_s = Utility::encodeCPUTime(t);
 	string prefix = t_s + " " + dev->name + " ";
 
