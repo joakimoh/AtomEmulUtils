@@ -60,6 +60,7 @@ private:
 	int mBreakAdr = -1;
 	uint8_t mReadData = 0xff;
 	uint8_t mWrittenData = 0xff;
+	uint16_t mOperandAddress = 0xffff;
 
 	// Create mutex for debug purpose
 	mutex mExecMutex;
@@ -81,7 +82,7 @@ public:
 
 	bool step(int n);
 
-	bool setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, bool repetition);
+	bool setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAdr, bool repetition);
 };
 
 

@@ -22,6 +22,7 @@ private:
 	int mAccessMode = -1;
 	uint8_t mReadData = 0xff;
 	uint8_t mWrittenData = 0xff;
+	uint16_t  mOperandAdr = 0xffff;
 
 	bool mTracingEnabled = false;
 	int mPretraceLen = 10;

@@ -96,6 +96,7 @@ private:
 	uint16_t mOpcodePC = 0xffff;
 	uint8_t mOpcode = 0xff;
 	uint16_t mOperand = 0xffff;
+	uint16_t mOperandAddress = 0xffff;
 
 	MemoryMappedDevice* mLastPgmDevice = NULL;
 	
@@ -152,6 +153,7 @@ public:
 
 	int readAdr(uint8_t& data) { data = mReadVal;  return (int)mRAccAdr; }
 	int writtenAdr(uint8_t& data) { data = mWrittenVal;  return (int)mWAccAdr; }
+	int operandAddress() { return (int)mOperandAddress; }
 
 
 };

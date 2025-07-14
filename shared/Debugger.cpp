@@ -402,19 +402,19 @@ bool Debugger::breakCmd(istream& sin)
 
 	if (sub_cmd == "x") {
 		mAccessMode = 0;
-		mEngine->setBreakPointAndWait(0, a, mReadData, mWrittenData, mRecurringTracing);
+		mEngine->setBreakPointAndWait(0, a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
 	}
 	else if (sub_cmd == "r") {
 		mAccessMode = 1;
-		mEngine->setBreakPointAndWait(1, a, mReadData, mWrittenData, mRecurringTracing);
+		mEngine->setBreakPointAndWait(1, a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
 	}
 	else if (sub_cmd == "w") {
 		mAccessMode = 2;
-		mEngine->setBreakPointAndWait(2, a, mReadData, mWrittenData, mRecurringTracing);
+		mEngine->setBreakPointAndWait(2, a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
 	}
 	else if (sub_cmd == "rw") {
 		mAccessMode = 3;
-		mEngine->setBreakPointAndWait(3, a, mReadData, mWrittenData, mRecurringTracing);
+		mEngine->setBreakPointAndWait(3, a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
 	}
 	else {
 		cout << "Illegal sub command - valid sub command to break is one of x,r,w and rw!\n";

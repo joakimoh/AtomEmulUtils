@@ -213,13 +213,11 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 #endif
 
 	// Get the mOperand
-	uint16_t calc_op_adr = 0x0;
-	uint8_t mReadVal = 0x0;
 	bool operand_success = true;
 #ifdef DBG_UC_TIME
 	auto operand_start = chrono::high_resolution_clock::now();
 #endif
-	if (!getOperand(instr, mOperand, calc_op_adr, mReadVal)) {
+	if (!getOperand(instr, mOperand, mOperandAddress, mReadVal)) {
 		operand_success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to get mOperand for instruction with mOpcode 0x" + Utility::int2hexStr(mOpcode, 2) + " at address 0x" + Utility::int2hexStr(mOpcodePC, 4) + "!\n");
 	}
@@ -233,21 +231,20 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	// After reading the mOperand, the PC points at the next instruction...
 
 	// Execute the instruction
-	uint8_t mWrittenVal;
 	bool exec_success = true;
 	uint8_t oI_flag = I_flag;
 #ifdef DBG_UC_TIME
 	auto exec_start = chrono::high_resolution_clock::now();
 #endif
-	if (!executeInstr(instr, mOpcodePC, mOperand, calc_op_adr, mReadVal, mWrittenVal)) {
+	if (!executeInstr(instr, mOpcodePC, mOperand, mOperandAddress, mReadVal, mWrittenVal)) {
 		exec_success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to execute instruction!\n");
 	}
 	mRAccAdr = mWAccAdr = -1;
 	if (instr.readsMem)
-		mRAccAdr = calc_op_adr;
+		mRAccAdr = mOperandAddress;
 	if (instr.writesMem)
-		mWAccAdr = calc_op_adr;
+		mWAccAdr = mOperandAddress;
 	success = success && exec_success;
 #ifdef DBG_UC_TIME
 	auto exec_stop = chrono::high_resolution_clock::now();
@@ -284,7 +281,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			instr_log_data.PC = mProgramCounter;
 			instr_log_data.opcode = mOpcode;
 			instr_log_data.operand = mOperand;
-			instr_log_data.accessAdr = calc_op_adr;
+			instr_log_data.accessAdr = mOperandAddress;
 			instr_log_data.activeIRQ = (!mIRQ && mIrqTransition);
 			instr_log_data.activeNMI = (!mNMI && mNmiTransition);
 			instr_log_data.execFailure = !exec_success;
@@ -308,7 +305,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			sout << setfill(' ') << setw(30) << left << instr_s << right <<
 				" " << getState();
 			if (instr.readsMem || instr.writesMem)
-				sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << calc_op_adr;
+				sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << mOperandAddress;
 			if (instr.readsMem)
 				sout << " READ 0x" << setw(2) << (int)mReadVal;
 			if (instr.writesMem)

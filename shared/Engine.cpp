@@ -275,8 +275,10 @@ bool Engine::run()
                                 mState == ENG_X_BRK_WAIT && mMicroprocessor->getOpcodePC() == mBreakAdr ||
                                 (mState == ENG_R_BRK_WAIT || mState == ENG_RW_BRK_WAIT) && mMicroprocessor->readAdr(mReadData) == mBreakAdr ||
                                 (mState == ENG_W_BRK_WAIT || mState == ENG_RW_BRK_WAIT) && mMicroprocessor->writtenAdr(mWrittenData) == mBreakAdr
-                            )
+                            ) {
                                 mState = ENG_BRK_DET;
+                                mOperandAddress = mMicroprocessor->operandAddress();
+                            }
 
                             if (mState == ENG_STEP) {
                                 if (mSteps == 1)
@@ -429,7 +431,7 @@ bool Engine::step(int n)
     return true;
 }
 
-bool Engine::setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, bool repetition)
+bool Engine::setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAddress, bool repetition)
 {
     mBreakAdr = (int)adr;
     mRecurringTracing = repetition;
@@ -460,6 +462,7 @@ bool Engine::setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uin
         if (triggered) {
             readData = mReadData;
             writtenData = mWrittenData;
+            operandAddress = mOperandAddress;
             if (mRecurringTracing) {
                 mState = p_state;
                 triggered = false;
