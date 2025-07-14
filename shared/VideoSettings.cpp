@@ -32,7 +32,7 @@ VideoSettings::VideoSettings(VideoFormat fmt, bool hwAcc): mHwAcc(hwAcc)
 
 	// Calculate total resolution while preserving an aspect ratio of 4:3 and with the assumption that 73% out of the line duration is visible 
 	double hz_visible_content = vt_visible_content * 4 / 3;
-	total_hz_pixels = hz_visible_content / 0.73;
+	total_hz_pixels = (int) round(hz_visible_content / 0.73);
 
 	// Calculate horizontal borders
 	double hz_front_porch_spec = 0.0258 * total_hz_pixels;

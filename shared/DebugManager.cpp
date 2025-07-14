@@ -14,9 +14,8 @@ string DebugManager::levels2str(DebugLevel debugLevel)
 {
 	string s;
 	if ((debugLevel &  DBG_ERROR) != 0)
-		s += " ERROR";	if ((debugLevel & 
-		DBG_VERBOSE) != 0) s += " VERBOSE";	if ((debugLevel & DBG_WARNING) != 0)		s += " WARNING";	if ((debugLevel & DBG_6502) != 0)		s += " 6502";	if ((debugLevel & DBG_PORT) != 0)		s += " PORT";	if ((debugLevel & DBG_INTERRUPTS) != 0)
-		s += " INTERRUPTS";	if ((debugLevel & DBG_KEYBOARD) != 0)		s += " KEYBOARD";	if ((debugLevel & DBG_VDU) != 0) s += " VDU";	if ((debugLevel & DBG_IO_PERIPHERAL) != 0)		s += " IO_PERIPHERAL";	if ((debugLevel & DBG_DEVICE) != 0)		s += " DEVICE";	if ((debugLevel & DBG_TRGGERING) != 0)		s += " TRGGERING";	if ((debugLevel & DBG_TIME) != 0)		s += " TIME";	if ((debugLevel & DBG_AUDIO) != 0)		s += " AUDIO";	if ((debugLevel & DBG_TAPE) != 0)		s += " TAPE";	if ((debugLevel & DBG_RESET) != 0) 		s += " RESET";	if ((debugLevel & DBG_SPI) != 0)		s += " SPI";	if ((debugLevel & DBG_ADC) != 0)		s += " ADC";
+		s += " ERROR";	if ((debugLevel & DBG_VERBOSE) != 0)		s += " VERBOSE";	if ((debugLevel & DBG_WARNING) != 0)		s += " WARNING";	if ((debugLevel & DBG_6502) != 0)		s += " 6502";	if ((debugLevel & DBG_PORT) != 0)		s += " PORT";	if ((debugLevel & DBG_INTERRUPTS) != 0)
+		s += " INTERRUPTS";	if ((debugLevel & DBG_KEYBOARD) != 0)		s += " KEYBOARD";	if ((debugLevel & DBG_VDU) != 0)		s += " VDU";	if ((debugLevel & DBG_IO_PERIPHERAL) != 0)		s += " IO_PERIPHERAL";	if ((debugLevel & DBG_DEVICE) != 0)		s += " DEVICE";	if ((debugLevel & DBG_TRGGERING) != 0)		s += " TRGGERING";	if ((debugLevel & DBG_TIME) != 0)		s += " TIME";	if ((debugLevel & DBG_AUDIO) != 0)		s += " AUDIO";	if ((debugLevel & DBG_TAPE) != 0)		s += " TAPE";	if ((debugLevel & DBG_RESET) != 0) 		s += " RESET";	if ((debugLevel & DBG_SPI) != 0)		s += " SPI";	if ((debugLevel & DBG_ADC) != 0)		s += " ADC";
 	return s;
 }
 
@@ -433,7 +432,7 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 		return;
 
 	double t = dev->getCycleCount() / (dev->mCPUClock * 1e6);
-	if (t == 0) // For device's not keeping time, use the microcontroller's time as reference instead!
+	if (t == 0 && mMicrocontroller != NULL) // For device's not keeping time, use the microcontroller's time as reference instead!
 		t = mMicrocontroller->getCycleCount() / (dev->mCPUClock * 1e6);
 	string t_s = Utility::encodeCPUTime(t);
 	string prefix = t_s + " " + dev->name + " ";

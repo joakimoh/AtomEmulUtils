@@ -165,13 +165,13 @@ void SDCard::processPortUpdate(int port)
 			else if (mSEL == 0) {
 
 				//
-				// Rx processing - sample MOSI on positive CLK edge
+				// Rx processing - sample MOSI on positive CLK edge (as master outputs samples on the negative edge)
 				//
 				if (mCLK)
 					processRxBits();
 
 				//
-				// Tx processing - shift out MISO on negative CLK edge
+				// Tx processing - shift out MISO on negative CLK edge (as master samples it on positive edge)
 				//
 				if (!mCLK)
 					generateTxBits();
