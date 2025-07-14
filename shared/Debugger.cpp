@@ -14,21 +14,105 @@ Debugger::Debugger(Engine *engine, Devices  *devices, DebugManager *debugManager
 
 }
 
+bool Debugger::readOptString(istream& sin, string& s)
+{
+	if (sin.eof())
+		return true;
+
+	sin >> s;
+
+	return s.length() != 0;
+}
+
+bool Debugger::readString(istream& sin, string &s)
+{
+	if (sin.eof())
+		return false;
+
+	sin >> s;
+
+	return s.length() != 0;
+}
+
+
+
+bool Debugger::readOptHexInt(istream& sin, int& i)
+{
+	if (sin.eof())
+		return false;
+
+	i = -1;
+	sin >> hex >> i;
+
+	return i > 0;
+}
+
+bool Debugger::readHexInt(istream& sin, int& i)
+{
+	if (sin.eof())
+		return false;
+
+	i = -1;
+	sin >> hex >> i;
+
+	return i > 0;
+}
+
+bool Debugger::readOptPosInt(istream& sin, int& i)
+{
+	if (sin.eof())
+		return false;
+
+	i = -1;
+	sin >> dec >> i;
+
+	return i > 0;
+}
+
+bool Debugger::readPosInt(istream& sin, int& i)
+{
+	if (sin.eof())
+		return false;
+
+	i = -1;
+	sin >> dec >> i;
+
+	return i > 0;
+}
+
+bool Debugger::readChar(istream& sin, char& c)
+{
+	if (sin.eof())
+		return false;
+
+	sin >> skipws >> c >> noskipws;
+
+	return true;
+}
+
+
 bool Debugger::levelCmd(istream& sin)
 {
 	string sub_cmd, level;
 
-	sin >> sub_cmd;
+	if (!readString(sin, sub_cmd))
+		return false;
 
 	if (sub_cmd == "set") {
-		sin >> level;
+	
+		if (!readString(sin, level))
+			return false;
+
 		if (!mDM->setDebugLevel(level)) {
 			cout << "Invalid parameter '" << level << "'!\n";
 			return false;
 		}
 	}
 	else if (sub_cmd == "clr") {
-		sin >> level;
+
+		if (!readString(sin, level))
+			return false;
+		;
 		if (!mDM->clearDebugLevel(level)) {
 			cout << "Invalid parameter '" << level << "'!\n";
 			return false;
@@ -48,32 +132,44 @@ bool Debugger::levelCmd(istream& sin)
 bool Debugger::bufferCmd(istream& sin)
 {
 	string sub_cmd;
-	sin >> sub_cmd;
-	if (sub_cmd == "out") {
-		if (!mDM->emptyBuffer(cout)) {
-			cout << "Buffering needs to be enabled first!\n";
+
+	if (!readString(sin, sub_cmd))
+		return false;
+
+	if (sub_cmd == "set") {
+
+		if (!readPosInt(sin, mPretraceLen))
+			return false;
+
+		mExtensiveTracing = false;
+
+		if (!mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing)) {
 			return false;
 		}
-	}
-	else if (sub_cmd == "set") {
-		int pre_trace_len;
-		sin >> pre_trace_len;
-		if (!mDM->enableBuffering(pre_trace_len, 1, false)) {
-			return false;
-		}
+
+		mTracingEnabled = true;
 	}
 	else if (sub_cmd == "xset") {
-		int pre_trace_len;
-		sin >> pre_trace_len;
-		if (!mDM->enableBuffering(pre_trace_len, 1, true)) {
+
+		if (!readPosInt(sin, mPretraceLen))
+			return false;
+
+		mExtensiveTracing = false;
+
+		if (!mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing)) {
 			return false;
 		}
+
+		mTracingEnabled = true;
 	}
-	else if (sub_cmd == "dis") {
+	else if (sub_cmd == "off") {
+
+		mTracingEnabled = false;
+
 		mDM->disableBuffering();
 	}
 	else {
-		cout << "Invalid sub command to buf - valid sub command is one of out, set, xset and dis!\n";
+		cout << "Invalid sub command to buf - valid sub command is one of set, xset and off!\n";
 		return false;
 	}
 
@@ -83,7 +179,9 @@ bool Debugger::bufferCmd(istream& sin)
 bool Debugger::dumpDevCmd(istream& sin)
 {
 	string dev_name;
-	sin >> dev_name;
+	if (!readString(sin, dev_name))
+		return false;
+
 	Device* dev = NULL;
 	if (!mDevices->getDevice(dev_name, dev)) {
 		cout << "Non-existing device '" << dev_name << "!\n";
@@ -121,59 +219,86 @@ bool Debugger::listDevicesCmd(istream& sin)
 bool Debugger::writeMemCmd(istream& sin)
 {
 	int a, data;
-	sin >> hex >> a;
+
+	if (!readHexInt(sin, a))
+		return false;
+
+	int n = 0;
 	while (!sin.eof()) {
-		sin >> hex >> data;
+
+		if (!readHexInt(sin, data))
+			return false;
+
 		if (!mDevices->writeMemoryMappedDevice(a++, data)) {
 			cout << "Failed to write to memory-mapped device at address 0x" << hex << a << "!\n";
 			return false;
 		}
+
+		n++;
 	}
-	return true;
+
+	return n > 0;
 }
 
 bool Debugger::writeMemStrCmd(istream & sin)
 {
 	int a;
 	char c;
-	sin >> hex >> a >> skipws >> c;
+
+	if (!readHexInt(sin, a))
+		return false;
+
+	if (!readChar(sin, c))
+		return false;
+
 	if (c != '"')
 		return false;
-	while (sin.get(c) && c != '"') {
+
+	int n = 0;
+	while (readChar(sin, c) && c != '"') {
 		if (!mDevices->writeMemoryMappedDevice(a++, (uint8_t)c)) {
 			cout << "Failed to write to memory-mapped device at address 0x" << hex << a << "!\n";
 			return false;
 		}
+		n++;
 	}
-	return true;
+
+	return n > 0;
 }
 
 bool Debugger::disCmd(istream& sin)
 {
 	Codec6502 mCodec;
-	int a1, a2;
-	sin >> hex >> a1;
-	sin >> hex >> a2;
+	int a1, n;
+
+	if (!readHexInt(sin, a1))
+		return false;
+
+	if (!readOptPosInt(sin, n))
+		n = 10;
+
 	vector<uint8_t> bytes;
 	uint16_t pc = a1;
 	uint8_t data;
 
-	for (int a = a1; a <= a2; a++) {
+	int i = 0;
+	for (int a = a1; i < n; a++) {
 		string s;
 		if (!mDevices->dumpDeviceMemory(a, data)) {
 			cout << "Illegal address 0x" << hex << a1 << "\n";
 			break;
 		}
 		bytes.push_back(data);
-		if (bytes.size() >= 4 || a == a2) {
+
+		// Test if there is enough bytes to decode a complete instruction
+		if (bytes.size() >= 2) {
 			int old_pc = pc;
-			if (!mCodec.decodeInstrFromBytes(pc, bytes, s)) {
-				cout << "Failed to decode instruction at address 0x" << hex << pc << "\n";
-				break;
+			if (mCodec.decodeInstrFromBytes(pc, bytes, s)) {
+				int consumed_bytes = pc - old_pc;
+				bytes.erase(bytes.begin(), bytes.begin() + consumed_bytes);
+				cout << s << "\n";
+				i++;
 			}
-			int consumed_bytes = pc - old_pc;
-			bytes.erase(bytes.begin(), bytes.begin() + consumed_bytes);
-			cout << s << "\n";
 		}
 	}
 	
@@ -183,8 +308,13 @@ bool Debugger::disCmd(istream& sin)
 bool Debugger::readMemCmd(istream  &sin)
 {
 	int a1, a2;
-	sin >> hex >> a1;
-	sin >> hex >> a2;
+
+	if (!readHexInt(sin, a1))
+		return false;
+
+	if (!readOptHexInt(sin, a2))
+		a2 = a1;
+
 	uint8_t bytes[16] = { 0 };
 	int r_sz = 16;
 	for (int a = a1; a <= a2; a++) {
@@ -215,17 +345,34 @@ bool Debugger::readMemCmd(istream  &sin)
 	return true;
 }
 
-bool Debugger::stepCmd(istream &sin)
+bool Debugger::stepCmd(istream &sin, bool extensive)
 {
 	int n = 1;
-	if (sin.tellg() > 0)
-		sin >> n;
+
+	// Check for optional number and - if present - use it to set n
+	if (!readOptPosInt(sin, n))
+		n = 10;
+
+	// Turn on tracing if previously enabled
+	if (mTracingEnabled)
+		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing);
+
 	mEngine->step(n);
+
+	if (mTracingEnabled && !mDM->emptyBuffer(cout)) {
+		cout << "Trace not possible to retrieve!\n";
+		return false;
+	}
 	return true;
 }
 
+
 bool Debugger::contCmd(istream &sin)
 {
+	// Turn on tracing if previously enabled
+	if (mTracingEnabled)
+		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing);
+
 	mEngine->cont();
 	return true;
 }
@@ -238,9 +385,18 @@ bool Debugger::exitCmd(istream &sin)
 bool Debugger::breakCmd(istream& sin)
 {
 	string sub_cmd;
-	sin >> sub_cmd;
+	if (!readString(sin, sub_cmd))
+		return false;
+
 	int a;
-	sin >> hex >> a;
+	if (!readHexInt(sin, a))
+		return false;
+
+	// Turn on tracing if previously enabled
+	if (mTracingEnabled)
+		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing);
+
+
 	if (sub_cmd == "x") {
 		mAccessMode = 0;
 		mEngine->setBreakPointAndWait(0, a, mReadData, mWrittenData);		
@@ -262,13 +418,49 @@ bool Debugger::breakCmd(istream& sin)
 		return false;
 	}
 
+	if (mTracingEnabled && !mDM->emptyBuffer(cout)) {
+		cout << "Trace not possible to retrieve!\n";
+		return false;
+	}
+
+
 	return true;
 }
 
 bool Debugger::haltCmd(istream& sin)
 {
 	mEngine->halt();
+
+	if (mTracingEnabled && !mDM->emptyBuffer(cout)) {
+		cout << "Trace not possible to retrieve!\n";
+		return false;
+	}
+
 	return true;
+}
+
+void Debugger::help()
+{
+	cout << "Commands are:\n";
+	cout << "read <hex start address> [<hex end address>]:       read memory content - default is end address = start address\n";
+	cout << "dis <hex start address> [<hex end address>]         disassemble memory content - default is 10 instructions\n";
+	cout << "write <hex start address <hex byte> { <hex byte> }: write bytes to memory\n";
+	cout << "swrite <hex start address> \"<string>\":              write ASCII string to memory\n";
+	cout << "devices:                                            lists the devices\n";
+	cout << "state <name of device>:                             get a device's state\n";
+	cout << "dbg set|clr <flags>:                                set or clear any of the debug flags ewdupirkvstxacASC\n";
+	cout << "dbg off:                                            clear all debug flags\n";
+	cout << "buf set <tracing window size>:                      set the size of the tracing window - (quick) instruction tracing only\n";
+	cout << "buf xset <tracing window size>:                     set the size of the tracing window - (slow) extended tracing\n";
+	cout << "buf off:                                            disable tracing\n";
+	cout << "uc:                                                 get the microcontroller's state\n";
+	cout << "step [<no of instructions>]:                        execute the specifed no of instructions (default is 1) and then stop (instruction tracing only)\n";
+	cout << "xstep <no of instructions>:                         execute the specifed no of instructions (default is 1) and then stop (extended tracing)\n";
+	cout << "cont:                                               continue execution (if previusly stopped)\n";
+	cout << "break x <hex address>:                              continue execution until the program counter reaches the specified address\n";
+	cout << "break r|w|rw <hex address>:                         continue execution until the specified address is accessed in the way specified\n";
+	cout << "halt:                                               stop execution\n";
+	cout << "exit:                                               exit the debugger\n";
 }
 
 void Debugger::run()
@@ -276,41 +468,52 @@ void Debugger::run()
 	while (true) {
 
 		cout << "> ";
+
 		string cmd_line;
 		getline(cin, cmd_line);
 		istringstream sin(cmd_line);
-		string cmd;
-		sin >> cmd;
 
-		if (cmd == "read")
-			readMemCmd(sin);
-		else if (cmd == "dbg")
-			levelCmd(sin);
-		else if (cmd == "buf")
-			bufferCmd(sin);
-		else if (cmd == "dis")
-			disCmd(sin);
-		else if (cmd == "write")
-			writeMemCmd(sin);
-		else if (cmd == "swrite")
-			writeMemStrCmd(sin);
-		else if (cmd == "state")
-			dumpDevCmd(sin);
-		else if (cmd == "uc")
-			dumpUcCmd(sin);
-		else if (cmd == "devices")
-			listDevicesCmd(sin);
-		else if (cmd == "step")
-			stepCmd(sin);
-		else if (cmd == "cont")
-			contCmd(sin);
-		else if (cmd == "halt")
-			haltCmd(sin);
-		else if (cmd == "break")
-			breakCmd(sin);
-		else if (cmd == "exit")
-			exitCmd(sin);
-		else if (cmd != "")
-			cout << "Unknown command '" << cmd << "'!\n";
+		string cmd;
+		if (readString(sin, cmd)) {
+
+			bool success = true;
+			if (cmd == "help")
+				help();
+			else if (cmd == "read")
+				success = readMemCmd(sin);
+			else if (cmd == "dbg")
+				success = levelCmd(sin);
+			else if (cmd == "buf")
+				success = bufferCmd(sin);
+			else if (cmd == "dis")
+				success = disCmd(sin);
+			else if (cmd == "write")
+				success = writeMemCmd(sin);
+			else if (cmd == "swrite")
+				success = writeMemStrCmd(sin);
+			else if (cmd == "state")
+				success = dumpDevCmd(sin);
+			else if (cmd == "uc")
+				success = dumpUcCmd(sin);
+			else if (cmd == "devices")
+				success = listDevicesCmd(sin);
+			else if (cmd == "step")
+				success = stepCmd(sin, false);
+			else if (cmd == "xstep")
+				success = stepCmd(sin, true);
+			else if (cmd == "cont")
+				success = contCmd(sin);
+			else if (cmd == "halt")
+				success = haltCmd(sin);
+			else if (cmd == "break")
+				success = breakCmd(sin);
+			else if (cmd == "exit")
+				success = exitCmd(sin);
+			else if (cmd != "")
+				cout << "Unknown command '" << cmd << "'!\n";
+
+			if (!success)
+				cout << "Invalid parameters for the command!\n";
+		}
 	}
 }

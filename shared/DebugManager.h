@@ -183,6 +183,7 @@ public:
 	bool enableBuffering(int preTraceLen, int postTraceLen, bool extensive);
 	void disableBuffering();
 	bool emptyBuffer(ostream& sout);
+	bool bufferingEnabled() { return mTracingState == PREBUF_TRACING; }
 
 	void setUcDebug();
 	void enableLogging(uint16_t adr);

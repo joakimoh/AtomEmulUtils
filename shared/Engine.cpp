@@ -399,14 +399,12 @@ bool Engine::step(int n)
     mExecMutex.lock();
     mSteps = n;
     mState = ENG_STEP;
-    mDM->clearDebugLevel(DBG_6502);
     mExecMutex.unlock();
     while (wait) {
         mExecMutex.lock();
         wait = (mState == ENG_STEP);
         mExecMutex.unlock();
     }
-    mDM->clearDebugLevel(DBG_NONE);
     return true;
 }
 

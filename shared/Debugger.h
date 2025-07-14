@@ -23,11 +23,25 @@ private:
 	uint8_t mReadData = 0xff;
 	uint8_t mWrittenData = 0xff;
 
+	bool mTracingEnabled = false;
+	int mPretraceLen = 10;
+	bool mExtensiveTracing = false;
+
+	bool readString(istream& sin, string& s);
+	bool readOptString(istream& sin, string& s);
+	bool readHexInt(istream& sin, int& i);
+	bool readOptHexInt(istream& sin, int& i);
+	bool readOptPosInt(istream& sin, int& i);
+	bool readPosInt(istream& sin, int& i);
+	bool readChar(istream& sin, char& c);
+
 public:
 
 	Debugger(Engine *engine, Devices *devices, DebugManager *debugManager);
 
 	void run();
+
+	void help();
 
 	bool levelCmd(istream& sin);
 	bool bufferCmd(istream& sin);
@@ -40,7 +54,7 @@ public:
 	bool listDevicesCmd(istream& sin);
 
 	bool haltCmd(istream& sin);
-	bool stepCmd(istream &sin);
+	bool stepCmd(istream &sin, bool extensive);
 	bool contCmd(istream &sin);
 
 	bool breakCmd(istream& sin);

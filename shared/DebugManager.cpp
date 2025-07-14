@@ -20,6 +20,8 @@ string DebugManager::levels2str(DebugLevel debugLevel)
 	return s;
 }
 
+//
+// ewdupirkvstxacASC
 bool DebugManager::string2debugLevel(string level, DebugLevel& debugLevel)
 {
 	debugLevel = DBG_NONE;
@@ -174,6 +176,7 @@ void DebugManager::enableInterruptLogging(uint16_t adr)
 
 bool DebugManager::enableBuffering(int preTraceLen, int postTraceLen, bool extensive)
 {
+
 	if (preTraceLen <= 0 || preTraceLen > INSTR_BUFFER_SIZE) {
 		cout << "Pre-buffering size must be in the range [1," << INSTR_BUFFER_SIZE << "]!n";
 		return false;
@@ -183,9 +186,14 @@ bool DebugManager::enableBuffering(int preTraceLen, int postTraceLen, bool exten
 	if (!extensive) {
 		if (mDbgLevel == DBG_NONE)
 			mDbgLevel = DBG_6502;
-		else
+		else if (mDbgLevel != DBG_6502)
 			return false;
 	}
+
+	// Reset buffering
+	mBufferInstrSize = 0;
+	mBufferInstrReadIndex = 0;
+	mBufferInstrReadIndex = mBufferInstrWriteIndex = mBufferInstrSize = 0;
 
 	mExtensiveLog = extensive;
 	mPreTraceLen = preTraceLen;
@@ -193,13 +201,16 @@ bool DebugManager::enableBuffering(int preTraceLen, int postTraceLen, bool exten
 	mDelayed = false;
 	mTracingState = PREBUF_TRACING;
 
-	cout << levels2str(mDbgLevel) << "\n";
-
 	return true;
 }
 
 void DebugManager::disableBuffering()
 {
+	// Reset buffering
+	mBufferInstrSize = 0;
+	mBufferInstrReadIndex = 0;
+	mBufferInstrReadIndex = mBufferInstrWriteIndex = mBufferInstrSize = 0;
+
 	mTracingState = TRACING_OFF;
 }
 
@@ -221,6 +232,8 @@ bool DebugManager::emptyBuffer(ostream& sout)
 			read_pos = (read_pos + 1) % mPreTraceLen;
 		}
 	}
+
+	// Reset buffering
 	mBufferInstrSize = 0;
 	mBufferInstrReadIndex = 0;
 	mBufferInstrReadIndex = mBufferInstrWriteIndex = mBufferInstrSize = 0;
@@ -252,6 +265,11 @@ bool DebugManager::enableTracing(uint16_t adr, int preTraceLen, int postTraceLen
 		else if ((mDbgLevel & DBG_6502) == 0)
 			return false;
 	}
+
+	// Reset buffering
+	mBufferInstrSize = 0;
+	mBufferInstrReadIndex = 0;
+	mBufferInstrReadIndex = mBufferInstrWriteIndex = mBufferInstrSize = 0;
 
 	mTraceAdr = adr;
 	mPreTraceLen = preTraceLen;
