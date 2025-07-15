@@ -18,6 +18,7 @@ private:
 	DebugManager* mDM = NULL;
 	Devices *mDevices = NULL;
 	Engine* mEngine = NULL;
+	string mOutDir;
 
 	int mAccessMode = -1;
 	uint8_t mReadData = 0xff;
@@ -37,9 +38,14 @@ private:
 	bool readPosInt(istream& sin, int& i);
 	bool readChar(istream& sin, char& c);
 
+	bool openOutFile(istream& sin, ofstream* &sout);
+
+	bool readMemCmd(istream& sin, ostream& sout);
+	bool disCmd(istream& sin, ostream &sout);
+
 public:
 
-	Debugger(Engine *engine, Devices *devices, DebugManager *debugManager);
+	Debugger(Engine *engine, Devices *devices, DebugManager *debugManager, string outDir);
 
 	void run();
 
@@ -47,8 +53,13 @@ public:
 
 	bool levelCmd(istream& sin);
 	bool bufferCmd(istream& sin, bool recurring);
-	bool disCmd(istream &sin);
-	bool readMemCmd(istream& sin);
+	
+	bool disToFileCmd(istream& sin);
+	bool disToScreenCmd(istream& sin);
+
+	bool readMemToFileCmd(istream& sin);
+	bool readMemToScreenCmd(istream& sin);
+
 	bool writeMemCmd(istream& sin);
 	bool writeMemStrCmd(istream& sin);
 	bool dumpDevCmd(istream& sin);

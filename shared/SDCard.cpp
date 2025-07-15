@@ -200,7 +200,6 @@ bool SDCard::processRxBits()
 	{
 		mCurrentCmd = SPI_CMD_ILLEGAL;
 		mCurrenAppCmd = SPI_A_CMD_ILLEGAL;
-		mResponseType = SPI_RSP_ILLEGAL;
 		if (mMOSI == 1) {
 			mSPIRxMode = SPI_Rx_PREAMBLE_WAIT;
 			//cout << "SD Card: High level '1' detected\n";
@@ -301,6 +300,7 @@ bool SDCard::generateTxBits()
 	case SPI_Tx_IDLE:
 	{
 		// Nothing to respond to => do nothing
+		mResponseType = SPI_RSP_ILLEGAL;
 		break;
 	}
 	case SPI_Tx_RSP_WAIT:
@@ -618,7 +618,7 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 
 			// Read block into response (emulation only)
 			mBlockReadAdr = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[4];
-			mCardImage->seekg(mBlockReadAdr, mCardImage->beg);
+			mCardImage->seekg(mBlockReadAdr);
 			mCardImage->read((char*)&mSlaveDataToken[1], content_bytes);
 
 			// Add CRC

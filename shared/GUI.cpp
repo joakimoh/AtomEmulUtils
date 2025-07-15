@@ -15,8 +15,8 @@
 
 using namespace std;
 
-GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, ALLEGRO_DISPLAY* disp, Devices * devices, double *speed, DebugManager* dm):
-    mDevices(devices), mDisplay(disp), mEmulationSpeed(speed), mDM(dm), mEngine(engine)
+GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, ALLEGRO_DISPLAY* disp, Devices * devices, double *speed, DebugManager* dm, string outDir):
+    mDevices(devices), mDisplay(disp), mEmulationSpeed(speed), mDM(dm), mEngine(engine), mOutDir(outDir)
 {
     // 
     // Create menu
@@ -86,7 +86,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
     {
         al_set_menu_item_flags(mMenu, ENTER_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
         al_set_menu_item_flags(mMenu, EXIT_DBG_ID, 0);
-        mDebugger = new Debugger(mEngine, mDevices, mDM);
+        mDebugger = new Debugger(mEngine, mDevices, mDM, mOutDir);
         mDebugThread = thread(&Debugger::run, mDebugger);
         break;
     }

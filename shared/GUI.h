@@ -124,10 +124,11 @@ private:
     thread mDebugThread;
 
 	Engine *mEngine = NULL;
+	string mOutDir;
 
 public:
 
-    GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, ALLEGRO_DISPLAY* disp, Devices * devices, double *emulationSpeed, DebugManager *dm);
+    GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, ALLEGRO_DISPLAY* disp, Devices * devices, double *emulationSpeed, DebugManager *dm, string outDir);
     ~GUI();
 
 	bool itemSelected(ALLEGRO_EVENT  *event);

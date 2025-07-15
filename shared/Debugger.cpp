@@ -6,10 +6,12 @@
 #include "Engine.h"
 #include <iomanip>
 #include <sstream>
+#include <filesystem>
 
 using namespace std;
 
-Debugger::Debugger(Engine *engine, Devices  *devices, DebugManager *debugManager) : mDM(debugManager),mDevices(devices), mEngine(engine)
+Debugger::Debugger(Engine *engine, Devices  *devices, DebugManager *debugManager, string outDir) :
+	mDM(debugManager),mDevices(devices), mEngine(engine), mOutDir(outDir)
 {
 
 }
@@ -269,7 +271,23 @@ bool Debugger::writeMemStrCmd(istream & sin)
 	return n > 0;
 }
 
-bool Debugger::disCmd(istream& sin)
+bool Debugger::disToFileCmd(istream& sin)
+{
+	ofstream* fout_p = NULL;
+	if (!openOutFile(sin, fout_p)) {
+		return false;
+	}
+	bool success = readMemCmd(sin, *fout_p);
+	fout_p->close();
+	return success;
+}
+
+bool Debugger::disToScreenCmd(istream& sin)
+{
+	return disCmd(sin, cout);
+}
+
+bool Debugger::disCmd(istream& sin, ostream& sout)
 {
 	Codec6502 mCodec;
 	int a1, n;
@@ -288,7 +306,7 @@ bool Debugger::disCmd(istream& sin)
 	for (int a = a1; i < n; a++) {
 		string s;
 		if (!mDevices->dumpDeviceMemory(a, data)) {
-			cout << "Illegal address 0x" << hex << a1 << "\n";
+			sout << "Illegal address 0x" << hex << a1 << "\n";
 			break;
 		}
 		bytes.push_back(data);
@@ -299,7 +317,7 @@ bool Debugger::disCmd(istream& sin)
 			if (mCodec.decodeInstrFromBytes(pc, bytes, s)) {
 				int consumed_bytes = pc - old_pc;
 				bytes.erase(bytes.begin(), bytes.begin() + consumed_bytes);
-				cout << s << "\n";
+				sout << s << "\n";
 				i++;
 			}
 		}
@@ -308,7 +326,44 @@ bool Debugger::disCmd(istream& sin)
 	return true;
 }
 
-bool Debugger::readMemCmd(istream  &sin)
+bool Debugger::openOutFile(istream& sin, ofstream * &sout)
+{
+	string s;
+	ofstream* fout_p = NULL;
+	if (!readString(sin, s)) {
+		return false;
+	}
+	filesystem::path gen_dir_path = mOutDir;
+	filesystem::path fout_path = gen_dir_path / s;
+	string fn = fout_path.string();
+	fout_p = new ofstream(fn, ios::out | ios::binary);
+	if (fout_p == NULL || !*fout_p) {
+		cout << "Failed to create file '" << fn << "'!\n";
+		return false;
+	}
+
+	sout = fout_p;
+
+	return true;
+}
+
+bool Debugger::readMemToFileCmd(istream& sin)
+{
+	ofstream* fout_p = NULL;
+	if (!openOutFile(sin, fout_p)) {
+		return false;
+	}
+	bool success = readMemCmd(sin, *fout_p);
+	fout_p->close();
+	return success;
+}
+
+bool Debugger::readMemToScreenCmd(istream& sin)
+{
+	return readMemCmd(sin, cout);
+}
+
+bool Debugger::readMemCmd(istream  &sin, ostream &sout)
 {
 	int a1, a2;
 
@@ -326,22 +381,22 @@ bool Debugger::readMemCmd(istream  &sin)
 		if (ofs == 0)
 			r_sz = ((a2 - a) < 16 ? a2 - a + 1 : 16);
 		if (!mDevices->dumpDeviceMemory(a, data)) {
-			cout << "Illegal address 0x" << hex << a1 << "\n";
+			sout << "Illegal address 0x" << hex << a1 << "\n";
 			break;
 		}
 		bytes[ofs] = data;
 		if ((r_sz == 16 && ofs == 15) || a == a2) {
-			cout << "\n" << Utility::int2hexStr(a - ofs, 6);
+			sout << "\n" << Utility::int2hexStr(a - ofs, 6);
 			for (int i = 0; i < r_sz; i++)
-				cout << " " << Utility::int2hexStr(bytes[i], 2);
+				sout << " " << Utility::int2hexStr(bytes[i], 2);
 			for (int i = 0; i < 16 - r_sz; i++)
-				cout << "   ";
-			cout << " ";
+				sout << "   ";
+			sout << " ";
 			for (int i = 0; i < r_sz; i++) {
 				uint8_t c = bytes[i];
-				cout << " " << (c >= 32 && c < 127 ? (char)c : '.');
+				sout << " " << (c >= 32 && c < 127 ? (char)c : '.');
 			}
-			cout << "\n";
+			sout << "\n";
 		}
 	}
 
@@ -483,7 +538,9 @@ void Debugger::run()
 			if (cmd == "help")
 				help();
 			else if (cmd == "read")
-				success = readMemCmd(sin);
+				success = readMemToScreenCmd(sin);
+			else if (cmd == "fread")
+				success = readMemToFileCmd(sin);
 			else if (cmd == "dbg")
 				success = levelCmd(sin);
 			else if (cmd == "buf")
@@ -491,7 +548,9 @@ void Debugger::run()
 			else if (cmd == "cbuf")
 				success = bufferCmd(sin, true);
 			else if (cmd == "dis")
-				success = disCmd(sin);
+				success = disToScreenCmd(sin);
+			else if (cmd == "fdis")
+				success = disToFileCmd(sin);
 			else if (cmd == "write")
 				success = writeMemCmd(sin);
 			else if (cmd == "swrite")

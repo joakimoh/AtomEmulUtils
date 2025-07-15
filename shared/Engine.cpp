@@ -67,7 +67,8 @@ bool Engine::allegroInit()
 
 
 
-Engine::Engine(string mapFileName, Program& program, Program& data, double emulationSpeed, VideoFormat videoFormat, bool enableHWAcc, DebugManager *debugManager) : mDM(debugManager)
+Engine::Engine(string mapFileName, Program& program, Program& data, double emulationSpeed, VideoFormat videoFormat, bool enableHWAcc,
+    DebugManager *debugManager, string outDir) : mDM(debugManager), mOutDir(outDir)
 {
     if (!allegroInit()) {
         cout << "Failed to initialise allegro5!\n";
@@ -120,7 +121,7 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
     }
 
     // Create GUI with menu and callbacks
-    mGUI = new GUI(this, mQueue, mAllegroDisplay, mDevices, &mSpeedFactor, mDM);
+    mGUI = new GUI(this, mQueue, mAllegroDisplay, mDevices, &mSpeedFactor, mDM, mOutDir);
 
     // Setup emulation timer
     mfieldTimer = al_create_timer(1.0 / mFieldRate / mSpeedFactor);
