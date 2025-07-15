@@ -393,6 +393,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 			if (mRecurringTracing)
 				std::cout << "-----------------------------------------------------------------------------------------------------------------------------------\n";
 			emptyBuffer(cout);
+			cout << "***\n";
 			mTracingState = POST_TRACING;
 			mPostTraceInstrCount = 0;
 		}
@@ -421,6 +422,11 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 
 
 
+}
+
+bool DebugManager::logCurrentInstruction(ostream& sout)
+{
+	return mMicrocontroller != NULL  && mMicrocontroller->outputState(sout);
 }
 
 //

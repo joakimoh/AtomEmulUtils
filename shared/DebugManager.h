@@ -183,6 +183,7 @@ public:
 	bool enableBuffering(int preTraceLen, int postTraceLen, bool extensive, bool recurring);
 	void disableBuffering();
 	bool emptyBuffer(ostream& sout);
+	bool logCurrentInstruction(ostream& sout);
 	bool bufferingEnabled() { return mTracingState == PREBUF_TRACING; }
 
 	void armTriggering();

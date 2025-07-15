@@ -409,11 +409,13 @@ bool Debugger::stepCmd(istream &sin)
 
 	// Check for optional number and - if present - use it to set n
 	if (!readOptPosInt(sin, n))
-		n = 10;
+		n = 1;
 
 	// Turn on tracing if previously enabled
-	if (mTracingEnabled)
+	if (mTracingEnabled) {
+		mPretraceLen = n;
 		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, false);
+	}
 
 	mEngine->step(n);
 
@@ -475,12 +477,6 @@ bool Debugger::breakCmd(istream& sin)
 		cout << "Illegal sub command - valid sub command to break is one of x,r,w and rw!\n";
 		return false;
 	}
-	/*/
-	if (mTracingEnabled && !mDM->emptyBuffer(cout)) {
-		cout << "Trace not possible to retrieve!\n";
-		return false;
-	}
-	*/
 
 	return true;
 }
