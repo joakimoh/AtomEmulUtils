@@ -277,7 +277,7 @@ bool Debugger::disToFileCmd(istream& sin)
 	if (!openOutFile(sin, fout_p)) {
 		return false;
 	}
-	bool success = readMemCmd(sin, *fout_p);
+	bool success = disCmd(sin, *fout_p);
 	fout_p->close();
 	return success;
 }
@@ -290,20 +290,20 @@ bool Debugger::disToScreenCmd(istream& sin)
 bool Debugger::disCmd(istream& sin, ostream& sout)
 {
 	Codec6502 mCodec;
-	int a1, n;
+	int a1, a2;
 
 	if (!readHexInt(sin, a1))
 		return false;
 
-	if (!readOptPosInt(sin, n))
-		n = 10;
+	if (!readHexInt(sin,a2))
+		a2 = a1 + 16;
 
 	vector<uint8_t> bytes;
 	uint16_t pc = a1;
 	uint8_t data;
 
 	int i = 0;
-	for (int a = a1; i < n; a++) {
+	for (int a = a1; a <= a2; a++) {
 		string s;
 		if (!mDevices->dumpDeviceMemory(a, data)) {
 			sout << "Illegal address 0x" << hex << a1 << "\n";
