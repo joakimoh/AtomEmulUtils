@@ -1,5 +1,6 @@
 #include "CRTC6845.h"
 #include <iomanip>
+#include "Utility.h"
 
 
 //
@@ -121,9 +122,11 @@ bool CRTC6845::advanceChar()
 
 		// A new character row
 
-		if (false && DBG_LEVEL_DEV(this,DBG_VDU))
-			cout << "CRTC SCAN LINE = " << dec << mScanLine << ", RASTER LINE = " << (int) mRA << ", CHAR ROW = " << mCharRow << 
-			" (" << mActiveRows_R6 << ")\n";
+		DBG_LOG_COND(
+			false, this,DBG_VDU, "CRTC SCAN LINE = "  + to_string(mScanLine) +
+			", RASTER LINE = " + to_string(mRA) + ", CHAR ROW = "  + to_string(mCharRow) +
+			" (" + to_string(mActiveRows_R6) + ")"
+		);
 		
 		// Step to next scan line.
 		// Only every second scan line is however used per field.
@@ -244,13 +247,12 @@ bool CRTC6845::updateOutputs()
 		(cursor_disp_mode == 0x3 && mField % 32 < 16)
 		) && mRA >= cursor_first_line && mRA <= cursor_last_line && mDISPTMG;
 	if (cursor_on && mStartAdr_R12_R13 + mCharRow * mActiveRowChars_R1 + mCharCol + mCharSkew_R8 == mCursorLocation_R14_R15 + mCursSkew_R8) {
-		if (false && DBG_LEVEL_DEV(this,DBG_VDU)) {
-			cout << "Cursor active for CRTC scan line " << dec << mScanLine << ", raster line " <<
-				(int) mRA << ", char row " << mCharRow << ", char col " << mCharCol <<
-				", start address 0x" << hex << mStartAdr_R12_R13 <<
-				", cursor location 0x" << mCursorLocation_R14_R15 << ", active row chars " << dec << mActiveRowChars_R1 <<
-				"\n";
-		}
+		DBG_LOG_COND(false, this, DBG_VDU,
+			"Cursor active for CRTC scan line " + to_string(mScanLine) + ", raster line " +
+			to_string(mRA) + ", char row " + to_string(mCharRow) + ", char col " + to_string(mCharCol) +
+			", start address 0x" + Utility::int2HexStr(mStartAdr_R12_R13, 2) +
+			", cursor location 0x" + Utility::int2HexStr(mCursorLocation_R14_R15, 2) + ", active row chars " + to_string(mActiveRowChars_R1)
+		);
 		updatePort(CUDISP, 0x1);
 	}
 	else
@@ -341,9 +343,6 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 			mRegWriteCnt[written_reg]++;
 	}
 
-	//if (written_reg < 10)
-	//	cout << "\n CRTC register R" << dec << written_reg << " = 0x " << hex << (int) mReg[written_reg] << "\n";
-
 	// Update internal state based on the register update
 	updateSettings(written_reg);
 
@@ -433,7 +432,6 @@ void CRTC6845::updateSettings(uint8_t reg)
 		mScreenVSyncPulseH = mVSyncPulseH_R3 * 2;
 		mScreenScanLines = 2 * scan_lines_R4xR9_R5; // screen has twice as many visible scan lines as the specifed no of scan lines
 
-		//cout << "Non-interlace Mode, #screen lines is " << dec << scan_lines_R4xR9_R5 << ", #active screen lines is " << mScreenActiveLines << "\n";
 	}
 	else if (interlaced(mInterlaceMode_R8)) {
 
@@ -492,9 +490,12 @@ void CRTC6845::updateSettings(uint8_t reg)
 		updatePort(HS, mHS);
 		updatePort(VS, mVS);
 		mField = 0;
-		if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-			printSettings();
-		//cout << "Register R" << dec << (int) reg << " updated => reset internal state!\n";
+		if (DBG_LEVEL_DEV(this, DBG_VERBOSE)) {
+			stringstream sout;
+			outputState(sout);
+			DBG_LOG(this, DBG_VERBOSE, sout.str());
+		}
+
 	}
 
 

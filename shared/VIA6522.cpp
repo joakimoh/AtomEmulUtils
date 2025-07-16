@@ -29,8 +29,8 @@ VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8
 	registerPort("CA", IO_PORT, 0x03, CA, &mCAIn, &mCAOut);
 	registerPort("CB", IO_PORT, 0x03, CB, &mCBIn, &mCBOut);
 
-	DBG_LOG(this, DBG_VERBOSE, "VIA 6522 '" + name + "' at address 0x" + Utility::int2hexStr(mMemorySpace.adr,4) +
-		" to 0x" + Utility::int2hexStr(mMemorySpace.adr + mMemorySpace.sz - 1,4) + " (" + to_string(mMemorySpace.sz) + " bytes)\n");
+	DBG_LOG(this, DBG_VERBOSE, "VIA 6522 at address 0x" + Utility::int2HexStr(mMemorySpace.adr,4) +
+		" to 0x" + Utility::int2HexStr(mMemorySpace.adr + mMemorySpace.sz - 1,4) + " (" + to_string(mMemorySpace.sz) + " bytes)\n");
 
 }
 
@@ -233,8 +233,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 					DBG_LOG(
 						this, DBG_IO_PERIPHERAL,
 						"Shift Mode " + to_string(shift_mode) + ": " + to_string(mShifts==0?8:mShifts) + "th SHIFT IN of byte #" +
-						to_string(mShiftedInBytes) + " from CB2 = '" + Utility::int2hexStr(CB2_In, 1) + "' = > Shift Register = 0x" +
-						Utility::int2hexStr(mShiftRegister, 2) + "\n"
+						to_string(mShiftedInBytes) + " from CB2 = '" + Utility::int2HexStr(CB2_In, 1) + "' = > Shift Register = 0x" +
+						Utility::int2HexStr(mShiftRegister, 2) + "\n"
 					);
 
 				}
@@ -253,8 +253,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 					CB2_Out = (mCBOut >> 1) & 0x1;
 					mShiftRegister = (mShiftRegister >> 1) | ((mShiftRegister << 7) & 0x80); // shift register right one bit with b0 going into b7
 					mShifts = (mShifts + 1) % 8;
-					DBG_LOG(this, DBG_IO_PERIPHERAL, "Shift Mode " + to_string(shift_mode) + ": " + to_string(mShifts + 1) + " SHIFT OUT from CB2 = '" + Utility::int2hexStr(CB2_Out, 1) + "' => Shift Register = 0x" +
-						Utility::int2hexStr(mShiftRegister, 2) + "\n");
+					DBG_LOG(this, DBG_IO_PERIPHERAL, "Shift Mode " + to_string(shift_mode) + ": " + to_string(mShifts + 1) + " SHIFT OUT from CB2 = '" + Utility::int2HexStr(CB2_Out, 1) + "' => Shift Register = 0x" +
+						Utility::int2HexStr(mShiftRegister, 2) + "\n");
 					if (mShifts == 0) {
 						if (mShiftInterrupt)
 							setIFR(IFR_SR_MASK);
@@ -281,8 +281,6 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 		else if (!shifting_active && shifting_active != p_shifting_active) {
 			//mCB1ShiftPulseLevel = 1; // Make sure that no phantom 0->1 transitions are created
-			//cout << "shifting not active: mStartShifting = "  << dec << mStartShifting << ", mShifts = " <<
-			//	(int)mShifts << ", shift_mode =" << (int)shift_mode << "\n";
 		}
 
 		//
@@ -524,7 +522,7 @@ void VIA6522::clearIFR(uint8_t mask)
 	uint8_t oIFR = mIFR;
 	mIFR &= ~mask;
 	if (mIFR != oIFR) {
-		DBG_LOG(this, DBG_IO_PERIPHERAL, "VIA clear IFR 0x" + Utility::int2hexStr(oIFR,2) + " => " + IFR2Str() + " for PCR = " + PCR2Str() + ", ACR = " + ACR2Str() + " and IER = " + IER2Str() + "\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "VIA clear IFR 0x" + Utility::int2HexStr(oIFR,2) + " => " + IFR2Str() + " for PCR = " + PCR2Str() + ", ACR = " + ACR2Str() + " and IER = " + IER2Str() + "\n");
 	}
 	pIFR = mIFR;
 }
@@ -534,7 +532,7 @@ void VIA6522::setIFR(uint8_t mask)
 	uint8_t oIFR = mIFR;
 	mIFR |= mask;
 	if (mIFR != oIFR) {
-		DBG_LOG(this, DBG_IO_PERIPHERAL, "VIA sets IFR 0x" + Utility::int2hexStr(oIFR, 2) + " => " + IFR2Str() + " for PCR = " + PCR2Str() + ", ACR = " + ACR2Str() + " and IER = " + IER2Str() + "\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "VIA sets IFR 0x" + Utility::int2HexStr(oIFR, 2) + " => " + IFR2Str() + " for PCR = " + PCR2Str() + ", ACR = " + ACR2Str() + " and IER = " + IER2Str() + "\n");
 	}
 	pIFR = mIFR;
 }
@@ -656,7 +654,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 			}
 		}
 
-		DBG_LOG(this, DBG_IO_PERIPHERAL, ": Read Shift Register => 0x" + Utility::int2hexStr(data,2) + "\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, ": Read Shift Register => 0x" + Utility::int2HexStr(data,2) + "\n");
 
 		// Clear IFR's SR bit on read
 		clearIFR(IFR_SR_MASK);
@@ -681,7 +679,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 			data = mIFR & 0x7f; // Clear IRQ bit
 		else
 			data = mIFR | 0x80; // Set IRQ bit
-		DBG_LOG(this, DBG_IO_PERIPHERAL, "Read at 0x" + Utility::int2hexStr(adr,4) + " IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Read at 0x" + Utility::int2HexStr(adr,4) + " IFR = 0x" + Utility::int2HexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
 		break;
 
 	case IER:
@@ -859,7 +857,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		if (!updatePort(PB, (mPBOut & ~mDDRB) | (data & mDDRB)))
 			return false;
 
-		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to PB with DDR 0x" + Utility::int2hexStr(mDDRB,2) + " and PB 0x" + Utility::int2hexStr(oPB,2) + " => 0x" + Utility::int2hexStr(mPBOut,2) + "\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to PB with DDR 0x" + Utility::int2HexStr(mDDRB,2) + " and PB 0x" + Utility::int2HexStr(oPB,2) + " => 0x" + Utility::int2HexStr(mPBOut,2) + "\n");
 		break;
 	}
 	case ORA:
@@ -891,8 +889,8 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Data Direction Register B - '0' means corresponding PB acts as input; otherwise as output
 	{
 		if (mDDRB != data) {
-			DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to DDRB at 0x" + Utility::int2hexStr(adr, 4) +
-				": DDRB = 0x" + Utility::int2hexStr(data, 2) + " (" + ddr2Str('B', data) + ")\n");
+			DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to DDRB at 0x" + Utility::int2HexStr(adr, 4) +
+				": DDRB = 0x" + Utility::int2HexStr(data, 2) + " (" + ddr2Str('B', data) + ")\n");
 			registerPortDirChange(PB, data);
 		}
 		mDDRB = data;
@@ -902,8 +900,8 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Data Direction Register A - '0' means corresponding PA acts as input; otherwise as output
 	{
 		if (mDDRA != data) {
-			DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to DDRA at 0x" + Utility::int2hexStr(adr, 4) +
-				": DDRA = 0x" + Utility::int2hexStr(data, 2) + " (" + ddr2Str('A', data) + ")\n");
+			DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to DDRA at 0x" + Utility::int2HexStr(adr, 4) +
+				": DDRA = 0x" + Utility::int2HexStr(data, 2) + " (" + ddr2Str('A', data) + ")\n");
 			registerPortDirChange(PA, data);
 		}
 		mDDRA = data;
@@ -915,7 +913,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		mTimer1LatchLow = data;
 		mTimer1Counter = (mTimer1Counter & 0xff00) | data;
 		mTimer1XCounterHWrite = true;
-		//cout << "T1 Low Counter/Latch = " << dec << mTimer1LatchLow << "\n";
+
 		break;
 	}
 	case T1CH:
@@ -928,7 +926,6 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		}
 		else
 			mTimer1Counter = (mTimer1Counter & 0x00ff) | (data << 8);
-		//cout << "T1 Counter = " << dec << mTimer1Counter << ", T1 Latch High : Low = " << (int)mTimer1LatchHigh << " : " << (int)mTimer1LatchLow << "\n";
 		mTimer1XCounterHWrite = false;
 		mTimer1Running = true;
 		mTimer1FirstRun = true;
@@ -953,7 +950,6 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	{
 		mTimer1LatchLow = data;
 		mTimer1XCounterHWrite = false;
-		//cout << "T1 Latch Low = " << dec << (int)data << "\n";
 		break;
 	}
 	case T1LH:
@@ -1098,7 +1094,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		// Interrupt Flag Register - writing an '1' will clear the corresponding flag!!!
 	{
 		mIFR &= (~data) & 0x7f;
-		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to IFR at 0x" + Utility::int2hexStr(adr,4) + ": IFR = 0x" + Utility::int2hexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to IFR at 0x" + Utility::int2HexStr(adr,4) + ": IFR = 0x" + Utility::int2HexStr(mIFR,2) + " (" + IFR2Str() + ")\n");
 		updateIRQ();
 
 		break;
@@ -1112,7 +1108,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		else { // disable interrupts		
 			mIER = (mIER & ~data) & 0x7f;
 		}
-		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to IER at 0x" + Utility::int2hexStr(adr, 4) + ": IER = 0x" + Utility::int2hexStr(mIER, 2) + " (" + IER2Str() + ")\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to IER at 0x" + Utility::int2HexStr(adr, 4) + ": IER = 0x" + Utility::int2HexStr(mIER, 2) + " (" + IER2Str() + ")\n");
 
 
 		break;
@@ -1123,7 +1119,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		uint8_t oPA = mPAOut;
 		updatePort(PA, (mPAOut & ~mDDRA) | (data & mDDRA));
 
-		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to PA with DDR 0x" + Utility::int2hexStr(mDDRA,2) + " and PA 0x" + Utility::int2hexStr(oPA,2) + " => 0x" + Utility::int2hexStr(mPAOut,2) + "\n");
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "Write to PA with DDR 0x" + Utility::int2HexStr(mDDRA,2) + " and PA 0x" + Utility::int2HexStr(oPA,2) + " => 0x" + Utility::int2HexStr(mPAOut,2) + "\n");
 
 
 		break;
@@ -1350,17 +1346,17 @@ bool VIA6522::outputState(ostream& sout)
 	sout << "IFR = " << IFR2Str() << "\n";
 	sout << "ACR = " << ACR2Str() << "\n";
 	sout << "PCR = " << PCR2Str() << "\n";
-	sout << "PA = 0x" << Utility::int2hexStr(mPAIn, 2) << " (In) 0x" << Utility::int2hexStr(mPAOut, 2) << " (out) 0b" <<
-		Utility::int2binStr(mDDRA,8) << " (dir mask - '1' <=> Out)\n";
-	sout << "PB = 0x" << Utility::int2hexStr(mPBIn, 2) << " (In) 0x" << Utility::int2hexStr(mPBOut, 2) << " (out) 0b" <<
-		Utility::int2binStr(mDDRB,8) << " (dir mask - '1' <=> Out)\n";
-	sout << "CA1 = 0x" << Utility::int2hexStr(mCAIn & 0x1, 1) << " (In) " << Utility::int2hexStr(mCAOut & 1, 1) << " (out)\n";
-	sout << "CA2 = 0x" << Utility::int2hexStr((mCAIn >> 1) & 0x1, 1) << " (In) " << Utility::int2hexStr((mCAOut >> 1) & 1, 1) << " (out)\n";
-	sout << "CB1 = 0x" << Utility::int2hexStr(mCBIn & 0x1, 1) << " (In) " << Utility::int2hexStr(mCBOut & 1, 1) << " (out)\n";
-	sout << "CB2 = 0x" << Utility::int2hexStr((mCBIn >> 1) & 0x1, 1) << " (In) " << Utility::int2hexStr((mCBOut >> 1) & 1, 1) << " (out)\n";
-	sout << "Shift Register = 0x" << Utility::int2hexStr(mShiftRegister, 2) << "\n";
-	sout << "T1 Counter = 0x" << Utility::int2hexStr(mTimer1Counter & 0xffff, 4) << "\n";
-	sout << "T2 Counter = 0x" << Utility::int2hexStr(mTimer2Counter & 0xffff, 4) << "\n";
+	sout << "PA = 0x" << Utility::int2HexStr(mPAIn, 2) << " (In) 0x" << Utility::int2HexStr(mPAOut, 2) << " (out) 0b" <<
+		Utility::int2NinStr(mDDRA,8) << " (dir mask - '1' <=> Out)\n";
+	sout << "PB = 0x" << Utility::int2HexStr(mPBIn, 2) << " (In) 0x" << Utility::int2HexStr(mPBOut, 2) << " (out) 0b" <<
+		Utility::int2NinStr(mDDRB,8) << " (dir mask - '1' <=> Out)\n";
+	sout << "CA1 = 0x" << Utility::int2HexStr(mCAIn & 0x1, 1) << " (In) " << Utility::int2HexStr(mCAOut & 1, 1) << " (out)\n";
+	sout << "CA2 = 0x" << Utility::int2HexStr((mCAIn >> 1) & 0x1, 1) << " (In) " << Utility::int2HexStr((mCAOut >> 1) & 1, 1) << " (out)\n";
+	sout << "CB1 = 0x" << Utility::int2HexStr(mCBIn & 0x1, 1) << " (In) " << Utility::int2HexStr(mCBOut & 1, 1) << " (out)\n";
+	sout << "CB2 = 0x" << Utility::int2HexStr((mCBIn >> 1) & 0x1, 1) << " (In) " << Utility::int2HexStr((mCBOut >> 1) & 1, 1) << " (out)\n";
+	sout << "Shift Register = 0x" << Utility::int2HexStr(mShiftRegister, 2) << "\n";
+	sout << "T1 Counter = 0x" << Utility::int2HexStr(mTimer1Counter & 0xffff, 4) << "\n";
+	sout << "T2 Counter = 0x" << Utility::int2HexStr(mTimer2Counter & 0xffff, 4) << "\n";
 
 	return true;
 }

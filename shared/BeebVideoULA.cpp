@@ -95,8 +95,7 @@ BeebVideoULA::BeebVideoULA(
 	mDisplayBitmap = al_create_bitmap(vis_res.width, vis_res.height);
 	al_clear_to_color(black);
 
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-		cout << "create display bitmap " << dec << vis_res.width << " x " << vis_res.height << "\n";
+	DBG_LOG(this,DBG_VERBOSE, "create display bitmap " + to_string(vis_res.width) + " x " + to_string(vis_res.height));
 
 	lockDisplay();
 
@@ -213,74 +212,37 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int vt_video_lines = mScreenScanLines - vt_blanking;
 	
 	if (DBG_LEVEL_DEV(this,DBG_VDU) && adjusted_scanline == 100 && mField % 50 == 0) {
-		cout << "\n" << dec <<
-			"chars per line: " << hz_chars << ", pixels/byte: " << mPixelsPerCharacter << ", pixel width: " << (int)mPixelW << "\n";
-		cout << "duration of a line and a field expressed in pixels: " << total_res.width << " x " << total_res.height << "\n";
-		cout << "visible resolution: " << hz_visible_pixels << " x " << vt_visible_pixels << "\n";
-		cout << "active resolution: " << hz_active_resolution << " x " << mActiveLines << " (" << hz_active_chars << " x " << hz_active_rows << ")\n";
-		cout << "unique active resolution: " << hz_unique_resolution << " x " << mActiveLines << " (" << unique_active_chars << " x " << unique_active_rows << ")\n";
-		cout << "video chars: " << hz_video_content << " (" << ((double)hz_video_content / hz_chars) << ")" << "\n";
-		cout << "visible chars: " << hz_visible_chars << " (" << ((double)hz_visible_chars / hz_chars) << ")" << "\n";
-		cout << "active chars: " << hz_active_chars << " (" << ((double)hz_active_chars / hz_chars) << ")" << "\n";
-		cout << "hz blanking: " << hz_blanking_spec << " (" << ((double)hz_blanking_spec / hz_chars) << ")" << "\n";
-		cout << "hz visible char pos offset: " << hz_visible_char_offset << "\n";
-		cout << "visible line offset: " << vt_visible_line_offset << "\n";
-		cout <<	"\n";
+		DBG_LOG(this, DBG_VDU,  + "chars per line: " + to_string(hz_chars) + ", pixels/byte: " + to_string(mPixelsPerCharacter) + ", pixel width: " + to_string(mPixelW));
+		DBG_LOG(this, DBG_VDU,  + "duration of a line and a field expressed in pixels: " + to_string(total_res.width) + " x " + to_string(total_res.height));
+		DBG_LOG(this, DBG_VDU,  + "visible resolution: " + to_string(hz_visible_pixels) + " x " + to_string(vt_visible_pixels));
+		DBG_LOG(this, DBG_VDU,  + "active resolution: " + to_string(hz_active_resolution) + " x " + to_string(mActiveLines) + " (" + to_string(hz_active_chars) + " x " + to_string(hz_active_rows) + ")");
+		DBG_LOG(this, DBG_VDU,  + "unique active resolution: " + to_string(hz_unique_resolution) + " x " + to_string(mActiveLines) + " (" + to_string(unique_active_chars) + " x " + to_string(unique_active_rows) + ")");
+		DBG_LOG(this, DBG_VDU,  + "video chars: " + to_string(hz_video_content) + " (" + to_string((double)hz_video_content / hz_chars) + ")");
+		DBG_LOG(this, DBG_VDU,  + "visible chars: " + to_string(hz_visible_chars) + " (" + to_string((double)hz_visible_chars / hz_chars) + ")");
+		DBG_LOG(this, DBG_VDU,  + "active chars: " + to_string(hz_active_chars) + " (" + to_string((double)hz_active_chars / hz_chars) + ")");
+		DBG_LOG(this, DBG_VDU,  + "hz blanking: " + to_string(hz_blanking_spec) + " (" + to_string((double)hz_blanking_spec / hz_chars) + ")");
+		DBG_LOG(this, DBG_VDU,  + "hz visible char pos offset: " + to_string(hz_visible_char_offset));
+		DBG_LOG(this, DBG_VDU,  + "visible line offset: " + to_string(vt_visible_line_offset));
 	}
 	
 	int field_rate = (int)round(getFieldRate());
 
-	if (adjusted_scanline == mVerticalSyncPos) {
-#ifdef VDU_TIME_DEBUG
-		if (DBG_LEVEL_DEV(this,DBG_TIME) && mField == 0) {
-			cout << dec << "\n";
-			cout << "Field Rate: " << dec << field_rate << "\n";
-			cout << "Video ULA total (including CRTC & TCG) - ms per sec: " << mVideoULACnt / 1e6 << "\n";
-			cout << "Display prelude - ms per sec: " << mPreludeUsCnt / 1e6 << "\n";
-			cout << "Display update - ms per sec: " << mDispUsCnt / 1e6 << "\n";
-			cout << "Memory read - ms per sec: " << mReadCnt / 1e6 << "\n";
-			cout << "CRTC update - ms per sec: " << mCRTCnt / 1e6 << "\n";
-			cout << "TT update - ms per sec: " << mTTCnt / 1e6 << "\n";
-			cout << "Line update - ms per sec: " << (mLineCnt- mTTCnt- mCRTCnt- mReadCnt) / 1e6 << "\n";
-			cout << "Border update - ms per sec: " << mBorderCnt / 1e6 << "\n";
-			mVideoULACnt = 0;
-			mPreludeUsCnt = 0;
-			mDispUsCnt = 0;
-			mCRTCnt = 0;
-			mTTCnt = 0;
-			mCharPixelCnt = 0;
-			mBorderCnt = 0;
-			mReadCnt = 0;
-			mLineCnt = 0;
-		}
-#endif
+	if (adjusted_scanline == mVerticalSyncPos)
 		mField = (mField + 1) % field_rate;
-	}
-
 	
-	if (false && DBG_LEVEL_DEV(this,DBG_VDU))
-		cout << "\n\nFIELD #" << field_offset << "(" << mField << "), SCAN LINE " << dec << mScanLine << " (adjusted to " << adjusted_scanline << ")" <<
-		", VISIBLE LINE " << visible_scan_line << " (" << vt_visible_pixels << ")" <<
-		", ACTIVE LINE " << active_scan_line << " (" << mActiveLines << ")" <<
-		")\n";
-
+	DBG_LOG(
+		this, DBG_VDU,
+		"FIELD #" + to_string(field_offset) + "(" + to_string(mField) + "), SCAN LINE " + to_string(mScanLine) +
+		" (adjusted to " + to_string(adjusted_scanline) + ")" +
+		", VISIBLE LINE " + to_string(visible_scan_line) + " (" + to_string(vt_visible_pixels) + ")" +
+		", ACTIVE LINE " + to_string(active_scan_line) + " (" + to_string(mActiveLines) + ")"
+		);
 
 	bool teletext = getCRField(CR_TELETEXT) == 1;
 
-#ifdef VDU_TIME_DEBUG
-	auto prelude_stop = chrono::high_resolution_clock::now();
-	auto prelude_dur = chrono::duration_cast<chrono::nanoseconds>(prelude_stop - prelude_start);
-	mPreludeUsCnt += prelude_dur.count();
-#endif
-
-
 	if (adjusted_scanline == mVerticalSyncPos) {
-	
-#ifdef VDU_TIME_DEBUG
-		auto disp_start = chrono::high_resolution_clock::now();
-#endif
 
-		DBG_LOG(this, DBG_VDU, "UPDATE SCREEN\n");
+		DBG_LOG(this, DBG_VDU, "UPDATE SCREEN");
 
 		// Unlock the screen display (bitmap) so it can be written to
 		unlockDisplay();
@@ -317,77 +279,12 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		line_bitmap_data_p = (BITMAP_PTR) ((LOCKED_BITMAP_PTR) mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_scan_line);
 	}
 
-#ifdef DBG_ON
-	if (sync_debug || mem_debug) {
-		cout << "\n\n";
-		cout << dec << setw(3) << mScanLine << " (F" << field_scan_line << ",R" << mCRTC->mCharRow << ") V" << hz_visible_chars << " A" << hz_active_chars << " O" << hz_visible_char_offset << "\n";
-		cout << "Pixels/char: " << mPixelsPerCharacter << ", pixel width: " << (int) mPixelW << "\n";
-		bool active_line = false;
-		for (int char_pos = 0; char_pos < hz_chars; char_pos++) {
-			int active_char_pos = (char_pos - hz_disp_skew + hz_chars) % hz_chars;
-			if (active_char_pos < hz_active_chars && active_scan_line < mActiveLines) {
-				active_line = true;
-				break;
-			}
-		}
-		cout << "FIELD " << dec << mField %2 << "\n";
-		cout << "FIELD LINE " << dec << field_unique_line << " (" << field_unique_lines << ")\n";
-		cout << "SCAN LINE " << dec << mScanLine << " (" << mScreenScanLines << ")\n";
-		cout << "ADJUSTED SCAN LINE " << dec << adjusted_scanline << "\n";
-		if (active_line)
-			cout << "ACTIVE LINE " << dec << active_scan_line << " (" << mActiveLines << ")\n";
-		else
-			cout << "INACTIVE LINE " << dec << active_scan_line << " (" << mActiveLines << ")\n";
-		if (visible_scan_line < vt_visible_pixels)
-			cout << "VISIBLE LINE " << dec << visible_scan_line << " (" << vt_visible_pixels << ")\n";
-		else
-			cout << "INVISIBLE LINE " << dec << visible_scan_line << " (" << vt_visible_pixels << ")\n";
-		if (field_scan_line > vt_blanking)
-			cout << "VIDEO LINE " << dec << video_line << " (" << vt_video_lines << ")\n";
-		else
-			cout << "NON-VIDEO (BLANKING) LINE " << dec << video_line << " (" << vt_video_lines << ")\n";
-		if (adjusted_scanline >= mVerticalSyncPos && adjusted_scanline < mVerticalSyncPos + vt_sync_height_cfg)
-			cout << "*** VERTICAL SYNC ***\n";
-	}
-
-	if (sync_debug) {
-		cout << "SYN:";
-		for (int char_pos = 0; char_pos < hz_chars; char_pos++) {
-			if (char_pos >= hz_sync_pos && char_pos < hz_sync_pos + hz_sync_width_cfg)
-				cout << "S";
-			else
-				cout << "_";
-		}
-		cout << "\nACT:";
-		for (int char_pos = 0; char_pos < hz_chars; char_pos++) {
-			int active_char_pos = (char_pos - hz_disp_skew + hz_chars) % hz_chars;
-			if (active_char_pos < hz_active_chars && active_scan_line < mActiveLines)
-				cout << "A";
-			else
-				cout << "_";
-		}
-		cout << "\n    ";
-		for (int char_pos = 0; char_pos < hz_chars; cout << char_pos++ % 10);
-		cout << "\nVIS:";
-		for (int char_pos = 0; char_pos < hz_chars; char_pos++) {
-			int visible_char_pos = (char_pos - hz_visible_char_offset + hz_chars) % hz_chars;
-			if (visible_char_pos < hz_visible_chars)
-				cout << "+";
-			else
-				cout << "_";
-		}
-		cout << "\nDIS:";
-	}
-#endif
 	BITMAP_PTR bitmap_data_p = line_bitmap_data_p;
 	for (int char_pos = 0; char_pos < hz_chars; char_pos++) {
 
 		int visible_char_pos = (char_pos - hz_visible_char_offset + hz_chars) % hz_chars;
 		int active_char_pos = (char_pos - hz_disp_skew + hz_chars) % hz_chars;
 
-#ifdef VDU_TIME_DEBUG
-		auto line_start = chrono::high_resolution_clock::now();
-#endif
 		int pos_X = -1;
 		int pos_Y = -1;
 		if (line_bitmap_data_p != NULL && visible_char_pos < hz_visible_chars) {
@@ -401,26 +298,16 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 		// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
 		// the TGC character is only 12 pixels wide (well 16 bit after being extended) whereas the CRTC one is 8 pixels wide!
-#ifdef DBG_ON
-		if (false && char_pos == 0 && DBG_LEVEL_DEV(this,DBG_VDU))
-			cout << "VDU RA = " << dec << (int)mRA << "\n";
-#endif
+
 		// Advance the CRT one character at a time
 		// If in the active, area, the video memory address containing 
 		// character/graphics data is also provided.
 		uint16_t crtc_adr, screen_adr;
-#ifdef VDU_TIME_DEBUG
-		auto crtc_start = chrono::high_resolution_clock::now();
-#endif
+
 		if (!mCRTC->getMemFetchAdr(crtc_adr)) {
-			cout << "Failed to get address from the CRTC!\n";
+			DBG_LOG(this, DBG_ERROR, "Failed to get address from the CRTC!");
 			return false;
 		}
-#ifdef VDU_TIME_DEBUG
-		auto crtc_stop = chrono::high_resolution_clock::now();
-		auto crtc_dur = chrono::duration_cast<chrono::nanoseconds>(crtc_stop - crtc_start);
-		mCRTCnt += crtc_dur.count();
-#endif
 
 		// Is the screen (display) in the active area (for non-teletext modes; for teletext mode dis_ena will be updated later on	
 		uint8_t dis_ena = false;
@@ -434,60 +321,31 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		else { // Normally mode 7
 			screen_adr = crtc_adr + (0x7400 ^ 0x2000); // CRTC MA13 is used to select the SA5050 and is cleared by 0x2000
 		}
-		if (screen_adr >= 0x8000) {
-			if (false)
-				cout << "SCROLLING - subtracting 0x" << hex << screen_adr << " by 0x" << mHwScrollSub << " for char pos " << dec << 
-					char_pos << " and C1:C0 = " << Utility::int2binStr(mC,2) << "\n";
+		if (screen_adr >= 0x8000) 
 			screen_adr -= mHwScrollSub; // correct for wrap around when hardware scrolling		
-		}
 
 		// 
 		// Read video memory data
 		// Data shall be read from video memory even if the display is not yet enabled
 		//
-#ifdef VDU_TIME_DEBUG
-		auto mem_read_start = chrono::high_resolution_clock::now();
-#endif
+
 		uint8_t screen_data;
 		if (!mVideoMem->read(screen_adr, screen_data)) {
-			cout << "Failed to read video memory at address 0x" << hex << screen_adr << "\n";
+			DBG_LOG(this, DBG_ERROR, "Failed to read video memory at address 0x" + Utility::int2HexStr(screen_adr,4));
 			return false;
 		}
-#ifdef VDU_TIME_DEBUG
-		auto mem_read_stop = chrono::high_resolution_clock::now();
-		auto mem_read_dur = chrono::duration_cast<chrono::nanoseconds>(mem_read_stop - mem_read_start);
-		mReadCnt += mem_read_dur.count();
-#endif
 
 		// For teletext modes, decode video memory data as videotext data
 		if (teletext) {
-#ifdef VDU_TIME_DEBUG
-			auto tt_start = chrono::high_resolution_clock::now();
-#endif
+
 			// Feed video memory data to the CRTC. Result will be collected the next character column due to
 			// delay within the TCG
 			memcpy((char*)&tgc_data[0], (char*)&mTgcData[0], 16 * sizeof(tgc_data[0]));
 			dis_ena = mValidTgcData;
 			mValidTgcData = mTGC->getScreenData(screen_data, mTgcData);
-#ifdef VDU_TIME_DEBUG
-			auto tt_stop = chrono::high_resolution_clock::now();
-			auto tt_dur = chrono::duration_cast<chrono::nanoseconds>(tt_stop - tt_start);
-			mTTCnt += tt_dur.count();
-#endif
-		}
-#ifdef DBG_ON
-		if (mem_debug) {
-			cout << setfill('0') << setw(2) << dec << char_pos << ":" << setw(4) << hex << screen_adr << ":" << setw(2) << (int)screen_data << ":" <<
-			"(" << dec << pos_X << "," << pos_Y << ") ";
+
 		}
 		
-		if (sync_debug) {
-			if (dis_ena)
-				cout << "D";
-			else
-				cout << "_";
-		}
-#endif		
 		if (dis_ena && bitmap_data_p != NULL)
 			// Active area of an active line
 			//
@@ -506,13 +364,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 					mCursorSegment = 0;
 				int shift = (mCursorSegment <= 2 ? mCursorSegment : 2);
 				cursor_seg_ena = (cursor_segments >> (2 - shift)) & 0x1;	
-#ifdef DBG_ON
-				if (false && DBG_LEVEL_DEV(this,DBG_VDU)) {
-					cout << "VDU CURSOR " << dec << (int) mCURSOR << ", cursor ena " << (cursor_seg_ena ? "enabled" : "disabled") <<
-						", cursor segments '" << setw(3) << bitset<3>(cursor_segments) << "', cursor segment #" << dec << mCursorSegment << 
-						", char col " << char_pos << "\n";
-				}
-#endif
+
 				mCursorSegment++;
 			}
 			else
@@ -532,9 +384,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			// 
 			// Big pixels/byte = 8 * cols / Visible "chars" per line
 			//
-#ifdef VDU_TIME_DEBUG
-			auto char_pixel_start = chrono::high_resolution_clock::now();
-#endif
+
 			for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++) {
 
 				if (!teletext) {
@@ -589,63 +439,33 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 				if (!teletext)
 					mem_data = (mem_data << 1) | 1;
 			}
-#ifdef VDU_TIME_DEBUG
-			auto char_pixel_stop = chrono::high_resolution_clock::now();
-			auto char_pixel_dur = chrono::duration_cast<chrono::nanoseconds>(char_pixel_stop - char_pixel_start);
-			mCharPixelCnt += char_pixel_dur.count();
-#endif
 
 		}
 
 		else {
 			
 			if (visible_char_pos < hz_visible_chars && bitmap_data_p != NULL) {
-#ifdef VDU_TIME_DEBUG
-				auto border_start = chrono::high_resolution_clock::now();
-#endif
 
 				for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++)
 					for (int pw = 0; pw < mPixelW && bitmap_data_p < mMaxDisplayBitmap_p; pw++)
 						*bitmap_data_p++ = border_colour;
-#ifdef VDU_TIME_DEBUG
-				auto border_stop = chrono::high_resolution_clock::now();
-				auto border_dur = chrono::duration_cast<chrono::nanoseconds>(border_stop - border_start);
-				mBorderCnt += border_dur.count();
-#endif
 				
 			}
 
 		}
-#ifdef VDU_TIME_DEBUG
-		auto line_stop = chrono::high_resolution_clock::now();
-		auto line_dur = chrono::duration_cast<chrono::nanoseconds>(line_stop - line_start);
-		mLineCnt += line_dur.count();
-#endif
 		
 	}
 
 	// Clear remaining  right-most pixels that are "left-over" when the hz res is not a multiple of the visible characters per raster line
 	if (line_bitmap_data_p != NULL) {
-#ifdef VDU_TIME_DEBUG
-		auto border_start = chrono::high_resolution_clock::now();
-#endif
+
 		Resolution vis_res = mVideoSettings.getVisibleResolution();
 		bitmap_data_p = line_bitmap_data_p + hz_visible_chars * mPixelsPerCharacter * mPixelW;
 		int n_left_over_pixels = vis_res.width - hz_visible_chars * mPixelsPerCharacter * mPixelW;
 		for (int p = 0; p < n_left_over_pixels && bitmap_data_p < mMaxDisplayBitmap_p;p++)
 			*bitmap_data_p++ = border_colour;
-#ifdef VDU_TIME_DEBUG
-		auto border_stop = chrono::high_resolution_clock::now();
-		auto border_dur = chrono::duration_cast<chrono::nanoseconds>(border_stop - border_start);
-		mBorderCnt += border_dur.count();
-#endif
 	}
 
-#ifdef VDU_TIME_DEBUG
-	auto video_stop = chrono::high_resolution_clock::now();
-	auto video_dur = chrono::duration_cast<chrono::nanoseconds>(video_stop - video_start);
-	mVideoULACnt += video_dur.count();
-#endif
 
 	return true;
 }
@@ -675,8 +495,7 @@ void BeebVideoULA::updateScreenSz(int fullW, int fullH, int activeW, int activeH
 	if (fullW != mScreenW || fullH != mScreenH) {
 		mScreenW = fullW;
 		mScreenH = fullH;
-		if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-			cout << "create display bitmap " << dec << mScreenW << " x " << mScreenH << " (" << activeW << " x " << activeH << ")\n";
+		DBG_LOG(this,DBG_VERBOSE, "create display bitmap " + to_string(mScreenW) + " x " + to_string(mScreenH) + " (" + to_string(activeW) + " x " + to_string(activeH) + ")");
 		al_resize_display(mDisplay, mScreenW, mScreenH);
 		unlockDisplay();
 		al_destroy_bitmap(mDisplayBitmap);	
@@ -805,8 +624,9 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 		)
 		&& (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 	) {
-		outputState(cout);
-
+		stringstream sout;
+		outputState(sout);
+		DBG_LOG(this, DBG_VERBOSE, sout.str());
 	}
 #endif
 	
@@ -1073,12 +893,7 @@ void BeebVideoULA::updateHwScrollConstant() {
 		mHwScrollSub = 0x0400;
 		mode = 7;
 	}
-#ifdef DBG_ON
-	if (false && DBG_LEVEL_DEV(this,DBG_VDU) && mHwScrollSub != p_HW_scroll_sub) {
-		cout << "Teletext=" << (int)teletext << ", C1C0=0x" << hex << (int)mC << " => new HW Scroll constant 0x" << hex << mHwScrollSub << " (0x" << p_HW_scroll_sub << ") for mode " << dec << mode << "\n";
-		cout << "Video ULA CR = 0x" << hex << (int)mControlRegister << "\n";
-	}
-#endif
+
 }
 
 // Outputs the internal state of the device

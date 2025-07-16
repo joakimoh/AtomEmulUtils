@@ -5,6 +5,7 @@
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_primitives.h>
 #include <cmath>
+#include "Utility.h"
 
 using namespace std;
 
@@ -92,9 +93,9 @@ VDU6847::VDU6847(string name, uint16_t adr, VideoSettings videoSettings, double 
 	// Initialise the VDU registers with zeros
 	mMem.assign(mMemorySpace.sz, 0);
 
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-		cout << "VDU 6847 at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
-		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
+	DBG_LOG(this,DBG_VERBOSE, "VDU 6847 at address 0x" + Utility::int2HexStr(mMemorySpace.adr,4) +
+		" to 0x" + Utility::int2HexStr(mMemorySpace.adr + mMemorySpace.sz - 1,4) + " (" + to_string(mMemorySpace.sz) + " bytes)"
+	);
 
 	// Createdisplay bitmap and clear it
 	mDisplayBitmap = al_create_bitmap(mScreenW, mScreenH);
@@ -107,20 +108,20 @@ VDU6847::VDU6847(string name, uint16_t adr, VideoSettings videoSettings, double 
 	lockDisplay();
 
 	if (DBG_LEVEL_DEV(this,DBG_VERBOSE)) {
-		cout << dec << "\n\nM6847 Parameters:\n\n";
-		cout << "Field rate: " << mFieldFreq << " [Hz]\n";
-		cout << "Scan lines per field: " << mFieldScanLines << " lines\n";
-		cout << "Scan lines per frame: " << mScreenScanLines << " lines\n";
-		cout << "Line duration: " << mlineDur << " [us] (" << mLineW << " pixels)\n";
-		cout << "Duration of horizontal borders: " << mBrdH << " [us] (" << mLBrdW + mRBrdW << " pixels)\n";
-		cout << "Vertical borders: " << mTBrdH + mBBrdH << " lines\n";
-		cout << "Vertical blanking: " << mTVBlkH + mBVBlkH << " lines\n";
-		cout << "Horizontal blanking: " << mHBlkDur << " [us] (" << mLBlkW + mRBlkW << " pixels)\n";
-		cout << "Visible Active Display Area: " << mActScreenAreaW << " x " << mActScreenAreaH << " pixels\n";
-		cout << "Total Visible Display Area: " << mScreenW << " x " << mScreenH << " pixels\n";
-		cout << "Total Display Area (including invisible parts): " << mTotalW << " x " << mTotalH << " pixels\n";
-		cout << "Visible Display Area: " << mScreenW << " x " << mScreenH << "\n";
-		cout << "\n\n";
+		DBG_LOG(this, DBG_VERBOSE,  + "\n\nM6847 Parameters:");
+		DBG_LOG(this, DBG_VERBOSE,  + "Field rate: " + to_string(mFieldFreq) + " [Hz]");
+		DBG_LOG(this, DBG_VERBOSE,  + "Scan lines per field: " + to_string(mFieldScanLines) + " lines");
+		DBG_LOG(this, DBG_VERBOSE,  + "Scan lines per frame: " + to_string(mScreenScanLines) + " lines");
+		DBG_LOG(this, DBG_VERBOSE,  + "Line duration: " + to_string(mlineDur) + " [us] (" + to_string(mLineW) + " pixels)");
+		DBG_LOG(this, DBG_VERBOSE,  + "Duration of horizontal borders: " + to_string(mBrdH) + " [us] (" + to_string(mLBrdW + mRBrdW) + " pixels)");
+		DBG_LOG(this, DBG_VERBOSE,  + "Vertical borders: " + to_string(mTBrdH + mBBrdH) + " lines");
+		DBG_LOG(this, DBG_VERBOSE,  + "Vertical blanking: " + to_string(mTVBlkH + mBVBlkH) + " lines");
+		DBG_LOG(this, DBG_VERBOSE,  + "Horizontal blanking: " + to_string(mHBlkDur) + " [us] (" + to_string(mLBlkW + mRBlkW) + " pixels)");
+		DBG_LOG(this, DBG_VERBOSE,  + "Visible Active Display Area: " + to_string(mActScreenAreaW) + " x " + to_string(mActScreenAreaH) + " pixels");
+		DBG_LOG(this, DBG_VERBOSE,  + "Total Visible Display Area: " + to_string(mScreenW) + " x " + to_string(mScreenH) + " pixels");
+		DBG_LOG(this, DBG_VERBOSE,  + "Total Display Area (including invisible parts): " + to_string(mTotalW) + " x " + to_string(mTotalH) + " pixels");
+		DBG_LOG(this, DBG_VERBOSE,  + "Visible Display Area: " + to_string(mScreenW) + " x " + to_string(mScreenH) + "");
+		DBG_LOG(this, DBG_VERBOSE,  + "\n");
 	}
 
 
@@ -182,15 +183,9 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	int pixel_line = mScanLine - (mTVBlkH + mTBrdH);
 	int visible_line = mScanLine - mTVBlkH;
 	int adjusted_pixel_line = pixel_line - field;
-
-	//cout << "FIELD " << dec << (mField % 2) << ", SCAN LINE " << mScanLine << ", adj pixel line " << adjusted_pixel_line << 
-	//	", SCREEN H " << mActScreenAreaH << ", TOP BLANKING " << mTVBlkH << ", BOTTOM BLANKING " << mBVBlkH << "\n";
-
 	
 	
 	if (adjusted_pixel_line == mActScreenAreaH) {
-
-		//cout << "*** UPDATE SCREEN! ***\n";
 
 		// The Field Sync (FS) signal goes High to Low at the end of the active display area
 		updatePort(VDU_PORT_FS, 0);  // for Acorn atom this will set PIA port C:b7 to '0'
@@ -214,7 +209,6 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	if (adjusted_pixel_line >= 0 && adjusted_pixel_line < mActScreenAreaH)
 		// Draw a visible active line
 	{		
-		//cout << "*** ACTIVE LINE! ***\n";
 
 		// Get pointer to bitmap data for the concerned scan line.
 		// pitch <=> bytes/line; data <=> pixel bytes with left-most pixel first
@@ -386,12 +380,6 @@ bool VDU6847::advanceLine(uint64_t& endCycle)
 	else if (adjusted_scan_line >= mTVBlkH && adjusted_scan_line < mScreenScanLines - mBVBlkH)
 		// Draw top or bottom border
 	{	
-		/*
-		if (adjusted_scan_line < mTVBlkH + mTBrdH)
-			cout << "*** DRAW TOP BORDER LINE! ***\n";
-		else
-			cout << "*** DRAW BOTTOM BORDER LINE! ***\n";
-		*/
 
 		unsigned int* bitmap_data_p = (unsigned int*)((char*)mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * visible_line);
 		for (int p = 0; p < mScreenW; p++) {

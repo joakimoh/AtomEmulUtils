@@ -18,14 +18,14 @@ string Utility::mask2Str(uint8_t mask)
 		return "b" + to_string(msb) + ":b" + to_string(lsb);
 }
 
-string Utility::int2hexStr(int v, int n)
+string Utility::int2HexStr(int v, int n)
 {
 	stringstream sout;
 	sout << setfill('0') << setw(n) << hex << v;
 	return sout.str();
 }
 
-string Utility::int2binStr(int v, int n)
+string Utility::int2NinStr(int v, int n)
 {
 	stringstream sout;
 	for (int i = 0; i < n; i++) {

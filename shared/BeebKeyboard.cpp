@@ -69,7 +69,7 @@ void BeebKeyboard::processPortUpdate(int index)
 				Key& key = mKeyboardMatrix[row][mCOL_SEL];
 				if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
 					column_key_pressed = true;
-					DBG_LOG(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!\n");
+					DBG_LOG(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!");
 					break;
 				}
 			}
@@ -80,7 +80,6 @@ void BeebKeyboard::processPortUpdate(int index)
 			vector<Key>& key_vec = mKeyboardMatrix[mROW_SEL];
 			Key& key = key_vec[mCOL_SEL];
 			if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode) || (mROW_SEL == 0 && linkSet(mCOL_SEL))) {
-				//cout << "Key '" << key.keyName << "' detected at ROW " << (int)mROW_SEL << ", " << (int)mCOL_SEL << "\n";
 				selected_key_pressed = true;
 			}
 		}
@@ -127,7 +126,7 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 				Key& key = mKeyboardMatrix[row][col];
 				if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
 					column_key_pressed = true;
-					DBG_LOG(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!\n");
+					DBG_LOG(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!");
 //					if (key.keyName == "B")
 //						mDM->setDebugLevel(DBG_INTERRUPTS | DBG_KEYBOARD | DBG_IO_PERIPHERAL | DBG_PORT | DBG_6502);
 					break;
@@ -146,7 +145,7 @@ bool BeebKeyboard::advance(uint64_t stopCycle)
 
 	if (DBG_LEVEL_DEV(this,DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mENA != pENA || mPRESSED != old_pressed)) {
 		DBG_LOG(this, DBG_KEYBOARD, "ENA = " + to_string(mENA) + ",COL_SEL = " + to_string(mCOL_SEL) + 
-			", ROW_SEL = " + to_string(mROW_SEL) + ", PRESSED = " + to_string(mPRESSED) + ", ROW = " + to_string(mROW) + "\n");
+			", ROW_SEL = " + to_string(mROW_SEL) + ", PRESSED = " + to_string(mPRESSED) + ", ROW = " + to_string(mROW));
 	}
 
 	oROW = mROW;

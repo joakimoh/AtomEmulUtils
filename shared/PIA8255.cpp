@@ -198,9 +198,10 @@ PIA8255::PIA8255(string name, double cpuclock, uint8_t waitStates, uint16_t adr,
 	registerPort("PortB", IO_PORT, 0xff, PIA_PORT_B, &mPBIn, &mPBOut);
 	registerPort("PortC", IO_PORT, 0xff, PIA_PORT_C, &mPCIn, &mPCOut);
 
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-		cout << "PIA 8255 at address 0x" << hex << setfill('0') << setw(4) << mMemorySpace.adr <<
-		" to 0x" << mMemorySpace.adr + mMemorySpace.sz - 1 << " (" << dec << mMemorySpace.sz << " bytes)\n";
+	DBG_LOG(
+		this,DBG_VERBOSE, "PIA 8255 at address 0x" + Utility::int2HexStr(mMemorySpace.adr,4) +
+		" to 0x" + Utility::int2HexStr(mMemorySpace.adr + mMemorySpace.sz - 1, 4) + " (" + to_string(mMemorySpace.sz) + " bytes)"
+	);
 }
 
 
@@ -246,8 +247,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 		bool port_C_upper_input = (mCR >> 3) & 0x1;
 		data = (port_C_lower_input ? mPCIn & 0xf : mPCOut & 0xf) | (port_C_upper_input?mPCIn & 0xf0:mPCOut & 0xf0);
 
-		if (DBG_LEVEL_DEV(this, DBG_DEVICE))
-			cout << "PIA EXECUTED READ 0x" << setw(2) << setfill('0') << hex << (int)data << " from 0x" << setw(4) << adr << "\n";
+		DBG_LOG(this, DBG_DEVICE, "READ 0x" + Utility::int2HexStr(data, 2) + " from 0x" + Utility::int2HexStr(adr, 4));
 	}
 
 	else { // adr == PIA8255_CONTROL
@@ -362,20 +362,22 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 				updatePort(PIA_PORT_B, 0x0);
 
 			if (new_group_A_mode > 0 || new_group_B_mode > 0) {
-				cout << "*** PIA 8255 ERROR *** Requested group A mode " << (int)new_group_A_mode << " & group B mode " << (int)new_group_B_mode <<
-					" when no other modes than 0 - Basic I / O are currently supported!\n";
+				DBG_LOG(
+					this, DBG_ERROR, 
+					"Requested group A mode " + to_string(new_group_A_mode) + " & group B mode " + to_string(new_group_B_mode) +
+					" when no other modes than 0 - Basic I / O are currently supported!"
+				);
 				return false;
 			}
 
 			if (DBG_LEVEL_DEV(this,DBG_DEVICE)) {
-				cout << "I/O Mode: ";
-				cout << " PortSelection A " << (mCR & 0x40 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2"));
-				cout << " " << (mCR & 0x10 ? "IN" : "OUT");
-				cout << ", PortSelection B " << (mCR & 0x04 ? "M1" : "M0");
-				cout << " " << (mCR & 0x02 ? "IN" : "OUT");
-				cout << ", PortSelection C upper " << (mCR & 0x08 ? "IN" : "OUT");
-				cout << ", PortSelection C lower " << (mCR & 0x01 ? "IN" : "OUT");
-				cout << "\n";
+				DBG_LOG(this, DBG_IO_PERIPHERAL,  "I/O Mode: ");
+				DBG_LOG(this, DBG_IO_PERIPHERAL,  " PortSelection A "s + (mCR & 0x40 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2")));
+				DBG_LOG(this, DBG_IO_PERIPHERAL,  " "s + (mCR & 0x10 ? "IN" : "OUT"));
+				DBG_LOG(this, DBG_IO_PERIPHERAL,  ", PortSelection B "s + (mCR & 0x04 ? "M1" : "M0"));
+				DBG_LOG(this, DBG_IO_PERIPHERAL,  " "s + (mCR & 0x02 ? "IN" : "OUT"));
+				DBG_LOG(this, DBG_IO_PERIPHERAL,  ", PortSelection C upper "s + (mCR & 0x08 ? "IN" : "OUT"));
+				DBG_LOG(this, DBG_IO_PERIPHERAL,  ", PortSelection C lower "s + (mCR & 0x01 ? "IN" : "OUT"));
 			}
 		} 
 		else
@@ -390,13 +392,17 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 			port_C_data &= ~(1 << bit);
 			port_C_data |= (val << bit);
 			updatePort(PIA_PORT_C, port_C_data);
-			if (DBG_LEVEL_DEV(this, DBG_DEVICE))
-				cout << "Set PIA PortSelection C b" << (int) bit << " to 0x" << hex << (int) val << " => PortC = 0x" << hex << (int) mPCOut << dec << "\n";
+			DBG_LOG(
+				this, DBG_IO_PERIPHERAL, 
+				"Set PIA PortSelection C b" + to_string(bit) + " to 0x" + Utility::int2HexStr(val,2) + " => PortC = 0x" + Utility::int2HexStr(mPCOut,2)
+			);
 		}
 	}
 
-	if (DBG_LEVEL_DEV(this, DBG_DEVICE))
-		cout << "PIA EXECUTED WRITE OF 0x" << setw(2) << setfill('0') << hex << (int)data << " to 0x" << setw(4) << adr << "\n";
+	DBG_LOG(
+		this, DBG_IO_PERIPHERAL, 
+		"PIA EXECUTED WRITE OF 0x" + Utility::int2HexStr(data,2) + " to 0x" + Utility::int2HexStr(adr,4)
+	);
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	return MemoryMappedDevice::triggerAfterWrite(adr, data);
@@ -418,7 +424,7 @@ bool PIA8255::outputState(ostream& sout)
 	uint8_t port_C_upper_dir_mask = (port_C_upper_input ? 0x00 : 0xf0);
 	uint8_t port_C_dir_mask = port_C_lower_dir_mask | port_C_upper_dir_mask;
 
-	sout << "mCR = 0x" << Utility::int2hexStr(mCR, 2) << " <=>\n";
+	sout << "mCR = 0x" << Utility::int2HexStr(mCR, 2) << " <=>\n";
 
 	if (!BSR_mode) {
 		sout << "\tI/O Mode\n";

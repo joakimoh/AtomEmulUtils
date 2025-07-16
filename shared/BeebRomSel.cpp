@@ -67,7 +67,7 @@ bool BeebROMSel::write(uint16_t adr, uint8_t data)
 	updatePort(NE, (bank_sel >> 13) & 0x1);
 	updatePort(SW, (bank_sel >> 14) & 0x1);
 	updatePort(SE, (bank_sel >> 15) & 0x1);
-	DBG_LOG_COND(reg != p_reg, this, DBG_VERBOSE, "ROMSel: Slot " + to_string(mReg & 0xf) + " selected => Bank Selection " + Utility::int2binStr(bank_sel, 16) + "\n");
+	DBG_LOG_COND(reg != p_reg, this, DBG_VERBOSE, "ROMSel: Slot " + to_string(mReg & 0xf) + " selected => Bank Selection " + Utility::int2NinStr(bank_sel, 16) + "\n");
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	return MemoryMappedDevice::triggerAfterWrite(adr, data);
@@ -78,7 +78,7 @@ bool BeebROMSel::outputState(ostream& sout)
 {
 	uint16_t bank_sel = ~(1 << (mReg & 0xf));
 	sout << "Bank = 0x" << hex << (int)(mReg & 0xf) << " <=>\n";
-	sout << "\tSelection strobe = " << Utility::int2binStr(bank_sel, 16) << "\n";
+	sout << "\tSelection strobe = " << Utility::int2NinStr(bank_sel, 16) << "\n";
 	sout << "\tNW =               " << (int)mNW << "\n";
 	sout << "\tNE =               " << (int)mNE << "\n";
 	sout << "\tSW =               " << (int)mSW << "\n";

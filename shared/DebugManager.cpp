@@ -445,13 +445,12 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 
 	// Buffer the data (instead of outputting it directly) when extensive buffering is ongoing
 	if (mExtensiveLog && mTracingState == PREBUF_TRACING) {
-		//cout << "\n* " << mBufferedTraceLines.size() << " *\n" << line << "\n\n";
 		mTmpExtensiveTracingLog += prefix + line;
 	}
 
 	// Log the data if the debugging is enabled (armed) and buffering is not ongoing
 	if (mTriggeringArmed && (mTracingState == POST_TRACING || mTracingState == TRACING_ON)) {
-		cout << prefix << line;
+		cout << prefix << line + "\n";
 	}
 
 }

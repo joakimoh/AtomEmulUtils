@@ -27,8 +27,6 @@ bool ACIA6850::read(uint16_t adr, uint8_t& data)
 	else {
 		// Receive Data Register (RDR)
 		data = mRDR;
-		//if (ACIA_SR_RDRF)
-		//	cout << "CPU Read of ACIA RDR when RDRF SR bit set gave 0x" << hex << (int)data << " at " << mCycleCount / mCPUClock * 1e-6 << "s\n";
 		mSR &= ~ACIA_SR_RDRF_MASK; // Clear the Receive Data Register Full bit
 
 		// Interrupts caused by Overrun or loss od DCD are cleared by reading the SR (mPendingRxIRQClr is true) and then the RDR
@@ -190,10 +188,8 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 			break;
 		}
 
-		if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL) && mCR != p_CR) {
-			cout << "\nACIA Control Register updated to 0x" << hex << (int)mCR << " [" <<
-				div_s << ", " << w_sel_s << ", " << tx_ctrl_s << ", " << (ACIA_CR_RIE ? "Rx IRQ" : "No Rx IRQ") << "]\n";
-		}
+		DBG_LOG_COND(mCR != p_CR, this, DBG_IO_PERIPHERAL, "Control Register updated to 0x" + Utility::int2HexStr(mCR,2) + " [" +
+				div_s + ", " + w_sel_s + ", " + tx_ctrl_s + ", " + (ACIA_CR_RIE ? "Rx IRQ" : "No Rx IRQ") + "]");
 
 
 	}
@@ -203,13 +199,13 @@ bool ACIA6850::write(uint16_t adr, uint8_t data)
 		mSR &= ~ACIA_SR_TDRE_MASK; // Clear the Transmit Data Register Empty bit
 		if (mTxState == NO_BIT) {
 			mTxPending = true;
-			if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL))
-				cout << "Write byte 0x" << hex << (int) data << " to transmit into the ACIA TDR [no ongoing Tx]\n";
+			DBG_LOG_COND(mTxState == NO_BIT, this, DBG_IO_PERIPHERAL, "Write 0x" + Utility::int2HexStr(data,2) + " to transmit into the TDR [no ongoing Tx]");
 		}
 		else {
-			if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL))
-				cout << "Write byte 0x" << hex << (int) data << " to transmit into the ACIA TDR [ongoing Tx - state is " << 
-				(mTxState==DATA_BIT?"Data":(mTxState==PARITY_BIT?"Parity Bit":(mTxState==STOP_BIT?"Stop bit":"???"))) << "]\n";
+			DBG_LOG_COND(mTxState != NO_BIT, this, DBG_IO_PERIPHERAL, "Write 0x" + Utility::int2HexStr(data,2) +
+				" to transmit into the TDR [ongoing Tx - state is " +
+				(mTxState==DATA_BIT?"Data":(mTxState==PARITY_BIT?"Parity Bit":(mTxState==STOP_BIT?"Stop bit":"???"))) +"]"
+			);
 		}
 	}
 
@@ -237,8 +233,9 @@ void ACIA6850::update_settings()
 	mTxDivCycles = (int)round(mCPUClock * 1e6 / mTxDivClkRate);
 
 	if (DBG_LEVEL_DEV(this,DBG_VERBOSE) && change) {
-		cout << "\nACIA Settings:\n";
-		outputState(cout);
+		stringstream sout;
+		outputState(sout);
+		DBG_LOG(this, DBG_VERBOSE, "ACIA Settings:" + sout.str());		
 	}
 
 }
@@ -259,8 +256,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 
 	if (mDataStart && mDataStartCount < 0) {
 			mDataStartCount = mCycleCount;
-			if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL))
-				cout << "*** Rx DATA STARTS AT " << dec << mDataStartCount << " cycles (" << mCycleCount / mCPUClock * 1e-6 << "s)\n";
+			DBG_LOG(this, DBG_IO_PERIPHERAL, "Rx DATA STARTS AT " + to_string(mDataStartCount) + " cycles (" + to_string(mCycleCount / mCPUClock * 1e-6) + "s)");
 	}
 
 	while (mCycleCount < stopCycle) {
@@ -274,10 +270,6 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			data_time = mDataCount / mCPUClock * 1e-6;
 			time = mCycleCount / mCPUClock * 1e-6;
 		}
-			
-		//if (mDataStartCount > 0 && mRxState != NO_BIT && mCycleCount % mRxClkCycles == 0) {
-			//cout << dec << (int)mRxD;
-		//}
 
 		// Check for a start bit at the external Rx clock rate to find and 
 		// synchronise to the middle of a bit
@@ -288,7 +280,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				mRxLowSamples = 0;
 			}
 			if (mRxLowSamples > mClkDiv / 2 ) { // Got LOW samples for half the bit duration?
-				//cout << "#";
+
 				mRxMidSampleClkCycle = mCycleCount; // Save mid sample reference for use as sample point later on
 				mRxState = DATA_BIT;
 				mRxBits = 0;
@@ -296,16 +288,16 @@ bool ACIA6850::advance(uint64_t stopCycle)
 				mSR &= ~ACIA_SR_PE_MASK; // Reset Framing Error
 				mSR &= ~ACIA_SR_PE_MASK; // Reset parity Error
 				mRxPar = 0;
-				if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL))
-					cout << "\n" << dec << mRxLowSamples << " samples detected for start bit (" << mClkDiv / 2 << ") at " <<
-					data_time << "s (" << time << "s)\n";
+				DBG_LOG(
+					this, DBG_IO_PERIPHERAL, to_string(mRxLowSamples) + " samples detected for start bit (" + to_string(mClkDiv / 2) + ") at " +
+					to_string(data_time) + "s (" + to_string(time) + "s)"
+				);
 			}
 		}
 
 		// Check for data/parity/stop bits at the internal Rx DIV clock rate
 		else if (mRxState != START_BIT && mRxState != NO_BIT && (mCycleCount - mRxMidSampleClkCycle) % mRxDivCycles == 0) {
-			//cout << "*";
-			//cout << _ACIA_STATE(mRxState) << ": Sampled bit at " << mCycleCount / mCPUClock * 1e-6 << "s (" << mCycleCount - mRxMidSampleClkCycle << ") = '" << (int)mRxD << "'\n";
+
 			switch (mRxState) {
 			case DATA_BIT:
 			{
@@ -334,14 +326,9 @@ bool ACIA6850::advance(uint64_t stopCycle)
 					mSR |= ACIA_SR_PE_MASK; // Set Framing Error bit
 				if (!ACIA_SR_RDRF) {// Only transfer received data if the RDR is not already Full
 					mRDR = mRxBuffer;
-					//cout << "ACIA Receive Data Register EMPTY - can update it with received data!\n";
-				}
-				else {
-					//cout << "ACIA Receive Data Register FULL - cannot update it with received data!\n";
 				}
 
-				if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL))
-				cout << "\nACIA received byte 0x" << hex << (int)mRDR << " (" << (int)mRxBuffer << ") at " << data_time << "s (" << time << "s)\n";
+				DBG_LOG(this, DBG_IO_PERIPHERAL, "Received byte 0x" + Utility::int2HexStr(mRDR, 2) + " (" + Utility::int2HexStr(mRxBuffer, 2));
 
 				mSR |= ACIA_SR_RDRF_MASK; // Set Receive Data Register Full bit
 				mRxState = START_BIT;
@@ -372,8 +359,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			switch (mTxState) {
 			case START_BIT:
 			{
-				if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL))
-					cout << "ACIA writes start bit for byte 0x" << hex << (int)mTDRBuf << "\n";
+				DBG_LOG(this, DBG_IO_PERIPHERAL, "Writing start bit for byte 0x" +Utility::int2HexStr(mTDRBuf,2));
 				updatePort(TxD, 0);
 				mSentStopBits = 0;
 				mTxState = DATA_BIT;
@@ -387,8 +373,7 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			}
 			case DATA_BIT:
 			{
-				if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL))
-					cout << "ACIA writes data bit '" << (int)(mTDRBuf & 0x1) << "'\n";
+				DBG_LOG(this, DBG_IO_PERIPHERAL, "Writing data bit '" + Utility::int2HexStr(mTDRBuf & 0x1, 2) + "'");
 				updatePort(TxD, mTDRBuf & 0x1);
 				mTDRBuf = (mTDRBuf >> 1) & 0x7f;
 				mTxPar ^= mTxD;
@@ -410,21 +395,18 @@ bool ACIA6850::advance(uint64_t stopCycle)
 			}
 			case STOP_BIT:
 			{
-				if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL))
-					cout << "ACIA writes stop bit\n";
+				DBG_LOG(this, DBG_IO_PERIPHERAL, "Writing stop bit");
 				updatePort(TxD, 1);
 				mSentStopBits++;
 				if (mSentStopBits == mStopBits) {
 					mTxState = NO_BIT;
 					if (!ACIA_SR_CTS) {
-						if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL))
-							cout << "TDRE set\n";
+						DBG_LOG(this, DBG_IO_PERIPHERAL, "TDRE set");
 						mSR |= ACIA_SR_TDRE_MASK; // Set the Transmit Data Register Empty bit (if not inhibited by the CTS)
 					}
 					else
 					{
-						if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL))
-							cout << "CTS High (SR = 0x" << hex << (int)mSR << ") = > inhibits TDRE being set\n";
+						DBG_LOG(this, DBG_IO_PERIPHERAL, "CTS High (SR = 0x" + Utility::int2HexStr(mSR,2) + ") = > inhibits TDRE being set");
 					}
 
 				}
@@ -455,8 +437,7 @@ void ACIA6850::processPortUpdate(int index)
 		if (mDCD != pDCD) {
 			if (mDCD == 0) {
 				mRxLowSamples = 0;
-				mRxState = START_BIT; // Initiate a first start bit synchronisation
-				//cout << "ACIA DCD Input Low (active)\n";				
+				mRxState = START_BIT; // Initiate a first start bit synchronisation			
 			}
 			else { // Loss of Carrier (a low-to-high transition of the DCD input)
 				//mRxState = NO_BIT;
@@ -470,16 +451,14 @@ void ACIA6850::processPortUpdate(int index)
 		if (mCTS != pCTS) {
 			mSR &= ~ACIA_SR_CTS_MASK;
 			if (mCTS == 0) {
-				if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL))
-					cout << "ACIA CTS Input Low (active)\n";
+				DBG_LOG(this, DBG_IO_PERIPHERAL, "ACIA CTS Input Low (active)");
 				mSR |= ACIA_SR_CTS_MASK;
 			}
 			else { // Loss of CTS (mCTS == 1)
 				mSR &= ~ACIA_SR_CTS_MASK;
 				// Loss of CTS shall clear the TDRE bit
 				mSR &= ~ACIA_SR_TDRE_MASK;
-				if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL))
-					cout << "*** CARRIER LOST\n";
+				DBG_LOG(this, DBG_IO_PERIPHERAL, "CARRIER LOST");
 			}
 		}
 		pCTS = mCTS;
@@ -505,42 +484,36 @@ void ACIA6850::updateIRQ()
 			sout << ((ACIA_CR_RIE && ACIA_SR_RDRF) ? "RDRF " : "");
 			sout << ((ACIA_CR_RIE && ACIA_SR_OVRN) ? "OVERN " : "");
 			sout << ((ACIA_CR_RIE && ACIA_SR_DCD) ? "DCD " : "");
-			cout << "ACIA: IRQ Active (Low) (" << sout.str() << ")\n";
+			DBG_LOG_COND(p_IRQ == 1, this, DBG_INTERRUPTS, "IRQ Active (Low) (" + sout.str() + ")");
 		}
 	}
 	else {
 		updatePort(IRQ, 1);
 		mSR &= ~ACIA_SR_IRQ_MASK;
-		if (DBG_LEVEL_DEV(this,DBG_INTERRUPTS) && p_IRQ == 0) {
-			cout << "ACIA: IRQ Inactive (High)\n";
-		}
+		DBG_LOG_COND(p_IRQ == 0, this, DBG_IO_PERIPHERAL,"IRQ Inactive(High)");
 	}
 }
 
 void ACIA6850::setRxClkRate(long clkRate) {
 	mRxClkRate = clkRate;
 	mRxClkCycles = (int)round(mCPUClock * 1e6 / clkRate);	
-	//cout << "ACIA Rx Clock set to " << dec << mRxClkRate << " Hz, and CPU cycles per Rx Clock cycles set to " << mRxClkCycles << 
-	//	" for a CPU Clock of " << mCPUClock << " MHz\n";
 	update_settings();
 }
 
 void ACIA6850::setTxClkRate(long clkRate) {
 	mTxClkRate = clkRate;
 	mTxClkCycles = (int)round(mCPUClock * 1e6 / clkRate);
-	//cout << "ACIA Tx Clock set to " << dec << mTxClkRate << " Hz, and CPU cycles per Tx Clock cycles set to " << mTxClkCycles << 
-	//	" for a CPU Clock of " << mCPUClock << " MHz\n";
 	update_settings();
 }
 
 // Outputs the internal state of the device
 bool ACIA6850::outputState(ostream& sout)
 {
-	sout << "Receive Data register =  0x" << Utility::int2hexStr(mRDR, 2) << "\n";
-	sout << "Transmit Data register = 0x" << Utility::int2hexStr(mTDR, 2) << "\n";
+	sout << "Receive Data register =  0x" << Utility::int2HexStr(mRDR, 2) << "\n";
+	sout << "Transmit Data register = 0x" << Utility::int2HexStr(mTDR, 2) << "\n";
 	sout << "Rx Bit State =           " << _ACIA_STATE(mRxState) << "\n";
 	sout << "Tx BitState =            " << _ACIA_STATE(mTxState) << "\n";
-	sout << "Control Register =       0x" << Utility::int2hexStr(mCR, 2) << " <=> \n";
+	sout << "Control Register =       0x" << Utility::int2HexStr(mCR, 2) << " <=> \n";
 	sout << "\tEna Rx IRQ =             " << (int)ACIA_CR_RIE << "\n";
 	sout << "\tEna Tx IRQ =             " << (int)ACIA_CR_TIE << "\n";
 	sout << "\tClock Div =              " << (int)mClkDiv << "\n";

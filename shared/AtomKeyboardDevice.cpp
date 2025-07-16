@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <map>
 #include <chrono>
+#include "Utility.h"
 
 using namespace std;
 
@@ -35,25 +36,6 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugManage
 			mRepeatKeyCode = key->keyCode;
 		else if (key->atomKeyName == "BREAK")
 			mBreakKeyCode = key->keyCode;
-	}
-
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE)) {
-		cout << "KeyBoard initialised\n";
-		cout << "SHIFT keys have keycodes 0x" << hex << mShiftKeyCodes[0] << " and 0x" << mShiftKeyCodes[1] << dec << "\n";
-		cout << "CTRL key has keycode 0x" << hex << mCtrlKeyCode << dec << "\n";
-		cout << "REPEAT key has keycode 0x" << hex << mRepeatKeyCode << dec << "\n";
-		cout << "BREAK key has keycode 0x" << hex << mBreakKeyCode << dec << "\n";
-		cout << "Keyboard matrix is:\n";
-		for (int r = 0; r < 10; r++) {
-			for (int c = 0; c < 6; c++) {
-				AtomKey* key = mKeyboardMatrix[r][c];
-				if (key != NULL && key->row != -1 && key->col != -1)
-					cout << key->atomKeyName << "\t(0x" << hex << key->keyCode << dec << ")\t";
-				else
-					cout << "-\t\t";
-			}
-			cout << "\n";
-		}
 	}
 
 	al_get_keyboard_state(&mKeyboardState);
@@ -105,19 +87,9 @@ bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 		return false;
 
 
-	if (DBG_LEVEL_DEV(this,DBG_KEYBOARD) && (column_L != 0xff || column_H != 0x3))
-		cout << "column L = 0x" << hex << (int)column_L << ", column H = 0x" << (int)column_H << "\n";
-
-
-	auto kb_stop = chrono::high_resolution_clock::now();
-	auto vdu_dur = chrono::duration_cast<chrono::nanoseconds>(kb_stop - kb_start);
-	mKBCnt += vdu_dur.count();
-
-	if (false && mCnt >= 1000000) {
-		cout << "Keyboard ms per sec: " << mKBCnt / 1000 << "\n";
-		mKBCnt = 0;
-		mCnt = 0;
-	}
+	DBG_LOG_COND(column_L != 0xff || column_H != 0x3, this, DBG_KEYBOARD, 
+		"column L = 0x" + Utility::int2HexStr(column_L,2) + ", column H = 0x" + Utility::int2HexStr(column_H,2)
+		);
 	
 	return true;
 }

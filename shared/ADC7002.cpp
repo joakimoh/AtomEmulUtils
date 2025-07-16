@@ -30,7 +30,7 @@ bool ADC7002::advance(uint64_t stopCycle)
 				updatePort(EOC, 0x0);
 
 				DBG_LOG(this, DBG_ADC, (ADC_7002_CR_12_BIT ? "12-bit"s : "8-bit"s) + " conversion for channel " + to_string(ADC_7002_CR_CH) + 
-					" completed; input voltage " + to_string(mCHInput[ADC_7002_CR_CH]) + " gave value " + Utility::int2hexStr(data,3) + "\n");
+					" completed; input voltage " + to_string(mCHInput[ADC_7002_CR_CH]) + " gave value " + Utility::int2HexStr(data,3));
 			}
 
 		}
@@ -119,7 +119,7 @@ bool ADC7002::write(uint16_t adr, uint8_t data)
 		mSpeed = (ADC_7002_CR_12_BIT ? mSpeed12 : mSpeed8);
 		mStartCycleCount = mCycleCount;
 
-		DBG_LOG(this, DBG_ADC, "Start "s + (ADC_7002_CR_12_BIT?"12-bit"s:"8-bit"s) + " conversion for channel " + to_string(ADC_7002_CR_CH) + "\n");
+		DBG_LOG(this, DBG_ADC, "Start "s + (ADC_7002_CR_12_BIT?"12-bit"s:"8-bit"s) + " conversion for channel " + to_string(ADC_7002_CR_CH));
 	}
 	case 0x3:
 	{
@@ -147,11 +147,11 @@ bool ADC7002::setChannelVoltage(int channel, double voltage)
 // Outputs the internal state of the device
 bool ADC7002::outputState(ostream& sout)
 {
-	sout << "Control Register = 0x" << Utility::int2hexStr(mCR, 2) << " <=>\n";
+	sout << "Control Register = 0x" << Utility::int2HexStr(mCR, 2) << " <=>\n";
 	sout << "\tConversion bits =  " << (ADC_7002_CR_12_BIT ? 12 : 8) << "\n";
 	sout << "\tSelected channel = " << (int)ADC_7002_CR_CH << "\n";
 	sout << "\tFLAG =             " << (int)ADC_7002_CR_FLAG << "\n";
-	sout << "Status register = 0x" << Utility::int2hexStr(mSR, 2) << " <=>\n";
+	sout << "Status register = 0x" << Utility::int2HexStr(mSR, 2) << " <=>\n";
 	sout << "\tBUSY =             " << (int)ADC_7002_SR_BUSY << "\n";
 	sout << "\tChannel =          " << (int)ADC_7002_SR_CH << "\n";
 	sout << "\tEOC =              " << (int)ADC_7002_SR_EOC << "\n";

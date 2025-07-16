@@ -52,7 +52,7 @@ void AtomSpeaker::setFieldRate(int fieldRate, double speed)
 		ALLEGRO_CHANNEL_CONF_1
 	);
 	if (!mAudioStream) {
-		cout << "Could not create audio stream\n";
+		DBG_LOG(this, DBG_ERROR, "Could not create audio stream");
 		throw runtime_error("Could not create audio stream");
 	}
 
@@ -64,7 +64,7 @@ void AtomSpeaker::setFieldRate(int fieldRate, double speed)
 	}
 
 	if (!al_attach_audio_stream_to_mixer(mAudioStream, al_get_default_mixer())) {
-		cout << "Could not attach audio stream to audio mixer\n";
+		DBG_LOG(this, DBG_ERROR, "Could not attach audio stream to audio mixer");
 		throw runtime_error("Could not attach audio stream to audio mixer");
 	}
 

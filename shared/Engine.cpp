@@ -260,7 +260,7 @@ bool Engine::run()
 
                         if (mState != ENG_HALT && mState != ENG_BRK_DET) {
 
-                            // Execute one microprocessor instruction and advance time accordingly (cycle_count updated)
+                            // Execute one microprocessor instruction and advance time accordingly (mCycleCount updated)
                             if (!mMicroprocessor->advanceInstr(mCycleCount)) {
                                 // Execution stopped - exit
                                 mExecMutex.unlock();
@@ -272,6 +272,9 @@ bool Engine::run()
                             for (int d = 0; d < mInstrScheduledDevices.size(); d++)
                                 mInstrScheduledDevices[d]->advance(mCycleCount);
 
+                            // If a break point has been set and is triggered, then save instruction data and change the break point state
+                            // to triggered (ENG_BRK_DET). Another thread (a Debugger thread calling setBreakPointAndWait()) will
+                            // then stop its wait and use the saved instruction data.u65
                             if (
                                 mState == ENG_X_BRK_WAIT && mMicroprocessor->getOpcodePC() == mBreakAdr ||
                                 (mState == ENG_R_BRK_WAIT || mState == ENG_RW_BRK_WAIT) && mMicroprocessor->readAdr(mReadData) == mBreakAdr ||

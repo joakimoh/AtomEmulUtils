@@ -14,7 +14,7 @@ ROM::ROM(string name, double clockSpeed, uint8_t waitStates, uint16_t adr, uint1
 	ifstream fin(binaryContent, ios::in | ios::binary | ios::ate);
 
 	if (!fin) {
-		cout << "couldn't open Beeb Paged ROM file " << binaryContent << "\n";
+		DBG_LOG(this, DBG_ERROR, "couldn't open ROM file " + binaryContent);
 		throw runtime_error("couldn't open ROM file");
 	}
 
@@ -30,15 +30,17 @@ ROM::ROM(string name, double clockSpeed, uint8_t waitStates, uint16_t adr, uint1
 
 	uint16_t upper_sz = mMemorySpace.sz;
 	if (file_sz < (streamsize)sz) {
-		if (DBG_LEVEL_DEV(this,DBG_WARNING))
-			cout << "Warning - size of Beeb Paged ROM file " << binaryContent << " (" << file_sz <<
-			" ) is smaller than the expected one(" << sz << ") => filling up with zeros...\n";
+		DBG_LOG(
+			this, DBG_WARNING, "Warning - size of ROM file " + binaryContent + " (" + to_string(file_sz) +
+			" ) is smaller than the expected one(" + to_string(sz) + ") => filling up with zeros..."
+		);
 		upper_sz = (uint16_t)file_sz;
 	}
 	else if (file_sz > (streamsize)sz) {
-		if (DBG_LEVEL_DEV(this,DBG_WARNING))
-			cout << "Warning - size of Beeb Paged ROM file " << binaryContent << " (" << file_sz <<
-			" ) is larger than the expected one(" << sz << ") => truncating...\n";
+		DBG_LOG(
+			this, DBG_WARNING, "Warning - size of Beeb Paged ROM file " + binaryContent + " (" + to_string(file_sz) +
+			" ) is larger than the expected one(" + to_string(sz) + ") => truncating..."
+		);
 		upper_sz = mMemorySpace.sz;
 	}
 
@@ -67,11 +69,6 @@ bool ROM::read(uint16_t adr, uint8_t& data)
 		return false;
 
 	data = mMem[adr - mMemorySpace.adr];
-
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE) && !mRead) {
-		cout << "ROM '" << this->name << "' read gave 0x" << hex << (int)data << "\n";
-		mRead = true;
-	}
 
 	return true;
 

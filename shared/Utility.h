@@ -9,8 +9,8 @@ using namespace std;
 class Utility {
 
 public:
-	static string int2hexStr(int v, int n);
-	static string int2binStr(int v, int n);
+	static string int2HexStr(int v, int n);
+	static string int2NinStr(int v, int n);
 	static string encodeCPUTime(double t_s);
 	static string mask2Str(uint8_t mask);
 };

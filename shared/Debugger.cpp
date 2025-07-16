@@ -386,9 +386,9 @@ bool Debugger::readMemCmd(istream  &sin, ostream &sout)
 		}
 		bytes[ofs] = data;
 		if ((r_sz == 16 && ofs == 15) || a == a2) {
-			sout << "\n" << Utility::int2hexStr(a - ofs, 6);
+			sout << "\n" << Utility::int2HexStr(a - ofs, 6);
 			for (int i = 0; i < r_sz; i++)
-				sout << " " << Utility::int2hexStr(bytes[i], 2);
+				sout << " " << Utility::int2HexStr(bytes[i], 2);
 			for (int i = 0; i < 16 - r_sz; i++)
 				sout << "   ";
 			sout << " ";

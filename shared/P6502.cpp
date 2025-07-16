@@ -56,7 +56,7 @@ bool P6502::serveNMI()
 	mStatusRegister |= I_set_mask;
 
 	if (DBG_TRACING_OR_LEVEL(DBG_INTERRUPTS)) {
-		DBG_LOG(this, DBG_INTERRUPTS, "Serving NMI at PC = 0x" + Utility::int2hexStr(oProgramCounter,4) + "\n");
+		DBG_LOG(this, DBG_INTERRUPTS, "Serving NMI at PC = 0x" + Utility::int2HexStr(oProgramCounter,4) + "\n");
 		if (mIRQ == 0)
 			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
 	}
@@ -68,7 +68,7 @@ bool P6502::serveIRQ()
 {
 	// Exit if IRQ disabled
 	if (mStatusRegister & I_set_mask) {
-		DBG_LOG_COND(mIrqTransition, this, DBG_INTERRUPTS, "I flag set => IRQ ignored at 0x" + Utility::int2hexStr(mProgramCounter,4) + "...\n");
+		DBG_LOG_COND(mIrqTransition, this, DBG_INTERRUPTS, "I flag set => IRQ ignored at 0x" + Utility::int2HexStr(mProgramCounter,4) + "...\n");
 		return false;
 	}
 
@@ -93,7 +93,7 @@ bool P6502::serveIRQ()
 	mProgramCounter = adr_H * 256 + adr_L;
 
 	if (DBG_TRACING_OR_LEVEL(DBG_INTERRUPTS)) {
-		DBG_LOG(this, DBG_INTERRUPTS, "Serving IRQ at PC = 0x" + Utility::int2hexStr(oProgramCounter,4) + "\n");
+		DBG_LOG(this, DBG_INTERRUPTS, "Serving IRQ at PC = 0x" + Utility::int2HexStr(oProgramCounter,4) + "\n");
 		if (mIRQ == 0)
 			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
 	}
@@ -202,7 +202,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	bool decode_success = true;
 	if (!mCodec.decodeInstruction(mOpcode, instr)) {
 		decode_success = false;
-		DBG_LOG(this, DBG_ERROR, "Invalid instruction 0x" + Utility::int2hexStr(mOpcode, 2) + " at address 0x" + Utility::int2hexStr(mOpcodePC, 4) + "!\n");
+		DBG_LOG(this, DBG_ERROR, "Invalid instruction 0x" + Utility::int2HexStr(mOpcode, 2) + " at address 0x" + Utility::int2HexStr(mOpcodePC, 4) + "!\n");
 
 	}
 	success = success && decode_success;
@@ -219,7 +219,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 #endif
 	if (!getOperand(instr, mOperand, mOperandAddress, mReadVal)) {
 		operand_success = false;
-		DBG_LOG(this, DBG_ERROR, "Failed to get mOperand for instruction with mOpcode 0x" + Utility::int2hexStr(mOpcode, 2) + " at address 0x" + Utility::int2hexStr(mOpcodePC, 4) + "!\n");
+		DBG_LOG(this, DBG_ERROR, "Failed to get mOperand for instruction with mOpcode 0x" + Utility::int2HexStr(mOpcode, 2) + " at address 0x" + Utility::int2HexStr(mOpcodePC, 4) + "!\n");
 	}
 	success = success && operand_success;
 #ifdef DBG_UC_TIME
@@ -246,24 +246,10 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	if (instr.writesMem)
 		mWAccAdr = mOperandAddress;
 	success = success && exec_success;
-#ifdef DBG_UC_TIME
-	auto exec_stop = chrono::high_resolution_clock::now();
-	auto exec_dur = chrono::duration_cast<chrono::nanoseconds>(exec_stop - exec_start);
-	mExecCnt += exec_dur.count();
-#endif
-	DBG_LOG_COND(false && I_flag != oI_flag, this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[instr.instruction] + " at address 0x" + Utility::int2hexStr(mOpcodePC,4) + "\n");
 
-#ifdef DBG_UC_TIME
-	if (DBG_LEVEL_DEV(this,DBG_TIME) && mCycleCount % mCycles_1s == 0) {
-		cout << dec << "\n";
-		cout << "Opcode fetch & decode - ms per sec:  " << mOpcodeCnt / 1e6 << "\n";
-		cout << "Operand fetch & decode - ms per sec: " << mOperandCnt / 1e6 << "\n";
-		cout << "Instruction execution - ms per sec:  " << mExecCnt / 1e6 << "\n";
-		mOpcodeCnt = 0;
-		mOperandCnt = 0;
-		mExecCnt = 0;
-	}
-#endif
+	DBG_LOG_COND(false && I_flag != oI_flag, this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[instr.instruction] + " at address 0x" + Utility::int2HexStr(mOpcodePC,4) + "\n");
+
+
 
 	if (DBG_TRACING()) {
 
@@ -543,7 +529,7 @@ bool P6502::executeInstr(
 		mProgramCounter = adr_H * 256 + adr_L;
 
 		if (DBG_LEVEL_DEV(this,DBG_INTERRUPTS)) {		
-			DBG_LOG(this, DBG_INTERRUPTS, "BRK executed at PC = 0x" + Utility::int2hexStr(opcode_PC,4) +"\n");
+			DBG_LOG(this, DBG_INTERRUPTS, "BRK executed at PC = 0x" + Utility::int2HexStr(opcode_PC,4) +"\n");
 			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
 		}
 
@@ -955,7 +941,7 @@ bool P6502::executeInstr(
 		pullWord(mProgramCounter);
 
 		if (DBG_LEVEL_DEV(this,DBG_INTERRUPTS)) {
-			DBG_LOG(this, DBG_INTERRUPTS, "RTI executed at 0x" + Utility::int2hexStr(oPC,4) + "; execution resumed at 0x" + Utility::int2hexStr(mProgramCounter,4) +"!\n");
+			DBG_LOG(this, DBG_INTERRUPTS, "RTI executed at 0x" + Utility::int2HexStr(oPC,4) + "; execution resumed at 0x" + Utility::int2HexStr(mProgramCounter,4) +"!\n");
 			printInterruptStack(mStackPointer - 2, oStackPointer, oProgramCounter, oStatusRegister);
 		}
 
@@ -1601,7 +1587,7 @@ bool P6502::readDevice(uint16_t adr, uint8_t& data)
 		}
 	}
 
-	DBG_LOG(this, DBG_WARNING, "*Warning* Read at unmapped address 0x" + Utility::int2hexStr(adr,4) + ". Returns 0x0 for all unmapped addresses...\n");
+	DBG_LOG(this, DBG_WARNING, "*Warning* Read at unmapped address 0x" + Utility::int2HexStr(adr,4) + ". Returns 0x0 for all unmapped addresses...\n");
 
 	data = 0x0;// Better to return 0x00 than 0xff for now when not all devices are implemented as peripheral status 0x00 usually means inactive/no event
 	return true;
@@ -1704,17 +1690,17 @@ string P6502::stack2Str()
 void P6502::printInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister)
 {
 	string s;
-	s += "\n\tStackPointer 0x" + Utility::int2hexStr(0x100 + oStackPointer,4) + " => 0x" + Utility::int2hexStr(0x100 + mStackPointer,4) + "\n";
-	s += "\tStatusregister NV--DIZC:" + Utility::int2binStr(oStatusRegister & 0xdf,8) + " => 0x" + Utility::int2binStr(mStatusRegister & 0xdf,8) + "\n";
-	s += "\tProgramCounter 0x" + Utility::int2hexStr(oProgramCounter,4) + " => 0x" + Utility::int2hexStr(mProgramCounter,4) + "\n";
+	s += "\n\tStackPointer 0x" + Utility::int2HexStr(0x100 + oStackPointer,4) + " => 0x" + Utility::int2HexStr(0x100 + mStackPointer,4) + "\n";
+	s += "\tStatusregister NV--DIZC:" + Utility::int2NinStr(oStatusRegister & 0xdf,8) + " => 0x" + Utility::int2NinStr(mStatusRegister & 0xdf,8) + "\n";
+	s += "\tProgramCounter 0x" + Utility::int2HexStr(oProgramCounter,4) + " => 0x" + Utility::int2HexStr(mProgramCounter,4) + "\n";
 	s += "\tInterrupt Stack:\n";
 	for (int a = 0x100 + stackStart; a < 0x100 + stackStart + 3; a++) {
 		uint8_t d;
 		readProgramMem(a, d);
 		if (a == 0x100 + stackStart)
-			s += "\tmem[0x" + Utility::int2hexStr(a,4) + "] = 0x"  + Utility::int2hexStr(d,2) + " <=> NV-(B)DIZC " + Utility::int2binStr(d,8) + "\n";
+			s += "\tmem[0x" + Utility::int2HexStr(a,4) + "] = 0x"  + Utility::int2HexStr(d,2) + " <=> NV-(B)DIZC " + Utility::int2NinStr(d,8) + "\n";
 		else
-			s += "\tmem[0x" + Utility::int2hexStr(a, 4) + "] = 0x" + Utility::int2hexStr(d, 2) + "\n";
+			s += "\tmem[0x" + Utility::int2HexStr(a, 4) + "] = 0x" + Utility::int2HexStr(d, 2) + "\n";
 	}
 	DBG_LOG(this, DBG_INTERRUPTS, s);
 }
@@ -1726,7 +1712,7 @@ void P6502::printCallStack()
 	for (int a = start_adr; a < start_adr + 2; a++) {
 		uint8_t d;
 		readProgramMem(a, d);
-		s += "\tmem[0x" + Utility::int2hexStr(a, 4) + "] = 0x" + Utility::int2hexStr(d, 2) + "\n";
+		s += "\tmem[0x" + Utility::int2HexStr(a, 4) + "] = 0x" + Utility::int2HexStr(d, 2) + "\n";
 	}
 	DBG_LOG(this, DBG_INTERRUPTS, s);
 }

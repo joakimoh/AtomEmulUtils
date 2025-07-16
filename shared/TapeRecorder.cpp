@@ -51,8 +51,7 @@ bool TapeRecorder::advance(uint64_t stopCycle)
 				if (!mCodec->readPulse(mCasInPulses, mCasInPulseIndex, pulse_len)) {
 					mLoadFromTape = false;
 					updatePort(CAS_IN, 0);
-					if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-						cout << "End of Tape reached!\n";
+					DBG_LOG(this,DBG_VERBOSE, "End of Tape reached!");
 					stop();
 				}
 				else {
@@ -84,8 +83,7 @@ bool TapeRecorder::startLoadFile(string tapeFile)
 	if (!mCodec->decode(tapeFile, mCasInPulses, mCasInPulseLevel, mSampleRate)) {
 		return false;
 	}
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-		cout << "CSW File with  " << mCasInPulses.size() << " pulse bytes...\n";
+	DBG_LOG(this,DBG_VERBOSE, "CSW File with  " + to_string(mCasInPulses.size()) + " pulse bytes...");
 	updatePort(CAS_IN, mCasInPulseLevel);
 
 	return true;
@@ -104,8 +102,7 @@ void TapeRecorder::play()
 {
 	mPlay = true;
 	mStartPlaying = true;
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-		cout << "PLAY\n";
+	DBG_LOG(this,DBG_VERBOSE, "PLAY");
 }
 
 void TapeRecorder::rewind()
@@ -113,8 +110,7 @@ void TapeRecorder::rewind()
 	if (mLoadFromTape) {
 		mCasInPulseIndex = 0;
 		mPlay = false;
-		if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-			cout << "REWIND\n";
+		DBG_LOG(this, DBG_VERBOSE, "REWIND");
 	}
 }
 
@@ -122,8 +118,7 @@ void TapeRecorder::pause()
 {
 	mPlay = false;
 	mRecord = false;
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-		cout << "PAUSE\n";
+	DBG_LOG(this, DBG_VERBOSE, "PAUSE");
 }
 
 void TapeRecorder::stop()
@@ -133,8 +128,7 @@ void TapeRecorder::stop()
 		mPlay = false;
 		mCasInPulses.clear();
 		updatePort(CAS_IN, 0);
-		if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-			cout << "STOP PLAYING\n";
+		DBG_LOG(this, DBG_VERBOSE, "STOP PLAYING");
 	}
 	else if (mSaveToTape) {
 
@@ -142,14 +136,13 @@ void TapeRecorder::stop()
 		if (mRecord) {
 			unsigned int pulse_len = (int)round((double)mHalfCycleDuration / (mCPUClock * 1e6) * mSampleRate);
 			if (!mCodec->writePulse(pulse_len)) {
-				cout << "Failed to write last pulse!\n";
+				DBG_LOG(this, DBG_ERROR, "Failed to write last pulse!");
 			}
 		}
 
 		mSaveToTape = false;
 		mRecord = false;
-		if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-			cout << "STOP RECORDING\n";
+		DBG_LOG(this, DBG_VERBOSE, "STOP RECORDING");
 
 		mCodec->closeTapeFileW();
 	}
@@ -159,8 +152,7 @@ void TapeRecorder::stop()
 void TapeRecorder::record()
 {
 	mRecord = true;
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-		cout << "RECORD\n";
+	DBG_LOG(this, DBG_VERBOSE, "RECORD");
 }
 
 // Outputs the internal state of the device

@@ -136,21 +136,16 @@ void SDCard::processPortUpdate(int port)
 	if (mCardImage == NULL)
 		return;
 
-	//cout << "Port " << port << ", SPI Clock = '" << (int)mCLK << "', SEL = '" << (int)mSEL << "', MOSI(Din) = '" << (int)mMOSI << "'\n";
-
 	// Mode 0 assumed
 	if (port == CLK) {
 
 		if (mCLK != pCLK) {
 			
 
-			//cout << "MOSI = '" << dec << (int)mMOSI << "', MISO = '" << (int)mMISO << "'\n";
-
 			if (mCLK && !mInitialised) {
 
 				if (mMOSI == 1) {
 					mReceivedBits++;
-					//cout << "SPI Not Init Phase - " << dec << mReceivedBits << " bits received - last bit was '" << (int)mMOSI << "'\n";
 				}
 				else
 					mReceivedBits = 0;
@@ -202,7 +197,6 @@ bool SDCard::processRxBits()
 		mCurrenAppCmd = SPI_A_CMD_ILLEGAL;
 		if (mMOSI == 1) {
 			mSPIRxMode = SPI_Rx_PREAMBLE_WAIT;
-			//cout << "SD Card: High level '1' detected\n";
 		}
 		break;
 	}
@@ -231,10 +225,8 @@ bool SDCard::processRxBits()
 		mReceivedBits++;
 		mRxShiftRegister = ((mRxShiftRegister << 1) & 0xfe) | mMOSI;
 		if (mReceivedBits % 8 == 0) {
-			//cout << "CMD byte #" << mReceivedBytes << " = 0x" << hex << (int)mRxShiftRegister << "\n";
 			mMasterRequest[mReceivedBytes++] = mRxShiftRegister;
 		}
-		//cout << "MOSI = " << (int)mMOSI << ", Shift Register = 0b" << Utility::int2binStr(mRxShiftRegister, 8) << " = 0x" << hex << (int)mRxShiftRegister << "\n";
 		if (mReceivedBits == 48) {
 			if (!execCmd(mMasterRequest)) {
 				// Invalid command (no action - just ignore the received bit sequence and start all over again)
@@ -256,7 +248,6 @@ bool SDCard::processRxBits()
 
 		}
 		if (mDataStartTokenReceived && mReceivedBits % 8 == 0) {
-			//cout << "Master data byte #" << dec << mReceivedBytes << " [" << mMasterDataTokenBits/8 << "] (" << mReceivedBits << " bits) = 0x" << hex << (int)mRxShiftRegister << "\n";
 			mMasterDataToken[mReceivedBytes++] = mRxShiftRegister;
 		}
 		if (mReceivedBits == mMasterDataTokenBits) {
@@ -310,13 +301,10 @@ bool SDCard::generateTxBits()
 		int response_bits = (mSPITxMode != SPI_Tx_DATA_WAIT ? mSlaveResponseBits : mSlaveDataTokenBits);
 		if (mSentBits % 8 == 0) {
 			if (mSPITxMode != SPI_Tx_DATA_WAIT) {
-				//cout << "Slave response byte #" << dec << mSentBytes << " [" << response_bits / 8 << "] (bits " << mSentBits << "+) = 0x" << hex << (int)mSlaveResponse[mSentBytes] << "\n";
-
 				mTxShiftRegister = mSlaveResponse[mSentBytes++];
 			}
 			else {
-				//cout << "Slave data byte #" << dec << mSentBytes << " [" << response_bits / 8 << "] (bits " << mSentBits << "+) = 0x" << hex << (int)mSlaveDataToken[mSentBytes] << "\n";
-				DBG_LOG(this, DBG_SPI, "Shift out of byte #" + Utility::int2hexStr(mSentBytes,4) + " = 0x" + Utility::int2hexStr(mSlaveDataToken[mSentBytes], 2) + "\n");
+				DBG_LOG(this, DBG_SPI, "Shift out of byte #" + Utility::int2HexStr(mSentBytes,4) + " = 0x" + Utility::int2HexStr(mSlaveDataToken[mSentBytes], 2) + "\n");
 				mTxShiftRegister = mSlaveDataToken[mSentBytes++];
 			}
 		}
@@ -325,9 +313,6 @@ bool SDCard::generateTxBits()
 		updatePort(MISO, (mTxShiftRegister >> 7) & 0x1);
 		mSentBits++;
 
-		//cout << mSPIRxMode << ",bytes = " << dec << mSentBytes << " (" << response_bits / 8 << ")"  << ", bits = " << dec <<
-		//	mSentBits << " (" << response_bits << "), MISO = " << (int)mMISO << ", Shift Register = 0b" << Utility::int2binStr(mTxShiftRegister, 8) << " = 0x" <<
-		//	hex << (int)mTxShiftRegister << "\n";
 		if (mSentBits == response_bits) {
 #ifdef DBG_ON
 			if (DBG_LEVEL(DBG_SPI)) {
@@ -408,7 +393,7 @@ void SDCard::initResponse(vector <uint8_t>& request)
 #ifdef DBG_ON
 	if (DBG_LEVEL(DBG_SPI)) {
 		DBG_LOG(this, DBG_SPI, "Command CMD" + to_string(cmd) + " (request 0x" + bytes2str(request) + ") " + cmd_info.mnemonic + " with expected CRC byte 0x" +
-			Utility::int2hexStr(req_crc_byte,2) +
+			Utility::int2HexStr(req_crc_byte,2) +
 			" received - will send a response of type R" + to_string(mResponseType) + " (response 0x" + bytes2str(mSlaveResponse) + ")" +
 			" with " + to_string(mSlaveResponseBits) + " bits (" + to_string(rsp_info.nBytes) + " bytes)...\n");
 	}
@@ -626,7 +611,7 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 			mSlaveDataToken[content_bytes + 1] = crc >> 8;
 			mSlaveDataToken[content_bytes + 2] = crc & 0xff;
 
-			DBG_LOG(this, DBG_SPI, "CMD17: address = 0x" + Utility::int2hexStr(mBlockReadAdr, 6) + "\n");
+			DBG_LOG(this, DBG_SPI, "CMD17: address = 0x" + Utility::int2HexStr(mBlockReadAdr, 6) + "\n");
 
 			mSPITxMode = SPI_Tx_RSP_DATA_WAIT;
 			break;
@@ -659,7 +644,7 @@ bool SDCard::execBaseCmd(vector <uint8_t>& request)
 
 			// Get block write address
 			mBlockWriteAdr = (request[1] << 24) | (request[2] << 16) | (request[3] << 8) | request[1];
-			DBG_LOG(this, DBG_SPI, "CMD24: address = 0x" + Utility::int2hexStr(mBlockWriteAdr, 6) + "\n");
+			DBG_LOG(this, DBG_SPI, "CMD24: address = 0x" + Utility::int2HexStr(mBlockWriteAdr, 6) + "\n");
 
 			// Prepare block data buffer for reception of block to write
 			int content_bytes = mBlockLen;
@@ -949,14 +934,13 @@ string SDCard::bytes2str(vector <uint8_t> data)
 {
 	string s;
 	for (int i = 0; i < data.size(); i++)
-		s += Utility::int2hexStr(data[i],2);
+		s += Utility::int2HexStr(data[i],2);
 
 	return s;
 }
 
 bool SDCard::writeBlockData(int adr, vector <uint8_t>& data, int start, int len)
 {
-	//cout << "Write " << dec << len << " bytes of data '" << bytes2str(data) << "' to address 0x" << hex << adr << "...\n";
 	if (mCardImage == NULL) {
 		DBG_LOG(this, DBG_ERROR, "ERROR - no MMC card inserted when attempting a write operation!\n");
 		return false;
@@ -1070,16 +1054,16 @@ bool SDCard::outputState(ostream& sout)
 		sout << "Current app command    = " << app_cmd_info.mnemonic << ": " << app_cmd_info.desc << "\n";
 	}
 	sout << "Block length           = " << dec << mBlockLen << "\n";
-	sout << "Read address           = 0x" << Utility::int2hexStr(mBlockReadAdr, 8) << "\n";
-	sout << "Write address          = 0x" << Utility::int2hexStr(mBlockWriteAdr, 8) << "\n";
+	sout << "Read address           = 0x" << Utility::int2HexStr(mBlockReadAdr, 8) << "\n";
+	sout << "Write address          = 0x" << Utility::int2HexStr(mBlockWriteAdr, 8) << "\n";
 	sout << "Rx Mode                = " << _SPI_RX_MODE(mSPIRxMode) << "\n";
 	sout << "Tx Mode                = " << _SPI_TX_MODE(mSPITxMode) << "\n";
 	sout << "Slave data token bits  = " << mSlaveDataTokenBits << " (" << mSlaveDataTokenBits / 8 << " bytes)\n";
 	sout << "Master data token bits = " << mMasterDataTokenBits << " (" << mMasterDataTokenBits / 8 << " bytes)\n";
 	sout << "Received bits          = " << mReceivedBits << " (" << mReceivedBytes << " bytes)\n";
 	sout << "Sent bits              = " << mSentBits << " (" << mSentBytes << " bytes)\n";
-	sout << "Rx shift register      = 0x" << Utility::int2hexStr(mRxShiftRegister, 2) << " (0b" << Utility::int2binStr(mRxShiftRegister, 8) << ")\n";
-	sout << "Tx shift register      = 0x" << Utility::int2hexStr(mTxShiftRegister, 2) << " (0b" << Utility::int2binStr(mTxShiftRegister, 8) << ")\n";
+	sout << "Rx shift register      = 0x" << Utility::int2HexStr(mRxShiftRegister, 2) << " (0b" << Utility::int2NinStr(mRxShiftRegister, 8) << ")\n";
+	sout << "Tx shift register      = 0x" << Utility::int2HexStr(mTxShiftRegister, 2) << " (0b" << Utility::int2NinStr(mTxShiftRegister, 8) << ")\n";
 
 	return true;
 }

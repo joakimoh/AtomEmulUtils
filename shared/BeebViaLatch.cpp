@@ -15,9 +15,6 @@ void BeebViaLatch::processPortUpdate(int index)
 		uint8_t ctrl_sel = mCTRL & 0x7;
 		uint8_t ctrl_val = (mCTRL >> 3) & 0x1;
 		uint8_t new_val = (mQ & ~(1 << ctrl_sel)) | ((ctrl_val & 0x1) << ctrl_sel);
-		//if (ctrl_sel == 4 || ctrl_sel == 5)
-		//	cout << "Q" << dec << (int)ctrl_sel << " = " << (int) ctrl_val << ": 0x" << hex << (int) mQ << " = > 0x" << (int)new_val << 
-		//		" for CTRL = 0x" << (int)mCTRL << "\n";
 		updatePort(Q, new_val);
 		
 	}
@@ -26,7 +23,7 @@ void BeebViaLatch::processPortUpdate(int index)
 // Outputs the internal state of the device
 bool BeebViaLatch::outputState(ostream& sout)
 {
-	sout << "Q = 0x" << Utility::int2hexStr(mQ, 2) << " <=> 0b" << Utility::int2binStr(mQ, 8) << "\n";
+	sout << "Q = 0x" << Utility::int2HexStr(mQ, 2) << " <=> 0b" << Utility::int2NinStr(mQ, 8) << "\n";
 
 	return true;
 }

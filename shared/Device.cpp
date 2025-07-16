@@ -115,8 +115,8 @@ bool Device::registerPortDirChange(int index, uint8_t mask)
 	DevicePort& port = *mPorts[index];
 
 	if (DBG_MATCH_PORT(&port) && port.ioDirMask != mask) {	
-		DBG_LOG(this, DBG_PORT, "Port " + this->name + ":" + mPorts[index]->name + " has changed direction from " + Utility::int2binStr(port.ioDirMask,8) +
-			" to " + Utility::int2binStr(mask,8) + "\n");
+		DBG_LOG(this, DBG_PORT, "Port " + this->name + ":" + mPorts[index]->name + " has changed direction from " + Utility::int2NinStr(port.ioDirMask,8) +
+			" to " + Utility::int2NinStr(mask,8));
 	}
 
 	port.portDirChanged = true;
@@ -184,7 +184,8 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 
 #ifdef DBG_ON
 	if (DBG_MATCH_PORT(&port) && changed) {
-		DBG_LOG(this, DBG_PORT, "SRC PORT '" + port.dev->name + ":" + port.name + " 0x" + Utility::int2hexStr(port_val,2) + " => 0x" + Utility::int2hexStr(val,2) + "\n");
+		DBG_LOG(this, DBG_PORT, "SRC PORT '" + port.dev->name + ":" + port.name + " 0x" + Utility::int2HexStr(port_val,2) + " => 0x" + 
+			Utility::int2HexStr(val,2));
 	}
 #endif
 
@@ -246,7 +247,7 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 
 	if (DBG_MATCH_PORT(srcPort)) {
 		DBG_LOG(this, DBG_PORT, "Update connected port " + dstPort.port->dev->name + ":" + dstPort.port->name +
-			" with value 0x" + Utility::int2hexStr(nval, 2) + " (0x" + Utility::int2hexStr(pval, 2) + ")\n");
+			" with value 0x" + Utility::int2HexStr(nval, 2) + " (0x" + Utility::int2HexStr(pval, 2) + ")");
 	}
 
 
@@ -289,7 +290,8 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 
 #ifdef DBG_ON
 			if (DBG_MATCH_PORT(dstPort.port))
-				DBG_LOG(this, DBG_PORT, "\nABRITRATION FOR PORT " + dstPort.port->dev->name + ":" + dstPort.port->name + " = 0x" + Utility::int2hexStr(pval,2) + "\n");
+				DBG_LOG(this, DBG_PORT, "\nABRITRATION FOR PORT " + dstPort.port->dev->name + ":" + dstPort.port->name + " = 0x" + 
+					Utility::int2HexStr(pval,2));
 #endif
 
 			for (int i = 0; i < dstPort.port->portSources.size(); i++) {
@@ -300,12 +302,13 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 				aval &= src_ref.dstVal | ~src_ref.dstMask; // arbitrate with each source port's value
 #ifdef DBG_ON
 				if (DBG_MATCH_PORT(dstPort.port))
-					DBG_LOG(this, DBG_PORT, "SOURCE PORT " + src_ref.srcPort->dev->name + ":" + src_ref.srcPort->name + " = 0x" + Utility::int2hexStr(src_ref.dstVal,2) + " (mask 0x" + Utility::int2hexStr(src_ref.dstMask,2) + ")\n");
+					DBG_LOG(this, DBG_PORT, "SOURCE PORT " + src_ref.srcPort->dev->name + ":" + src_ref.srcPort->name + " = 0x" +
+						Utility::int2HexStr(src_ref.dstVal,2) + " (mask 0x" + Utility::int2HexStr(src_ref.dstMask,2) + ")");
 #endif
 			}
 #ifdef DBG_ON
 			if (DBG_MATCH_PORT(dstPort.port))
-				DBG_LOG(this, DBG_PORT, "ARBITRATED VALUE BECAME 0x" + Utility::int2hexStr(aval,2) + "\n");
+				DBG_LOG(this, DBG_PORT, "ARBITRATED VALUE BECAME 0x" + Utility::int2HexStr(aval,2));
 #endif
 
 			*dst_val_p = aval & dst_mask;
@@ -353,7 +356,7 @@ bool Device::updatePorts()
 				return false;
 		}
 	}
-	DBG_LOG(this, DBG_VERBOSE, "All ports for "  + this->name + " have been shared...\n");
+	DBG_LOG(this, DBG_VERBOSE, "All ports for "  + this->name + " have been shared...");
 
 	return true;
 }
