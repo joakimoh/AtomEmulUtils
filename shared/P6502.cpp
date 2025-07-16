@@ -22,9 +22,6 @@ P6502::P6502(string name, double clockSpeed, DebugManager  *debugManager, Connec
 	registerPort("IRQ", IN_PORT, 0x01, RESET, &mIRQ);
 	registerPort("NMI", IN_PORT, 0x01, RESET, &mNMI);
 
-#ifdef DBG_UC_TIME
-	mCycles_1s = (int)round(clockSpeed * 1e6);
-#endif
 
 }
 
@@ -189,9 +186,6 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 
 	// Get mOpcode of next instruction
 	mOpcodePC = mProgramCounter;
-#ifdef DBG_UC_TIME
-	auto opcode_start = chrono::high_resolution_clock::now();
-#endif
 	if (!readProgramMem(mProgramCounter++, mOpcode)) {
 		success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to read instruction!\n");
@@ -206,36 +200,22 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 
 	}
 	success = success && decode_success;
-#ifdef DBG_UC_TIME
-	auto opcode_stop = chrono::high_resolution_clock::now();
-	auto opcode_dur = chrono::duration_cast<chrono::nanoseconds>(opcode_stop - opcode_start);
-	mOpcodeCnt += opcode_dur.count();
-#endif
 
 	// Get the mOperand
 	bool operand_success = true;
-#ifdef DBG_UC_TIME
-	auto operand_start = chrono::high_resolution_clock::now();
-#endif
+
 	if (!getOperand(instr, mOperand, mOperandAddress, mReadVal)) {
 		operand_success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to get mOperand for instruction with mOpcode 0x" + Utility::int2HexStr(mOpcode, 2) + " at address 0x" + Utility::int2HexStr(mOpcodePC, 4) + "!\n");
 	}
 	success = success && operand_success;
-#ifdef DBG_UC_TIME
-	auto operand_stop = chrono::high_resolution_clock::now();
-	auto operand_dur = chrono::duration_cast<chrono::nanoseconds>(operand_stop - operand_start);
-	mOperandCnt += operand_dur.count();
-#endif
+
 	
 	// After reading the mOperand, the PC points at the next instruction...
 
 	// Execute the instruction
 	bool exec_success = true;
 	uint8_t oI_flag = I_flag;
-#ifdef DBG_UC_TIME
-	auto exec_start = chrono::high_resolution_clock::now();
-#endif
 	if (!executeInstr(instr, mOpcodePC, mOperand, mOperandAddress, mReadVal, mWrittenVal)) {
 		exec_success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to execute instruction!\n");

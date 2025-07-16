@@ -46,8 +46,6 @@ bool AtomKeyboardDevice::advance(uint64_t stopCycle)
 	mCnt += stopCycle - mCycleCount;
 	mCycleCount = stopCycle;
 
-	auto kb_start = chrono::high_resolution_clock::now();
-
 	al_get_keyboard_state(&mKeyboardState);
 
 	uint8_t column_L = 0xff;

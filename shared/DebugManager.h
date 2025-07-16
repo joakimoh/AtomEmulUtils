@@ -37,9 +37,6 @@ typedef int DebugLevel;
 #define	DBG_ALL				0xfffff
 
 #define DBG_ON
-//#define TIME_DEBUG
-//#define DBG_UC_TIME
-//#define VDU_TIME_DEBUG
 
 #ifdef DBG_ON
 

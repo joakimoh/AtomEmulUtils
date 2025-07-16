@@ -138,10 +138,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	vector<TT5050::TTColour> tgc_data(16);
 
-#ifdef VDU_TIME_DEBUG
-	auto video_start = chrono::high_resolution_clock::now();
-	auto prelude_start = video_start;
-#endif
 	// Adjust mCycleCount to match the time passed for one scan line
 	uint64_t pCycleCount = mCycleCount;
 	double scan_line_duration = getScanLineDuration();
@@ -260,11 +256,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		// Lock the screen display (bitmap) again
 		lockDisplay();
 
-#ifdef VDU_TIME_DEBUG
-		auto disp_stop = chrono::high_resolution_clock::now();
-		auto disp_dur = chrono::duration_cast<chrono::nanoseconds>(disp_stop - disp_start);
-		mDispUsCnt += disp_dur.count();
-#endif
 
 	}
 

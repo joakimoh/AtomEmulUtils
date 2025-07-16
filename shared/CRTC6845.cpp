@@ -596,7 +596,7 @@ bool CRTC6845::outputState(ostream& sout)
 	// Update parameters based on the register update														
 	double Tc = 1.0 / mCLK;
 
-	sout << dec;
+	sout << dec << "\n";
 	for (int i = 0; i < 18; i++)
 		sout << mRegInfo[i].descShort << hex << " = 0x" << setw(2) << setfill('0') << (int)mReg[i] << dec << " " << mRegInfo[i].descLong << "\n";
 
