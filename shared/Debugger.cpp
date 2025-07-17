@@ -181,6 +181,19 @@ bool Debugger::bufferCmd(istream& sin, bool recurring)
 	return true;
 }
 
+double Debugger::getDeviceTime(Device* dev)
+{
+	double t_s;
+	if (dev == NULL || !dev->getTimeSec(t_s)) {
+		Device* uc = NULL;
+		if (!mDevices->getUc(uc)) {
+			return 0.0;
+		}
+		uc->getTimeSec(t_s);
+	}
+	return t_s;
+}
+
 bool Debugger::dumpDevCmd(istream& sin)
 {
 	string dev_name;
@@ -192,6 +205,8 @@ bool Debugger::dumpDevCmd(istream& sin)
 		cout << "Non-existing device '" << dev_name << "!\n";
 		return false;
 	}
+	double t_s = getDeviceTime(dev);
+	cout << "Device time (sec ms us) is: " << Utility::encodeCPUTime(t_s) << "\n";
 	dev->outputState(cout);
 
 	return true;
@@ -204,7 +219,8 @@ bool Debugger::dumpUcCmd(istream& sin)
 	if (!mDevices->getUc(dev)) {
 		return false;
 	}
-
+	double t_s = getDeviceTime(dev);
+	cout << "Device time (sec ms us) is: " << Utility::encodeCPUTime(t_s) << "\n";
 	dev->outputState(cout);
 
 	return true;

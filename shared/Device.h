@@ -147,6 +147,8 @@ protected:
 	uint8_t mRESET = 0x1;
 	uint8_t pRESET = 0x1;
 
+	bool mKeepsTime = true;
+
 public:
 
 	double mCPUClock = 2.0;
@@ -225,6 +227,9 @@ public:
 
 	// Called by debugger normally to dump a periphal device's register content
 	virtual bool outputState(ostream& sout) { return true; }
+
+	//
+	bool getTimeSec(double& t) { t = mCycleCount * 1e-6 / mCPUClock; return mKeepsTime; }
 
 };
 

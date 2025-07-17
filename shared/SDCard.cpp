@@ -15,6 +15,8 @@ SDCard::SDCard(string name, double cpuClock, string cardImageFile, DebugManager*
 	registerPort("SEL",		IN_PORT,	0x1,	SEL,	&mSEL);		// Select
 	registerPort("MISO",	OUT_PORT,	0x1,	MISO,	&mMISO);	// Data Out
 
+	mKeepsTime = false;
+
 	mSlaveDataToken.resize(512);
 
 }
@@ -185,7 +187,7 @@ void SDCard::processPortUpdate(int port)
 bool SDCard::processRxBits()
 {
 	if (mSPIRxMode != pSPIRxMode) {
-		DBG_LOG(this, DBG_SPI, "SPI Rx Mode "s + _SPI_RX_MODE(pSPIRxMode) + " => " + _SPI_RX_MODE(mSPIRxMode) + "\n");
+		//DBG_LOG(this, DBG_SPI, "SPI Rx Mode "s + _SPI_RX_MODE(pSPIRxMode) + " => " + _SPI_RX_MODE(mSPIRxMode) + "\n");
 	}
 
 	pSPIRxMode = mSPIRxMode;
@@ -282,7 +284,7 @@ bool SDCard::processRxBits()
 bool SDCard::generateTxBits()
 {
 	if (mSPITxMode != pSPITxMode) {
-		DBG_LOG(this, DBG_SPI, "SPI Tx Mode "s + _SPI_TX_MODE(pSPITxMode) + " => " + _SPI_TX_MODE(mSPITxMode) + "\n");
+		//DBG_LOG(this, DBG_SPI, "SPI Tx Mode "s + _SPI_TX_MODE(pSPITxMode) + " => " + _SPI_TX_MODE(mSPITxMode) + "\n");
 	}
 
 	pSPITxMode = mSPITxMode;
@@ -304,7 +306,7 @@ bool SDCard::generateTxBits()
 				mTxShiftRegister = mSlaveResponse[mSentBytes++];
 			}
 			else {
-				DBG_LOG(this, DBG_SPI, "Shift out of byte #" + Utility::int2HexStr(mSentBytes,4) + " = 0x" + Utility::int2HexStr(mSlaveDataToken[mSentBytes], 2) + "\n");
+				//DBG_LOG(this, DBG_SPI, "Shift out of byte #" + Utility::int2HexStr(mSentBytes,4) + " = 0x" + Utility::int2HexStr(mSlaveDataToken[mSentBytes], 2) + "\n");
 				mTxShiftRegister = mSlaveDataToken[mSentBytes++];
 			}
 		}

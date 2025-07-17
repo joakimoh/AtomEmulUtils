@@ -8,6 +8,7 @@
 using namespace std;
 
 class Devices;
+class Device;
 class DebugManager;
 class Engine;
 
@@ -42,6 +43,8 @@ private:
 
 	bool readMemCmd(istream& sin, ostream& sout);
 	bool disCmd(istream& sin, ostream &sout);
+
+	double getDeviceTime(Device* dev);
 
 public:
 
