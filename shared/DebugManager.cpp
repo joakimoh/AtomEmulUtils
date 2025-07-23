@@ -112,7 +112,10 @@ bool DebugManager::debugLevelIs(DebugLevel level)
 
 bool DebugManager::debugLevelIs(Device *dev, DebugLevel level)
 {
-	return mInitialised && (mTracingState != TRACING_OFF && ((mLogDevice == NULL || dev == mLogDevice) || (mDbgLevel & DBG_6502) != 0 )) && (mDbgLevel & level) != 0;
+	return mInitialised && (
+		mTracingState != TRACING_OFF && ((mLogDevice == NULL || dev == mLogDevice) || (mDbgLevel & DBG_6502) != 0 )
+		) && 
+		(mDbgLevel & level) != 0;
 }
 
 void DebugManager::enableExecStop(uint16_t adr)
@@ -180,11 +183,9 @@ bool DebugManager::enableBuffering(int preTraceLen, int postTraceLen, bool exten
 
 	mRecurringTracing = recurring;
 
-	// Reset buffering
-	mBufferInstrSize = 0;
-	mBufWindowReadIndex = 0;
+	// Clear buffer
 	mBufWindowReadIndex = mBufWindowWriteIndex = mBufferInstrSize = 0;
-
+	
 	mExtensiveLog = extensive;
 	mPreTraceLen = preTraceLen;
 	mPostTraceLen = postTraceLen;

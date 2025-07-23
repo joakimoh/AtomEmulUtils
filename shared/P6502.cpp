@@ -1708,7 +1708,7 @@ bool P6502::outputState(ostream& sout)
 	uint8_t opcode;
 	uint16_t pc = mProgramCounter;
 	uint16_t a = pc;
-	string instr_s;
+	string n_instr_s;
 
 	// Read up to three bytes, if possible
 	vector<uint8_t> bytes = {0, 0, 0};
@@ -1719,12 +1719,14 @@ bool P6502::outputState(ostream& sout)
 	if (readProgramMem(a, bytes[2], false))
 		a++;
 
-	if (!mCodec.decodeInstrFromBytes(pc, bytes, instr_s, false)) {
+	if (!mCodec.decodeInstrFromBytes(pc, bytes, n_instr_s, false)) {
 		return false;
 	}
-
-	sout << "State:                   " << getState() << "\n";
-	sout << "Next instruction:        " << setfill(' ') << setw(30) << left << instr_s << "\n";
+	string x_instr_s = mCodec.decode(mOpcodePC, mOpcode, mOperand);
+	
+	sout << "Executed instruction:    " << setfill(' ') << setw(30) << left << x_instr_s << "\n";
+	sout << "Resulting State:         " << getState() << "\n";
+	sout << "Next instruction:        " << setfill(' ') << setw(30) << left << n_instr_s << "\n";
 
 	return true;
 }

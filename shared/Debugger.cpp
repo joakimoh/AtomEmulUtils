@@ -433,18 +433,19 @@ bool Debugger::stepCmd(istream &sin, bool stepOver)
 		return false;
 	}
 
+	// Enable tracing if step > 1 (and ni skipping over of an JSR instruction) to see the instructions being executed
+	if (n > 1 && !stepOver)
+		mTracingEnabled = true;
+	else
+		mTracingEnabled = false;
+
 	// Turn on tracing if previously enabled
 	if (mTracingEnabled) {
 		mPretraceLen = n;
-		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, false);
+		mDM->enableTracing();
 	}
 
 	mEngine->step(n, stepOver);
-
-	if (mTracingEnabled && !mDM->outputBufferWindow(cout)) {
-		cout << "Trace not possible to retrieve!\n";
-		return false;
-	}
 
 	return true;
 }
@@ -522,11 +523,6 @@ bool Debugger::breakCmd(istream& sin)
 bool Debugger::haltCmd(istream& sin)
 {
 	mEngine->halt();
-
-	if (mTracingEnabled && !mDM->outputBufferWindow(cout)) {
-		cout << "Trace not possible to retrieve!\n";
-		return false;
-	}
 
 	return true;
 }

@@ -455,14 +455,10 @@ bool Engine::cont()
 
 bool Engine::step(int n)
 {
-    bool status = step(n, false);
-    stringstream sout;
-    mMicroprocessor->outputState(sout);
-    cout << sout.str();
-    return status;
+    return step(n, false);
 }
 
-bool Engine::step(int n, bool step_over = false)
+bool Engine::step(int n, bool step_over)
 {
     bool wait = true;
     mExecMutex.lock();
@@ -471,8 +467,10 @@ bool Engine::step(int n, bool step_over = false)
         mState = ENG_STEP_OVER;
     else if (n > 0)
         mState = ENG_STEP;
-    else
+    else {
+        mExecMutex.unlock();
         return false;
+    }
 
     mExecMutex.unlock();
     while (wait) {
