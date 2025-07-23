@@ -257,7 +257,9 @@ bool Engine::run()
 
                         if (mState != ENG_HALT && mState != ENG_BRK_DET) {
 
- 
+                            // Remember the return address for a potential JSR instruction
+                            uint16_t ret_adr = mMicroprocessor->getPC() + 3;
+
                             // Execute one microprocessor instruction and advance time accordingly (mCycleCount updated)
                             if (!mMicroprocessor->advanceInstr(mCycleCount)) {
                                 // Execution stopped - exit
@@ -276,9 +278,8 @@ bool Engine::run()
                             uint8_t read_data, written_data;
                             bool read_adr_triggered = mMicroprocessor->readAdr(read_data) == mBreakAdr;
                             bool written_adr_triggered = mMicroprocessor->writtenAdr(written_data) == mBreakAdr;
-                            uint16_t opcode_adr_triggered = mMicroprocessor->getPC() == mBreakAdr;
-                            bool is_JSR = mMicroprocessor->nextInstrIsJSR(mRetAdr);
-                            bool was_RTS = mMicroprocessor->getOpcode() == P6502_RTS_OPCODE;
+                            uint16_t opcode_adr_triggered = mMicroprocessor->getPC() == mBreakAdr;     
+                            bool was_JSR = mMicroprocessor->getOpcode() == P6502_JSR_OPCODE;
                             if (
                                 mState == ENG_X_BRK_WAIT && opcode_adr_triggered
                                 ) {
@@ -310,12 +311,13 @@ bool Engine::run()
                                     mSteps--;
                             }
                             else if (mState == ENG_STEP_OVER) {
-                                if (is_JSR) {
+                                if (was_JSR) {
                                     mState = ENG_WAIT_ON_RET;
+                                    mRetAdr = ret_adr;
                                 } else
                                     mState = ENG_HALT;
                             }
-                            else if (mState == ENG_WAIT_ON_RET && was_RTS) {
+                            else if (mState == ENG_WAIT_ON_RET && mMicroprocessor->getPC() == mRetAdr) {
                                 mState = ENG_HALT;
                             }
                         }
@@ -471,9 +473,6 @@ bool Engine::step(int n, bool step_over = false)
         mState = ENG_STEP;
     else
         return false;
-
-    if (step_over)
-        cout << "STEP OVER\n";
 
     mExecMutex.unlock();
     while (wait) {

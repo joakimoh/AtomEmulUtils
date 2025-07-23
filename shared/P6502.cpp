@@ -1728,15 +1728,3 @@ bool P6502::outputState(ostream& sout)
 
 	return true;
 }
-
-bool P6502::nextInstrIsJSR(uint16_t& retAdr)
-{
-	uint8_t opcode;
-	Codec6502::InstructionInfo instr_info;
-	retAdr = 0x0;
-	if (readProgramMem(mProgramCounter, opcode, false) && opcode == P6502_JSR_OPCODE) {
-		retAdr = mProgramCounter + 2;
-		return true;
-	}
-	return false;
-}

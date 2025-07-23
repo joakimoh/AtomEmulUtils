@@ -141,8 +141,6 @@ public:
 
 	int getPC() { return (int)mProgramCounter; }
 
-	bool nextInstrIsJSR(uint16_t& retAdr);
-
 	int getOpcodePC() { return (int)mOpcodePC; }
 	uint8_t getOpcode() { return mOpcode; }
 
