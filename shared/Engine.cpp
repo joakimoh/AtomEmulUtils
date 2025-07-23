@@ -488,7 +488,7 @@ bool Engine::step(int n, bool step_over)
 
 bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAddress, bool repetition)
 {
-    cout << "Set breakpoint " << _ENGINE_STATE(mode) << "\n";
+
     mBreakAdr = (int)adr;
     mRecurringTracing = repetition;
     bool triggered = false;
