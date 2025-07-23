@@ -25,7 +25,7 @@ string Utility::int2HexStr(int v, int n)
 	return sout.str();
 }
 
-string Utility::int2NinStr(int v, int n)
+string Utility::int2BinStr(int v, int n)
 {
 	stringstream sout;
 	for (int i = 0; i < n; i++) {

@@ -115,8 +115,8 @@ bool Device::registerPortDirChange(int index, uint8_t mask)
 	DevicePort& port = *mPorts[index];
 
 	if (DBG_MATCH_PORT(&port) && port.ioDirMask != mask) {	
-		DBG_LOG(this, DBG_PORT, "Port " + this->name + ":" + mPorts[index]->name + " has changed direction from " + Utility::int2NinStr(port.ioDirMask,8) +
-			" to " + Utility::int2NinStr(mask,8));
+		DBG_LOG(this, DBG_PORT, "Port " + this->name + ":" + mPorts[index]->name + " has changed direction from " + Utility::int2BinStr(port.ioDirMask,8) +
+			" to " + Utility::int2BinStr(mask,8));
 	}
 
 	port.portDirChanged = true;

@@ -70,7 +70,7 @@ public:
 	bool listDevicesCmd(istream& sin);
 
 	bool haltCmd(istream& sin);
-	bool stepCmd(istream &sin);
+	bool stepCmd(istream &sin, bool stepOver);
 	bool contCmd(istream &sin);
 
 	bool breakCmd(istream& sin);

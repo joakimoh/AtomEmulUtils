@@ -54,8 +54,7 @@ bool P6502::serveNMI()
 
 	if (DBG_TRACING_OR_LEVEL(DBG_INTERRUPTS)) {
 		DBG_LOG(this, DBG_INTERRUPTS, "Serving NMI at PC = 0x" + Utility::int2HexStr(oProgramCounter,4) + "\n");
-		if (mIRQ == 0)
-			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
+		DBG_LOG_COND(mIRQ == 0, this, DBG_INTERRUPTS, getInterruptStack(mStackPointer + 1, oStackPointer, oProgramCounter, oStatusRegister));
 	}
 
 	return true;
@@ -91,8 +90,7 @@ bool P6502::serveIRQ()
 
 	if (DBG_TRACING_OR_LEVEL(DBG_INTERRUPTS)) {
 		DBG_LOG(this, DBG_INTERRUPTS, "Serving IRQ at PC = 0x" + Utility::int2HexStr(oProgramCounter,4) + "\n");
-		if (mIRQ == 0)
-			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
+		DBG_LOG_COND(mIRQ == 0, this, DBG_INTERRUPTS, getInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister));
 	}
 
 	return true;
@@ -510,7 +508,7 @@ bool P6502::executeInstr(
 
 		if (DBG_LEVEL_DEV(this,DBG_INTERRUPTS)) {		
 			DBG_LOG(this, DBG_INTERRUPTS, "BRK executed at PC = 0x" + Utility::int2HexStr(opcode_PC,4) +"\n");
-			printInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister);
+			DBG_LOG(this, DBG_INTERRUPTS, getInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister));
 		}
 
 
@@ -922,7 +920,7 @@ bool P6502::executeInstr(
 
 		if (DBG_LEVEL_DEV(this,DBG_INTERRUPTS)) {
 			DBG_LOG(this, DBG_INTERRUPTS, "RTI executed at 0x" + Utility::int2HexStr(oPC,4) + "; execution resumed at 0x" + Utility::int2HexStr(mProgramCounter,4) +"!\n");
-			printInterruptStack(mStackPointer - 2, oStackPointer, oProgramCounter, oStatusRegister);
+			DBG_LOG(this, DBG_INTERRUPTS, getInterruptStack(mStackPointer - 2, oStackPointer, oProgramCounter, oStatusRegister));
 		}
 
 		break;
@@ -1585,8 +1583,14 @@ bool P6502::readZP(uint8_t adr, uint8_t &data)
 
 bool P6502::readProgramMem(uint16_t adr, uint8_t& data)
 {
+	return readProgramMem(adr, data, true);
+}
+
+bool P6502::readProgramMem(uint16_t adr, uint8_t& data, bool adjustTiming)
+{
 	if (mLastPgmDevice != NULL && mLastPgmDevice->selected(adr)) {
-		adjustForWaitStates(mLastPgmDevice);
+		if (adjustTiming)
+			adjustForWaitStates(mLastPgmDevice);
 		return mLastPgmDevice->read(adr, data);
 	}
 
@@ -1594,7 +1598,8 @@ bool P6502::readProgramMem(uint16_t adr, uint8_t& data)
 	for (int i = 0; i < mMemories.size(); i++) {
 		MemoryMappedDevice* dev = mMemories[i];
 		if (dev->selected(adr)) {
-			adjustForWaitStates(dev);// Add wait states if applicable
+			if (adjustTiming)
+				adjustForWaitStates(dev);// Add wait states if applicable
 			bool success = dev->read(adr, data);
 			mLastPgmDevice = dev;			
 			return success;
@@ -1656,8 +1661,8 @@ string P6502::stack2Str()
 		stringstream sout;
 		uint16_t a = (0x100 + mStackPointer + 1) & 0x1ff;
 		uint8_t l, h;
-		readProgramMem(a, l);
-		readProgramMem(a + 1, h);
+		readProgramMem(a, l, false);
+		readProgramMem(a + 1, h, false);
 		uint16_t w = (h << 8) | l;
 		sout << "mem[" << hex << setw(3) << setfill('0') << a << "]=" << setw(2) << setfill('0') << hex << w;
 		return sout.str();
@@ -1667,55 +1672,71 @@ string P6502::stack2Str()
 
 }
 
-void P6502::printInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister)
+string P6502::getInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister)
 {
 	string s;
 	s += "\n\tStackPointer 0x" + Utility::int2HexStr(0x100 + oStackPointer,4) + " => 0x" + Utility::int2HexStr(0x100 + mStackPointer,4) + "\n";
-	s += "\tStatusregister NV--DIZC:" + Utility::int2NinStr(oStatusRegister & 0xdf,8) + " => 0x" + Utility::int2NinStr(mStatusRegister & 0xdf,8) + "\n";
+	s += "\tStatusregister NV--DIZC:" + Utility::int2BinStr(oStatusRegister & 0xdf,8) + " => 0x" + Utility::int2BinStr(mStatusRegister & 0xdf,8) + "\n";
 	s += "\tProgramCounter 0x" + Utility::int2HexStr(oProgramCounter,4) + " => 0x" + Utility::int2HexStr(mProgramCounter,4) + "\n";
 	s += "\tInterrupt Stack:\n";
 	for (int a = 0x100 + stackStart; a < 0x100 + stackStart + 3; a++) {
 		uint8_t d;
-		readProgramMem(a, d);
+		readProgramMem(a, d, false);
 		if (a == 0x100 + stackStart)
-			s += "\tmem[0x" + Utility::int2HexStr(a,4) + "] = 0x"  + Utility::int2HexStr(d,2) + " <=> NV-(B)DIZC " + Utility::int2NinStr(d,8) + "\n";
+			s += "\tmem[0x" + Utility::int2HexStr(a,4) + "] = 0x"  + Utility::int2HexStr(d,2) + " <=> NV-(B)DIZC " + Utility::int2BinStr(d,8) + "\n";
 		else
 			s += "\tmem[0x" + Utility::int2HexStr(a, 4) + "] = 0x" + Utility::int2HexStr(d, 2) + "\n";
 	}
-	DBG_LOG(this, DBG_INTERRUPTS, s);
+	return s;
 }
 
-void P6502::printCallStack()
+string P6502::getCallStack()
 {
 	string s = "Call Stack:\n";
 	int start_adr = 0x100 + mStackPointer + 1;
 	for (int a = start_adr; a < start_adr + 2; a++) {
 		uint8_t d;
-		readProgramMem(a, d);
+		readProgramMem(a, d, false);
 		s += "\tmem[0x" + Utility::int2HexStr(a, 4) + "] = 0x" + Utility::int2HexStr(d, 2) + "\n";
 	}
-	DBG_LOG(this, DBG_INTERRUPTS, s);
+	return s;
 }
 
 // Outputs the internal state of the device
 bool P6502::outputState(ostream& sout)
 {
-	string instr_s = mCodec.decode(mOpcodePC, mOpcode, mOperand);
-	sout << setfill(' ') << setw(30) << left << instr_s << right <<
-		" " << getState();
-	int adr = -1;
-	if (mRAccAdr >= 0)
-		adr = mRAccAdr;
-	else if (mWAccAdr >= 0)
-		adr = mWAccAdr;
-	if (adr >= 0) {
-		sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << (uint16_t) adr;
-		if (mRAccAdr >= 0)
-			sout << " READ 0x" << setw(2) << (int)mReadVal;
-		if (mWAccAdr >= 0)
-			sout << " WROTE 0x" << setw(2) << (int)mWrittenVal;
+	uint8_t opcode;
+	uint16_t pc = mProgramCounter;
+	uint16_t a = pc;
+	string instr_s;
+
+	// Read up to three bytes, if possible
+	vector<uint8_t> bytes = {0, 0, 0};
+	if (!readProgramMem(a++, bytes[0], false))
+		return false;
+	if (readProgramMem(a, bytes[1], false))
+		a++;
+	if (readProgramMem(a, bytes[2], false))
+		a++;
+
+	if (!mCodec.decodeInstrFromBytes(pc, bytes, instr_s, false)) {
+		return false;
 	}
-	sout << "\n";
+
+	sout << "State:                   " << getState() << "\n";
+	sout << "Next instruction:        " << setfill(' ') << setw(30) << left << instr_s << "\n";
 
 	return true;
+}
+
+bool P6502::nextInstrIsJSR(uint16_t& retAdr)
+{
+	uint8_t opcode;
+	Codec6502::InstructionInfo instr_info;
+	retAdr = 0x0;
+	if (readProgramMem(mProgramCounter, opcode, false) && opcode == P6502_JSR_OPCODE) {
+		retAdr = mProgramCounter + 2;
+		return true;
+	}
+	return false;
 }

@@ -20,7 +20,7 @@ ADD	TT5050			TCG				1									// Teletext Character Generator
 ADD	ACIA6850		ACIA		fe08	0008	1			1.0			// ACIA 6850
 ADD	BeebSerULA		SerialULA	fe10	0010	1						// Beeb Serial ULA
 ADD	BeebVideoULA	VDU			fe20	0010	1						// Beeb Video ULA
-ADD	BeebRomSel		ROMSel		fe30	0010	0
+ADD	BeebRomSel		ROMSel		fe30	0001	0
 ADD	VIA6522			SYS_VIA		fe40	0020	1			1.0			// IC3	fe40 -	fe4f; 1 Mhz Clock
 ADD	VIA6522			USER_VIA	fe60	0020	1			1.0			// IC69	fe60 -	fe6f; 1 MHz Clock
 ADD	ADC7002			ADC			fec0	0003	1						// ADC Converter
@@ -63,12 +63,12 @@ CONNECT:P	VIAL:Q;5;4			VDU:C
 CONNECT 	VDU:CRTC_CLK		CRTC:CLK
 
 // Paged ROMs
-CONNECT 	ROMSel:SE			BASIC:CS
-CONNECT		ROMSel:NW			MMFS:CS
-CONNECT		ROMSel:B0;0			SWRAM0:CS
-CONNECT		ROMSel:B0;1			SWRAM1:CS
-CONNECT		ROMSel:B0;2			SWRAM2:CS
-CONNECT		ROMSel:B0;3			SWRAM3:CS
+CONNECT 	ROMSel:SE			BASIC:CS		// Sideways ROM Slot 15
+CONNECT		ROMSel:NW			MMFS:CS			// Sideways RAM Slot 12
+CONNECT		ROMSel:B1;0			SWRAM0:CS		// Sideways RAM Slot 4
+CONNECT		ROMSel:B1;1			SWRAM1:CS		// Sideways RAM Slot 5
+CONNECT		ROMSel:B1;2			SWRAM2:CS		// Sideways RAM Slot 6
+CONNECT		ROMSel:B1;3			SWRAM3:CS		// Sideways RAM Slot 7
 
 //
 // SD Card for MMFS connected to the User VIA

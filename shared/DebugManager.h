@@ -116,11 +116,11 @@ private:
 
 #define	INSTR_BUFFER_SIZE	100
 
-	vector<InstrLogData> mBufferedInstrLog = vector<InstrLogData>(INSTR_BUFFER_SIZE);
-	vector<string> mBufferedTraceLines = vector<string>(INSTR_BUFFER_SIZE);
-	string mTmpExtensiveTracingLog;
-	int mBufferInstrReadIndex = 0;
-	int mBufferInstrWriteIndex = 0;
+	vector<InstrLogData> mInstrBufferWindow = vector<InstrLogData>(INSTR_BUFFER_SIZE);
+	vector<string> mExtBufferWindow = vector<string>(INSTR_BUFFER_SIZE);
+	string mExtBufWindowEntry;
+	int mBufWindowReadIndex = 0;
+	int mBufWindowWriteIndex = 0;
 	int mBufferInstrSize = 0;
 	int mPostTraceInstrCount = 0;
 
@@ -179,7 +179,7 @@ public:
 	// Enable/disable prebuffering - used by the Debugger
 	bool enableBuffering(int preTraceLen, int postTraceLen, bool extensive, bool recurring);
 	void disableBuffering();
-	bool emptyBuffer(ostream& sout);
+	bool outputBufferWindow(ostream& sout);
 	bool logCurrentInstruction(ostream& sout);
 	bool bufferingEnabled() { return mTracingState == PREBUF_TRACING; }
 

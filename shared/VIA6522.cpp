@@ -1347,9 +1347,9 @@ bool VIA6522::outputState(ostream& sout)
 	sout << "ACR = " << ACR2Str() << "\n";
 	sout << "PCR = " << PCR2Str() << "\n";
 	sout << "PA = 0x" << Utility::int2HexStr(mPAIn, 2) << " (In) 0x" << Utility::int2HexStr(mPAOut, 2) << " (out) 0b" <<
-		Utility::int2NinStr(mDDRA,8) << " (dir mask - '1' <=> Out)\n";
+		Utility::int2BinStr(mDDRA,8) << " (dir mask - '1' <=> Out)\n";
 	sout << "PB = 0x" << Utility::int2HexStr(mPBIn, 2) << " (In) 0x" << Utility::int2HexStr(mPBOut, 2) << " (out) 0b" <<
-		Utility::int2NinStr(mDDRB,8) << " (dir mask - '1' <=> Out)\n";
+		Utility::int2BinStr(mDDRB,8) << " (dir mask - '1' <=> Out)\n";
 	sout << "CA1 = 0x" << Utility::int2HexStr(mCAIn & 0x1, 1) << " (In) " << Utility::int2HexStr(mCAOut & 1, 1) << " (out)\n";
 	sout << "CA2 = 0x" << Utility::int2HexStr((mCAIn >> 1) & 0x1, 1) << " (In) " << Utility::int2HexStr((mCAOut >> 1) & 1, 1) << " (out)\n";
 	sout << "CB1 = 0x" << Utility::int2HexStr(mCBIn & 0x1, 1) << " (In) " << Utility::int2HexStr(mCBOut & 1, 1) << " (out)\n";

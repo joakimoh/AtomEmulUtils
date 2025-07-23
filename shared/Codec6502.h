@@ -279,6 +279,8 @@ public:
 	
 };
 
+#define P6502_JSR_OPCODE 0x20
+#define P6502_RTS_OPCODE 0x60
 	
 
 private:
@@ -292,6 +294,8 @@ private:
 
 	uint16_t mProgramCounter = 0x0;
 
+	
+
 public:
 
 	Codec6502();
@@ -303,6 +307,7 @@ public:
 	string decode(uint16_t PC, uint8_t opcode, uint16_t operand);
 
 	bool decodeInstrFromBytes(uint16_t& pc, vector<uint8_t> bytes, string& decodedInstr);
+	bool decodeInstrFromBytes(uint16_t& pc, vector<uint8_t> bytes, string& decodedInstr, bool outputASCII);
 
 };
 

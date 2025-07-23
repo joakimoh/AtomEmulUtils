@@ -23,7 +23,7 @@ void BeebViaLatch::processPortUpdate(int index)
 // Outputs the internal state of the device
 bool BeebViaLatch::outputState(ostream& sout)
 {
-	sout << "Q = 0x" << Utility::int2HexStr(mQ, 2) << " <=> 0b" << Utility::int2NinStr(mQ, 8) << "\n";
+	sout << "Q = 0x" << Utility::int2HexStr(mQ, 2) << " <=> 0b" << Utility::int2BinStr(mQ, 8) << "\n";
 
 	return true;
 }

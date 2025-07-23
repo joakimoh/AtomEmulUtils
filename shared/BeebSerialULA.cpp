@@ -190,7 +190,7 @@ bool BeebSerialULA::write(uint16_t adr, uint8_t data)
 	// Update cassette motor output
 	updatePort(CASMO, SER_ULA_CR_CAS_MOT);
 
-	DBG_LOG(this, DBG_TAPE, "Serial ULA CR = 0x" + Utility::int2HexStr(data, 2) + "/0b" + Utility::int2NinStr(data, 8) + " [" +
+	DBG_LOG(this, DBG_TAPE, "Serial ULA CR = 0x" + Utility::int2HexStr(data, 2) + "/0b" + Utility::int2BinStr(data, 8) + " [" +
 			"Motor (b7): " + (SER_ULA_CR_CAS_MOT ? "On" : "Off") +
 			", Mode (b6): " + (SER_ULA_CR_ENA_SER ? "Serial" : "Cassette") +
 			", RxClk (b5:b3): " + to_string(mRxClkRate) + ", TxClk (b2:b0): " + to_string(mTxClkRate) + "] at " +
@@ -477,7 +477,7 @@ bool BeebSerialULA::connectDevice(Device* dev)
 // Outputs the internal state of the device
 bool BeebSerialULA::outputState(ostream& sout)
 {
-	sout << "Serial ULA CR = 0x" + Utility::int2HexStr(mCR, 2) + "/0b" + Utility::int2NinStr(mCR, 8) + " [" +
+	sout << "Serial ULA CR = 0x" + Utility::int2HexStr(mCR, 2) + "/0b" + Utility::int2BinStr(mCR, 8) + " [" +
 		"Motor (b7): " + (SER_ULA_CR_CAS_MOT ? "On" : "Off") +
 		", Mode (b6): " + (SER_ULA_CR_ENA_SER ? "Serial" : "Cassette") +
 		", RxClk (b5:b3): " + to_string(mRxClkRate) + ", TxClk (b2:b0): " + to_string(mTxClkRate) << "]\n";

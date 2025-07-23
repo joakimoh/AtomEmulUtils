@@ -6,10 +6,7 @@
 #include <vector>
 #include <filesystem>
 #include <cstdint>
-
-
-
-
+#include "DebugManager.h"
 #include "ConnectionManager.h"
 #include "Devices.h"
 #include "VideoDisplayUnit.h"
@@ -260,6 +257,7 @@ bool Engine::run()
 
                         if (mState != ENG_HALT && mState != ENG_BRK_DET) {
 
+ 
                             // Execute one microprocessor instruction and advance time accordingly (mCycleCount updated)
                             if (!mMicroprocessor->advanceInstr(mCycleCount)) {
                                 // Execution stopped - exit
@@ -275,12 +273,33 @@ bool Engine::run()
                             // If a break point has been set and is triggered, then save instruction data and change the break point state
                             // to triggered (ENG_BRK_DET). Another thread (a Debugger thread calling setBreakPointAndWait()) will
                             // then stop its wait and use the saved instruction data.u65
+                            uint8_t read_data, written_data;
+                            bool read_adr_triggered = mMicroprocessor->readAdr(read_data) == mBreakAdr;
+                            bool written_adr_triggered = mMicroprocessor->writtenAdr(written_data) == mBreakAdr;
+                            uint16_t opcode_adr_triggered = mMicroprocessor->getPC() == mBreakAdr;
+                            bool is_JSR = mMicroprocessor->nextInstrIsJSR(mRetAdr);
+                            bool was_RTS = mMicroprocessor->getOpcode() == P6502_RTS_OPCODE;
                             if (
-                                mState == ENG_X_BRK_WAIT && mMicroprocessor->getOpcodePC() == mBreakAdr ||
-                                (mState == ENG_R_BRK_WAIT || mState == ENG_RW_BRK_WAIT) && mMicroprocessor->readAdr(mReadData) == mBreakAdr ||
-                                (mState == ENG_W_BRK_WAIT || mState == ENG_RW_BRK_WAIT) && mMicroprocessor->writtenAdr(mWrittenData) == mBreakAdr
+                                mState == ENG_X_BRK_WAIT && opcode_adr_triggered
+                                ) {
+                                mState = ENG_BRK_DET;
+                                mReadData = 0x0;
+                                mWrittenData = 0x0;
+                                mOperandAddress = 0x0;
+                            }
+                            else if (
+                                read_adr_triggered && (
+                                    mState == ENG_R_BRK_WAIT || mState == ENG_RW_BRK_WAIT ||
+                                    (mState == ENG_R_V_BRK_WAIT || mState == ENG_RW_V_BRK_WAIT) && read_data == mReadData
+                                    ) ||
+                                written_adr_triggered && (
+                                    mState == ENG_W_BRK_WAIT || mState == ENG_RW_BRK_WAIT ||
+                                    (mState == ENG_W_V_BRK_WAIT || mState == ENG_RW_V_BRK_WAIT) && written_data == mWrittenData
+                                )
                             ) {
                                 mState = ENG_BRK_DET;
+                                mReadData = read_data;
+                                mWrittenData = written_data;
                                 mOperandAddress = mMicroprocessor->operandAddress();
                             }
 
@@ -289,6 +308,15 @@ bool Engine::run()
                                     mState = ENG_HALT;
                                 else
                                     mSteps--;
+                            }
+                            else if (mState == ENG_STEP_OVER) {
+                                if (is_JSR) {
+                                    mState = ENG_WAIT_ON_RET;
+                                } else
+                                    mState = ENG_HALT;
+                            }
+                            else if (mState == ENG_WAIT_ON_RET && was_RTS) {
+                                mState = ENG_HALT;
                             }
                         }
                         // Release execution mutex
@@ -409,6 +437,7 @@ bool Engine::halt()
     mExecMutex.lock();
     mState = ENG_HALT;
     mExecMutex.unlock();
+    mMicroprocessor->outputState();
     return true;
 }
 
@@ -422,39 +451,69 @@ bool Engine::cont()
 
 bool Engine::step(int n)
 {
+    bool status = step(n, false);
+    mMicroprocessor->outputState();
+    return status;
+}
+
+bool Engine::step(int n, bool step_over = false)
+{
     bool wait = true;
     mExecMutex.lock();
     mSteps = n;
-    mState = ENG_STEP;
+    if (step_over && n == 1)
+        mState = ENG_STEP_OVER;
+    else if (n > 0)
+        mState = ENG_STEP;
+    else
+        return false;
+
+    if (step_over)
+        cout << "STEP OVER\n";
+
     mExecMutex.unlock();
     while (wait) {
         mExecMutex.lock();
-        wait = (mState == ENG_STEP);
+        wait = (mState != ENG_HALT);
         mExecMutex.unlock();
     }
+
+    mMicroprocessor->outputState();
+
     return true;
 }
 
-bool Engine::setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAddress, bool repetition)
+bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAddress, bool repetition)
 {
+    cout << "Set breakpoint " << _ENGINE_STATE(mode) << "\n";
     mBreakAdr = (int)adr;
     mRecurringTracing = repetition;
     bool triggered = false;
     mExecMutex.lock();
     switch (mode) {
-    case 0: 
+    case ENG_X_BRK_WAIT:
         mState = ENG_X_BRK_WAIT;
         break;
-    case 1:
+    case ENG_R_BRK_WAIT:
         mState = ENG_R_BRK_WAIT;
         break;
-    case 2:
+    case ENG_W_BRK_WAIT:
         mState = ENG_W_BRK_WAIT;
         break;
-    case 3:
+    case ENG_RW_BRK_WAIT:
         mState = ENG_RW_BRK_WAIT;
         break;
+    case ENG_R_V_BRK_WAIT:
+        mState = ENG_R_V_BRK_WAIT;
+        break;
+    case ENG_W_V_BRK_WAIT:
+        mState = ENG_W_V_BRK_WAIT;
+        break;
+    case ENG_RW_V_BRK_WAIT:
+        mState = ENG_RW_V_BRK_WAIT;
+        break;
     default:
+        mExecMutex.unlock();
         return false;
     }
     
@@ -474,9 +533,12 @@ bool Engine::setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uin
             }
             else
                 mState = ENG_HALT;
-            mDM->emptyBuffer(cout);
+            mDM->outputBufferWindow(cout);
         }
         mExecMutex.unlock();
     } 
+
+    mMicroprocessor->outputState();
+
     return true;
 }

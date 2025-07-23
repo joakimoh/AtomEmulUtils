@@ -11,19 +11,51 @@
 #include <allegro5/allegro_image.h>
 #include "allegro5/allegro_native_dialog.h"
 #include "VideoSettings.h"
-#include "DebugManager.h"
 #include "Display.h"
 #include <mutex>
 #include <semaphore>
 #include <thread>
 
 class SoundDevice;
+class Debugmanager;
 
 using namespace std;
 
 class Engine {
 
-
+public:
+	// Debugger state
+	enum RunState {
+		ENG_RUN, ENG_HALT, ENG_STEP, ENG_STEP_OVER, ENG_X_BRK_WAIT,
+		ENG_R_BRK_WAIT, ENG_R_V_BRK_WAIT,
+		ENG_W_BRK_WAIT, ENG_W_V_BRK_WAIT,
+		ENG_RW_BRK_WAIT, ENG_RW_V_BRK_WAIT,
+		ENG_BRK_DET, ENG_WAIT_ON_RET
+	};
+#define _ENGINE_STATE(x) (\
+	x==ENG_RUN?"Run":\
+	(x==ENG_HALT?"Halt":\
+		(x==ENG_STEP?"Step":\
+			(x==ENG_X_BRK_WAIT?"Break on execution":\
+				(x==ENG_R_BRK_WAIT?"Wait on read address":\
+					(x==ENG_R_V_BRK_WAIT?"Wait on read value":\
+						(x==ENG_W_BRK_WAIT?"Wait on write address":\
+							(x==ENG_W_V_BRK_WAIT?"Wait on written value":\
+								(x==ENG_RW_BRK_WAIT?"Wait on read or write to address":\
+									(x==ENG_RW_V_BRK_WAIT?"Wait on read or written value":\
+										(x==ENG_BRK_DET?"Breakpoint triggered":(x==ENG_STEP_OVER?"Step over":\
+											(x==ENG_WAIT_ON_RET?"Wait on return from subroutine":"???"))\
+										)\
+									)\
+								)\
+							)\
+						)\
+					)\
+				)\
+			)\
+		)\
+	)\
+)
 
 private:
 
@@ -53,14 +85,15 @@ private:
 
 	GUI *mGUI = NULL;
 
-	// Debugger state
-	enum RunState {ENG_RUN, ENG_HALT, ENG_STEP, ENG_X_BRK_WAIT, ENG_R_BRK_WAIT, ENG_W_BRK_WAIT, ENG_RW_BRK_WAIT, ENG_BRK_DET};
+
 	RunState mState = ENG_RUN;
 	int mSteps = 0;
 	int mBreakAdr = -1;
 	uint8_t mReadData = 0xff;
 	uint8_t mWrittenData = 0xff;
 	uint16_t mOperandAddress = 0xffff;
+
+	uint16_t mRetAdr = 0x0;
 
 	// Create mutex for debug purpose
 	mutex mExecMutex;
@@ -84,9 +117,10 @@ public:
 
 	bool cont();
 
+	bool step(int n, bool stepOver);
 	bool step(int n);
 
-	bool setBreakPointAndWait(int mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAdr, bool repetition);
+	bool setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAdr, bool repetition);
 };
 
 

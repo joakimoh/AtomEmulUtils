@@ -21,6 +21,7 @@ Codec6502::Codec6502() {
 		InstructionInfo instr = instructions[(uint8_t) i];
 		mOpcodeDict[(uint8_t)instr.opcode] = instr;
 	}
+
 }
 
 string Codec6502::byte2str(uint16_t byte)
@@ -232,7 +233,11 @@ string Codec6502::decode(uint16_t PC, uint8_t opcode, uint16_t operand)
 	return sout.str();
 }
 
-bool Codec6502::decodeInstrFromBytes(uint16_t &pc, vector<uint8_t> bytes, string &decodedInstr)
+bool Codec6502::decodeInstrFromBytes(uint16_t& pc, vector<uint8_t> bytes, string& decodedInstr)
+{
+	return decodeInstrFromBytes(pc, bytes, decodedInstr, false);
+}
+bool Codec6502::decodeInstrFromBytes(uint16_t &pc, vector<uint8_t> bytes, string &decodedInstr, bool outputASCII)
 {
 	int pos = 0;
 	uint16_t operand = 0x0;
@@ -270,7 +275,7 @@ bool Codec6502::decodeInstrFromBytes(uint16_t &pc, vector<uint8_t> bytes, string
 	case Indirect:		// OPC (&1234)			
 	{
 		uint8_t op16_L = 0x0, op16_H = 0x0;
-		if (pos + 2 >= bytes.size())
+		if (pos + 2 > bytes.size())
 			return false;
 		op16_L = bytes[pos++];
 		op16_H = bytes[pos++];
@@ -285,12 +290,15 @@ bool Codec6502::decodeInstrFromBytes(uint16_t &pc, vector<uint8_t> bytes, string
 
 	stringstream ss;
 	ss << left << setw(30) << decode(PC_for_opcode, opcode, operand);
-	for (int i = 0; i < pos; i++) {
-		char c = (char) bytes[i];
-		if (c >= 0x20 && c < 0x7f)
-			ss << c;
-		else
-			ss << '.';
+
+	if (outputASCII) {
+		for (int i = 0; i < pos; i++) {
+			char c = (char)bytes[i];
+			if (c >= 0x20 && c < 0x7f)
+				ss << c;
+			else
+				ss << '.';
+		}
 	}
 
 	decodedInstr = ss.str();

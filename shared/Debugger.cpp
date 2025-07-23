@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <sstream>
 #include <filesystem>
+#include "Engine.h"
 
 using namespace std;
 
@@ -206,7 +207,7 @@ bool Debugger::dumpDevCmd(istream& sin)
 		return false;
 	}
 	double t_s = getDeviceTime(dev);
-	cout << "Device time (sec ms us) is: " << Utility::encodeCPUTime(t_s) << "\n";
+	cout << "Device time (sec ms us): " << Utility::encodeCPUTime(t_s) << "\n";
 	dev->outputState(cout);
 
 	return true;
@@ -220,7 +221,7 @@ bool Debugger::dumpUcCmd(istream& sin)
 		return false;
 	}
 	double t_s = getDeviceTime(dev);
-	cout << "Device time (sec ms us) is: " << Utility::encodeCPUTime(t_s) << "\n";
+	cout << "Device time (sec ms us): " << Utility::encodeCPUTime(t_s) << "\n";
 	dev->outputState(cout);
 
 	return true;
@@ -330,7 +331,7 @@ bool Debugger::disCmd(istream& sin, ostream& sout)
 		// Test if there is enough bytes to decode a complete instruction
 		if (bytes.size() >= 2) {
 			int old_pc = pc;
-			if (mCodec.decodeInstrFromBytes(pc, bytes, s)) {
+			if (mCodec.decodeInstrFromBytes(pc, bytes, s, true)) {
 				int consumed_bytes = pc - old_pc;
 				bytes.erase(bytes.begin(), bytes.begin() + consumed_bytes);
 				sout << s << "\n";
@@ -402,7 +403,7 @@ bool Debugger::readMemCmd(istream  &sin, ostream &sout)
 		}
 		bytes[ofs] = data;
 		if ((r_sz == 16 && ofs == 15) || a == a2) {
-			sout << "\n" << Utility::int2HexStr(a - ofs, 6);
+			sout << Utility::int2HexStr(a - ofs, 6);
 			for (int i = 0; i < r_sz; i++)
 				sout << " " << Utility::int2HexStr(bytes[i], 2);
 			for (int i = 0; i < 16 - r_sz; i++)
@@ -419,7 +420,7 @@ bool Debugger::readMemCmd(istream  &sin, ostream &sout)
 	return true;
 }
 
-bool Debugger::stepCmd(istream &sin)
+bool Debugger::stepCmd(istream &sin, bool stepOver)
 {
 	int n = 1;
 
@@ -427,18 +428,24 @@ bool Debugger::stepCmd(istream &sin)
 	if (!readOptPosInt(sin, n))
 		n = 1;
 
+	if (stepOver && n != 1) {
+		cout << "skip command doesn't take any parameter!\n";
+		return false;
+	}
+
 	// Turn on tracing if previously enabled
 	if (mTracingEnabled) {
 		mPretraceLen = n;
 		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, false);
 	}
 
-	mEngine->step(n);
+	mEngine->step(n, stepOver);
 
-	if (mTracingEnabled && !mDM->emptyBuffer(cout)) {
+	if (mTracingEnabled && !mDM->outputBufferWindow(cout)) {
 		cout << "Trace not possible to retrieve!\n";
 		return false;
 	}
+
 	return true;
 }
 
@@ -474,20 +481,35 @@ bool Debugger::breakCmd(istream& sin)
 
 
 	if (sub_cmd == "x") {
-		mAccessMode = 0;
-		mEngine->setBreakPointAndWait(0, a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
+		mAccessMode = Engine::ENG_X_BRK_WAIT;
+		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
 	}
 	else if (sub_cmd == "r") {
-		mAccessMode = 1;
-		mEngine->setBreakPointAndWait(1, a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
+		mAccessMode = Engine::ENG_R_BRK_WAIT;
+		int d;
+		if (readHexInt(sin, d)) {
+			mReadData = d;
+			mAccessMode = Engine::ENG_R_V_BRK_WAIT;
+		}
+		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
 	}
 	else if (sub_cmd == "w") {
-		mAccessMode = 2;
-		mEngine->setBreakPointAndWait(2, a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
+		mAccessMode = Engine::ENG_W_BRK_WAIT;
+		int d;
+		if (readHexInt(sin, d)) {
+			mWrittenData = d;
+			mAccessMode = Engine::ENG_W_V_BRK_WAIT;
+		}
+		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
 	}
 	else if (sub_cmd == "rw") {
-		mAccessMode = 3;
-		mEngine->setBreakPointAndWait(3, a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
+		mAccessMode = Engine::ENG_RW_BRK_WAIT;
+		int d; 
+		if (readHexInt(sin, d)) {
+			mWrittenData = d;
+			mAccessMode = Engine::ENG_RW_V_BRK_WAIT;
+		}
+		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
 	}
 	else {
 		cout << "Illegal sub command - valid sub command to break is one of x,r,w and rw!\n";
@@ -501,7 +523,7 @@ bool Debugger::haltCmd(istream& sin)
 {
 	mEngine->halt();
 
-	if (mTracingEnabled && !mDM->emptyBuffer(cout)) {
+	if (mTracingEnabled && !mDM->outputBufferWindow(cout)) {
 		cout << "Trace not possible to retrieve!\n";
 		return false;
 	}
@@ -526,6 +548,7 @@ void Debugger::help()
 	cout << "uc:                                                 get the microcontroller's state\n";
 	cout << "step [<no of instructions>]:                        execute the specifed no of instructions (default is 1) and then stop (instruction tracing only)\n";
 	cout << "xstep <no of instructions>:                         execute the specifed no of instructions (default is 1) and then stop (extended tracing)\n";
+	cout << "skip:                                               as 'step 1' but will step over a JSR instruction\n";
 	cout << "cont:                                               continue execution (if previusly stopped)\n";
 	cout << "break x <hex address>:                              continue execution until the program counter reaches the specified address\n";
 	cout << "break r|w|rw <hex address>:                         continue execution until the specified address is accessed in the way specified\n";
@@ -574,7 +597,9 @@ void Debugger::run()
 			else if (cmd == "devices")
 				success = listDevicesCmd(sin);
 			else if (cmd == "step")
-				success = stepCmd(sin);
+				success = stepCmd(sin, false);
+			else if (cmd == "skip")
+				success = stepCmd(sin, true);
 			else if (cmd == "cont")
 				success = contCmd(sin);
 			else if (cmd == "halt")

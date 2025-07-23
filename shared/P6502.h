@@ -97,10 +97,11 @@ private:
 	bool writeDevice(uint16_t adr, uint8_t data);
 
 	bool readProgramMem(uint16_t adr, uint8_t& data);
+	bool readProgramMem(uint16_t adr, uint8_t& data, bool adjustTiming);
 	bool readZP(uint8_t adr, uint8_t& data);
 
-	void printInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister);
-	void printCallStack();
+	string getInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister);
+	string getCallStack();
 
 	void push(uint8_t v);
 	void pull(uint8_t& v);
@@ -139,7 +140,11 @@ public:
 	bool advanceInstr(uint64_t& endCycle);
 
 	int getPC() { return (int)mProgramCounter; }
+
+	bool nextInstrIsJSR(uint16_t& retAdr);
+
 	int getOpcodePC() { return (int)mOpcodePC; }
+	uint8_t getOpcode() { return mOpcode; }
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

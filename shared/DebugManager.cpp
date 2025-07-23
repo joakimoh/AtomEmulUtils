@@ -112,7 +112,7 @@ bool DebugManager::debugLevelIs(DebugLevel level)
 
 bool DebugManager::debugLevelIs(Device *dev, DebugLevel level)
 {
-	return mInitialised && (mLogDevice == NULL || dev==mLogDevice) && (mDbgLevel & level) != 0;
+	return mInitialised && (mTracingState != TRACING_OFF && ((mLogDevice == NULL || dev == mLogDevice) || (mDbgLevel & DBG_6502) != 0 )) && (mDbgLevel & level) != 0;
 }
 
 void DebugManager::enableExecStop(uint16_t adr)
@@ -182,8 +182,8 @@ bool DebugManager::enableBuffering(int preTraceLen, int postTraceLen, bool exten
 
 	// Reset buffering
 	mBufferInstrSize = 0;
-	mBufferInstrReadIndex = 0;
-	mBufferInstrReadIndex = mBufferInstrWriteIndex = mBufferInstrSize = 0;
+	mBufWindowReadIndex = 0;
+	mBufWindowReadIndex = mBufWindowWriteIndex = mBufferInstrSize = 0;
 
 	mExtensiveLog = extensive;
 	mPreTraceLen = preTraceLen;
@@ -198,40 +198,30 @@ void DebugManager::disableBuffering()
 {
 	// Reset buffering
 	mBufferInstrSize = 0;
-	mBufferInstrReadIndex = 0;
-	mBufferInstrReadIndex = mBufferInstrWriteIndex = mBufferInstrSize = 0;
+	mBufWindowReadIndex = 0;
+	mBufWindowReadIndex = mBufWindowWriteIndex = mBufferInstrSize = 0;
 
 	mTracingState = TRACING_OFF;
 }
 
-bool DebugManager::emptyBuffer(ostream& sout)
+bool DebugManager::outputBufferWindow(ostream& sout)
 {
-	if (mBufferInstrSize == 0 && mBufferedTraceLines.size() == 0)
+	if (mBufferInstrSize == 0 && mExtBufferWindow.size() == 0)
 		return false;
 
-	int read_pos = mBufferInstrReadIndex;
+	int read_pos = mBufWindowReadIndex;
 	if (mExtensiveLog) {
 		for (int i = 0; i < mBufferInstrSize; i++) {
-			sout << mBufferedTraceLines[read_pos];
+			sout << mExtBufferWindow[read_pos];
 			read_pos = (read_pos + 1) % mPreTraceLen;
 		}
 	}
 	else {
 		for (int i = 0; i < mBufferInstrSize; i++) {
-			printInstrLogData(sout, mBufferedInstrLog[read_pos]);
+			printInstrLogData(sout, mInstrBufferWindow[read_pos]);
 			read_pos = (read_pos + 1) % mPreTraceLen;
 		}
 	}
-
-	// Reset buffering
-	mBufferInstrSize = 0;
-	mBufferInstrReadIndex = 0;
-	mBufferInstrReadIndex = mBufferInstrWriteIndex = mBufferInstrSize = 0;
-
-	if (mRecurringTracing)
-		mTracingState = PREBUF_TRACING;
-	else
-		mTracingState = TRACING_OFF;
 
 	return true;
 }
@@ -264,8 +254,8 @@ bool DebugManager::enableTracing(uint16_t adr, int preTraceLen, int postTraceLen
 
 	// Reset buffering
 	mBufferInstrSize = 0;
-	mBufferInstrReadIndex = 0;
-	mBufferInstrReadIndex = mBufferInstrWriteIndex = mBufferInstrSize = 0;
+	mBufWindowReadIndex = 0;
+	mBufWindowReadIndex = mBufWindowWriteIndex = mBufferInstrSize = 0;
 
 	mTraceAdr = adr;
 	mPreTraceLen = preTraceLen;
@@ -374,15 +364,16 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 
 		// Save the extensive buffering that has been recorded since the last instruction (if extensive recording is enabled)
 		if (mExtensiveLog) {
+
 			// Update circular buffer
-			if (mTmpExtensiveTracingLog.size() != 0) {
-				mBufferedTraceLines[mBufferInstrWriteIndex] = mTmpExtensiveTracingLog;
-				if (mBufferInstrWriteIndex == mBufferInstrReadIndex)
-					mBufferInstrReadIndex = (mBufferInstrReadIndex + 1) % mPreTraceLen;
-				mBufferInstrWriteIndex = (mBufferInstrWriteIndex + 1) % mPreTraceLen;
+			if (mExtBufWindowEntry.size() != 0) {
+				mExtBufferWindow[mBufWindowWriteIndex] = mExtBufWindowEntry;
+				if (mBufWindowWriteIndex == mBufWindowReadIndex)
+					mBufWindowReadIndex = (mBufWindowReadIndex + 1) % mPreTraceLen;
+				mBufWindowWriteIndex = (mBufWindowWriteIndex + 1) % mPreTraceLen;
 				if (mBufferInstrSize < mPreTraceLen)
 					mBufferInstrSize++;
-				mTmpExtensiveTracingLog.clear();
+				mExtBufWindowEntry.clear();
 			}
 		}
 
@@ -392,7 +383,7 @@ void DebugManager::preBuffer(uint16_t fetchAdr, uint8_t X, uint8_t Y, uint8_t A)
 			mPostTraceInstrCount = 0;
 			if (mRecurringTracing)
 				std::cout << "-----------------------------------------------------------------------------------------------------------------------------------\n";
-			emptyBuffer(cout);
+			outputBufferWindow(cout);
 			cout << "***\n";
 			mTracingState = POST_TRACING;
 			mPostTraceInstrCount = 0;
@@ -434,7 +425,7 @@ bool DebugManager::logCurrentInstruction(ostream& sout)
 //
 void DebugManager::log(Device * dev, DebugLevel level, string line)
 {
-	if (mTracingState == TRACING_OFF || (mDbgLevel & level) == 0)
+	if (mTracingState == TRACING_OFF || !debugLevelIs(dev, level))
 		return;
 
 	double t = dev->getCycleCount() / (dev->mCPUClock * 1e6);
@@ -445,7 +436,7 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 
 	// Buffer the data (instead of outputting it directly) when extensive buffering is ongoing
 	if (mExtensiveLog && mTracingState == PREBUF_TRACING) {
-		mTmpExtensiveTracingLog += prefix + line;
+		mExtBufWindowEntry += prefix + line;
 	}
 
 	// Log the data if the debugging is enabled (armed) and buffering is not ongoing
@@ -460,7 +451,7 @@ void DebugManager::log(Device * dev, DebugLevel level, string line)
 //
 void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 {
-	if (mTracingState == TRACING_OFF || (mDbgLevel & level) == 0)
+	if (mTracingState == TRACING_OFF || !debugLevelIs(dev, level))
 		return;
 
 	if (mTriggeringArmed && mFetchAdr == mCyclicLogAdr) {
@@ -478,10 +469,10 @@ void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 	// Buffer the instruction data (instead of outputting it directly) when buffering is ongoing
 	if (mTracingState == PREBUF_TRACING) {
 		// Update circular buffer
-		mBufferedInstrLog[mBufferInstrWriteIndex] = instrLogData;
-		if (mBufferInstrWriteIndex == mBufferInstrReadIndex)
-			mBufferInstrReadIndex = (mBufferInstrReadIndex + 1) % mPreTraceLen;
-		mBufferInstrWriteIndex = (mBufferInstrWriteIndex + 1) % mPreTraceLen;
+		mInstrBufferWindow[mBufWindowWriteIndex] = instrLogData;
+		if (mBufWindowWriteIndex == mBufWindowReadIndex)
+			mBufWindowReadIndex = (mBufWindowReadIndex + 1) % mPreTraceLen;
+		mBufWindowWriteIndex = (mBufWindowWriteIndex + 1) % mPreTraceLen;
 		if (mBufferInstrSize < mPreTraceLen)
 			mBufferInstrSize++;
 	}

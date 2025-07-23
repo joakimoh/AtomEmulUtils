@@ -1064,8 +1064,8 @@ bool SDCard::outputState(ostream& sout)
 	sout << "Master data token bits = " << mMasterDataTokenBits << " (" << mMasterDataTokenBits / 8 << " bytes)\n";
 	sout << "Received bits          = " << mReceivedBits << " (" << mReceivedBytes << " bytes)\n";
 	sout << "Sent bits              = " << mSentBits << " (" << mSentBytes << " bytes)\n";
-	sout << "Rx shift register      = 0x" << Utility::int2HexStr(mRxShiftRegister, 2) << " (0b" << Utility::int2NinStr(mRxShiftRegister, 8) << ")\n";
-	sout << "Tx shift register      = 0x" << Utility::int2HexStr(mTxShiftRegister, 2) << " (0b" << Utility::int2NinStr(mTxShiftRegister, 8) << ")\n";
+	sout << "Rx shift register      = 0x" << Utility::int2HexStr(mRxShiftRegister, 2) << " (0b" << Utility::int2BinStr(mRxShiftRegister, 8) << ")\n";
+	sout << "Tx shift register      = 0x" << Utility::int2HexStr(mTxShiftRegister, 2) << " (0b" << Utility::int2BinStr(mTxShiftRegister, 8) << ")\n";
 
 	return true;
 }
