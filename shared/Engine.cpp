@@ -437,7 +437,9 @@ bool Engine::halt()
     mExecMutex.lock();
     mState = ENG_HALT;
     mExecMutex.unlock();
-    mMicroprocessor->outputState();
+    stringstream sout;
+    mMicroprocessor->outputState(sout);
+    cout << sout.str();
     return true;
 }
 
@@ -452,7 +454,9 @@ bool Engine::cont()
 bool Engine::step(int n)
 {
     bool status = step(n, false);
-    mMicroprocessor->outputState();
+    stringstream sout;
+    mMicroprocessor->outputState(sout);
+    cout << sout.str();
     return status;
 }
 
@@ -478,7 +482,9 @@ bool Engine::step(int n, bool step_over = false)
         mExecMutex.unlock();
     }
 
-    mMicroprocessor->outputState();
+    stringstream sout;
+    mMicroprocessor->outputState(sout);
+    cout << sout.str();
 
     return true;
 }
@@ -538,7 +544,9 @@ bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t &readData
         mExecMutex.unlock();
     } 
 
-    mMicroprocessor->outputState();
+    stringstream sout;
+    mMicroprocessor->outputState(sout);
+    cout << sout.str();
 
     return true;
 }
