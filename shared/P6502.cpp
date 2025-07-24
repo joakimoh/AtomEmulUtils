@@ -1117,7 +1117,37 @@ bool P6502::executeInstr(
 		break;
 	}
 
+
+
+	//
+	// Undocumented 6502 NMOS instructions that are used by some programs
+	//
+
+	case Codec6502::Instruction::LAX:
+		// Load Accumulator and X with Memory
+		// M -> A -> X
+		// N	Z	C	I	D	V
+		// +	+	-	-	-	-
+	{
+		mAcc = mRegisterX = read_val;
+		setNZflags(mAcc);
+		break;
+	}
+
+	case Codec6502::Instruction::SBX:
+		// Subtract Memory from Accumulator AND X
+		// (A AND X) - oper -> X
+		// N	Z	C	I	D	V
+		// +	+	+	-	-	-
+
+	{
+		mRegisterX = (mAcc & mRegisterX) - read_val;
+		setNZCflags(mRegisterX, mRegisterX >= read_val);
+		break;
+	}
+
 	default:
+		cout << "Illegal instruction 0x" << hex << (int)mOpcode << " at PC = 0x" << mOpcodePC << "\n";
 		break;
 	}
 
