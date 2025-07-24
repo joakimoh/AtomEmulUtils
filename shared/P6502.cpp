@@ -1179,6 +1179,32 @@ bool P6502::executeInstr(
 		break;
 	}
 
+	case Codec6502::Instruction::DCP:
+		// Decrement Memory by One
+		// M - 1 -> M, A - M
+		// N	Z	C	I	D	V
+		// +	+	+	-	-	-
+	{
+		//
+		// M -1 -> M
+		//
+		val_8_u = read_val - 1;
+		if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
+			return false;
+		}
+		if (!writeDevice(calc_op_adr, val_8_u)) {
+			return false;
+		}
+		written_val = val_8_u;
+
+		//
+		// A - M
+		//
+		val_8_u = mAcc - read_val;
+		setNZCflags(val_8_u, mAcc >= read_val);
+		break;
+	}
+
 	default:
 		cout << "Illegal instruction 0x" << hex << (int)mOpcode << " at PC = 0x" << mOpcodePC << "\n";
 		break;
