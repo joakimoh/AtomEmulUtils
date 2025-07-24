@@ -24,10 +24,10 @@ public:
 		STX = 0x30, STY = 0x31, TAX = 0x32, TAY = 0x33, TSX = 0x34, TXA = 0x35, TXS = 0x36, TYA = 0x37,
 
 		// Undocumented NMOS instructions that are used by some programs although being illegal
-		LAX = 0x38, SBX = 0x39,
+		LAX = 0x38, SBX = 0x39, ISC = 0x3a,
 
 		// Used when a non-existing instruction is encountered 
-		UNDEFINED_INSTRUCTION = 0x3a
+		UNDEFINED_INSTRUCTION = 0x3b
 	};
 
 	const vector<string> instr2str {
@@ -39,7 +39,7 @@ public:
 		"RTS", "SBC", "SEC", "SED", "SEI", "STA", "STX", "STY", "TAX", "TAY", "TSX", "TXA", "TXS", "TYA",
 
 		// Undocumented NMOS instructions that are used by some programs although being illegal
-		"LAX", "SBX",
+		"LAX", "SBX", "ISC",
 
 		// Used when a non-existing instruction is encountered 
 		"???"
@@ -291,7 +291,8 @@ public:
 
 		{ 0xaf, LAX,					Absolute,		4, false,	true,	false,	true },
 		{ 0xb3, LAX,					PostInd_Y,		5, true,	true,	false,	true },
-		{ 0xcb, SBX, 					Immediate,		2, false,	false,	false,  true }
+		{ 0xcb, SBX, 					Immediate,		2, false,	false,	false,  true },
+		{ 0xf3, ISC, 					PostInd_Y,		8, false,	true,	true,	true }
 
 	
 };

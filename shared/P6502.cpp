@@ -1146,6 +1146,39 @@ bool P6502::executeInstr(
 		break;
 	}
 
+	case Codec6502::Instruction::ISC:
+		// Increment and Subtract <=> INC <mem> + SBC <mem>
+		// M + 1 -> M, A - M - C* -> A
+		// N	Z	C	I	D	V
+		// +	+	+	-	-	+
+
+	{
+		val_8_u = read_val + 1;
+		int16_t val_C, val_V;
+
+		//
+		// M + 1 -> M
+		//
+		if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
+			return false;
+		}
+
+		if (!writeDevice(calc_op_adr, val_8_u)) {
+			return false;
+		}
+		written_val = val_8_u;
+
+		// 
+		// A - M - C* -> A
+		//
+		val_V = (int8_t)mAcc - (int8_t)val_8_u - (1 - C_flag);
+		val_C = mAcc - val_8_u - (1 - C_flag);
+		mAcc = val_C & 0xff;
+		setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, val_C >= 0, val_V < -128 || val_V > 127);
+
+		break;
+	}
+
 	default:
 		cout << "Illegal instruction 0x" << hex << (int)mOpcode << " at PC = 0x" << mOpcodePC << "\n";
 		break;
