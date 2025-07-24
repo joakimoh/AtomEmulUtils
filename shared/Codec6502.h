@@ -289,10 +289,23 @@ public:
 		// Undocumented 6502 NMOS instructions that are illegal but still seem to be used by some programs
 		//
 
+		{ 0xa7, LAX,					ZeroPage,		3, false,	true,	false,	true },
+		{ 0xb7, LAX,					ZeroPage_Y,		4, false,	true,	false,	true },
 		{ 0xaf, LAX,					Absolute,		4, false,	true,	false,	true },
+		{ 0xbf, LAX,					Absolute_Y,		4, true,	true,	false,	true },
+		{ 0xa3, LAX,					PreInd_X,		6, false,	true,	false,	true },
 		{ 0xb3, LAX,					PostInd_Y,		5, true,	true,	false,	true },
+
 		{ 0xcb, SBX, 					Immediate,		2, false,	false,	false,  true },
+
+		{ 0xe7, ISC, 					ZeroPage,		5, false,	true,	true,	true },
+		{ 0xf7, ISC, 					ZeroPage_X,		6, false,	true,	true,	true },
+		{ 0xef, ISC, 					Absolute,		6, false,	true,	true,	true },
+		{ 0xff, ISC, 					Absolute_X,		7, false,	true,	true,	true },
+		{ 0xfb, ISC, 					Absolute_Y,		7, false,	true,	true,	true },
+		{ 0xe3, ISC, 					PreInd_X,		8, false,	true,	true,	true },
 		{ 0xf3, ISC, 					PostInd_Y,		8, false,	true,	true,	true },
+
 		{ 0xdb, DCP, 					Absolute_Y,		7, false,	true,	true,	true }
 
 	
