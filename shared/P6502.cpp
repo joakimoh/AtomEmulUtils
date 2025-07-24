@@ -1205,6 +1205,173 @@ bool P6502::executeInstr(
 		break;
 	}
 
+	case Codec6502::Instruction::ANC:
+		// AND Memory with Carry
+		// A AND oper, b7 -> C
+		// N	Z	C	I	D	V
+		// +	+	+	-	-	-
+	{
+		mAcc &= read_val;
+
+		// N & Z flags set based on result
+		setNZflags(mAcc);
+
+		// C flag = b7 of A
+		mStatusRegister &= ~C_set_mask | ((mAcc & 0x80) != 0 ? C_set_mask : 0x0);
+		break;
+	}
+
+	case Codec6502::Instruction::ALR:
+		// AND followed by LSR
+		// A AND oper, 0 -> [76543210] -> C
+		// N	Z	C	I	D	V
+		// +	+	+	-	-	-
+	{
+		uint8_t val_before_shift = mAcc & read_val;
+
+		// N & Z flags set based on result
+		setNZflags(val_8_u);
+
+		// LSR
+		mAcc = (val_before_shift >> 1) & 0x7f;
+
+		// Set C as for LSR
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((val_before_shift & 0x1) != 0 ? C_set_mask : 0);
+
+		break;
+	}
+
+	case Codec6502::Instruction::ARR:
+	// AND followed by ROR
+	// A AND oper, C -> [76543210] -> C
+	// N	Z	C	I	D	V
+	// +	+	+	-	-	+
+	{
+		// AND
+		uint8_t val_before_shift = mAcc & read_val;
+
+		// ROR
+		mAcc = ((val_8_u >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
+
+		// N & Z flags set based on result
+		setNZflags(val_8_u);
+
+		// Set C as for ROR
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((val_before_shift & 0x1) != 0 ? C_set_mask : 0);	
+
+		break;
+	}
+
+	case Codec6502::Instruction::LAS:
+	// Load Memory ANDed with SP into A, X & SP
+	// M AND SP -> A, X, SP
+	// N	Z	C	I	D	V
+	// +	+	-	-	-	-
+	{
+		mAcc = mRegisterX = mStackPointer = read_val & mStackPointer;
+		setNZflags(mAcc);
+		break;
+	}
+
+	case Codec6502::Instruction::RLA:
+	// ROL followed by AND
+	// M = C <- [76543210] <- C, A AND M -> A
+	// N	Z	C	I	D	V
+	// +	+	+	-	-	-
+	{
+		// ROL
+		val_8_u = ((read_val << 1) & 0xfe) | C_flag;
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((read_val & 0x80) != 0 ? C_set_mask : 0);
+
+		// Write back the result to memory
+		if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
+			return false;
+		}
+		if (!writeDevice(calc_op_adr, val_8_u)) {
+			return false;
+		}
+		written_val = val_8_u;
+
+		// AND
+		mAcc &= val_8_u;
+
+		// N & Z flags set based on result
+		setNZflags(val_8_u);
+
+		break;
+	}
+
+	case Codec6502::Instruction::RRA:		
+	// ROR followed by ADC
+	// M = C -> [76543210] -> C, A + M + C -> A, C
+	// N	Z	C	I	D	V
+	// +	+	+	-	-	+
+	{
+		// ROR
+		uint8_t rotated_val = ((read_val >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((read_val & 0x1) ? C_set_mask : 0);
+		if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
+			return false;
+		}
+		if (!writeDevice(calc_op_adr, rotated_val)) {
+			return false;
+		}
+		written_val = rotated_val;
+		setNZflags(rotated_val);
+
+		// ADC
+		int16_t val_C, val_V;
+		val_V = (int8_t)mAcc + (int8_t)rotated_val + C_flag;	// Add as signed no to determine overflow (V)
+		val_C = mAcc + rotated_val + C_flag;					// Add as unsigned no to determine carry (C)
+		mAcc = val_C & 0xff;
+		setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, (val_C & 0x100) != 0, val_V < -128 || val_V > 127);
+
+		break;
+	}
+
+	case Codec6502::Instruction::SAX:
+	// Store A and X into Memory
+	// A AND X -> M
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+	{
+		written_val = mAcc & mRegisterX;
+		writeDevice(calc_op_adr, mAcc);
+
+		break;
+	}
+
+	case Codec6502::Instruction::SLO:
+	// ASL followed by OR
+	// M = C <- [76543210] <- 0, A OR M -> A
+	// N	Z	C	I	D	V
+	// +	+	+	-	-	-
+	{
+		// ASL
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((read_val & 0x80) != 0 ? C_set_mask : 0);
+		val_8_u = (read_val << 1) & 0xfe;
+		if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
+			return false;
+		}
+		if (!writeDevice(calc_op_adr, val_8_u)) {
+			return false;
+		}
+		written_val = val_8_u;
+
+		// OR
+		mAcc |= val_8_u;
+
+		// N & Z flags set based on result
+		setNZflags(val_8_u);
+
+		break;
+	}
+
 	default:
 		cout << "Illegal instruction 0x" << hex << (int)mOpcode << " at PC = 0x" << mOpcodePC << "\n";
 		break;

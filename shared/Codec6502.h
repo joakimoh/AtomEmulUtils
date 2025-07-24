@@ -23,11 +23,12 @@ public:
 		ROR = 0x28, RTI = 0x29, RTS = 0x2a, SBC = 0x2b, SEC = 0x2c, SED = 0x2d, SEI = 0x2e, STA = 0x2f,
 		STX = 0x30, STY = 0x31, TAX = 0x32, TAY = 0x33, TSX = 0x34, TXA = 0x35, TXS = 0x36, TYA = 0x37,
 
-		// Undocumented NMOS instructions that are used by some programs although being illegal
-		LAX = 0x38, SBX = 0x39, ISC = 0x3a, DCP = 0x3b,
+		// Undocumented - but still stable - NMOS instructions that are used by some programs although being illegal
+		LAX = 0x38, SBX = 0x39, ISC = 0x3a, DCP = 0x3b, ANC = 0x3c,
+		ALR = 0x3d, ARR = 0x3e, LAS = 0x3f, RLA = 0x40, RRA = 0x41, SAX = 0x42, SLO = 0x43, SRE = 0x44,
 
 		// Used when a non-existing instruction is encountered 
-		UNDEFINED_INSTRUCTION = 0x3c
+		UNDEFINED_INSTRUCTION = 0x45
 	};
 
 	const vector<string> instr2str {
@@ -39,7 +40,8 @@ public:
 		"RTS", "SBC", "SEC", "SED", "SEI", "STA", "STX", "STY", "TAX", "TAY", "TSX", "TXA", "TXS", "TYA",
 
 		// Undocumented NMOS instructions that are used by some programs although being illegal
-		"LAX", "SBX", "ISC", "DCP",
+		"LAX", "SBX", "ISC", "DCP", "ANC",
+		"ALR", "ARR", "LAS", "RLA", "RRA", "SAX", "SLO", "SRE",
 
 		// Used when a non-existing instruction is encountered 
 		"???"
@@ -73,7 +75,7 @@ public:
 		bool				undocNMOS = false;
 	} InstructionInfo;
 
-	const InstructionInfo invalidInstr { 0xff, UNDEFINED_INSTRUCTION, UndefinedMode, false, true };
+	const InstructionInfo invalidInstr { 0x12, UNDEFINED_INSTRUCTION, UndefinedMode, false, true }; // 0x12 <=> illegal unstable instruction
 
 	vector<InstructionInfo> instructions {
 
@@ -289,14 +291,19 @@ public:
 		// Undocumented 6502 NMOS instructions that are illegal but still seem to be used by some programs
 		//
 
-		{ 0xa7, LAX,					ZeroPage,		3, false,	true,	false,	true },
-		{ 0xb7, LAX,					ZeroPage_Y,		4, false,	true,	false,	true },
-		{ 0xaf, LAX,					Absolute,		4, false,	true,	false,	true },
-		{ 0xbf, LAX,					Absolute_Y,		4, true,	true,	false,	true },
-		{ 0xa3, LAX,					PreInd_X,		6, false,	true,	false,	true },
-		{ 0xb3, LAX,					PostInd_Y,		5, true,	true,	false,	true },
+		{ 0x4b, ALR, 					Immediate,		2, false,	false,	false, false },
 
-		{ 0xcb, SBX, 					Immediate,		2, false,	false,	false,  true },
+		{ 0x0b, ANC, 					Immediate,		2, false,	false,	false, true },
+
+		{ 0x6b, ARR, 					Immediate,		2, false,	false,	false,  true },
+
+		{ 0xc7, DCP,					ZeroPage,		5, false,	true,	true,	true },
+		{ 0xd7, DCP, 					ZeroPage_X,		6, false,	true,	true,	true },
+		{ 0xcf, DCP, 					Absolute,		6, false,	true,	true,	true },
+		{ 0xdf, DCP, 					Absolute_X,		7, false,	true,	true,	true },
+		{ 0xdb, DCP, 					Absolute_Y,		7, false,	true,	true,	true },
+		{ 0xc3, DCP, 					PreInd_X,		8, false,	true,	true,	true },
+		{ 0xd3, DCP, 					PostInd_Y,		8, false,	true,	true,	true },
 
 		{ 0xe7, ISC, 					ZeroPage,		5, false,	true,	true,	true },
 		{ 0xf7, ISC, 					ZeroPage_X,		6, false,	true,	true,	true },
@@ -305,9 +312,53 @@ public:
 		{ 0xfb, ISC, 					Absolute_Y,		7, false,	true,	true,	true },
 		{ 0xe3, ISC, 					PreInd_X,		8, false,	true,	true,	true },
 		{ 0xf3, ISC, 					PostInd_Y,		8, false,	true,	true,	true },
+		{ 0xbb, LAS,					Absolute_Y,		4, true,	true,	false,	true },
 
-		{ 0xdb, DCP, 					Absolute_Y,		7, false,	true,	true,	true }
+		{ 0xa7, LAX,					ZeroPage,		3, false,	true,	false,	true },
+		{ 0xb7, LAX,					ZeroPage_Y,		4, false,	true,	false,	true },
+		{ 0xaf, LAX,					Absolute,		4, false,	true,	false,	true },
+		{ 0xbf, LAX,					Absolute_Y,		4, true,	true,	false,	true },
+		{ 0xa3, LAX,					PreInd_X,		6, false,	true,	false,	true },
+		{ 0xb3, LAX,					PostInd_Y,		5, true,	true,	false,	true },	
 
+		{ 0x27, RLA,					ZeroPage,		5, false,	true,	true,	true },
+		{ 0x37, RLA, 					ZeroPage_X,		6, false,	true,	true,	true },
+		{ 0x2f, RLA, 					Absolute,		6, false,	true,	true,	true },
+		{ 0x3f, RLA, 					Absolute_X,		7, false,	true,	true,	true },
+		{ 0x3b, RLA, 					Absolute_Y,		7, false,	true,	true,	true },
+		{ 0x23, RLA, 					PreInd_X,		8, false,	true,	true,	true },
+		{ 0x33, RLA, 					PostInd_Y,		8, false,	true,	true,	true },
+
+		{ 0x67, RRA,					ZeroPage,		5, false,	true,	true,	true },
+		{ 0x77, RRA, 					ZeroPage_X,		6, false,	true,	true,	true },
+		{ 0x6f, RRA, 					Absolute,		6, false,	true,	true,	true },
+		{ 0x7f, RRA, 					Absolute_X,		7, false,	true,	true,	true },
+		{ 0x7b, RRA, 					Absolute_Y,		7, false,	true,	true,	true },
+		{ 0x63, RRA, 					PreInd_X,		8, false,	true,	true,	true },
+		{ 0x73, RRA, 					PostInd_Y,		8, false,	true,	true,	true },
+
+		{ 0x87, SAX,					ZeroPage,		3, false,	true,	false,	true },
+		{ 0x97, SAX,					ZeroPage_Y,		4, false,	true,	false,	true },
+		{ 0x8f, SAX,					Absolute,		4, false,	true,	false,	true },
+		{ 0x83, SAX,					PreInd_X,		6, false,	true,	false,	true },
+
+		{ 0xcb, SBX, 					Immediate,		2, false,	false,	false,  true },
+
+		{ 0x07, SLO,					ZeroPage,		5, false,	false,	true,	true },
+		{ 0x17, SLO, 					ZeroPage_X,		6, false,	false,	true,	true },
+		{ 0x0f, SLO, 					Absolute,		6, false,	false,	true,	true },
+		{ 0x1f, SLO, 					Absolute_X,		7, false,	false,	true,	true },
+		{ 0x1b, SLO, 					Absolute_Y,		7, false,	false,	true,	true },
+		{ 0x03, SLO, 					PreInd_X,		8, false,	false,	true,	true },
+		{ 0x13, SLO, 					PostInd_Y,		8, false,	false,	true,	true },
+
+		{ 0x47, SRE,					ZeroPage,		5, false,	false,	true,	true },
+		{ 0x57, SRE, 					ZeroPage_X,		6, false,	false,	true,	true },
+		{ 0x4f, SRE, 					Absolute,		6, false,	false,	true,	true },
+		{ 0x5f, SRE, 					Absolute_X,		7, false,	false,	true,	true },
+		{ 0x5b, SRE, 					Absolute_Y,		7, false,	false,	true,	true },
+		{ 0x43, SRE, 					PreInd_X,		8, false,	false,	true,	true },
+		{ 0x53, SRE, 					PostInd_Y,		8, false,	false,	true,	true }
 	
 };
 
