@@ -170,9 +170,16 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 	int field_unique_line = adjusted_scanline / 2;
 
 	// Border settings (set here and not in the loops below to optimimise performance)
+//#define SHOW_FIELD_LINES
+#ifdef SHOW_FIELD_LINES
 	uint32_t border_colour = 0xff0ff000;
 	if (field_offset == 1)
 		border_colour = 0xffff0000;
+#else
+	uint32_t border_colour = 0xff000000;
+#endif
+
+	
 
 	// Cursor settings (set here and not in the loops below to optimimise performance)
 	bool clk_2_Mhz = ((mControlRegister >> 4) & 0x1) != 0;
@@ -336,30 +343,29 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 			mValidTgcData = mTGC->getScreenData(screen_data, mTgcData);
 
 		}
+
+		// Get cursor configuration
+		//
+		// The video ULA draws each segment in turn, if the corresponding bit is set.
+		// Segments 0 and 1 are each 1/40 or 1/80 of the display width.
+		// Segment 2 is twice as wide as segment 1 if the CRTC clock rate is 1 MHz; otheriwse it
+		// has the same size as segment 1.
+		//
+		uint8_t cursor_seg_ena = 0x0;
+		if (mCURSOR || mCursorSegment > 0 && (mCursorSegment <= 2 || !clk_2_Mhz && mCursorSegment <= 3)) {
+			if (mCursorSegment < 0)
+				mCursorSegment = 0;
+			int shift = (mCursorSegment <= 2 ? mCursorSegment : 2);
+			cursor_seg_ena = (cursor_segments >> (2 - shift)) & 0x1;
+
+			mCursorSegment++;
+		}
+		else
+			mCursorSegment = -1;
 		
 		if (dis_ena && bitmap_data_p != NULL)
 			// Active area of an active line
-			//
 		{
-
-			// Get cursor configuration
-			//
-			// The video ULA draws each segment in turn, if the corresponding bit is set.
-			// Segments 0 and 1 are each 1/40 or 1/80 of the display width.
-			// Segment 2 is twice as wide as segment 1 if the CRTC clock rate is 1 MHz; otheriwse it
-			// has the same size as segment 1.
-			//
-			uint8_t cursor_seg_ena = 0x0;
-			if (mCURSOR || mCursorSegment > 0 && (mCursorSegment <= 2 || !clk_2_Mhz && mCursorSegment <= 3)) {
-				if (mCursorSegment < 0)
-					mCursorSegment = 0;
-				int shift = (mCursorSegment <= 2 ? mCursorSegment : 2);
-				cursor_seg_ena = (cursor_segments >> (2 - shift)) & 0x1;	
-
-				mCursorSegment++;
-			}
-			else
-				mCursorSegment = -1;
 
 			uint8_t Rs, Gs, Bs;
 			uint8_t R, G, B;
@@ -422,7 +428,6 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 
 				// Update display with the R, G & B data
-				//uint32_t colour = 0xff000000 | (R ? 0x00ff0000 : 0) | (G ? 0x0000ff00 : 0) | (B ? 0x000000ff : 0);
 				uint32_t colour = 0xff000000 | (R << 16) | (G << 8) | B;
 				for (int pw = 0; pw < mPixelW && bitmap_data_p < mMaxDisplayBitmap_p; pw++)
 					*bitmap_data_p++ = colour;
@@ -434,12 +439,14 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 		}
 
 		else {
-			
+			uint32_t c = border_colour;
+			if (cursor_seg_ena) // // Super-impose the cursor if required (will be for modes 3 & 6 where part of the cursor is between the rows)
+				c = 0xffffffff;
 			if (visible_char_pos < hz_visible_chars && bitmap_data_p != NULL) {
 
 				for (int big_pixel = 0; big_pixel < mPixelsPerCharacter; big_pixel++)
 					for (int pw = 0; pw < mPixelW && bitmap_data_p < mMaxDisplayBitmap_p; pw++)
-						*bitmap_data_p++ = border_colour;
+						*bitmap_data_p++ = c;
 				
 			}
 
