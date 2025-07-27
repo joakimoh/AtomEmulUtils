@@ -321,6 +321,7 @@ bool Engine::run()
                                 mState = ENG_HALT;
                             }
                         }
+
                         // Release execution mutex
                         mExecMutex.unlock();
                     }
@@ -345,7 +346,7 @@ bool Engine::run()
         al_wait_for_event(mQueue, &event);
 
         bool cont = true;
-        // There could be more than one event in the queue - make sure to empty it before waiting for next timer event
+        // There could be more than one event in the queue - make sure to empty it before waiting for the next timer event
         while (cont) {
 
             // act on event
