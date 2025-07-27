@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include "Tokeniser.h"
-#include "Devices.h"
+#include "DeviceManager.h"
 #include "Debugger.h"
 #include <thread>
 #include "Device.h"
@@ -15,7 +15,7 @@
 
 using namespace std;
 
-GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, ALLEGRO_DISPLAY* disp, Devices * devices, double *speed, DebugManager* dm, string outDir):
+GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, ALLEGRO_DISPLAY* disp, DeviceManager * devices, double *speed, DebugManager* dm, string outDir):
     mDevices(devices), mDisplay(disp), mEmulationSpeed(speed), mDM(dm), mEngine(engine), mOutDir(outDir)
 {
     // 

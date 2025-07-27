@@ -16,7 +16,7 @@ using namespace std;
 // Forward references to classed defined later on to allow them being referenced before their the are declared
 class ConnectionManager; 
 class Device;
-class Devices;
+class DeviceManager;
 class MemoryMappedDevice;
 class VideoDisplayUnit;
 class P6502;

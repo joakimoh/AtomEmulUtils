@@ -2,8 +2,9 @@
 #include "Utility.h"
 #include <cmath>
 
-ADC7002::ADC7002(string name, double cpuClock, uint16_t adr, uint16_t sz, int waitStates, DebugManager* debugManager, ConnectionManager* connectionManager) :
-	MemoryMappedDevice(name, ADC_7002_DEV, OTHER_DEVICE, cpuClock, waitStates, adr, sz, debugManager, connectionManager)
+ADC7002::ADC7002(string name, double cpuClock, uint16_t adr, uint16_t sz, int waitStates, DebugManager* debugManager, ConnectionManager* connectionManager,
+	DeviceManager* deviceManager) :
+	MemoryMappedDevice(name, ADC_7002_DEV, OTHER_DEVICE, cpuClock, waitStates, adr, sz, debugManager, connectionManager, deviceManager)
 {
 	registerPort("CLK", IN_PORT, 0x01, CLK, &mCLK);	// CLK input
 	registerPort("EOC", OUT_PORT, 0x01, EOC, &mEOC);	// CLK input

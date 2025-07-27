@@ -1,5 +1,5 @@
 #include "Device.h"
-#include "Devices.h"
+#include "DeviceManager.h"
 #include "ConnectionManager.h"
 #include "Tokeniser.h"
 #include <iostream>
@@ -15,7 +15,7 @@ ConnectionManager::~ConnectionManager()
 {
 }
 
-void ConnectionManager::setDevices(Devices* devices)
+void ConnectionManager::setDevices(DeviceManager* devices)
 {
 	mDevices = devices;
 }

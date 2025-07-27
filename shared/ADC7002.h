@@ -53,7 +53,8 @@ private:
 public:
 
 
-	ADC7002(string name, double cpuClock, uint16_t adr, uint16_t sz, int waitStates, DebugManager* debugManager, ConnectionManager* connectionManager);
+	ADC7002(string name, double cpuClock, uint16_t adr, uint16_t sz, int waitStates, DebugManager* debugManager, ConnectionManager* connectionManager,
+		DeviceManager *deviceManager);
 
 	bool advance(uint64_t stopCycle);
 

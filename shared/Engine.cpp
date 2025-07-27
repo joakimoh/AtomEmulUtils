@@ -8,7 +8,7 @@
 #include <cstdint>
 #include "DebugManager.h"
 #include "ConnectionManager.h"
-#include "Devices.h"
+#include "DeviceManager.h"
 #include "VideoDisplayUnit.h"
 #include "SoundDevice.h"
 #include "P6502.h"
@@ -89,7 +89,7 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
 
     // Set up devices
     ConnectionManager connection_manager(mDM);
-    mDevices = new Devices(
+    mDevices = new DeviceManager(
         *video_settings,
         mapFileName,
         mCPUClock,            // CPU Clock frequency in MHz

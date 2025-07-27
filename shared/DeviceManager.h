@@ -24,7 +24,7 @@ class P6502;
 class RAM;
 
 
-class Devices {
+class DeviceManager {
 
 private:
 
@@ -38,9 +38,11 @@ private:
 	double getDoubleVal(stringstream& sin);
 	int getIntVal(stringstream& sin);
 
+	vector<MemoryMappedDevice*>* mDevicesByAddress[64 * 1024] = { NULL };
+
 public:
 
-	Devices(
+	DeviceManager(
 		VideoSettings videoSettings,
 		string memMapFile, double& cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, Resolution disRes, DebugManager* debugManager,
 		Program program, Program data, ConnectionManager& connectionManager, P6502*& microprocessor, VideoDisplayUnit*& vdu,
@@ -48,7 +50,10 @@ public:
 		vector<Device*>& fieldScheduledDevices, vector<Device*>& halfLineScheduledDevices, vector<Device*>& instructionScheduledDevices, double speed
 	);
 
-	~Devices();
+	~DeviceManager();
+
+	void registerMemorySpace(MemoryMappedDevice* device, uint16_t adr, uint16_t sz);
+	void registerMemoryGap(MemoryMappedDevice* device, uint16_t adr, uint16_t sz);
 
 	bool getPeripherals(vector<Device*>& devices);
 	bool getOtherDevices(vector<Device*>& devices);
@@ -75,6 +80,8 @@ public:
 	// Write to a memory-mapped device (for debugger use only)
 	bool writeMemoryMappedDevice(uint16_t adr, uint8_t data);
 
+	MemoryMappedDevice* getMemoryMappedDevicebyAddress(uint16_t adr);
+	void printMemoryMap();
 
 };
 

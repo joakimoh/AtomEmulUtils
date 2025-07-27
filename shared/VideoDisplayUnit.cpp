@@ -1,8 +1,9 @@
 #include "VideoDisplayUnit.h"
 
 
-VideoDisplayUnit::VideoDisplayUnit(string name, DeviceId devId, VideoSettings videoSettings, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager) :
-	MemoryMappedDevice(name, devId, VDU_DEVICE, cpuClock, waitStates, adr, sz, debugManager, connectionManager),
+VideoDisplayUnit::VideoDisplayUnit(string name, DeviceId devId, VideoSettings videoSettings, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz,
+	 ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
+	MemoryMappedDevice(name, devId, VDU_DEVICE, cpuClock, waitStates, adr, sz, debugManager, connectionManager, deviceManager),
 	mVideoMemAdr(videoMemAdr), mDisplay(disp), mVideoSettings(videoSettings)
 {
 

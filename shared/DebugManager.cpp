@@ -3,7 +3,7 @@
 #include <iomanip>
 #include "P6502.h"
 #include "Device.h"
-#include "Devices.h"
+#include "DeviceManager.h"
 #include "Utility.h"
 #include <bitset>
 
@@ -492,7 +492,7 @@ bool DebugManager::setMicrocontroller(Device* microcontrollerDevice)
 	return true;
 }
 
-bool DebugManager::setDevices(Devices * devices)
+bool DebugManager::setDevices(DeviceManager * devices)
 {
 	mDevices = devices;
 	mInitialised = true;

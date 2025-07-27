@@ -113,7 +113,7 @@ private:
 	ALLEGRO_MENU* mMenu = NULL;
 	bool mPopupMenuOnly = false;
     ALLEGRO_DISPLAY* mDisplay = NULL;
-    Devices* mDevices = NULL;
+    DeviceManager* mDevices = NULL;
     TapeRecorder* mTapeRec = NULL;
     double *mEmulationSpeed = NULL;
 
@@ -128,7 +128,7 @@ private:
 
 public:
 
-    GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, ALLEGRO_DISPLAY* disp, Devices * devices, double *emulationSpeed, DebugManager *dm, string outDir);
+    GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, ALLEGRO_DISPLAY* disp, DeviceManager * devices, double *emulationSpeed, DebugManager *dm, string outDir);
     ~GUI();
 
 	bool itemSelected(ALLEGRO_EVENT  *event);

@@ -28,7 +28,7 @@
 #include "BeebViaLatch.h"
 #include "Device.h"
 #include "ConnectionManager.h"
-#include "Devices.h"
+#include "DeviceManager.h"
 #include "Device.h"
 #include "SDCard.h"
 #include "ADC7002.h"
@@ -36,10 +36,10 @@
 using namespace std;
 
 //
-// Devices class
+// DeviceManager class
 //
 
-uint16_t Devices::getHexVal(stringstream& sin)
+uint16_t DeviceManager::getHexVal(stringstream& sin)
 {
 	string v_s;
 	sin >> v_s;
@@ -47,21 +47,21 @@ uint16_t Devices::getHexVal(stringstream& sin)
 
 }
 
-double Devices::getDoubleVal(stringstream& sin)
+double DeviceManager::getDoubleVal(stringstream& sin)
 {
 	string v_s;
 	sin >> v_s;
 	return stod(v_s);
 }
 
-int Devices::getIntVal(stringstream& sin)
+int DeviceManager::getIntVal(stringstream& sin)
 {
 	string v_s;
 	sin >> v_s;
 	return stoi(v_s, 0, 10);
 }
 
-string Devices::getFileName(string& path, stringstream& sin)
+string DeviceManager::getFileName(string& path, stringstream& sin)
 {
 
 	string ROM_file_name;
@@ -73,7 +73,7 @@ string Devices::getFileName(string& path, stringstream& sin)
 	return file_path.string();
 }
 
-Devices::Devices(
+DeviceManager::DeviceManager(
 	VideoSettings videoSettings,
 	string memMapFile, double& cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, Resolution disRes, DebugManager* debugManager,
 	Program program, Program data, ConnectionManager& connection_manager, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device,
@@ -130,7 +130,7 @@ Devices::Devices(
 				sin >> dev_name;
 
 				//
-				// Keyboard Devices
+				// Keyboard DeviceManager
 				//
 
 				if (dev_type == "ATOMKB") {
@@ -149,7 +149,7 @@ Devices::Devices(
 				}
 
 				//
-				// Audio Devices
+				// Audio DeviceManager
 				//
 
 				else if (dev_type == "ATOMSP") {
@@ -169,7 +169,7 @@ Devices::Devices(
 				}
 
 				//
-				// Tape Devices
+				// Tape DeviceManager
 				//
 
 				else if (dev_type == "TAPREC") {
@@ -192,14 +192,14 @@ Devices::Devices(
 
 				else if (dev_type == "CPU_6502") {
 
-					microprocessor = new P6502(dev_name, cpuClock, mDM, &connection_manager);
+					microprocessor = new P6502(dev_name, cpuClock, mDM, &connection_manager, this);
 					mDevices.push_back(microprocessor);
 					mMicroprocessor = microprocessor;
 
 				}
 
 				//
-				// Memory Devices
+				// Memory DeviceManager
 				//
 
 				else if (dev_type == "SRAM") {
@@ -207,9 +207,8 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					RAM* ram = new RAM(dev_name, cpuClock, wait_states, false, dev_adr, dev_sz, mDM, &connection_manager);
+					RAM* ram = new RAM(dev_name, cpuClock, wait_states, false, dev_adr, dev_sz, mDM, &connection_manager, this);
 					mDevices.push_back(ram);
-
 				}
 
 				else if (dev_type == "DRAM") {
@@ -217,7 +216,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					RAM* ram = new RAM(dev_name, cpuClock, wait_states, true, dev_adr, dev_sz, mDM, &connection_manager);
+					RAM* ram = new RAM(dev_name, cpuClock, wait_states, true, dev_adr, dev_sz, mDM, &connection_manager, this);
 					mDevices.push_back(ram);
 
 				}
@@ -228,7 +227,7 @@ Devices::Devices(
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					string ROM_file_path = getFileName(memMapFile, sin);
-					ROM* rom = new ROM(dev_name, cpuClock, wait_states, dev_adr, dev_sz, ROM_file_path, mDM, &connection_manager);
+					ROM* rom = new ROM(dev_name, cpuClock, wait_states, dev_adr, dev_sz, ROM_file_path, mDM, &connection_manager, this);
 					mDevices.push_back(rom);
 
 				}
@@ -238,13 +237,13 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					BeebROMSel *paged_rom_sel = new BeebROMSel(dev_name, cpuClock, wait_states, dev_adr, mDM, &connection_manager);
+					BeebROMSel *paged_rom_sel = new BeebROMSel(dev_name, cpuClock, wait_states, dev_adr, mDM, &connection_manager, this);
 					mDevices.push_back(paged_rom_sel);
 
 				}
 
 				//
-				// Serial & Parallel I/O Devices
+				// Serial & Parallel I/O DeviceManager
 				//
 
 				else if (dev_type == "BeebSerULA") {
@@ -252,7 +251,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					BeebSerialULA* serial_ULA = new BeebSerialULA(dev_name, dev_adr, cpuClock, wait_states, mDM, &connection_manager);
+					BeebSerialULA* serial_ULA = new BeebSerialULA(dev_name, dev_adr, cpuClock, wait_states, mDM, &connection_manager, this);
 					mDevices.push_back(serial_ULA);
 
 				}
@@ -262,7 +261,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					PIA8255* pia = new PIA8255(dev_name, cpuClock, wait_states, dev_adr, mDM, &connection_manager);
+					PIA8255* pia = new PIA8255(dev_name, cpuClock, wait_states, dev_adr, mDM, &connection_manager, this);
 					mDevices.push_back(pia);
 
 				}
@@ -273,7 +272,7 @@ Devices::Devices(
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					double clk = getDoubleVal(sin);
-					VIA6522* via = new VIA6522(dev_name, dev_adr, clk, cpuClock, wait_states, mDM, &connection_manager);
+					VIA6522* via = new VIA6522(dev_name, dev_adr, clk, cpuClock, wait_states, mDM, &connection_manager, this);
 					mDevices.push_back(via);
 
 				}
@@ -284,13 +283,13 @@ Devices::Devices(
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					double clk = getDoubleVal(sin);
-					ACIA6850* acia = new ACIA6850(dev_name, dev_adr, clk, cpuClock, wait_states, mDM, &connection_manager);
+					ACIA6850* acia = new ACIA6850(dev_name, dev_adr, clk, cpuClock, wait_states, mDM, &connection_manager, this);
 					mDevices.push_back(acia);
 
 				}
 
 				//
-				// Video Devices
+				// Video DeviceManager
 				//
 
 				else if (dev_type == "VDU6847") {
@@ -299,7 +298,7 @@ Devices::Devices(
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					uint16_t video_mem_adr = getHexVal(sin);
-					mainVDU = new VDU6847(dev_name, dev_adr, videoSettings, cpuClock, wait_states, disp, dispBitmap, video_mem_adr, mDM, &connection_manager);
+					mainVDU = new VDU6847(dev_name, dev_adr, videoSettings, cpuClock, wait_states, disp, dispBitmap, video_mem_adr, mDM, &connection_manager, this);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 
@@ -310,7 +309,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, videoSettings, cpuClock, wait_states, dispBitmap, mDM, &connection_manager);
+					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, videoSettings, cpuClock, wait_states, dispBitmap, mDM, &connection_manager, this);
 					mDevices.push_back(crtc);
 					vdus.push_back(crtc);
 				}
@@ -326,7 +325,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					mainVDU = new BeebVideoULA(dev_name, dev_adr, videoSettings, cpuClock, wait_states, disp, dispBitmap, mDM, &connection_manager);
+					mainVDU = new BeebVideoULA(dev_name, dev_adr, videoSettings, cpuClock, wait_states, disp, dispBitmap, mDM, &connection_manager, this);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 				}
@@ -351,7 +350,7 @@ Devices::Devices(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					ADC7002* adc = new ADC7002(dev_name, cpuClock, dev_adr, dev_sz, wait_states, mDM, &connection_manager);
+					ADC7002* adc = new ADC7002(dev_name, cpuClock, dev_adr, dev_sz, wait_states, mDM, &connection_manager, this);
 					mDevices.push_back(adc);
 					}
 
@@ -373,7 +372,7 @@ Devices::Devices(
 				uint16_t gap_adr = getHexVal(sin);
 				uint16_t gap_sz = getHexVal(sin);
 				MemoryMappedDevice* mem_dev = (MemoryMappedDevice*)dev;
-				mem_dev->addMemoryGap(gap_adr, gap_sz);
+				mem_dev->registerMemoryGap(gap_adr, gap_sz);
 
 			}
 
@@ -582,7 +581,7 @@ Devices::Devices(
 		throw runtime_error("Failed to get memory-mapped devices");
 	}
 
-	// Also maintain a separate list of memory-mapped devices for the Devices class itself
+	// Also maintain a separate list of memory-mapped devices for the DeviceManager class itself
 	getMemoryMappedDevices(mMemoryMappedDevices);
 
 	// Sort the devices according to their specified scheduling
@@ -627,15 +626,17 @@ Devices::Devices(
 	if (sound_device != NULL)
 		sound_device->setFieldRate(mainVDU->getFieldRate(), speed);
 
+	printMemoryMap();
+
 }
 
-Devices::~Devices()
+DeviceManager::~DeviceManager()
 {
 	for (int i = 0; i < mDevices.size(); i++)
 		delete mDevices[i];
 }
 
-bool Devices::loadData(Program data)
+bool DeviceManager::loadData(Program data)
 {
 	if (data.loadAdr > 0) {
 
@@ -686,7 +687,7 @@ bool Devices::loadData(Program data)
 	return true;
 }
 
-bool Devices::getPeripherals(vector<Device*>& devices)
+bool DeviceManager::getPeripherals(vector<Device*>& devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->category != MEMORY_DEVICE && mDevices[i]->category != MICROROCESSOR_DEVICE) {
@@ -698,7 +699,7 @@ bool Devices::getPeripherals(vector<Device*>& devices)
 	return true;
 }
 
-bool Devices::getMemoryMappedDevices(vector<MemoryMappedDevice*>& devices)
+bool DeviceManager::getMemoryMappedDevices(vector<MemoryMappedDevice*>& devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->memoryMapped()) {
@@ -710,7 +711,7 @@ bool Devices::getMemoryMappedDevices(vector<MemoryMappedDevice*>& devices)
 	return true;
 }
 
-bool Devices::getOtherDevices(vector<Device*>& devices)
+bool DeviceManager::getOtherDevices(vector<Device*>& devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (
@@ -728,7 +729,7 @@ bool Devices::getOtherDevices(vector<Device*>& devices)
 	return true;
 }
 
-bool Devices::getRAMs(vector<RAM*>& RAMs)
+bool DeviceManager::getRAMs(vector<RAM*>& RAMs)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->devType == RAM_DEV) {
@@ -740,7 +741,7 @@ bool Devices::getRAMs(vector<RAM*>& RAMs)
 	return true;
 }
 
-bool Devices::getMemoryDevices(vector<MemoryMappedDevice*>& devices)
+bool DeviceManager::getMemoryDevices(vector<MemoryMappedDevice*>& devices)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->category == MEMORY_DEVICE) {
@@ -752,7 +753,7 @@ bool Devices::getMemoryDevices(vector<MemoryMappedDevice*>& devices)
 	return true;
 }
 
-bool Devices::getPageMemDevice(MemoryMappedDevice*& zpMem, uint8_t page)
+bool DeviceManager::getPageMemDevice(MemoryMappedDevice*& zpMem, uint8_t page)
 {
 	uint16_t low_adr = page << 8;
 	uint16_t high_adr = low_adr | 0xff;
@@ -774,7 +775,7 @@ bool Devices::getPageMemDevice(MemoryMappedDevice*& zpMem, uint8_t page)
 // Non-intrusive reading of the memory location of a device.
 // If no memory-mapped device exists at the specified address,
 // the method will return false.
-bool Devices::dumpDeviceMemory(uint16_t adr, uint8_t& data)
+bool DeviceManager::dumpDeviceMemory(uint16_t adr, uint8_t& data)
 {
 	for (int i = 0; i < mMemoryMappedDevices.size(); i++) {
 		MemoryMappedDevice* dev = mMemoryMappedDevices[i];
@@ -787,7 +788,7 @@ bool Devices::dumpDeviceMemory(uint16_t adr, uint8_t& data)
 	return false;
 }
 
-bool Devices::getDevice(string name, Device*& device) {
+bool DeviceManager::getDevice(string name, Device*& device) {
 	device = NULL;
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->name == name) {
@@ -803,7 +804,7 @@ bool Devices::getDevice(string name, Device*& device) {
 // If more than one device of this type is found,
 // the first one is returned but an error is also indicated.
 //
-bool Devices::getDevice(DeviceId id, Device*& device) {
+bool DeviceManager::getDevice(DeviceId id, Device*& device) {
 	bool found = false;
 	device = NULL;
 	for (int i = 0; i < mDevices.size(); i++) {
@@ -820,7 +821,7 @@ bool Devices::getDevice(DeviceId id, Device*& device) {
 }
 
 // Write to a memory-mapped device (for debugger use only)
-bool Devices::writeMemoryMappedDevice(uint16_t adr, uint8_t data)
+bool DeviceManager::writeMemoryMappedDevice(uint16_t adr, uint8_t data)
 {
 	for (int i = 0; i < mMemoryMappedDevices.size(); i++) {
 		MemoryMappedDevice* dev = mMemoryMappedDevices[i];
@@ -829,4 +830,96 @@ bool Devices::writeMemoryMappedDevice(uint16_t adr, uint8_t data)
 		}
 	}
 	return false;
+}
+
+void DeviceManager::registerMemorySpace(MemoryMappedDevice* device, uint16_t adr, uint16_t sz)
+{
+	for (int a = adr; a < adr + sz; a++) {
+		uint16_t a16 = a & 0xffff;
+		if (mDevicesByAddress[a16] == NULL)
+			mDevicesByAddress[a16] = new vector<MemoryMappedDevice*>;
+		mDevicesByAddress[a16]->push_back(device);
+	}
+}
+
+void DeviceManager::registerMemoryGap(MemoryMappedDevice* device, uint16_t adr, uint16_t sz)
+{
+	for (int a = adr; a < adr + sz; a++) {
+		uint16_t a16 = a & 0xffff;
+		vector<MemoryMappedDevice*>* devices = mDevicesByAddress[a16];
+
+		vector<MemoryMappedDevice*>::iterator pos = find(devices->begin(), devices->end(), device);
+		if (pos != devices->end()) {
+			devices->erase(pos);
+			if (devices->size() == 0) {
+				delete devices;
+				mDevicesByAddress[a16] = NULL;
+			}
+		}
+	}
+}
+
+MemoryMappedDevice* DeviceManager::getMemoryMappedDevicebyAddress(uint16_t adr)
+{
+	vector<MemoryMappedDevice*> *devices = mDevicesByAddress[adr];
+	for (int i = 0; i < devices->size(); i++) {
+		if ((*devices)[i]->selected(adr))
+			return (*devices)[i];
+	}
+	//if (dev == NULL)
+	//	cout << "No device found at address 0x" << hex << adr << "\n";
+	return NULL;
+}
+
+void DeviceManager::printMemoryMap()
+{
+	vector<MemoryMappedDevice*>* devices_at_adr = NULL;
+	uint16_t last_adr = 0x0;
+	for (int a = 0; a <= 0xffff; a++) {
+		uint16_t a16 = a;
+		bool print = false;
+		vector<MemoryMappedDevice*>* devices = mDevicesByAddress[a16];
+		if (devices != NULL) {
+			if (devices_at_adr == NULL || devices_at_adr->size() != devices->size())
+				print = true;
+			else {
+				int count = 0;
+				for (int i = 0; i < devices->size(); i++) {
+					for (int j = 0; j < devices_at_adr->size(); j++) {
+						if ((*devices)[i] == (*devices_at_adr)[j])
+							count++;
+					}
+				}
+				if (count != devices->size())
+					print = true;
+
+			}
+		}
+
+		if (print) {
+
+			// Last address 
+			if (a > 0 && devices_at_adr != NULL) {
+				cout << hex << setw(4) << setfill('0') << last_adr << " ";
+				for (int i = 0; i < devices_at_adr->size(); i++)
+					cout << setw(15) << setfill(' ') << (*devices_at_adr)[i]->name << " ";
+				cout << "\n";
+			}
+
+			// New address
+			cout << hex << setw(4) << setfill('0') << a << " ";
+
+		}
+
+		if (devices != NULL) {
+			last_adr = a16;
+			devices_at_adr = devices;
+		}
+	}
+
+	cout << hex << setw(4) << setfill('0') << last_adr << " ";
+	for (int i = 0; i < devices_at_adr->size(); i++)
+		cout << setw(15) << setfill(' ') << (*devices_at_adr)[i]->name << " ";
+	cout << "\n";
+
 }

@@ -75,8 +75,10 @@ using namespace std;
 //						 -´     `-´     `-´     `-´     `-´     `-´
 
 BeebVideoULA::BeebVideoULA(
-	string name, uint16_t adr, VideoSettings videoSettings, double cpuclock, uint8_t waitStates, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, DebugManager  *debugManager, ConnectionManager* connectionManager
-) : VideoDisplayUnit(name, BEEB_VDU_DEV, videoSettings, cpuclock, waitStates, adr, 0x10, dispBitmap,0x0 /* dummy adr */, debugManager, connectionManager), mDisplay(disp)
+	string name, uint16_t adr, VideoSettings videoSettings, double cpuclock, uint8_t waitStates, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap,
+	DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager* deviceManager
+) : VideoDisplayUnit(name, BEEB_VDU_DEV, videoSettings, cpuclock, waitStates, adr, 0x10, dispBitmap,0x0 /* dummy adr */, debugManager, connectionManager,
+	deviceManager), mDisplay(disp)
 {
 	//registerPort("SCROLL_CTRL",	IN_PORT,	0x0f, SCROLL_CTRL,	&mSCROLL_CTRL);
 	registerPort("C",			IN_PORT,	0x03, C,			&mC);

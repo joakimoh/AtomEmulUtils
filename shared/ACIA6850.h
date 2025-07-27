@@ -123,7 +123,8 @@ private:
 
 public:
 
-	ACIA6850(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	ACIA6850(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugManager  *debugManager,
+		ConnectionManager* connectionManager, DeviceManager *deviceManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool dump(uint16_t adr, uint8_t& data) override;

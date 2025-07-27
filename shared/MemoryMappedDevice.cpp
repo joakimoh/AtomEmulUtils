@@ -2,16 +2,20 @@
 #include <iostream>
 #include <iomanip>
 #include "DebugManager.h"
+#include "DeviceManager.h"
 #include "Utility.h"
 
 using namespace std;
 
 MemoryMappedDevice::MemoryMappedDevice(
-	string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz, DebugManager  *debugManager, ConnectionManager* connectionManager
-): Device(name, typ, cat, cpuClock, debugManager, connectionManager), mWaitStates(waitStates)
+	string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz, DebugManager  *debugManager,
+	ConnectionManager* connectionManager, DeviceManager* deviceManager
+): Device(name, typ, cat, cpuClock, debugManager, connectionManager), mWaitStates(waitStates), mDeviceManager(deviceManager)
 {
 	mMemorySpace = { adr, sz };
 	mMemoryMapped = true;
+
+	mDeviceManager->registerMemorySpace(this, adr, sz);
 
 	DBG_LOG(
 		this, DBG_VERBOSE, _DEVICE_ID(this->devType) +  " at address 0x"s + Utility::int2HexStr(mMemorySpace.adr,4) +
@@ -35,13 +39,15 @@ bool MemoryMappedDevice::selected(uint16_t adr)
 	return true;
 }
 
-void MemoryMappedDevice::addMemoryGap(uint16_t adr, uint16_t sz)
+void MemoryMappedDevice::registerMemoryGap(uint16_t adr, uint16_t sz)
 {
 	MemoryRange gap = { adr, sz };
 	mMemoryGaps.push_back(gap);
 	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
 		cout << "Gap in memory space for device '" << this->name << "' between " << hex << setfill('0') << setw(4) << gap.adr <<
 			" and " << gap.adr + gap.sz << "\n";
+
+	mDeviceManager->registerMemoryGap(this, adr, sz);
 }
 
 bool MemoryMappedDevice::read(uint16_t adr, uint8_t& data) {

@@ -1,7 +1,10 @@
 #ifndef MEMORY_MAPPED_DEVICE_H
 #define MEMORY_MAPPED_DEVICE_H
 
+#include <iostream>
 #include "Device.h"
+
+class DeviceManager;
 
 class MemoryMappedDevice : public Device {
 
@@ -32,9 +35,12 @@ protected:
 
 	uint8_t mWaitStates = 0; // access speed in relation to CPU speed
 
+	DeviceManager* mDeviceManager = NULL;
+
 public:
 
-	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz,
+		DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager *deviceManager);
 
 	// Intrusive read of a device's memory that could trigger actions on the device's side
 	virtual bool read(uint16_t adr, uint8_t& data);
@@ -50,9 +56,11 @@ public:
 	bool selected(uint16_t adr);
 
 	bool registerAccess(Device* dev, uint16_t adr, bool writeAccess);
-	void addMemoryGap(uint16_t adr, uint16_t sz);
+	void registerMemoryGap(uint16_t adr, uint16_t sz);
 
 	uint8_t getWaitStates() { return mWaitStates; }
+
+	void getAddressAllocation(MemoryRange& memoryRange, vector<MemoryRange> *memoryGaps) { memoryRange = mMemorySpace; memoryGaps = &mMemoryGaps;  }
 
 };
 

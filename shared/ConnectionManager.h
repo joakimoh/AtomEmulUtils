@@ -14,14 +14,14 @@ using namespace std;
 
 // Forward references to classed defined later on to allow them being referenced before their the are declared
 class Device;
-class Devices;
+class DeviceManager;
 class PortSelection;
 
 class ConnectionManager {
 
 private:
 
-	Devices* mDevices = NULL;
+	DeviceManager* mDevices = NULL;
 	map<Device*, map<int, DevicePort*>>	mDevicePorts;	// device port to global index mapping
 	int									mDevicePortIndex = 0;
 
@@ -39,7 +39,7 @@ public:
 	ConnectionManager(DebugManager* debugManager);
 	~ConnectionManager();
 
-	void setDevices(Devices* devices);
+	void setDevices(DeviceManager* devices);
 
 	// Used by a device to make a port available for routing
 	bool addDevicePort(Device* dev, DevicePort* localPort);

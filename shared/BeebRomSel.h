@@ -5,6 +5,7 @@
 #include "MemoryMappedDevice.h"
 #include <vector>
 #include "ROM.h"
+#include "DeviceManager.h"
 
 
 using namespace std;
@@ -34,7 +35,7 @@ private:
 public:
 
 
-	BeebROMSel(string name, double cpuClock, uint8_t waitStates, uint16_t adr, DebugManager  *debugManager, ConnectionManager * connectionManager);
+	BeebROMSel(string name, double cpuClock, uint8_t waitStates, uint16_t adr, DebugManager  *debugManager, ConnectionManager * connectionManager, DeviceManager* deviceManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool dump(uint16_t adr, uint8_t& data) override;

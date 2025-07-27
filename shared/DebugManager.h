@@ -11,7 +11,7 @@
 class P6502;
 class Device;
 class DevicePort;
-class Devices; 
+class DeviceManager; 
 
 using namespace std;
 
@@ -164,7 +164,7 @@ private:
 
 	bool matchFetchAddress(uint16_t fetchAdr);
 
-	Devices* mDevices = NULL;
+	DeviceManager* mDevices = NULL;
 	Device* mMicrocontroller = NULL;
 
 	void printInstrLogData(ostream &sout, InstrLogData instrLogData);
@@ -225,7 +225,7 @@ public:
 
 	bool matchPort(DevicePort* port);
 
-	bool setDevices(Devices *devices);
+	bool setDevices(DeviceManager *devices);
 	bool setMicrocontroller(Device* microcontrollerDevice);
 
 	bool quickTracing() { return !mExtensiveLog; }

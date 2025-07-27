@@ -111,6 +111,8 @@ private:
 	
 	void  adjustForWaitStates(MemoryMappedDevice* dev);
 
+	DeviceManager* mDeviceManager = NULL;
+
 public:
 
 	bool readDevice(uint16_t adr, uint8_t& data);
@@ -120,7 +122,7 @@ public:
 	vector<MemoryMappedDevice*> mDevices;
 	vector< MemoryMappedDevice*> mMemories;
 
-	P6502(string name, double clockSpeed, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	P6502(string name, double clockSpeed, DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager *deviceManager);
 	~P6502();
 
 	// Reset device

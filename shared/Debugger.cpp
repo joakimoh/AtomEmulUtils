@@ -1,5 +1,5 @@
 #include "Debugger.h"
-#include "Devices.h"
+#include "DeviceManager.h"
 #include "DebugManager.h"
 #include <iostream>
 #include "Utility.h"
@@ -11,7 +11,7 @@
 
 using namespace std;
 
-Debugger::Debugger(Engine *engine, Devices  *devices, DebugManager *debugManager, string outDir) :
+Debugger::Debugger(Engine *engine, DeviceManager  *devices, DebugManager *debugManager, string outDir) :
 	mDM(debugManager),mDevices(devices), mEngine(engine), mOutDir(outDir)
 {
 

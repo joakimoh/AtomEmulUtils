@@ -67,7 +67,7 @@ private:
 	bool mQuit = false;
 	int mFieldRate = 50;
 
-	Devices* mDevices = NULL;
+	DeviceManager* mDevices = NULL;
 
 	VideoDisplayUnit* mVDU = NULL;
 	SoundDevice* mSoundDevice = NULL;

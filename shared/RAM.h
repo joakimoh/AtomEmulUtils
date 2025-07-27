@@ -16,7 +16,8 @@ private:
 public:
 
 
-	RAM(string name, double clockSpeed, uint8_t waitStates, bool DRAM, uint16_t adr, uint16_t sz, DebugManager  *debugManager, ConnectionManager * connectionManager);
+	RAM(string name, double clockSpeed, uint8_t waitStates, bool DRAM, uint16_t adr, uint16_t sz, DebugManager  *debugManager,
+		ConnectionManager * connectionManager, DeviceManager* deviceManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool dump(uint16_t adr, uint8_t& data) override;

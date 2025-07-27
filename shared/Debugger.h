@@ -7,7 +7,7 @@
 
 using namespace std;
 
-class Devices;
+class DeviceManager;
 class Device;
 class DebugManager;
 class Engine;
@@ -17,7 +17,7 @@ class Debugger {
 private:
 
 	DebugManager* mDM = NULL;
-	Devices *mDevices = NULL;
+	DeviceManager *mDevices = NULL;
 	Engine* mEngine = NULL;
 	string mOutDir;
 
@@ -48,7 +48,7 @@ private:
 
 public:
 
-	Debugger(Engine *engine, Devices *devices, DebugManager *debugManager, string outDir);
+	Debugger(Engine *engine, DeviceManager *devices, DebugManager *debugManager, string outDir);
 
 	void run();
 
