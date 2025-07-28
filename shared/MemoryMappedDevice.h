@@ -13,12 +13,12 @@ class MemoryMappedDevice : public Device {
 		uint16_t	triggeringAdr;
 	} DeviceAccessScheduling;
 
+protected:
+
 	typedef struct MemoryRange_struct {
 		uint16_t	adr;
 		uint16_t	sz;
 	} MemoryRange;
-
-protected:
 
 	int CS;
 	uint8_t mCS = 0x0;
@@ -60,7 +60,7 @@ public:
 
 	uint8_t getWaitStates() { return mWaitStates; }
 
-	void getAddressAllocation(MemoryRange& memoryRange, vector<MemoryRange> *memoryGaps) { memoryRange = mMemorySpace; memoryGaps = &mMemoryGaps;  }
+	void getAddressAllocation(MemoryRange& memoryRange, vector<MemoryRange> * &memoryGaps) { memoryRange = mMemorySpace; memoryGaps = &mMemoryGaps;  }
 
 };
 

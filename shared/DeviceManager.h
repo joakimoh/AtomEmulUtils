@@ -38,7 +38,7 @@ private:
 	double getDoubleVal(stringstream& sin);
 	int getIntVal(stringstream& sin);
 
-	vector<MemoryMappedDevice*>* mDevicesByAddress[64 * 1024] = { NULL };
+	vector<MemoryMappedDevice*> mDevicesByAddress[64 * 1024];
 
 public:
 

@@ -836,9 +836,7 @@ void DeviceManager::registerMemorySpace(MemoryMappedDevice* device, uint16_t adr
 {
 	for (int a = adr; a < adr + sz; a++) {
 		uint16_t a16 = a & 0xffff;
-		if (mDevicesByAddress[a16] == NULL)
-			mDevicesByAddress[a16] = new vector<MemoryMappedDevice*>;
-		mDevicesByAddress[a16]->push_back(device);
+		mDevicesByAddress[a16].push_back(device);
 	}
 }
 
@@ -846,51 +844,50 @@ void DeviceManager::registerMemoryGap(MemoryMappedDevice* device, uint16_t adr, 
 {
 	for (int a = adr; a < adr + sz; a++) {
 		uint16_t a16 = a & 0xffff;
-		vector<MemoryMappedDevice*>* devices = mDevicesByAddress[a16];
-
-		vector<MemoryMappedDevice*>::iterator pos = find(devices->begin(), devices->end(), device);
-		if (pos != devices->end()) {
-			devices->erase(pos);
-			if (devices->size() == 0) {
-				delete devices;
-				mDevicesByAddress[a16] = NULL;
-			}
+		vector<MemoryMappedDevice*> &devices = mDevicesByAddress[a16];
+		vector<MemoryMappedDevice*>::iterator pos = find(devices.begin(), devices.end(), device);
+		if (pos != devices.end()) {
+			devices.erase(pos);
+			mDevicesByAddress[a16] = devices;
 		}
 	}
 }
 
 MemoryMappedDevice* DeviceManager::getMemoryMappedDevicebyAddress(uint16_t adr)
 {
-	vector<MemoryMappedDevice*> *devices = mDevicesByAddress[adr];
-	for (int i = 0; i < devices->size(); i++) {
-		if ((*devices)[i]->selected(adr))
-			return (*devices)[i];
+	vector<MemoryMappedDevice*> &devices = mDevicesByAddress[adr];
+	if (devices.size() == 1)
+		return devices[0];
+
+	for (int i = 0; i < devices.size(); i++) {
+		MemoryMappedDevice* dev = devices[i];
+		if (dev->selected(adr))
+			return dev;
 	}
-	//if (dev == NULL)
-	//	cout << "No device found at address 0x" << hex << adr << "\n";
+
 	return NULL;
 }
 
 void DeviceManager::printMemoryMap()
 {
-	vector<MemoryMappedDevice*>* devices_at_adr = NULL;
+	vector<MemoryMappedDevice*> devices_at_adr;
 	uint16_t last_adr = 0x0;
 	for (int a = 0; a <= 0xffff; a++) {
 		uint16_t a16 = a;
 		bool print = false;
-		vector<MemoryMappedDevice*>* devices = mDevicesByAddress[a16];
-		if (devices != NULL) {
-			if (devices_at_adr == NULL || devices_at_adr->size() != devices->size())
+		vector<MemoryMappedDevice*> &devices = mDevicesByAddress[a16];
+		if (devices.size() != 0) {
+			if (devices_at_adr.size() == 0 || devices_at_adr.size() != devices.size())
 				print = true;
 			else {
 				int count = 0;
-				for (int i = 0; i < devices->size(); i++) {
-					for (int j = 0; j < devices_at_adr->size(); j++) {
-						if ((*devices)[i] == (*devices_at_adr)[j])
+				for (int i = 0; i < devices.size(); i++) {
+					for (int j = 0; j < devices_at_adr.size(); j++) {
+						if (devices[i] == devices_at_adr[j])
 							count++;
 					}
 				}
-				if (count != devices->size())
+				if (count != devices.size())
 					print = true;
 
 			}
@@ -899,10 +896,10 @@ void DeviceManager::printMemoryMap()
 		if (print) {
 
 			// Last address 
-			if (a > 0 && devices_at_adr != NULL) {
+			if (a > 0 && devices_at_adr.size() != 0) {
 				cout << hex << setw(4) << setfill('0') << last_adr << " ";
-				for (int i = 0; i < devices_at_adr->size(); i++)
-					cout << setw(15) << setfill(' ') << (*devices_at_adr)[i]->name << " ";
+				for (int i = 0; i < devices_at_adr.size(); i++)
+					cout << setw(15) << setfill(' ') << devices_at_adr[i]->name << " ";
 				cout << "\n";
 			}
 
@@ -911,15 +908,15 @@ void DeviceManager::printMemoryMap()
 
 		}
 
-		if (devices != NULL) {
+		if (devices.size() != 0) {
 			last_adr = a16;
 			devices_at_adr = devices;
 		}
 	}
 
 	cout << hex << setw(4) << setfill('0') << last_adr << " ";
-	for (int i = 0; i < devices_at_adr->size(); i++)
-		cout << setw(15) << setfill(' ') << (*devices_at_adr)[i]->name << " ";
+	for (int i = 0; i < devices_at_adr.size(); i++)
+		cout << setw(15) << setfill(' ') << devices_at_adr[i]->name << " ";
 	cout << "\n";
 
 }

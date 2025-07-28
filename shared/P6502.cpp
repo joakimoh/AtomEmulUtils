@@ -1812,23 +1812,26 @@ void  P6502::adjustForWaitStates(MemoryMappedDevice* dev)
 //
 bool P6502::readDevice(uint16_t adr, uint8_t& data)
 {
-	/*
-	MemoryMappedDevice* dev;
-	if ((dev = mDeviceManager->getMemoryMappedDevicebyAddress(adr)) != NULL) {
-		adjustForWaitStates(dev);// Add wait states if applicable
-		bool success = dev->read(adr, data);
+	
+	MemoryMappedDevice* mem_dev;
+	if ((mem_dev = mDeviceManager->getMemoryMappedDevicebyAddress(adr)) != NULL) {
+		adjustForWaitStates(mem_dev);// Add wait states if applicable
+		bool success = mem_dev->read(adr, data);
 		return success;
 	}
-	*/
+
+	/*
 	for (int i = 0; i < mDevices.size(); i++) {
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
+			if (dev != mem_dev)
+				cout << "Diff for read at ddress 0x" << hex << adr << ": device '" << (mem_dev==NULL?"(null)":mem_dev->name) << "  vs device '" << dev->name << "!\n";
 			adjustForWaitStates(dev);// Add wait states if applicable
 			bool success = dev->read(adr, data);		
 			return success;
 		}
 	}
-	
+	*/
 	DBG_LOG(this, DBG_WARNING, "*Warning* Read at unmapped address 0x" + Utility::int2HexStr(adr,4) + ". Returns 0x0 for all unmapped addresses...\n");
 
 	data = 0x0;// Better to return 0x00 than 0xff for now when not all devices are implemented as peripheral status 0x00 usually means inactive/no event
@@ -1859,15 +1862,17 @@ bool P6502::readProgramMem(uint16_t adr, uint8_t& data, bool adjustTiming)
 	}
 
 	mLastPgmDevice = NULL;
-	/*
+	
 	MemoryMappedDevice* dev;
 	if ((dev = mDeviceManager->getMemoryMappedDevicebyAddress(adr)) != NULL) {
 		if (adjustTiming)
 			adjustForWaitStates(dev);// Add wait states if applicable
 		bool success = dev->read(adr, data);
 		mLastPgmDevice = dev;	
+		return success;
 	}
-	*/
+
+	/*
 	for (int i = 0; i < mMemories.size(); i++) {
 		MemoryMappedDevice* dev = mMemories[i];
 		if (dev->selected(adr)) {
@@ -1878,7 +1883,7 @@ bool P6502::readProgramMem(uint16_t adr, uint8_t& data, bool adjustTiming)
 			return success;
 		}
 	}
-	
+	*/
 
 	data = 0xff;
 	return true;
@@ -1886,13 +1891,14 @@ bool P6502::readProgramMem(uint16_t adr, uint8_t& data, bool adjustTiming)
 
 bool P6502::writeDevice(uint16_t adr, uint8_t data)
 {
-	/*
+	
 	MemoryMappedDevice* dev;
 	if ((dev = mDeviceManager->getMemoryMappedDevicebyAddress(adr)) != NULL) {
 		adjustForWaitStates(dev);// Add wait states if applicable
 		return dev->write(adr, data);
 	}
-	*/
+
+	/*
 	for (int i = 0; i < mDevices.size(); i++) {
 		MemoryMappedDevice* dev = mDevices[i];
 		if (dev->selected(adr)) {
@@ -1900,7 +1906,8 @@ bool P6502::writeDevice(uint16_t adr, uint8_t data)
 			return dev->write(adr, data);
 		}
 	}
-	
+	*/
+
 	return false;
 }
 
