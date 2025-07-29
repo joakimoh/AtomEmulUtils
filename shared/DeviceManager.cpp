@@ -630,7 +630,7 @@ DeviceManager::DeviceManager(
 	if (sound_device != NULL)
 		sound_device->setFieldRate(mainVDU->getFieldRate(), speed);
 
-	printMemoryMap();
+	//printMemoryMap();
 
 }
 
@@ -870,8 +870,16 @@ bool DeviceManager::createMemoryMap()
 					mNonOverlappingMemoryMappedDevices.erase(mNonOverlappingMemoryMappedDevices.begin()+i); // remove from the non-overlapping list as now identified as overlapping
 					int index = (int) mMemoryProxyDevices.size();
 					AddressSpaceInfo space = dev->getClaimedAddressSpace();
-					proxy = new MemoryProxyDevice("Proxy_" + to_string(index), space.getStartOfSpace(), space.getSizeOfSpace(), dev, mDM,  mCM, this);
+
+					// Create memory proxy with the existing device as the first entry
+					proxy = new MemoryProxyDevice("Proxy_" + to_string(index), space.getStartOfSpace(), space.getSizeOfSpace(), existing_dev, mDM,  mCM, this);
+
+					// Add the analysed device as the proxy's second entry
+					proxy -> addDevice(dev);
+
+					// Add the proxy to the list of meory proxies
 					mMemoryProxyDevices.push_back(proxy);
+					
 					proxy_exists = true;
 					break;
 				}

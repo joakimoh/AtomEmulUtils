@@ -164,6 +164,7 @@ bool ConnectionManager::connect(string srcName, string dstName, bool invert, boo
 	OutputReference output_ref;
 	output_ref.srcPort = src_port.port;
 	output_ref.dstMask = dst_port.bits.mask;
+	output_ref.srcShifts = input_ref.shifts;
 	dst_port.port->portSources.push_back(output_ref);
 	src_port.port->fanOut++;
 	dst_port.port->fanIn++;
@@ -237,10 +238,29 @@ string ConnectionManager::printDevicePort(DevicePort * device_port)
 
 	stringstream sout;
 	sout << device_port->dev->name << ":" << device_port->name << " " << _PORT_DIR(device_port->dir) << " 0x" << hex << (int)device_port->mask << " #" << dec <<
-		device_port->globalIndex << " (" << device_port->localIndex << ") => ";
-	for (int i = 0; i < device_port->inputs.size(); i++)
-		sout << "\n\t\t" << " >> " << dec << device_port->inputs[i].shifts << " & 0x" << hex << 
-		(int)device_port->inputs[i].mask << hex << " @ " << printDevicePort(device_port->inputs[i].port) << dec << "; ";
+		device_port->globalIndex << " (" << device_port->localIndex << ")";
+	
+	// The port is a source port
+	if (device_port->dir != IN_PORT && device_port->inputs.size() > 0) {
+		sout << " => ";
+		for (int i = 0; i < device_port->inputs.size(); i++)
+			sout << "\n\t\t" << " >> " << dec << device_port->inputs[i].shifts << " & 0x" << hex <<
+			(int)device_port->inputs[i].mask << hex << " @ " << printDevicePort(device_port->inputs[i].port) << dec << "; ";
+	}
+
+	// The port is a destination port
+	if (device_port->dir != OUT_PORT && device_port->portSources.size() > 0) {
+		sout << " <= ";
+		for (int i = 0; i < device_port->portSources.size(); i++) {
+			OutputReference &out_ref = device_port->portSources[i];
+			DevicePort* port = out_ref.srcPort;
+			Device* src_dev = port->dev;
+			sout << "\n\t\t" << src_dev->name << ":" << port->name << dec << " >> " << out_ref.srcShifts << " & 0x" << hex << (int)out_ref.dstMask;
+		}
+	
+	}
+
+
 	return sout.str();
 
 }

@@ -10,20 +10,17 @@ ConnectionManager* connectionManager, DeviceManager* deviceManager): mSpace(firs
 		0,	// Dummy wait states
 		adr, sz, debugManager, connectionManager, deviceManager)
 {
-
+	addDevice(firstDevice);
 }
 
 bool MemoryProxyDevice::addDevice(MemoryMappedDevice* dev)
 {
-	cout << "add device\n";
 
 	// Get reference to the device's CS port
 	DevicePort *CS_dst_port = NULL;
 	if (!dev->getPortIndex("CS", CS_dst_port)) {
 		return false;
 	}
-
-	cout << "CS destination port found!\n";
 
 	// Get reference to the source device's port that drives the CS port
 	vector<OutputReference>& CS_src_ports = CS_dst_port->portSources;
@@ -32,8 +29,6 @@ bool MemoryProxyDevice::addDevice(MemoryMappedDevice* dev)
 	}
 	OutputReference& CS_src_port_ref = CS_src_ports[0];
 	DevicePort *CS_src_port = CS_src_port_ref.srcPort;
-
-	cout << "CS source port found!\n";
 
 	// Get a copy of the source port's CS connection info
 	vector<InputReference> &src_ports_connected_inputs = CS_src_port->inputs;
@@ -45,26 +40,29 @@ bool MemoryProxyDevice::addDevice(MemoryMappedDevice* dev)
 		}
 	}
 
-	cout << "CS source port connection found!\n";
-	
-	// Modify the connection info to fit this proxy device's CS port entry for the concerned device
-	input_ref.process = true;
-	DevicePort *proxy_dst_port = new DevicePort();
-	proxy_dst_port = CS_dst_port;
-	proxy_dst_port->dev = this;
-	// TBD Modify more of the info
-	input_ref.port = proxy_dst_port;
-
-	// Add the new input reference to the source port
-	CS_src_port->inputs.push_back(input_ref);
-
 	// Add a new port to the proxy's list of CS inputs
 	MemoryDeviceInfo *dev_info = new MemoryDeviceInfo();
 	dev_info->dev = dev;
 	mDevices.push_back(dev_info);
 
 	// Register the port
-	registerPort("CS" + to_string(dev_info->index), IN_PORT, 0x1, dev_info->index, &(dev_info->val));
+	string port_name = "CS" + to_string(mCSPortIndex++);
+	registerPort(port_name, IN_PORT, 0x1, dev_info->index, &(dev_info->val));
+	DevicePort* proxy_dst_port = NULL;
+	if (!getPortIndex(port_name, proxy_dst_port))
+		return false;
+
+	// Modify the connection info to fit this proxy device's CS port entry for the concerned device
+	input_ref.process = true;
+	input_ref.port = proxy_dst_port;
+
+	// Add the connection to the source port's destination port list
+	src_ports_connected_inputs.push_back(input_ref);
+
+	// Add the connection to the destination ports' source port list
+	proxy_dst_port->portSources.push_back(CS_src_port_ref);
+
+	//cout << dev->name << ":CS mirrored as " << mConnectionManager->printDevicePort(proxy_dst_port) << "\n";
 
 	return true;
 }
@@ -74,7 +72,7 @@ void MemoryProxyDevice::processPortUpdate(int index)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (index == mDevices[i]->index) {
-			cout << "CS for " << mDevices[i]->dev->name << " changed to " << (int)mDevices[i]->val << "\n";
+			//cout << "CS for " << mDevices[i]->dev->name << " changed to " << (int)mDevices[i]->val << "\n";
 			if (mDevices[i]->val == 0)
 				mSelectedDevice = mDevices[i]->dev;
 			else if (mSelectedDevice == mDevices[i]->dev)

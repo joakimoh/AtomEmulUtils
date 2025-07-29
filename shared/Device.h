@@ -71,7 +71,8 @@ typedef struct InputReference_struct {
 typedef struct OutputReference_struct {
 	DevicePort* srcPort;			// Reference to a source port
 	uint8_t		dstVal = 0xff;		// Requested value for the destination port based on the source port value
-	uint8_t		dstMask = 0xff;		// Bit mask specifying the bits of the destination port connected to the source port
+	uint8_t		dstMask = 0xff;		// Bit mask specifying the bits of the destination port connected to the source port (copy of InputReference:mask)
+	int			srcShifts = 0;		// no of steps to downshift src value to fit dst start bit (copy of InputReference:shifts)
 } OutputReference;
 
 enum PortDirection {IN_PORT, OUT_PORT, IO_PORT};

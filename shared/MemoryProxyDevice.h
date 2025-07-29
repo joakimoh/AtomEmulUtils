@@ -15,7 +15,7 @@ class MemoryProxyDevice : public MemoryMappedDevice {
 private:
 	vector<MemoryDeviceInfo*> mDevices;
 	AddressSpaceInfo mSpace;
-	int mIndex = 0;
+	int mCSPortIndex = 0;
 	MemoryMappedDevice* mSelectedDevice = NULL;
 
 public:
@@ -26,12 +26,12 @@ public:
 	bool addDevice(MemoryMappedDevice* dev);
 
 	// Intrusive read of a device's memory that could trigger actions on the device's side
-	virtual bool read(uint16_t adr, uint8_t& data) {
+	bool read(uint16_t adr, uint8_t& data) {
 		if (mSelectedDevice != NULL) return mSelectedDevice->read(adr, data);
 		return false;
 	}
 
-	virtual bool write(uint16_t adr, uint8_t data) {
+	bool write(uint16_t adr, uint8_t data) {
 		if (mSelectedDevice != NULL) return mSelectedDevice->write(adr, data);
 		return false;
 	}
