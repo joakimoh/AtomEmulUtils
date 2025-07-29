@@ -1814,7 +1814,7 @@ bool P6502::readDevice(uint16_t adr, uint8_t& data)
 {
 	
 	MemoryMappedDevice* mem_dev;
-	if ((mem_dev = mDeviceManager->getMemoryMappedDevicebyAddress(adr)) != NULL) {
+	if ((mem_dev = mDeviceManager->getSelectedMemoryMappedDevice(adr)) != NULL) {
 		adjustForWaitStates(mem_dev);// Add wait states if applicable
 		bool success = mem_dev->read(adr, data);
 		return success;
@@ -1855,6 +1855,13 @@ bool P6502::readProgramMem(uint16_t adr, uint8_t& data)
 
 bool P6502::readProgramMem(uint16_t adr, uint8_t& data, bool adjustTiming)
 {
+	MemoryMappedDevice* dev;
+	if ((dev = mDeviceManager->getSelectedMemoryMappedDevice(adr)) != NULL) {
+		if (adjustTiming)
+			adjustForWaitStates(dev);// Add wait states if applicable
+		return dev->read(adr, data);
+	}
+	/*
 	if (mLastPgmDevice != NULL && mLastPgmDevice->selected(adr)) {
 		if (adjustTiming)
 			adjustForWaitStates(mLastPgmDevice);
@@ -1864,14 +1871,14 @@ bool P6502::readProgramMem(uint16_t adr, uint8_t& data, bool adjustTiming)
 	mLastPgmDevice = NULL;
 	
 	MemoryMappedDevice* dev;
-	if ((dev = mDeviceManager->getMemoryMappedDevicebyAddress(adr)) != NULL) {
+	if ((dev = mDeviceManager->getSelectedMemoryMappedDevice(adr)) != NULL) {
 		if (adjustTiming)
 			adjustForWaitStates(dev);// Add wait states if applicable
 		bool success = dev->read(adr, data);
 		mLastPgmDevice = dev;	
 		return success;
 	}
-
+	*/
 	/*
 	for (int i = 0; i < mMemories.size(); i++) {
 		MemoryMappedDevice* dev = mMemories[i];
@@ -1893,7 +1900,7 @@ bool P6502::writeDevice(uint16_t adr, uint8_t data)
 {
 	
 	MemoryMappedDevice* dev;
-	if ((dev = mDeviceManager->getMemoryMappedDevicebyAddress(adr)) != NULL) {
+	if ((dev = mDeviceManager->getSelectedMemoryMappedDevice(adr)) != NULL) {
 		adjustForWaitStates(dev);// Add wait states if applicable
 		return dev->write(adr, data);
 	}

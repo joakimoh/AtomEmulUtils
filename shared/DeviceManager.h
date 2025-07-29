@@ -83,7 +83,7 @@ public:
 	// Write to a memory-mapped device (for debugger use only)
 	bool writeMemoryMappedDevice(uint16_t adr, uint8_t data);
 
-	MemoryMappedDevice* getMemoryMappedDevicebyAddress(uint16_t adr);
+	MemoryMappedDevice* getSelectedMemoryMappedDevice(uint16_t adr);
 	void printMemoryMap();
 
 };

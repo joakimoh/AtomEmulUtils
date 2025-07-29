@@ -934,7 +934,7 @@ bool DeviceManager::createMemoryMap()
 
 
 
-MemoryMappedDevice* DeviceManager::getMemoryMappedDevicebyAddress(uint16_t adr)
+MemoryMappedDevice* DeviceManager::getSelectedMemoryMappedDevice(uint16_t adr)
 {
 	MemoryMappedDevice* dev = mDevicesByAddress[adr];
 	if (dev != NULL && dev->selected(adr))

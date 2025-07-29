@@ -8,8 +8,8 @@ class MemoryProxyDevice : public MemoryMappedDevice {
 	class MemoryDeviceInfo {
 	public:
 		MemoryMappedDevice* dev;
-		uint8_t				val = 0;
-		int					index = 0;
+		uint8_t				CS = 0;				// Current value of the proxy device's CS associated with a device
+		int					CSPortindex = 0;	// Port index of the proxy device's CS input associated with a device
 	};
 
 private:

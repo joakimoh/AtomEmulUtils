@@ -47,7 +47,7 @@ bool MemoryProxyDevice::addDevice(MemoryMappedDevice* dev)
 
 	// Register the port
 	string port_name = "CS" + to_string(mCSPortIndex++);
-	registerPort(port_name, IN_PORT, 0x1, dev_info->index, &(dev_info->val));
+	registerPort(port_name, IN_PORT, 0x1, dev_info->CSPortindex, &(dev_info->CS));
 	DevicePort* proxy_dst_port = NULL;
 	if (!getPortIndex(port_name, proxy_dst_port))
 		return false;
@@ -71,9 +71,9 @@ bool MemoryProxyDevice::addDevice(MemoryMappedDevice* dev)
 void MemoryProxyDevice::processPortUpdate(int index)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
-		if (index == mDevices[i]->index) {
+		if (index == mDevices[i]->CSPortindex) {
 			//cout << "CS for " << mDevices[i]->dev->name << " changed to " << (int)mDevices[i]->val << "\n";
-			if (mDevices[i]->val == 0)
+			if (mDevices[i]->CS == 0)
 				mSelectedDevice = mDevices[i]->dev;
 			else if (mSelectedDevice == mDevices[i]->dev)
 				mSelectedDevice = NULL;
