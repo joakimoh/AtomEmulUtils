@@ -89,13 +89,13 @@ VDU6847::VDU6847(string name, uint16_t adr, VideoSettings videoSettings, double 
 
 
 	// Set the size of the VDU register vector
-	mMem.resize((size_t)mMemorySpace.sz);
+	mMem.resize((size_t)mAddressSpace.getSizeOfSpace());
 
 	// Initialise the VDU registers with zeros
-	mMem.assign(mMemorySpace.sz, 0);
+	mMem.assign(mAddressSpace.getSizeOfSpace(), 0);
 
-	DBG_LOG(this,DBG_VERBOSE, "VDU 6847 at address 0x" + Utility::int2HexStr(mMemorySpace.adr,4) +
-		" to 0x" + Utility::int2HexStr(mMemorySpace.adr + mMemorySpace.sz - 1,4) + " (" + to_string(mMemorySpace.sz) + " bytes)"
+	DBG_LOG(this,DBG_VERBOSE, "VDU 6847 at address 0x" + Utility::int2HexStr(mAddressSpace.getStartOfSpace(),4) +
+		" to 0x" + Utility::int2HexStr(mAddressSpace.getStartOfSpace() + mAddressSpace.getEndOfSpace(),4) + " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)"
 	);
 
 	// Createdisplay bitmap and clear it
@@ -432,7 +432,7 @@ bool VDU6847::read(uint16_t adr, uint8_t& data)
 	if (!MemoryMappedDevice::triggerBeforeRead(adr, data))
 		return false;
 
-	data = mMem[adr - mMemorySpace.adr];
+	data = mMem[adr - mAddressSpace.getStartOfSpace()];
 
 	return true;
 
@@ -441,7 +441,7 @@ bool VDU6847::read(uint16_t adr, uint8_t& data)
 bool VDU6847::dump(uint16_t adr, uint8_t& data)
 {
 	if (selected(adr)) {
-		data = mMem[adr - mMemorySpace.adr];
+		data = mMem[adr - mAddressSpace.getStartOfSpace()];
 		return true;
 	}
 	return false;
@@ -452,7 +452,7 @@ bool VDU6847::write(uint16_t adr, uint8_t data)
 	if (!selected(adr))
 		return false;
 
-	mMem[adr - mMemorySpace.adr] = data;
+	mMem[adr - mAddressSpace.getStartOfSpace()] = data;
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	return MemoryMappedDevice::triggerAfterWrite(adr, data);

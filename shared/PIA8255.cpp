@@ -100,10 +100,10 @@ bool PIA8255::advance(uint64_t stopCycle)
 
 */
 
-#define PIA8255_PORT_A (mMemorySpace.adr + 0)
-#define PIA8255_PORT_B (mMemorySpace.adr + 1)
-#define PIA8255_PORT_C (mMemorySpace.adr + 2)
-#define PIA8255_CONTROL (mMemorySpace.adr + 3)
+#define PIA8255_PORT_A (mAddressSpace.getStartOfSpace() + 0)
+#define PIA8255_PORT_B (mAddressSpace.getStartOfSpace() + 1)
+#define PIA8255_PORT_C (mAddressSpace.getStartOfSpace() + 2)
+#define PIA8255_CONTROL (mAddressSpace.getStartOfSpace() + 3)
 
 
 //
@@ -200,8 +200,8 @@ PIA8255::PIA8255(string name, double cpuclock, uint8_t waitStates, uint16_t adr,
 	registerPort("PortC", IO_PORT, 0xff, PIA_PORT_C, &mPCIn, &mPCOut);
 
 	DBG_LOG(
-		this,DBG_VERBOSE, "PIA 8255 at address 0x" + Utility::int2HexStr(mMemorySpace.adr,4) +
-		" to 0x" + Utility::int2HexStr(mMemorySpace.adr + mMemorySpace.sz - 1, 4) + " (" + to_string(mMemorySpace.sz) + " bytes)"
+		this,DBG_VERBOSE, "PIA 8255 at address 0x" + Utility::int2HexStr(mAddressSpace.getStartOfSpace(),4) +
+		" to 0x" + Utility::int2HexStr(mAddressSpace.getStartOfSpace() + mAddressSpace.getEndOfSpace(), 4) + " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)"
 	);
 }
 

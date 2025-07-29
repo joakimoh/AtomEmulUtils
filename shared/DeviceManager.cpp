@@ -32,6 +32,7 @@
 #include "Device.h"
 #include "SDCard.h"
 #include "ADC7002.h"
+#include "MemoryProxyDevice.h"
 
 using namespace std;
 
@@ -78,8 +79,11 @@ DeviceManager::DeviceManager(
 	string memMapFile, double& cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, Resolution disRes, DebugManager* debugManager,
 	Program program, Program data, ConnectionManager& connection_manager, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device,
 	vector<Device*>& fieldScheduledDevices, vector<Device*>& halflineScheduledDevices, vector<Device*>& instrScheduledDevices,
-	double speed) :mDM(debugManager)
+	double speed) :mDM(debugManager), mCM(&connection_manager)
 {
+
+	mDevicesByAddress.resize(64 * 1024);
+
 	vector<VideoDisplayUnit*> vdus;
 
 	cpuClock = 1.0; // Default 1 Mhz CPU clock
@@ -581,8 +585,8 @@ DeviceManager::DeviceManager(
 		throw runtime_error("Failed to get memory-mapped devices");
 	}
 
-	// Also maintain a separate list of memory-mapped devices for the DeviceManager class itself
-	getMemoryMappedDevices(mMemoryMappedDevices);
+	// Create a memory map based on all registered memory-mapped devices
+	createMemoryMap();
 
 	// Sort the devices according to their specified scheduling
 	// Also power on (reset) each device and propagate its ports' values to connected devices
@@ -832,91 +836,111 @@ bool DeviceManager::writeMemoryMappedDevice(uint16_t adr, uint8_t data)
 	return false;
 }
 
-void DeviceManager::registerMemorySpace(MemoryMappedDevice* device, uint16_t adr, uint16_t sz)
+bool DeviceManager::createMemoryMap()
 {
-	for (int a = adr; a < adr + sz; a++) {
-		uint16_t a16 = a & 0xffff;
-		mDevicesByAddress[a16].push_back(device);
-	}
-}
+	// Get a list of all memory-mapped devices
+	getMemoryMappedDevices(mMemoryMappedDevices);
 
-void DeviceManager::registerMemoryGap(MemoryMappedDevice* device, uint16_t adr, uint16_t sz)
-{
-	for (int a = adr; a < adr + sz; a++) {
-		uint16_t a16 = a & 0xffff;
-		vector<MemoryMappedDevice*> &devices = mDevicesByAddress[a16];
-		vector<MemoryMappedDevice*>::iterator pos = find(devices.begin(), devices.end(), device);
-		if (pos != devices.end()) {
-			devices.erase(pos);
-			mDevicesByAddress[a16] = devices;
+	MemoryProxyDevice *proxy = NULL;
+
+	for (int i = 0; i < mMemoryMappedDevices.size(); i++) {
+
+		MemoryMappedDevice* dev = mMemoryMappedDevices[i];
+		AddressSpaceInfo claimed_dev_space = dev->getClaimedAddressSpace();
+
+		// First check existing memory proxy devices
+		bool proxy_exists = false;
+		for (int j = 0; j < mMemoryProxyDevices.size(); j++) {			
+			AddressSpaceInfo proxy_space = mMemoryProxyDevices[j]->getClaimedAddressSpace();
+			if (claimed_dev_space == proxy_space) {
+				proxy = mMemoryProxyDevices[j];
+				proxy->addDevice(dev);
+				proxy_exists = true;
+				break;
+			}
+		}
+
+		// Then check already registered devices
+		if (!proxy_exists) {
+
+			for (int i = 0; i < mNonOverlappingMemoryMappedDevices.size(); i++) {
+				MemoryMappedDevice* existing_dev = mNonOverlappingMemoryMappedDevices[i];
+				AddressSpaceInfo existing_dev_space = existing_dev->getClaimedAddressSpace();
+				if (claimed_dev_space == existing_dev_space) {
+					mNonOverlappingMemoryMappedDevices.erase(mNonOverlappingMemoryMappedDevices.begin()+i); // remove from the non-overlapping list as now identified as overlapping
+					int index = (int) mMemoryProxyDevices.size();
+					AddressSpaceInfo space = dev->getClaimedAddressSpace();
+					proxy = new MemoryProxyDevice("Proxy_" + to_string(index), space.getStartOfSpace(), space.getSizeOfSpace(), dev, mDM,  mCM, this);
+					mMemoryProxyDevices.push_back(proxy);
+					proxy_exists = true;
+					break;
+				}
+				else if (existing_dev_space.intersects(claimed_dev_space)) {
+					cout << "Device " << dev->name << "'s address space " << claimed_dev_space << " intersects with device " <<
+						existing_dev->name << "'s address space " << existing_dev_space << "!\n";
+						return false;
+				}
+			}
+
+			if (!proxy_exists)  {
+				mNonOverlappingMemoryMappedDevices.push_back(dev);
+			}
+		}
+
+	}
+
+	// Initialise address to device lookup table
+
+	// Clear the lookup table as a start
+	for (int a = 0x0; a <= 0xffff; mDevicesByAddress[a++] = NULL);
+
+	// From memory proxes
+	for (int i = 0; i < mMemoryProxyDevices.size(); i++) {
+
+		MemoryMappedDevice* dev = mMemoryProxyDevices[i];
+		vector<AddressSpace> dev_spaces = dev->getClaimedAddressSpace().getAddressSpaces();
+		for (int j = 0; j < dev_spaces.size(); j++) {
+			AddressSpace space = dev_spaces[j];
+			uint16_t a1 = space.getStartOfSpace();
+			uint16_t a2 = space.getEndOfSpace();
+			for (int a = a1; a <= a2; a++)
+				mDevicesByAddress[a] = dev;
 		}
 	}
+
+	// And from non-overlapping memory-mapped devices
+	for(int i = 0; i < mNonOverlappingMemoryMappedDevices.size();i++) {
+		MemoryMappedDevice* dev = mNonOverlappingMemoryMappedDevices[i];
+		vector<AddressSpace> dev_spaces = dev->getClaimedAddressSpace().getAddressSpaces();
+		for (int j = 0; j < dev_spaces.size(); j++) {
+			AddressSpace space = dev_spaces[j];
+			uint16_t a1 = space.getStartOfSpace();
+			uint16_t a2 = space.getEndOfSpace();
+			for (int a = a1; a <= a2; a++)
+				mDevicesByAddress[a] = dev;
+		}
+	}
+
+	return true;
 }
+
+
 
 MemoryMappedDevice* DeviceManager::getMemoryMappedDevicebyAddress(uint16_t adr)
 {
-	vector<MemoryMappedDevice*> &devices = mDevicesByAddress[adr];
-	if (devices.size() == 1)
-		return devices[0];
-
-	for (int i = 0; i < devices.size(); i++) {
-		MemoryMappedDevice* dev = devices[i];
-		if (dev->selected(adr))
-			return dev;
-	}
+	MemoryMappedDevice* dev = mDevicesByAddress[adr];
+	if (dev != NULL && dev->selected(adr))
+		return dev;
 
 	return NULL;
 }
 
 void DeviceManager::printMemoryMap()
 {
-	vector<MemoryMappedDevice*> devices_at_adr;
-	uint16_t last_adr = 0x0;
-	for (int a = 0; a <= 0xffff; a++) {
-		uint16_t a16 = a;
-		bool print = false;
-		vector<MemoryMappedDevice*> &devices = mDevicesByAddress[a16];
-		if (devices.size() != 0) {
-			if (devices_at_adr.size() == 0 || devices_at_adr.size() != devices.size())
-				print = true;
-			else {
-				int count = 0;
-				for (int i = 0; i < devices.size(); i++) {
-					for (int j = 0; j < devices_at_adr.size(); j++) {
-						if (devices[i] == devices_at_adr[j])
-							count++;
-					}
-				}
-				if (count != devices.size())
-					print = true;
-
-			}
-		}
-
-		if (print) {
-
-			// Last address 
-			if (a > 0 && devices_at_adr.size() != 0) {
-				cout << hex << setw(4) << setfill('0') << last_adr << " ";
-				for (int i = 0; i < devices_at_adr.size(); i++)
-					cout << setw(15) << setfill(' ') << devices_at_adr[i]->name << " ";
-				cout << "\n";
-			}
-
-			// New address
-			cout << hex << setw(4) << setfill('0') << a << " ";
-
-		}
-
-		if (devices.size() != 0) {
-			last_adr = a16;
-			devices_at_adr = devices;
-		}
+	for (int i = 0; i < mMemoryMappedDevices.size(); i++) {
+		MemoryMappedDevice* mm_dev = mMemoryMappedDevices[i];
+		AddressSpaceInfo space = mm_dev->getClaimedAddressSpace();
+		cout << setw(15) << setfill(' ')  << mm_dev->name << " " << space << "\n";
 	}
-
-	cout << hex << setw(4) << setfill('0') << last_adr << " ";
-	for (int i = 0; i < devices_at_adr.size(); i++)
-		cout << setw(15) << setfill(' ') << devices_at_adr[i]->name << " ";
-	cout << "\n";
 
 }

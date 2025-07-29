@@ -3,7 +3,7 @@
 
 #include "MemoryMappedDevice.h"
 
-class ProxyMemoryDevice : MemoryMappedDevice {
+class MemoryProxyDevice : public MemoryMappedDevice {
 
 	class MemoryDeviceInfo {
 	public:
@@ -14,14 +14,13 @@ class ProxyMemoryDevice : MemoryMappedDevice {
 
 private:
 	vector<MemoryDeviceInfo*> mDevices;
-	uint16_t mAdr = 0x0;
-	uint16_t mSz = 0x0;
+	AddressSpaceInfo mSpace;
 	int mIndex = 0;
 	MemoryMappedDevice* mSelectedDevice = NULL;
 
 public:
 
-	ProxyMemoryDevice(string name, uint16_t adr, uint16_t sz, DebugManager* debugManager,
+	MemoryProxyDevice(string name, uint16_t adr, uint16_t sz, MemoryMappedDevice* firstDevice, DebugManager* debugManager,
 		ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
 	bool addDevice(MemoryMappedDevice* dev);

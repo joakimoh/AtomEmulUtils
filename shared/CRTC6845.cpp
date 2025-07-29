@@ -293,7 +293,7 @@ bool CRTC6845::read(uint16_t adr, uint8_t& data)
 	if (!VideoDisplayUnit::triggerBeforeRead(adr, data))
 		return false;
 
-	int16_t a = adr - mMemorySpace.adr;
+	int16_t a = adr - mAddressSpace.getStartOfSpace();
 
 	if (mAddressRegister > 0 && mAddressRegister < 18 && mRegInfo[mAddressRegister].readable)
 		data = mReg[mAddressRegister];
@@ -305,7 +305,7 @@ bool CRTC6845::read(uint16_t adr, uint8_t& data)
 bool CRTC6845::dump(uint16_t adr, uint8_t& data)
 {
 	if (selected(adr)) {
-		int16_t a = adr - mMemorySpace.adr;
+		int16_t a = adr - mAddressSpace.getStartOfSpace();
 		if (mAddressRegister > 0 && mAddressRegister < 18 && mRegInfo[mAddressRegister].readable)
 			data = mReg[mAddressRegister];
 		else
@@ -335,7 +335,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 
 	int written_reg = 999;
 
-	int16_t a = adr - mMemorySpace.adr;
+	int16_t a = adr - mAddressSpace.getStartOfSpace();
 	if (a == 0 && (data & 0x1f) < 18)
 		mAddressRegister = data & 0x1f;
 	else if (mAddressRegister >= 0 && mAddressRegister < 18 && mRegInfo[mAddressRegister].writable) {

@@ -19,17 +19,12 @@ ROM::ROM(string name, double clockSpeed, uint8_t waitStates, uint16_t adr, uint1
 		throw runtime_error("couldn't open ROM file");
 	}
 
-	if (sz >= 0x10000)
-		mMemorySpace.sz = 0xffff;
-	else
-		mMemorySpace.sz = sz;
-
 	// Get file size (should normally equal ROM size)
 	fin.seekg(0, ios::end);
 	streamsize file_sz = fin.tellg();
 	fin.seekg(0);
 
-	uint16_t upper_sz = mMemorySpace.sz;
+	uint16_t upper_sz = mAddressSpace.getSizeOfSpace();
 	if (file_sz < (streamsize)sz) {
 		DBG_LOG(
 			this, DBG_WARNING, "Warning - size of ROM file " + binaryContent + " (" + to_string(file_sz) +
@@ -42,15 +37,15 @@ ROM::ROM(string name, double clockSpeed, uint8_t waitStates, uint16_t adr, uint1
 			this, DBG_WARNING, "Warning - size of Beeb Paged ROM file " + binaryContent + " (" + to_string(file_sz) +
 			" ) is larger than the expected one(" + to_string(sz) + ") => truncating..."
 		);
-		upper_sz = mMemorySpace.sz;
+		upper_sz = mAddressSpace.getSizeOfSpace();
 	}
 
 
 	// Resize the ROM vector
-	mMem.resize((size_t)mMemorySpace.sz);
+	mMem.resize((size_t)mAddressSpace.getSizeOfSpace());
 
 	// Initialise ROM with zeros in case the ROM file is smaller than specified ROM size
-	mMem.assign(mMemorySpace.sz, 0);
+	mMem.assign(mAddressSpace.getSizeOfSpace(), 0);
 
 	// Read ROM content
 	fin.read((char*)&mMem[0], upper_sz);
@@ -69,7 +64,7 @@ bool ROM::read(uint16_t adr, uint8_t& data)
 	if (!MemoryMappedDevice::triggerBeforeRead(adr, data) || mCS != 0)
 		return false;
 
-	data = mMem[adr - mMemorySpace.adr];
+	data = mMem[adr - mAddressSpace.getStartOfSpace()];
 
 	return true;
 
@@ -78,7 +73,7 @@ bool ROM::read(uint16_t adr, uint8_t& data)
 bool ROM::dump(uint16_t adr, uint8_t& data)
 {
 	if (selected(adr)) {
-		data = mMem[adr - mMemorySpace.adr];
+		data = mMem[adr - mAddressSpace.getStartOfSpace()];
 		return true;
 	}
 	return false;

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "Device.h"
+#include "AddressSpaceInfo.h"
 
 class DeviceManager;
 
@@ -15,10 +16,7 @@ class MemoryMappedDevice : public Device {
 
 protected:
 
-	typedef struct MemoryRange_struct {
-		uint16_t	adr;
-		uint16_t	sz;
-	} MemoryRange;
+
 
 	int CS;
 	uint8_t mCS = 0x0;
@@ -26,8 +24,7 @@ protected:
 	bool mTriggerOnWrite = false;
 	bool mTriggerOnRead = false;
 
-	MemoryRange mMemorySpace;
-	vector< MemoryRange> mMemoryGaps;
+	AddressSpaceInfo mAddressSpace;
 
 	vector<uint8_t> mMem;
 	vector<DeviceAccessScheduling> mScheduleOnRead;
@@ -60,7 +57,7 @@ public:
 
 	uint8_t getWaitStates() { return mWaitStates; }
 
-	void getAddressAllocation(MemoryRange& memoryRange, vector<MemoryRange> * &memoryGaps) { memoryRange = mMemorySpace; memoryGaps = &mMemoryGaps;  }
+	AddressSpaceInfo getClaimedAddressSpace() { return mAddressSpace;  }
 
 };
 

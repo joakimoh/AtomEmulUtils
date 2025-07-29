@@ -1253,10 +1253,10 @@ bool P6502::executeInstr(
 		uint8_t val_before_shift = mAcc & read_val;
 
 		// ROR
-		mAcc = ((val_8_u >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
+		mAcc = ((val_before_shift >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
 
 		// N & Z flags set based on result
-		setNZflags(val_8_u);
+		setNZflags(val_before_shift);
 
 		// Set C as for ROR
 		mStatusRegister &= ~C_set_mask;

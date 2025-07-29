@@ -10,44 +10,27 @@ using namespace std;
 MemoryMappedDevice::MemoryMappedDevice(
 	string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz, DebugManager  *debugManager,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager
-): Device(name, typ, cat, cpuClock, debugManager, connectionManager), mWaitStates(waitStates), mDeviceManager(deviceManager)
+): Device(name, typ, cat, cpuClock, debugManager, connectionManager), mWaitStates(waitStates), mDeviceManager(deviceManager), mAddressSpace(adr, sz)
 {
-	mMemorySpace = { adr, sz };
 	mMemoryMapped = true;
 
-	mDeviceManager->registerMemorySpace(this, adr, sz);
+	DBG_LOG(this, DBG_VERBOSE, _DEVICE_ID(this->devType) + " at address " + mAddressSpace);
 
-	DBG_LOG(
-		this, DBG_VERBOSE, _DEVICE_ID(this->devType) +  " at address 0x"s + Utility::int2HexStr(mMemorySpace.adr,4) +
-		" to 0x" + Utility::int2HexStr(mMemorySpace.adr + mMemorySpace.sz - 1, 4) + " (" + to_string(mMemorySpace.sz) + " bytes)"
-	);
 }
 
 bool MemoryMappedDevice::selected(uint16_t adr)
 {
-	bool valid = true;
-
-	if (mCS != 0 || adr < mMemorySpace.adr || adr >= mMemorySpace.adr + mMemorySpace.sz)
-		return false;
-
-	for (int i = 0; i < mMemoryGaps.size(); i++) {
-		if (adr >= mMemoryGaps[i].adr && adr < mMemoryGaps[i].adr + mMemoryGaps[i].sz) {
-			return false;		
-		}
-	}
-
-	return true;
+	return mCS == 0 && mAddressSpace.contains(adr);
 }
 
 void MemoryMappedDevice::registerMemoryGap(uint16_t adr, uint16_t sz)
 {
-	MemoryRange gap = { adr, sz };
-	mMemoryGaps.push_back(gap);
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
-		cout << "Gap in memory space for device '" << this->name << "' between " << hex << setfill('0') << setw(4) << gap.adr <<
-			" and " << gap.adr + gap.sz << "\n";
+	mAddressSpace.addGap(adr, sz);
 
-	mDeviceManager->registerMemoryGap(this, adr, sz);
+	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
+		cout << "Gap in memory space for device '" << this->name << "' between " << hex << setfill('0') << setw(4) << adr <<
+			" and " <<adr + sz << "\n";
+
 }
 
 bool MemoryMappedDevice::read(uint16_t adr, uint8_t& data) {

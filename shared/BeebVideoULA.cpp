@@ -640,7 +640,7 @@ bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 	if (!VideoDisplayUnit::selected(adr))
 		return false;
 
-	uint16_t a = adr - mMemorySpace.adr;
+	uint16_t a = adr - mAddressSpace.getStartOfSpace();
 
 	if (a == 0) {
 

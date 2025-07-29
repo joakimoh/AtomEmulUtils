@@ -17,6 +17,7 @@ using namespace std;
 // Forward references to classed defined later on to allow them being referenced before they are declared
 class ConnectionManager;
 class MemoryMappedDevice;
+class MemoryProxyDevice;
 class VideoDisplayUnit;
 class SoundDevice;
 class Program;
@@ -30,7 +31,10 @@ private:
 
 	vector<Device*> mDevices;
 	vector<MemoryMappedDevice*> mMemoryMappedDevices;
+	vector<MemoryMappedDevice*> mNonOverlappingMemoryMappedDevices;
+	vector<MemoryProxyDevice*> mMemoryProxyDevices;
 	DebugManager* mDM = NULL;
+	ConnectionManager* mCM = NULL;
 	Device *mMicroprocessor = NULL;
 
 	string getFileName(string& path, stringstream& sin);
@@ -38,7 +42,9 @@ private:
 	double getDoubleVal(stringstream& sin);
 	int getIntVal(stringstream& sin);
 
-	vector<MemoryMappedDevice*> mDevicesByAddress[64 * 1024];
+	vector<MemoryMappedDevice*> mDevicesByAddress;
+
+	bool createMemoryMap();
 
 public:
 
@@ -51,9 +57,6 @@ public:
 	);
 
 	~DeviceManager();
-
-	void registerMemorySpace(MemoryMappedDevice* device, uint16_t adr, uint16_t sz);
-	void registerMemoryGap(MemoryMappedDevice* device, uint16_t adr, uint16_t sz);
 
 	bool getPeripherals(vector<Device*>& devices);
 	bool getOtherDevices(vector<Device*>& devices);
