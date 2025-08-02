@@ -89,8 +89,6 @@ typedef struct InstrLogData_struct {
 	uint16_t opcode = 0x0;
 	uint16_t operand = 0x0;
 	int accessAdr = -1;
-	bool decodeFailure = false;
-	bool rwFailure = false;
 	bool execFailure = false;
 	bool activeIRQ = false;
 	bool activeNMI = false;

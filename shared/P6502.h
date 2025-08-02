@@ -56,9 +56,6 @@ private:
 #define Z_flag ((mStatusRegister >> 1) & 1)
 #define C_flag (mStatusRegister & 1)
 
-	bool getOperand(Codec6502::InstructionInfo &instr, uint16_t& operand, uint16_t &calc_op_adr, uint8_t& read_val);
-
-
 	void tick(int cycles = 1);
 
 	bool pageBoundaryCrossed(uint16_t before, uint16_t after);
@@ -68,9 +65,115 @@ private:
 	void setNZVflags(uint8_t N, uint8_t Z, uint8_t V);
 	void setNZCVflags(uint8_t N, uint8_t Z, uint8_t C, uint8_t V);
 
-	bool executeInstr(
-		Codec6502::InstructionInfo &instr, uint16_t opcode_PC, uint16_t operand, uint16_t calc_op_adr, uint8_t read_val, 
-		uint8_t& written_val);
+	// Information about an instructon required to execute it
+	typedef struct struct_InstructionData {
+		Codec6502::InstructionInfo info;
+		bool (P6502::*addrHdlr)();
+		bool (P6502::*execHdlr)();
+	} InstructionData;
+
+	Codec6502::InstructionInfo mInstructionInfo;
+
+	
+	// Addressing Modes (independent of the instruction)
+	bool accAdrHdlr();
+	bool impliedAdrHdlr();
+	bool relativeAdrHdlr();
+	bool immediateAdrHdlr();
+	bool zeroPageAdrHdlr();
+	bool zeroPageXAdrHdlr();
+	bool zeroPageYAdrHdlr();
+	bool absoluteAdrHdlr();
+	bool absoluteXAdrHdlr();
+	bool absoluteYAdrHdlr();
+	bool indirectAdrHdlr();
+	bool preIndXAdrHdlr();
+	bool postIndYAdrHdlr();
+	bool undefinedAdrHdlr();
+
+
+
+	// Instruction handlers (independent of the addressing mode)
+	bool ADCExecHdlr();
+	bool ANDExecHdlr();
+	bool ASLExecHdlr();
+	bool BCCExecHdlr();
+	bool BCSExecHdlr();
+	bool BEQExecHdlr();
+	bool BITExecHdlr();
+	bool BMIExecHdlr();
+	bool BNEExecHdlr();
+	bool BPLExecHdlr();
+	bool BRKExecHdlr();
+	bool BVCExecHdlr();
+	bool BVSExecHdlr();
+	bool CLCExecHdlr();
+	bool CLDExecHdlr();
+	bool CLIExecHdlr();
+	bool CLVExecHdlr();
+	bool CMPExecHdlr();
+	bool CPXExecHdlr();
+	bool CPYExecHdlr();
+	bool DECExecHdlr();
+	bool DEXExecHdlr();
+	bool DEYExecHdlr();
+	bool EORExecHdlr();
+	bool INCExecHdlr();
+	bool INXExecHdlr();
+	bool INYExecHdlr();
+	bool JMPExecHdlr();
+	bool JSRExecHdlr();
+	bool LDAExecHdlr();
+	bool LDXExecHdlr();
+	bool LDYExecHdlr();
+	bool LSRExecHdlr();
+	bool NOPExecHdlr();
+	bool ORAExecHdlr();
+	bool PHAExecHdlr();
+	bool PHPExecHdlr();
+	bool PLAExecHdlr();
+	bool PLPExecHdlr();
+	bool ROLExecHdlr();
+	bool RORExecHdlr();
+	bool RTIExecHdlr();
+	bool RTSExecHdlr();
+	bool SBCExecHdlr();
+	bool SECExecHdlr();
+	bool SEDExecHdlr();
+	bool SEIExecHdlr();
+	bool STAExecHdlr();
+	bool STXExecHdlr();
+	bool STYExecHdlr();
+	bool TAXExecHdlr();
+	bool TAYExecHdlr();
+	bool TSXExecHdlr();
+	bool TXAExecHdlr();
+	bool TXSExecHdlr();
+	bool TYAExecHdlr();
+	bool LAXExecHdlr();
+	bool SBXExecHdlr();
+	bool ISCExecHdlr();
+	bool DCPExecHdlr();
+	bool ANCExecHdlr();
+	bool ALRExecHdlr();
+	bool ARRExecHdlr();
+	bool LASExecHdlr();
+	bool RLAExecHdlr();
+	bool RRAExecHdlr();
+	bool SAXExecHdlr();
+	bool SLOExecHdlr();
+	bool SREExecHdlr();
+	bool undefinedExecHdlr();
+
+	// Execute an instruction which opcode has been fetched already 
+	bool executeInstr();
+
+	// Information about all possible instructions (including unofficial undocumented ones and illegal ones)
+	InstructionData mInstrData[256];
+
+	// Initialise the instruction data above
+	void initInstrTable();
+
 
 	string getState();
 
@@ -84,11 +187,11 @@ private:
 
 	int mRAccAdr = -1;
 	int mWAccAdr = -1;
-	uint8_t mReadVal = 0xff;
+	uint8_t mReadVal8 = 0xff;
 	uint8_t mWrittenVal = 0xff;
 	uint16_t mOpcodePC = 0xffff;
 	uint8_t mOpcode = 0xff;
-	uint16_t mOperand = 0xffff;
+	uint16_t mOperand16 = 0xffff;
 	uint16_t mOperandAddress = 0xffff;
 
 	MemoryMappedDevice* mLastPgmDevice = NULL;
@@ -149,7 +252,7 @@ public:
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;
 
-	int readAdr(uint8_t& data) { data = mReadVal;  return (int)mRAccAdr; }
+	int readAdr(uint8_t& data) { data = mReadVal8;  return (int)mRAccAdr; }
 	int writtenAdr(uint8_t& data) { data = mWrittenVal;  return (int)mWAccAdr; }
 	int operandAddress() { return (int)mOperandAddress; }
 

@@ -383,6 +383,8 @@ public:
 
 	Codec6502();
 
+	InstructionInfo getInstrInfo(uint8_t opcode) { return mOpcodeDict[opcode]; }
+
 	bool decodeInstruction(uint8_t opcode, InstructionInfo& instr);
 
 	bool decode(int adr, string srcFileName, ostream &fout);

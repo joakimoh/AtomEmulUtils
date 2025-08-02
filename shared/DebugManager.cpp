@@ -553,10 +553,6 @@ void DebugManager::printInstrLogData(ostream &sout, InstrLogData instrLogData)
 	uint16_t stack_adr = (0x100 + instrLogData.SP + 1) & 0x1ff;
 	sout << "Mem[" << hex << setw(3) << setfill('0') << stack_adr << "]=" << setw(2) << setfill('0') << hex << instrLogData.stack;
 
-	if (instrLogData.decodeFailure)
-		sout << "UNKNOWN INSTR";
-	if (instrLogData.rwFailure)
-		sout << " R/W FAILURE";
 	if (instrLogData.execFailure)
 		sout << " EXEC FAILURE";
 	if (instrLogData.activeIRQ)

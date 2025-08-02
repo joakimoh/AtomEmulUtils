@@ -11,7 +11,275 @@
 #include "Utility.h"
 #include "DeviceManager.h"
 
+void P6502::initInstrTable()
+{
+	for (int opcode = 0; opcode < 256; opcode++) {
 
+		mInstrData[opcode].info = mCodec.getInstrInfo((uint8_t)opcode);
+
+		// Get pointer to method for handling the address mode
+		switch (mInstrData[opcode].info.mode) {
+		case Codec6502::Mode::Accumulator:
+			mInstrData[opcode].addrHdlr = &P6502::accAdrHdlr;
+			break;
+		case Codec6502::Mode::Implied:
+			mInstrData[opcode].addrHdlr = &P6502::impliedAdrHdlr;
+			break;
+		case Codec6502::Mode::Relative:
+			mInstrData[opcode].addrHdlr = &P6502::relativeAdrHdlr;
+			break;
+		case Codec6502::Mode::Immediate:
+			mInstrData[opcode].addrHdlr = &P6502::immediateAdrHdlr;
+			break;
+		case Codec6502::Mode::ZeroPage:
+			mInstrData[opcode].addrHdlr = &P6502::zeroPageAdrHdlr;
+			break;
+		case Codec6502::Mode::ZeroPage_X:
+			mInstrData[opcode].addrHdlr = &P6502::zeroPageXAdrHdlr;
+			break;
+		case Codec6502::Mode::ZeroPage_Y:
+			mInstrData[opcode].addrHdlr = &P6502::zeroPageYAdrHdlr;
+			break;
+		case Codec6502::Mode::Absolute:
+			mInstrData[opcode].addrHdlr = &P6502::absoluteAdrHdlr;
+			break;
+		case Codec6502::Mode::Absolute_X:
+			mInstrData[opcode].addrHdlr = &P6502::absoluteXAdrHdlr;
+			break;
+		case Codec6502::Mode::Absolute_Y:
+			mInstrData[opcode].addrHdlr = &P6502::absoluteYAdrHdlr;
+			break;
+		case Codec6502::Mode::Indirect:
+			mInstrData[opcode].addrHdlr = &P6502::indirectAdrHdlr;
+			break;
+		case Codec6502::Mode::PreInd_X:
+			mInstrData[opcode].addrHdlr = &P6502::preIndXAdrHdlr;
+			break;
+		case Codec6502::Mode::PostInd_Y:
+			mInstrData[opcode].addrHdlr = &P6502::postIndYAdrHdlr;
+			break;
+		default:
+			mInstrData[opcode].addrHdlr = &P6502::undefinedAdrHdlr;
+			break;
+		}
+
+		// Get pointer to method to handle the instruction
+		switch (mInstrData[opcode].info.instruction) {
+		case Codec6502::ADC:
+			mInstrData[opcode].execHdlr = &P6502::ADCExecHdlr;
+			break;
+		case Codec6502::AND:
+			mInstrData[opcode].execHdlr = &P6502::ANDExecHdlr;
+			break;
+		case Codec6502::ASL:
+			mInstrData[opcode].execHdlr = &P6502::ASLExecHdlr;
+			break;
+		case Codec6502::BCC:
+			mInstrData[opcode].execHdlr = &P6502::BCCExecHdlr;
+			break;
+		case Codec6502::BCS:
+			mInstrData[opcode].execHdlr = &P6502::BCSExecHdlr;
+			break;
+		case Codec6502::BEQ:
+			mInstrData[opcode].execHdlr = &P6502::BEQExecHdlr;
+			break;
+		case Codec6502::BIT:
+			mInstrData[opcode].execHdlr = &P6502::BITExecHdlr;
+			break;
+		case Codec6502::BMI:
+			mInstrData[opcode].execHdlr = &P6502::BMIExecHdlr;
+			break;
+		case Codec6502::BNE:
+			mInstrData[opcode].execHdlr = &P6502::BNEExecHdlr;
+			break;
+		case Codec6502::BPL:
+			mInstrData[opcode].execHdlr = &P6502::BPLExecHdlr;
+			break;
+		case Codec6502::BRK:
+			mInstrData[opcode].execHdlr = &P6502::BRKExecHdlr;
+			break;
+		case Codec6502::BVC:
+			mInstrData[opcode].execHdlr = &P6502::BVCExecHdlr;
+			break;
+		case Codec6502::BVS:
+			mInstrData[opcode].execHdlr = &P6502::BVSExecHdlr;
+			break;
+		case Codec6502::CLC:
+			mInstrData[opcode].execHdlr = &P6502::CLCExecHdlr;
+			break;
+		case Codec6502::CLD:
+			mInstrData[opcode].execHdlr = &P6502::CLDExecHdlr;
+			break;
+		case Codec6502::CLI:
+			mInstrData[opcode].execHdlr = &P6502::CLIExecHdlr;
+			break;
+		case Codec6502::CLV:
+			mInstrData[opcode].execHdlr = &P6502::CLVExecHdlr;
+			break;
+		case Codec6502::CMP:
+			mInstrData[opcode].execHdlr = &P6502::CMPExecHdlr;
+			break;
+		case Codec6502::CPX:
+			mInstrData[opcode].execHdlr = &P6502::CPXExecHdlr;
+			break;
+		case Codec6502::CPY:
+			mInstrData[opcode].execHdlr = &P6502::CPYExecHdlr;
+			break;
+		case Codec6502::DEC:
+			mInstrData[opcode].execHdlr = &P6502::DECExecHdlr;
+			break;
+		case Codec6502::DEX:
+			mInstrData[opcode].execHdlr = &P6502::DEXExecHdlr;
+			break;
+		case Codec6502::DEY:
+			mInstrData[opcode].execHdlr = &P6502::DEYExecHdlr;
+			break;
+		case Codec6502::EOR:
+			mInstrData[opcode].execHdlr = &P6502::EORExecHdlr;
+			break;
+		case Codec6502::INC:
+			mInstrData[opcode].execHdlr = &P6502::INCExecHdlr;
+			break;
+		case Codec6502::INX:
+			mInstrData[opcode].execHdlr = &P6502::INXExecHdlr;
+			break;
+		case Codec6502::INY:
+			mInstrData[opcode].execHdlr = &P6502::INYExecHdlr;
+			break;
+		case Codec6502::JMP:
+			mInstrData[opcode].execHdlr = &P6502::JMPExecHdlr;
+			break;
+		case Codec6502::JSR:
+			mInstrData[opcode].execHdlr = &P6502::JSRExecHdlr;
+			break;
+		case Codec6502::LDA:
+			mInstrData[opcode].execHdlr = &P6502::LDAExecHdlr;
+			break;
+		case Codec6502::LDX:
+			mInstrData[opcode].execHdlr = &P6502::LDXExecHdlr;
+			break;
+		case Codec6502::LDY:
+			mInstrData[opcode].execHdlr = &P6502::LDYExecHdlr;
+			break;
+		case Codec6502::LSR:
+			mInstrData[opcode].execHdlr = &P6502::LSRExecHdlr;
+			break;
+		case Codec6502::NOP:
+			mInstrData[opcode].execHdlr = &P6502::NOPExecHdlr;
+			break;
+		case Codec6502::ORA:
+			mInstrData[opcode].execHdlr = &P6502::ORAExecHdlr;
+			break;
+		case Codec6502::PHA:
+			mInstrData[opcode].execHdlr = &P6502::PHAExecHdlr;
+			break;
+		case Codec6502::PHP:
+			mInstrData[opcode].execHdlr = &P6502::PHPExecHdlr;
+			break;
+		case Codec6502::PLA:
+			mInstrData[opcode].execHdlr = &P6502::PLAExecHdlr;
+			break;
+		case Codec6502::PLP:
+			mInstrData[opcode].execHdlr = &P6502::PLPExecHdlr;
+			break;
+		case Codec6502::ROL:
+			mInstrData[opcode].execHdlr = &P6502::ROLExecHdlr;
+			break;
+		case Codec6502::ROR:
+			mInstrData[opcode].execHdlr = &P6502::RORExecHdlr;
+			break;
+		case Codec6502::RTI:
+			mInstrData[opcode].execHdlr = &P6502::RTIExecHdlr;
+			break;
+		case Codec6502::RTS:
+			mInstrData[opcode].execHdlr = &P6502::RTSExecHdlr;
+			break;
+		case Codec6502::SBC:
+			mInstrData[opcode].execHdlr = &P6502::SBCExecHdlr;
+			break;
+		case Codec6502::SEC:
+			mInstrData[opcode].execHdlr = &P6502::SECExecHdlr;
+			break;
+		case Codec6502::SED:
+			mInstrData[opcode].execHdlr = &P6502::SEDExecHdlr;
+			break;
+		case Codec6502::SEI:
+			mInstrData[opcode].execHdlr = &P6502::SEIExecHdlr;
+			break;
+		case Codec6502::STA:
+			mInstrData[opcode].execHdlr = &P6502::STAExecHdlr;
+			break;
+		case Codec6502::STX:
+			mInstrData[opcode].execHdlr = &P6502::STXExecHdlr;
+			break;
+		case Codec6502::STY:
+			mInstrData[opcode].execHdlr = &P6502::STYExecHdlr;
+			break;
+		case Codec6502::TAX:
+			mInstrData[opcode].execHdlr = &P6502::TAXExecHdlr;
+			break;
+		case Codec6502::TAY:
+			mInstrData[opcode].execHdlr = &P6502::TAYExecHdlr;
+			break;
+		case Codec6502::TSX:
+			mInstrData[opcode].execHdlr = &P6502::TSXExecHdlr;
+			break;
+		case Codec6502::TXA:
+			mInstrData[opcode].execHdlr = &P6502::TXAExecHdlr;
+			break;
+		case Codec6502::TXS:
+			mInstrData[opcode].execHdlr = &P6502::TXSExecHdlr;
+			break;
+		case Codec6502::TYA:
+			mInstrData[opcode].execHdlr = &P6502::TYAExecHdlr;
+			break;
+		case Codec6502::LAX:
+			mInstrData[opcode].execHdlr = &P6502::LAXExecHdlr;
+			break;
+		case Codec6502::SBX:
+			mInstrData[opcode].execHdlr = &P6502::SBXExecHdlr;
+			break;
+		case Codec6502::ISC:
+			mInstrData[opcode].execHdlr = &P6502::ISCExecHdlr;
+			break;
+		case Codec6502::DCP:
+			mInstrData[opcode].execHdlr = &P6502::DCPExecHdlr;
+			break;
+		case Codec6502::ANC:
+			mInstrData[opcode].execHdlr = &P6502::ANCExecHdlr;
+			break;
+		case Codec6502::ALR:
+			mInstrData[opcode].execHdlr = &P6502::ALRExecHdlr;
+			break;
+		case Codec6502::ARR:
+			mInstrData[opcode].execHdlr = &P6502::ARRExecHdlr;
+			break;
+		case Codec6502::LAS:
+			mInstrData[opcode].execHdlr = &P6502::LASExecHdlr;
+			break;
+		case Codec6502::RLA:
+			mInstrData[opcode].execHdlr = &P6502::RLAExecHdlr;
+			break;
+		case Codec6502::RRA:
+			mInstrData[opcode].execHdlr = &P6502::RRAExecHdlr;
+			break;
+		case Codec6502::SAX:
+			mInstrData[opcode].execHdlr = &P6502::SAXExecHdlr;
+			break;
+		case Codec6502::SLO:
+			mInstrData[opcode].execHdlr = &P6502::SLOExecHdlr;
+			break;
+		case Codec6502::SRE:
+			mInstrData[opcode].execHdlr = &P6502::SREExecHdlr;
+			break;
+		default:
+			mInstrData[opcode].execHdlr = &P6502::undefinedExecHdlr;
+			break;
+		}
+
+	}
+
+}
 
 P6502::P6502(string name, double clockSpeed, DebugManager  *debugManager, ConnectionManager *connectionManager, DeviceManager* deviceManager):
 	Device(name, P6502_DEV, MICROROCESSOR_DEVICE, clockSpeed, debugManager, connectionManager), mDeviceManager(deviceManager)
@@ -22,6 +290,8 @@ P6502::P6502(string name, double clockSpeed, DebugManager  *debugManager, Connec
 	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
 	registerPort("IRQ", IN_PORT, 0x01, RESET, &mIRQ);
 	registerPort("NMI", IN_PORT, 0x01, RESET, &mNMI);
+
+	initInstrTable();
 
 
 }
@@ -189,45 +459,25 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to read instruction!\n");
 	}
+	mInstructionInfo = mInstrData[mOpcode].info;
 
-	// Decode the mOpcode
-	Codec6502::InstructionInfo instr;
-	bool decode_success = true;
-	if (!mCodec.decodeInstruction(mOpcode, instr)) {
-		decode_success = false;
-		DBG_LOG(this, DBG_ERROR, "Invalid instruction 0x" + Utility::int2HexStr(mOpcode, 2) + " at address 0x" + Utility::int2HexStr(mOpcodePC, 4) + "!\n");
 
-	}
-	success = success && decode_success;
-
-	// Get the mOperand
-	bool operand_success = true;
-
-	if (!getOperand(instr, mOperand, mOperandAddress, mReadVal)) {
-		operand_success = false;
-		DBG_LOG(this, DBG_ERROR, "Failed to get mOperand for instruction with mOpcode 0x" + Utility::int2HexStr(mOpcode, 2) + " at address 0x" + Utility::int2HexStr(mOpcodePC, 4) + "!\n");
-	}
-	success = success && operand_success;
-
-	
-	// After reading the mOperand, the PC points at the next instruction...
-
-	// Execute the instruction
-	bool exec_success = true;
+	// Fetch the instructuon operands and execute the instruction
 	uint8_t oI_flag = I_flag;
-	if (!executeInstr(instr, mOpcodePC, mOperand, mOperandAddress, mReadVal, mWrittenVal)) {
+	bool exec_success = true;
+	if (!executeInstr()) {
 		exec_success = false;
-		DBG_LOG(this, DBG_ERROR, "Failed to execute instruction!\n");
+		DBG_LOG(this, DBG_ERROR, "Invalid instruction 0x" + Utility::int2HexStr(mOpcode, 2) + " at address 0x" + Utility::int2HexStr(mOpcodePC, 4) + "!\n");
 	}
+
 	mRAccAdr = mWAccAdr = -1;
-	if (instr.readsMem)
+	if (mInstructionInfo.readsMem)
 		mRAccAdr = mOperandAddress;
-	if (instr.writesMem)
+	if (mInstructionInfo.writesMem)
 		mWAccAdr = mOperandAddress;
 	success = success && exec_success;
 
-	DBG_LOG_COND(false && I_flag != oI_flag, this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[instr.instruction] + " at address 0x" + Utility::int2HexStr(mOpcodePC,4) + "\n");
-
+	DBG_LOG_COND(false && I_flag != oI_flag, this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[mInstructionInfo.instruction] + " at address 0x" + Utility::int2HexStr(mOpcodePC,4) + "\n");
 
 
 	if (DBG_TRACING()) {
@@ -236,7 +486,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 
 			InstrLogData instr_log_data;
 			instr_log_data.logTime = getCycleCount() / (mCPUClock * 1e6);
-			instr_log_data.instr = instr;
+			instr_log_data.instr = mInstructionInfo;
 			instr_log_data.A = mAcc;
 			instr_log_data.X = mRegisterX;
 			instr_log_data.Y = mRegisterY;
@@ -245,15 +495,13 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			instr_log_data.opcodePC = mOpcodePC;
 			instr_log_data.PC = mProgramCounter;
 			instr_log_data.opcode = mOpcode;
-			instr_log_data.operand = mOperand;
+			instr_log_data.operand = mOperand16;
 			instr_log_data.accessAdr = mOperandAddress;
 			instr_log_data.activeIRQ = (!mIRQ && mIrqTransition);
 			instr_log_data.activeNMI = (!mNMI && mNmiTransition);
 			instr_log_data.execFailure = !exec_success;
-			instr_log_data.rwFailure = !operand_success;
-			instr_log_data.readVal = mReadVal;
+			instr_log_data.readVal = mReadVal8;
 			instr_log_data.writtenVal = mWrittenVal;
-			instr_log_data.decodeFailure = !decode_success;
 			uint16_t a = (0x100 + mStackPointer + 1) & 0x1ff;
 			uint8_t l, h;
 			readProgramMem(a, l);
@@ -265,21 +513,17 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		}
 		else {
 
-			string instr_s = mCodec.decode(mOpcodePC, mOpcode, mOperand);
+			string instr_s = mCodec.decode(mOpcodePC, mOpcode, mOperand16);
 			stringstream sout;
 			sout << setfill(' ') << setw(30) << left << instr_s << right <<
 				" " << getState();
-			if (instr.readsMem || instr.writesMem)
+			if (mInstructionInfo.readsMem || mInstructionInfo.writesMem)
 				sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << mOperandAddress;
-			if (instr.readsMem)
-				sout << " READ 0x" << setw(2) << (int)mReadVal;
-			if (instr.writesMem)
+			if (mInstructionInfo.readsMem)
+				sout << " READ 0x" << setw(2) << (int)mReadVal8;
+			if (mInstructionInfo.writesMem)
 				sout << " WROTE 0x" << setw(2) << (int)mWrittenVal;
 			sout << " " << stack2Str();
-			if (!decode_success)
-				sout << "UNKNOWN INSTR";
-			if (!operand_success)
-				sout << " R/W FAILURE";
 			if (!exec_success)
 				sout << " EXEC FAILURE";
 			if (!mIRQ && mIrqTransition)
@@ -296,7 +540,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		
 	// Increase time by the no of clock cycles specified for the instruction and mode.
 	// This excludes extra cycle at page boundary as this is instead address in getOperand().
-	tick(instr.cycles);
+	tick(mInstructionInfo.cycles);
 
 	// Return time reached
 	endCycle = mCycleCount;
@@ -307,1422 +551,1751 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	return true;
 }
 
-bool P6502::executeInstr(
-	Codec6502::InstructionInfo &instr, uint16_t opcode_PC, uint16_t operand, uint16_t calc_op_adr, uint8_t read_val, uint8_t& written_val
-	)
+bool P6502::executeInstr()
 {
-	uint8_t val_8_u;
-	written_val = 0x0;
+	return (this->*mInstrData[mOpcode].addrHdlr)() && (this->*mInstrData[mOpcode].execHdlr)();
+}
 
-	switch (instr.instruction) {
+//
+// Methods for executing an instruction
+// 
+// There is one method per instruction - independent of the addressing mode
+//
 
-	case Codec6502::Instruction::ADC:
-		// Add Memory to Accumulator with Carry
-		// If decimal flag is set, addition will be BCD (Binary-Coded Decimal) and only the C flag will have a useful value
-		// A + M + C -> A, C
-		// N	Z	C	I	D	V
-		// +	+	+	-	-	+
-	{
-		int16_t val_C, val_V;
-		if (D_flag) {
+//
+// Add Memory to Accumulator with Carry
+// If decimal flag is set, addition will be BCD (Binary-Coded Decimal) and only the C flag will have a useful value
+// A + M + C -> A, C
+// N	Z	C	I	D	V
+// +	+	+	-	-	+
+//
+bool P6502::ADCExecHdlr()
+{
 
-			
-			// Calculate zero - flag set as for non-BDC addition
-			int16_t val_Z = mAcc + read_val + C_flag;
-			int8_t set_Z = ((val_Z & 0xff) == 0);
+	int16_t val_C, val_V;
+	if (D_flag) {
 
-			// BCD Addition and calculation of carry flag
-			uint8_t low_digit = (mAcc & 0xf) + (read_val & 0xf) + C_flag;
-			uint8_t carry = 0;
-			if (low_digit >= 0xa) {
-				low_digit += 0x6; // same as subtraction by 10 (modulo 16)
-				carry = 0x10;
-			}
-			low_digit &= 0xf;
-			int16_t val_NV = (int8_t)(mAcc & 0xf0) + (int8_t)(read_val & 0xf0) + carry + low_digit; // save for later use when setting N & V flags
-			uint16_t high_digit = (mAcc & 0xf0) + (read_val & 0xf0) + carry; // result could be up to 0x130 (0x90+0x90+0x10)
-			int8_t set_C  = 0;
-			if (high_digit >= 0xa0) {
-				high_digit += 0x60; // same as subtraction by 10 (modulo 16)
-				set_C = 1;
-			}
-			high_digit &= 0xf0;
-			mAcc = high_digit | low_digit;
+		// Calculate zero - flag set as for non-BDC addition
+		int16_t val_Z = mAcc + mReadVal8 + C_flag;
+		int8_t set_Z = ((val_Z & 0xff) == 0);
 
-			// Calculate N & V flags - they are based on the sum before adjusting for overflow of the high digit
-			setNZCVflags((val_NV & 0x80) !=0, set_Z, set_C, val_NV < -128 || val_NV > 127);
+		// BCD Addition and calculation of carry flag
+		uint8_t low_digit = (mAcc & 0xf) + (mReadVal8 & 0xf) + C_flag;
+		uint8_t carry = 0;
+		if (low_digit >= 0xa) {
+			low_digit += 0x6; // same as subtraction by 10 (modulo 16)
+			carry = 0x10;
 		}
-		else {
-			val_V = (int8_t)mAcc + (int8_t)read_val + C_flag; // Add as signed no to determine overflow (V)
-			val_C = mAcc + read_val + C_flag; // Add as unsigned no to determine carry (C)
-			mAcc = val_C & 0xff;
-			setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, (val_C & 0x100) != 0, val_V < -128 || val_V > 127);
+		low_digit &= 0xf;
+		int16_t val_NV = (int8_t)(mAcc & 0xf0) + (int8_t)(mReadVal8 & 0xf0) + carry + low_digit; // save for later use when setting N & V flags
+		uint16_t high_digit = (mAcc & 0xf0) + (mReadVal8 & 0xf0) + carry; // result could be up to 0x130 (0x90+0x90+0x10)
+		int8_t set_C = 0;
+		if (high_digit >= 0xa0) {
+			high_digit += 0x60; // same as subtraction by 10 (modulo 16)
+			set_C = 1;
 		}
-		
-		break;
-	}
-
-	case Codec6502::Instruction::AND:
-		// AND Memory with Accumulator
-		// A AND M -> A
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mAcc &= read_val;
-		setNZflags(mAcc);
-		break;
-	}
-
-	case Codec6502::Instruction::ASL:
-		// Shift Left One Bit (Memory or Accumulator)
-		// C < [76543210] <- 0
-		// N	Z	C	I	D	V
-		// +	+	+	-	-	-
-	{
-		mStatusRegister &= ~C_set_mask;
-		mStatusRegister |= ((read_val & 0x80) != 0? C_set_mask : 0);
-		val_8_u = (read_val << 1) & 0xfe;
-		if (instr.writesMem) {
-			if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
-				return false;
-			}
-			if (!writeDevice(calc_op_adr, val_8_u)) {
-				return false;
-			}
-			written_val = val_8_u;
-		}
-		else
-			mAcc = val_8_u;
-		setNZflags(val_8_u);
-		break;
-	}
-
-	case Codec6502::Instruction::BCC:
-		// Branch on Carry Clear
-		// Branch on C = 0
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		if (!C_flag)
-			mProgramCounter = (opcode_PC+2 + (int8_t) operand) & 0xffff;
-		break;
-	}
-
-	case Codec6502::Instruction::BCS:
-		// Branch on Carry Set
-		// Branch on C = 1
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		if (C_flag)
-			mProgramCounter = (opcode_PC+2 + (int8_t) operand) & 0xffff;
-		break;
-	}
-
-	case Codec6502::Instruction::BEQ:
-		// Branch on Result Zero
-		// Branch on Z = 0
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		if (Z_flag)
-			mProgramCounter = (opcode_PC+2 + (int8_t) operand) & 0xffff;
-		break;
-	}
-
-	case Codec6502::Instruction::BIT:
-	{
-		// Test Bits in Memory with Accumulator
-		// A AND M -> Z, M7 -> N, M6 -> V
-		// N	Z	C	I	D	V
-		// M7	+	-	-	-	M6
-		{
-			val_8_u = mAcc & read_val;
-			mStatusRegister &= ~(Z_set_mask | N_set_mask | V_set_mask);
-			if (val_8_u == 0)
-				mStatusRegister |= Z_set_mask;
-			if ((read_val & 0x80) != 0)
-				mStatusRegister |= N_set_mask;
-			if ((read_val & 0x40) != 0)
-				mStatusRegister |= V_set_mask;
-			break;
-		}
-	}
-
-	case Codec6502::Instruction::BMI:
-		// Branch on Result Minus
-		// Branch on N = 1
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		if (N_flag)
-			mProgramCounter = (opcode_PC+2 + (int8_t) operand) & 0xffff;
-		break;
-	}
-
-	case Codec6502::Instruction::BNE:
-		// Branch on Result not Zero
-		// Branch on Z = 0
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		if (!Z_flag)
-			mProgramCounter = (opcode_PC+2 + (int8_t) operand) & 0xffff;
-		break;
-	}
-
-	case Codec6502::Instruction::BPL:
-		// Branch on Result Plus
-		// Branch on N = 0
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		if (!N_flag)
-			mProgramCounter = (opcode_PC+2 + (int8_t) operand) & 0xffff;
-		break;
-	}
-
-	case Codec6502::Instruction::BRK:
-		// Force Break
-		// Initiates a software interrupt
-		// push PC+2, push SR (together with a set b4 = B)
-		// The high PC byte is pushed first (so that the PC is stored in little endian format in the memory)
-		// N	Z	C	I	D	V
-		// -	-	-	1	-	-
-	{
-		// Force Break
-
-		// Save SP, SR & PC for logging later on
-		uint8_t oStackPointer = mStackPointer;
-		uint8_t oStatusRegister = mStatusRegister;
-		uint16_t oProgramCounter = mProgramCounter;
-		
-		// Save PC & Status to stack
-		pushWord(opcode_PC+2); // this is the same as PC after the opcode has been read + 2
-		push(mStatusRegister | B_set_mask);
-
-		// Fetch break vector
-		uint8_t adr_L, adr_H;
-		if (!readProgramMem(0xfffe, adr_L) || !readProgramMem(0xffff, adr_H))
-			return false;
-		mProgramCounter = adr_H * 256 + adr_L;
-
-		if (DBG_LEVEL_DEV(this,DBG_INTERRUPTS)) {		
-			DBG_LOG(this, DBG_INTERRUPTS, "BRK executed at PC = 0x" + Utility::int2HexStr(opcode_PC,4) +"\n");
-			DBG_LOG(this, DBG_INTERRUPTS, getInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister));
-		}
-
-
-		break;
-	}
-
-	case Codec6502::Instruction::BVC:
-		// Branch on Overflow Clear
-		// Branch on V = 0
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		if (!V_flag)
-			mProgramCounter = (opcode_PC+2 + (int8_t) operand) & 0xffff;
-		break;
-	}
-
-	case Codec6502::Instruction::BVS:
-		// Branch on Overflow Set
-		// Branch on V = 1
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		if (V_flag)
-			mProgramCounter = (opcode_PC+2 + (int8_t) operand) & 0xffff;
-		break;
-	}
-
-	case Codec6502::Instruction::CLC:
-		// Clear Carry Flag
-		// N	Z	C	I	D	V
-		// -	-	0	-	-	-
-	{
-		mStatusRegister &= ~C_set_mask;
-		break;
-	}
-
-	case Codec6502::Instruction::CLD:
-		// Clear Decimal Mode
-		// N	Z	C	I	D	V
-		// -	-	-	-	0	-
-	{
-		mStatusRegister &= ~D_set_mask;
-		break;
-	}
-
-	case Codec6502::Instruction::CLI:
-		// Clear Interrupt Disable Bit
-		// N	Z	C	I	D	V
-		// -	-	-	0	-	-
-	{
-		uint8_t oStatusRegister = mStatusRegister;
-		mStatusRegister &= ~I_set_mask;
-		break;
-	}
-
-	case Codec6502::Instruction::CLV:
-		// Clear Overflow Flag
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	0
-	{
-		mStatusRegister &= ~V_set_mask;
-		break;
-	}
-
-	case Codec6502::Instruction::CMP:
-		// Compare Memory with Accumulator
-		// A - M
-		// N	Z	C	I	D	V
-		// +	+	+	-	-	-
-
-	{
-		
-		val_8_u = mAcc - read_val;
-		setNZCflags(val_8_u, mAcc >= read_val);
-		break;
-	}
-
-	case Codec6502::Instruction::CPX:
-		// Compare Memory and X
-		// X - M
-		// N	Z	C	I	D	V
-		// +	+	+	-	-	-
-	{
-		
-		val_8_u = mRegisterX - read_val;
-		setNZCflags(val_8_u, mRegisterX >= read_val);
-		break;
-	}
-
-	case Codec6502::Instruction::CPY:
-		// Compare Memory and Y
-		// Y - M
-		// N	Z	C	I	D	V
-		// +	+	+	-	-	-
-	{
-		val_8_u = mRegisterY - read_val;
-		setNZCflags(val_8_u, mRegisterY >= read_val);
-		break;
-	}
-
-	case Codec6502::Instruction::DEC:
-		// Decrement Memory by One
-		// M - 1 -> M
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		val_8_u = read_val - 1;
-		if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
-			return false;
-		}
-		if (!writeDevice(calc_op_adr, val_8_u)) {
-			return false;
-		}
-		written_val = val_8_u;
-		setNZflags(val_8_u);
-		break;
-	}
-
-	case Codec6502::Instruction::DEX:
-		// Decrement X by One
-		// X - 1 -> X
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mRegisterX = mRegisterX - 1;
-		setNZflags(mRegisterX);
-		break;
-	}
-
-	case Codec6502::Instruction::DEY:
-		// Decrement Y by One
-		// Y - 1 -> Y
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mRegisterY = mRegisterY - 1;
-		setNZflags(mRegisterY);
-		break;
-	}
-
-	case Codec6502::Instruction::EOR:
-		// Exclusive-OR Memory with Accumulator
-		// A EOR M -> A
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-
-	{
-		mAcc ^= read_val;
-		setNZflags(mAcc);
-		break;
-	}
-
-	case Codec6502::Instruction::INC:
-		// Increment Memory by One
-		// M + 1 -> M
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		val_8_u = read_val + 1;
-		if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
-			return false;
-		}
-		if (!writeDevice(calc_op_adr, val_8_u)) {
-			return false;
-		}
-		written_val = val_8_u;
-		setNZflags(val_8_u);
-		break;
-	}
-
-	case Codec6502::Instruction::INX:
-		// Increment X by One
-		// X + 1 -> X
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mRegisterX = mRegisterX + 1;
-		setNZflags(mRegisterX);
-		break;
-	}
-
-	case Codec6502::Instruction::INY:
-		// Increment Y by One
-		// Y + 1 -> Y
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mRegisterY = mRegisterY + 1;
-		setNZflags(mRegisterY);
-		break;
-	}
-
-	case Codec6502::Instruction::JMP:
-		// Jump to New Location
-		// OP2:OP1 -> PC
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		
-		mProgramCounter = calc_op_adr;
-		break;
-	}
-
-	case Codec6502::Instruction::JSR:
-		// Jump to New Location Saving Return Address
-		// Push PC+2; OP2:OP1 -> PC
-		// The stack byte contains the program count high first, followed by program count low
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		
-		pushWord(opcode_PC + 2); // this is the same as PC after the opcode has been read + 2
-
-		mProgramCounter = calc_op_adr;
-
-		break;
-	}
-
-	case Codec6502::Instruction::LDA:
-		// Load Accumulator with Memory
-		// M -> A
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mAcc = read_val;
-		setNZflags(mAcc);
-		break;
-	}
-
-	case Codec6502::Instruction::LDX:
-		// Load X with Memory
-		// M -> X
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mRegisterX = read_val;
-		setNZflags(mRegisterX);
-		break;
-	}
-
-	case Codec6502::Instruction::LDY:
-		// Load Y with Memory
-		// M -> Y
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mRegisterY = read_val;
-		setNZflags(mRegisterY);
-		break;
-	}
-
-	case Codec6502::Instruction::LSR:
-		// Shift One Bit Right (Memory or Accumulator)
-		// 0 -> [76543210] -> C
-		// N	Z	C	I	D	V
-		// 0	+	+	-	-	-
-	{
-		mStatusRegister &= ~C_set_mask;
-		mStatusRegister |= ((read_val & 0x1) != 0 ? C_set_mask : 0);
-		val_8_u = (read_val >> 1) & 0x7f;
-		if (instr.writesMem) {
-			if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
-				return false;
-			}
-			if (!writeDevice(calc_op_adr, val_8_u)) {
-				return false;
-				written_val = val_8_u;
-			}
-		}
-		else
-			mAcc = val_8_u;
-		setNZflags(val_8_u);
-		break;
-	}
-	case Codec6502::Instruction::NOP:
-		// No Operation
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		break;
-	}
-	case Codec6502::Instruction::ORA:
-		// OR Memory with Accumulator
-		// A OR M -> A
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mAcc |=  read_val;
-		setNZflags(mAcc);
-		break;
-	}
-
-	case Codec6502::Instruction::PHA:
-		// Push Accumulator on Stack
-		// push A
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		push(mAcc);
-		break;
-	}
-
-	case Codec6502::Instruction::PHP:
-		// Push Status on Stack
-		// push SR.
-		// The status register will be pushed with the B
-		// flag and b5 set to 1
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		push(mStatusRegister | B_set_mask | b5_set_mask);
-		break;
-	}
-
-	case Codec6502::Instruction::PLA:
-		// Pull Accumulator from Stack
-		// pull A
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		pull(mAcc);
-		setNZflags(mAcc);
-		break;
-	}
-	case Codec6502::Instruction::PLP:
-		// Pull Status register from Stack
-		// Pull SR (B flag and b5 ignored)
-		// N	Z	C	I	D	V
-		// +	+	+	+	+	+
-	{
-		uint8_t stack_val; 
-		pull(stack_val);
-		stack_val &= ~(B_set_mask | b5_set_mask);
-		mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
-		mStatusRegister |= stack_val;
-		break;
-	}
-	case Codec6502::Instruction::ROL:
-		// Rotate One Bit Left (Memory or Accumulator)
-		// C <- [76543210] <- C
-		// N	Z	C	I	D	V
-		// +	+	+	-	-	-
-	{
-		val_8_u = ((read_val << 1) & 0xfe) | C_flag;
-		mStatusRegister &= ~C_set_mask;
-		mStatusRegister |= ((read_val & 0x80)!=0? C_set_mask : 0);	
-		if (instr.writesMem) {
-			if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
-				return false;
-			}
-			if (!writeDevice(calc_op_adr, val_8_u)) {
-				return false;
-			}
-			written_val = val_8_u;
-		}
-		else
-			mAcc = val_8_u;
-		setNZflags(val_8_u);
-		break;
-	}
-
-	case Codec6502::Instruction::ROR:
-		// Rotate One Bit Right (Memory or Accumulator)
-		// C -> [76543210] -> C
-		// N	Z	C	I	D	V
-		// +	+	+	-	-	-
-	{
-		val_8_u = ((read_val >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
-		mStatusRegister &= ~C_set_mask;
-		mStatusRegister |= ((read_val & 0x1) ? C_set_mask : 0);		
-		if (instr.writesMem) {
-			if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
-				return false;
-			}
-			if (!writeDevice(calc_op_adr, val_8_u)) {
-				return false;
-			}
-			written_val = val_8_u;
-		}
-		else
-			mAcc = val_8_u;
-		setNZflags(val_8_u);
-		break;
-	}
-
-	case Codec6502::Instruction::RTI:
-		// Return from Interrupt
-		// Pull SR (b5 and B flag ignored) and then pull PC
-		// The low byte is pulled first.
-		// N	Z	C	I	D	V
-		// +	+	+	+	+	+
-	{
-
-		uint8_t oStackPointer = mStackPointer;
-		uint8_t oStatusRegister = mStatusRegister;
-		uint16_t oProgramCounter = mProgramCounter;
-
-		// Pull Status Register
-		uint8_t stack_val;
-		pull(stack_val);
-		stack_val &= ~(B_set_mask | b5_set_mask);
-		mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
-		mStatusRegister |= stack_val;
-
-		// Pull PC
-		uint16_t oPC = mProgramCounter;
-		pullWord(mProgramCounter);
-
-		if (DBG_LEVEL_DEV(this,DBG_INTERRUPTS)) {
-			DBG_LOG(this, DBG_INTERRUPTS, "RTI executed at 0x" + Utility::int2HexStr(oPC,4) + "; execution resumed at 0x" + Utility::int2HexStr(mProgramCounter,4) +"!\n");
-			DBG_LOG(this, DBG_INTERRUPTS, getInterruptStack(mStackPointer - 2, oStackPointer, oProgramCounter, oStatusRegister));
-		}
-
-		break;
-	}
-
-	case Codec6502::Instruction::RTS:
-		// Return from Subroutine
-		// Pull PC, PC+1 -> PC
-		// The low byte is pulled first .
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-
-	{
-
-		uint16_t oPC = mProgramCounter;
-		pullWord(mProgramCounter);
-		mProgramCounter++;
-
-		break;
-	}
-
-	case Codec6502::Instruction::SBC:
-		// Subtract Memory from Accumulator with Borrow
-		// If decimal flag is set, substraction will be BCD (Binary-Coded Decimal) and only the C flag will have a useful value
-		// A - M - C* -> A
-		// N	Z	C	I	D	V
-		// +	+	+	-	-	+
-		//
-		// V is set if sign bit is incorrect
-		// C is cleared if overflow in b7
-	{
-		{
-			int16_t val_C, val_V;
-			if (D_flag) {
-
-				// Calculate zero, negative & overflow flag as for non-BDC subtraction
-				int16_t val_ZNV = (int8_t)mAcc - (int8_t)read_val - (1 - C_flag);
-				setNZVflags((val_ZNV & 0x80) != 0, (val_ZNV & 0xff) == 0, val_ZNV < -128 || val_ZNV > 127);
-
-				// BCD Subtraction and calculation of carry flag
-				int8_t low_digit = (mAcc & 0xf) - (read_val & 0xf) - (1-C_flag); // can become -10 (0-9-1) to 9 (9-0-0)
-				int8_t borrow = 0;
-				if (low_digit < 0) {
-					low_digit += 0x0a;
-					borrow = 0x10;
-				}
-				low_digit &= 0x0f;
-				int16_t high_digit = (mAcc & 0xf0) - (read_val & 0xf0) - borrow; // can become -0xa0 (0-0x90-0x10) to 0x90 (0x90-0-0) 
-				int8_t set_C = 1;
-				if (high_digit < 0) {
-					high_digit += 0xa0;
-					set_C = 0;
-				}
-				mAcc = (high_digit | low_digit) & 0xff;
-				mStatusRegister &= ~C_set_mask;
-				mStatusRegister |= set_C;
-
-			}
-			else {
-				val_V = (int8_t)mAcc - (int8_t)read_val - (1-C_flag);
-				val_C = mAcc - read_val - (1 - C_flag);
-				mAcc = val_C & 0xff;
-				setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, val_C >= 0, val_V < -128 || val_V > 127);
-			}
-			
-
-			break;
-		}
-	}
-
-	case Codec6502::Instruction::SEC:
-		// Set Carry Flag
-		// N	Z	C	I	D	V
-		// -	-	1	-	-	-
-	{
-		mStatusRegister |= C_set_mask;
-		break;
-	}
-
-	case Codec6502::Instruction::SED:
-		// Set Decimal Flag
-		// N	Z	C	I	D	V
-		// -	-	-	-	1	-
-	{
-		mStatusRegister |= D_set_mask;
-		break;
-	}
-	case Codec6502::Instruction::SEI:
-		// Set Interrupt Disable Status
-		// N	Z	C	I	D	V
-		// -	-	-	1	-	-
-	{
-		uint8_t oStatusRegister = mStatusRegister; 
-		mStatusRegister |= I_set_mask;
-		break;
-	}
-
-	case Codec6502::Instruction::STA:
-		// Store Accumulator in Memory
-		// A -> M
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		writeDevice(calc_op_adr, mAcc);
-		written_val = mAcc;
-		break;
-	}
-
-	case Codec6502::Instruction::STX:
-		// Store X in Memory
-		// X -> M
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		writeDevice(calc_op_adr, mRegisterX);
-		written_val = mRegisterX;
-		break;
-	}
-
-	case Codec6502::Instruction::STY:
-		// Store Y in Memory
-		// Y -> M
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		writeDevice(calc_op_adr, mRegisterY);
-		written_val = mRegisterY;
-		break;
-	}
-
-	case Codec6502::Instruction::TAX:
-		// Transfer Accumulator to X
-		// A -> X
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-
-	{
-		mRegisterX = mAcc;
-		setNZflags(mRegisterX);
-		break;
-	}
-
-	case Codec6502::Instruction::TAY:
-		// Transfer Accumulator to Y
-		// A -> Y
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mRegisterY = mAcc;
-		setNZflags(mRegisterY);
-		break;
-	}
-
-	case Codec6502::Instruction::TSX:
-		// Transfer Stack Pointer to X
-		// SP -> X
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mRegisterX = mStackPointer;
-		setNZflags(mRegisterX);
-		break;
-	}
-
-	case Codec6502::Instruction::TXA:
-		// Transfer X to Accumulator
-		// X -> A
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mAcc = mRegisterX;
-		setNZflags(mAcc);
-		break;
-	}
-
-	case Codec6502::Instruction::TXS:
-		// Transfer X to Stack Register: X -> SP
-		// X -> SP
-		// N	Z	C	I	D	V
-		// -	-	-	-	-	-
-	{
-		mStackPointer = mRegisterX;
-		break;
-	}
-
-	case Codec6502::Instruction::TYA:
-		// Transfer Y to Accumulator: Y -> A
-		// Y -> A
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mAcc = mRegisterY;
-		setNZflags(mAcc);
-		break;
-	}
-
-
-
-	//
-	// Undocumented 6502 NMOS instructions that are used by some programs
-	//
-
-	case Codec6502::Instruction::LAX:
-		// Load Accumulator and X with Memory
-		// M -> A -> X
-		// N	Z	C	I	D	V
-		// +	+	-	-	-	-
-	{
-		mAcc = mRegisterX = read_val;
-		setNZflags(mAcc);
-		break;
-	}
-
-	case Codec6502::Instruction::SBX:
-		// Subtract Memory from Accumulator AND X
-		// (A AND X) - oper -> X
-		// N	Z	C	I	D	V
-		// +	+	+	-	-	-
-
-	{
-		mRegisterX = (mAcc & mRegisterX) - read_val;
-		setNZCflags(mRegisterX, mRegisterX >= read_val);
-		break;
-	}
-
-	case Codec6502::Instruction::ISC:
-		// Increment and Subtract <=> INC <mem> + SBC <mem>
-		// M + 1 -> M, A - M - C* -> A
-		// N	Z	C	I	D	V
-		// +	+	+	-	-	+
-
-	{
-		val_8_u = read_val + 1;
-		int16_t val_C, val_V;
-
-		//
-		// M + 1 -> M
-		//
-		if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
-			return false;
-		}
-
-		if (!writeDevice(calc_op_adr, val_8_u)) {
-			return false;
-		}
-		written_val = val_8_u;
-
-		// 
-		// A - M - C* -> A
-		//
-		val_V = (int8_t)mAcc - (int8_t)val_8_u - (1 - C_flag);
-		val_C = mAcc - val_8_u - (1 - C_flag);
-		mAcc = val_C & 0xff;
-		setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, val_C >= 0, val_V < -128 || val_V > 127);
-
-		break;
-	}
-
-	case Codec6502::Instruction::DCP:
-		// Decrement Memory by One
-		// M - 1 -> M, A - M
-		// N	Z	C	I	D	V
-		// +	+	+	-	-	-
-	{
-		//
-		// M -1 -> M
-		//
-		val_8_u = read_val - 1;
-		if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
-			return false;
-		}
-		if (!writeDevice(calc_op_adr, val_8_u)) {
-			return false;
-		}
-		written_val = val_8_u;
-
-		//
-		// A - M
-		//
-		val_8_u = mAcc - read_val;
-		setNZCflags(val_8_u, mAcc >= read_val);
-		break;
-	}
-
-	case Codec6502::Instruction::ANC:
-		// AND Memory with Carry
-		// A AND oper, b7 -> C
-		// N	Z	C	I	D	V
-		// +	+	+	-	-	-
-	{
-		mAcc &= read_val;
-
-		// N & Z flags set based on result
-		setNZflags(mAcc);
-
-		// C flag = b7 of A
-		mStatusRegister &= ~C_set_mask | ((mAcc & 0x80) != 0 ? C_set_mask : 0x0);
-		break;
-	}
-
-	case Codec6502::Instruction::ALR:
-		// AND followed by LSR
-		// A AND oper, 0 -> [76543210] -> C
-		// N	Z	C	I	D	V
-		// +	+	+	-	-	-
-	{
-		uint8_t val_before_shift = mAcc & read_val;
-
-		// N & Z flags set based on result
-		setNZflags(val_before_shift);
-
-		// LSR
-		mAcc = (val_before_shift >> 1) & 0x7f;
-
-		// Set C as for LSR
-		mStatusRegister &= ~C_set_mask;
-		mStatusRegister |= ((val_before_shift & 0x1) != 0 ? C_set_mask : 0);
-
-		break;
-	}
-
-	case Codec6502::Instruction::ARR:
-	// AND followed by ROR
-	// A AND oper, C -> [76543210] -> C
-	// N	Z	C	I	D	V
-	// +	+	+	-	-	+
-	{
-		// AND
-		uint8_t val_before_shift = mAcc & read_val;
-
-		// ROR
-		mAcc = ((val_before_shift >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
-
-		// N & Z flags set based on result
-		setNZflags(val_before_shift);
-
-		// Set C as for ROR
-		mStatusRegister &= ~C_set_mask;
-		mStatusRegister |= ((val_before_shift & 0x1) != 0 ? C_set_mask : 0);	
-
-		break;
-	}
-
-	case Codec6502::Instruction::LAS:
-	// Load Memory ANDed with SP into A, X & SP
-	// M AND SP -> A, X, SP
-	// N	Z	C	I	D	V
-	// +	+	-	-	-	-
-	{
-		mAcc = mRegisterX = mStackPointer = read_val & mStackPointer;
-		setNZflags(mAcc);
-		break;
-	}
-
-	case Codec6502::Instruction::RLA:
-	// ROL followed by AND
-	// M = C <- [76543210] <- C, A AND M -> A
-	// N	Z	C	I	D	V
-	// +	+	+	-	-	-
-	{
-		// ROL
-		val_8_u = ((read_val << 1) & 0xfe) | C_flag;
-		mStatusRegister &= ~C_set_mask;
-		mStatusRegister |= ((read_val & 0x80) != 0 ? C_set_mask : 0);
-
-		// Write back the result to memory
-		if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
-			return false;
-		}
-		if (!writeDevice(calc_op_adr, val_8_u)) {
-			return false;
-		}
-		written_val = val_8_u;
-
-		// AND
-		mAcc &= val_8_u;
-
-		// N & Z flags set based on result
-		setNZflags(val_8_u);
-
-		break;
-	}
-
-	case Codec6502::Instruction::RRA:		
-	// ROR followed by ADC
-	// M = C -> [76543210] -> C, A + M + C -> A, C
-	// N	Z	C	I	D	V
-	// +	+	+	-	-	+
-	{
-		// ROR
-		uint8_t rotated_val = ((read_val >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
-		mStatusRegister &= ~C_set_mask;
-		mStatusRegister |= ((read_val & 0x1) ? C_set_mask : 0);
-		if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
-			return false;
-		}
-		if (!writeDevice(calc_op_adr, rotated_val)) {
-			return false;
-		}
-		written_val = rotated_val;
-		setNZflags(rotated_val);
-
-		// ADC
-		int16_t val_C, val_V;
-		val_V = (int8_t)mAcc + (int8_t)rotated_val + C_flag;	// Add as signed no to determine overflow (V)
-		val_C = mAcc + rotated_val + C_flag;					// Add as unsigned no to determine carry (C)
+		high_digit &= 0xf0;
+		mAcc = high_digit | low_digit;
+
+		// Calculate N & V flags - they are based on the sum before adjusting for overflow of the high digit
+		setNZCVflags((val_NV & 0x80) != 0, set_Z, set_C, val_NV < -128 || val_NV > 127);
+	}
+	else {
+		val_V = (int8_t)mAcc + (int8_t)mReadVal8 + C_flag; // Add as signed no to determine overflow (V)
+		val_C = mAcc + mReadVal8 + C_flag; // Add as unsigned no to determine carry (C)
 		mAcc = val_C & 0xff;
 		setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, (val_C & 0x100) != 0, val_V < -128 || val_V > 127);
-
-		break;
 	}
 
-	case Codec6502::Instruction::SAX:
-	// Store A and X into Memory
-	// A AND X -> M
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
-	{
-		written_val = mAcc & mRegisterX;
-		writeDevice(calc_op_adr, mAcc);
+	return true;
 
-		break;
-	}
+}
 
-	case Codec6502::Instruction::SLO:
-	// ASL followed by OR
-	// M = C <- [76543210] <- 0, A OR M -> A
-	// N	Z	C	I	D	V
-	// +	+	+	-	-	-
-	{
-		// ASL
-		mStatusRegister &= ~C_set_mask;
-		mStatusRegister |= ((read_val & 0x80) != 0 ? C_set_mask : 0);
-		val_8_u = (read_val << 1) & 0xfe;
-		if (!writeDevice(calc_op_adr, read_val)) { // dummy write always made by NMOS 6502
-			return false;
-		}
-		if (!writeDevice(calc_op_adr, val_8_u)) {
-			return false;
-		}
-		written_val = val_8_u;
+//
+// AND Memory with Accumulator
+// A AND M -> A
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502::ANDExecHdlr()
+{
 
-		// OR
-		mAcc |= val_8_u;
-
-		// N & Z flags set based on result
-		setNZflags(val_8_u);
-
-		break;
-	}
-
-	default:
-		//cout << "Illegal instruction 0x" << hex << (int)mOpcode << " at PC = 0x" << mOpcodePC << "\n";
-		break;
-	}
+	mAcc &= mReadVal8;
+	setNZflags(mAcc);
 
 	return true;
 }
 
 //
-// Evaluates the operand part of an instruction
+// Shift Left One Bit (Memory or Accumulator)
+// C < [76543210] <- 0
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+bool P6502::ASLExecHdlr()
+{
+	mStatusRegister &= ~C_set_mask;
+	mStatusRegister |= ((mReadVal8 & 0x80) != 0 ? C_set_mask : 0);
+	uint8_t val_8_u = (mReadVal8 << 1) & 0xfe;
+	if (mInstructionInfo.writesMem) {
+		if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
+			return false;
+		}
+		if (!writeDevice(mOperandAddress, val_8_u)) {
+			return false;
+		}
+		mWrittenVal = val_8_u;
+	}
+	else
+		mAcc = val_8_u;
+	setNZflags(val_8_u);
+
+	return true;
+}
+
+//
+// Branch on Carry Clear
+// Branch on C = 0
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502::BCCExecHdlr()
+{
+
+	if (!C_flag)
+		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+
+	return true;
+}
+
+//
+// Branch on Carry Set
+// Branch on C = 1
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502::BCSExecHdlr()
+{
+	if (C_flag)
+		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+	return true;
+}
+
+//
+// Branch on Result Zero
+// Branch on Z = 0
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502::BEQExecHdlr()	
+{
+	if (Z_flag)
+		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+	return true;
+}
+bool P6502::BITExecHdlr()
+		
+	
+{
+	// Test Bits in Memory with Accumulator
+	// A AND M -> Z, M7 -> N, M6 -> V
+	// N	Z	C	I	D	V
+	// M7	+	-	-	-	M6
+	{
+		uint8_t val_8_u = mAcc & mReadVal8;
+		mStatusRegister &= ~(Z_set_mask | N_set_mask | V_set_mask);
+		if (val_8_u == 0)
+			mStatusRegister |= Z_set_mask;
+		if ((mReadVal8 & 0x80) != 0)
+			mStatusRegister |= N_set_mask;
+		if ((mReadVal8 & 0x40) != 0)
+			mStatusRegister |= V_set_mask;
+		return true;
+	}
+}
+bool P6502::BMIExecHdlr()
+		
+	
+	// Branch on Result Minus
+	// Branch on N = 1
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+{
+	if (N_flag)
+		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+	return true;
+}
+
+bool P6502::BNEExecHdlr()
+		
+	
+	// Branch on Result not Zero
+	// Branch on Z = 0
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+{
+	if (!Z_flag)
+		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+	return true;
+}
+
+bool P6502::BPLExecHdlr()
+		
+	
+	// Branch on Result Plus
+	// Branch on N = 0
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+{
+	if (!N_flag)
+		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+	return true;
+}
+
+bool P6502::BRKExecHdlr()
+		
+	
+	// Force Break
+	// Initiates a software interrupt
+	// push PC+2, push SR (together with a set b4 = B)
+	// The high PC byte is pushed first (so that the PC is stored in little endian format in the memory)
+	// N	Z	C	I	D	V
+	// -	-	-	1	-	-
+{
+	// Force Break
+
+	// Save SP, SR & PC for logging later on
+	uint8_t oStackPointer = mStackPointer;
+	uint8_t oStatusRegister = mStatusRegister;
+	uint16_t oProgramCounter = mProgramCounter;
+		
+	// Save PC & Status to stack
+	pushWord(mOpcodePC+2); // this is the same as PC after the opcode has been read + 2
+	push(mStatusRegister | B_set_mask);
+
+	// Fetch return true vector
+	uint8_t adr_L, adr_H;
+	if (!readProgramMem(0xfffe, adr_L) || !readProgramMem(0xffff, adr_H))
+		return false;
+	mProgramCounter = adr_H * 256 + adr_L;
+
+	if (DBG_LEVEL_DEV(this,DBG_INTERRUPTS)) {		
+		DBG_LOG(this, DBG_INTERRUPTS, "BRK executed at PC = 0x" + Utility::int2HexStr(mOpcodePC,4) +"\n");
+		DBG_LOG(this, DBG_INTERRUPTS, getInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister));
+	}
+
+
+	return true;
+}
+
+bool P6502::BVCExecHdlr()
+		
+	
+	// Branch on Overflow Clear
+	// Branch on V = 0
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+{
+	if (!V_flag)
+		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+	return true;
+}
+
+bool P6502::BVSExecHdlr()
+		
+	
+	// Branch on Overflow Set
+	// Branch on V = 1
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+{
+	if (V_flag)
+		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+	return true;
+}
+
+bool P6502::CLCExecHdlr()
+		
+	
+	// Clear Carry Flag
+	// N	Z	C	I	D	V
+	// -	-	0	-	-	-
+{
+	mStatusRegister &= ~C_set_mask;
+	return true;
+}
+
+bool P6502::CLDExecHdlr()
+		
+	
+	// Clear Decimal Mode
+	// N	Z	C	I	D	V
+	// -	-	-	-	0	-
+{
+	mStatusRegister &= ~D_set_mask;
+	return true;
+}
+
+bool P6502::CLIExecHdlr()
+		
+	
+	// Clear Interrupt Disable Bit
+	// N	Z	C	I	D	V
+	// -	-	-	0	-	-
+{
+	uint8_t oStatusRegister = mStatusRegister;
+	mStatusRegister &= ~I_set_mask;
+	return true;
+}
+
+bool P6502::CLVExecHdlr()
+		
+	
+	// Clear Overflow Flag
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	0
+{
+	mStatusRegister &= ~V_set_mask;
+	return true;
+}
+
+bool P6502::CMPExecHdlr()
+		
+	
+	// Compare Memory with Accumulator
+	// A - M
+	// N	Z	C	I	D	V
+	// +	+	+	-	-	-
+
+{
+		
+	uint8_t val_8_u = mAcc - mReadVal8;
+	setNZCflags(val_8_u, mAcc >= mReadVal8);
+	return true;
+}
+
+bool P6502::CPXExecHdlr()
+		
+	
+	// Compare Memory and X
+	// X - M
+	// N	Z	C	I	D	V
+	// +	+	+	-	-	-
+{
+		
+	uint8_t val_8_u = mRegisterX - mReadVal8;
+	setNZCflags(val_8_u, mRegisterX >= mReadVal8);
+	return true;
+}
+
+bool P6502::CPYExecHdlr()
+		
+	
+	// Compare Memory and Y
+	// Y - M
+	// N	Z	C	I	D	V
+	// +	+	+	-	-	-
+{
+	uint8_t val_8_u = mRegisterY - mReadVal8;
+	setNZCflags(val_8_u, mRegisterY >= mReadVal8);
+	return true;
+}
+
+bool P6502::DECExecHdlr()
+		
+	
+	// Decrement Memory by One
+	// M - 1 -> M
+	// N	Z	C	I	D	V
+	// +	+	-	-	-	-
+{
+	uint8_t val_8_u = mReadVal8 - 1;
+	if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
+		return false;
+	}
+	if (!writeDevice(mOperandAddress, val_8_u)) {
+		return false;
+	}
+	mWrittenVal = val_8_u;
+	setNZflags(val_8_u);
+	return true;
+}
+
+bool P6502::DEXExecHdlr()
+		
+	
+	// Decrement X by One
+	// X - 1 -> X
+	// N	Z	C	I	D	V
+	// +	+	-	-	-	-
+{
+	mRegisterX = mRegisterX - 1;
+	setNZflags(mRegisterX);
+	return true;
+}
+
+bool P6502::DEYExecHdlr()
+		
+	
+	// Decrement Y by One
+	// Y - 1 -> Y
+	// N	Z	C	I	D	V
+	// +	+	-	-	-	-
+{
+	mRegisterY = mRegisterY - 1;
+	setNZflags(mRegisterY);
+	return true;
+}
+
+bool P6502::EORExecHdlr()
+		
+	
+	// Exclusive-OR Memory with Accumulator
+	// A EOR M -> A
+	// N	Z	C	I	D	V
+	// +	+	-	-	-	-
+
+{
+	mAcc ^= mReadVal8;
+	setNZflags(mAcc);
+	return true;
+}
+
+bool P6502::INCExecHdlr()
+		
+	
+	// Increment Memory by One
+	// M + 1 -> M
+	// N	Z	C	I	D	V
+	// +	+	-	-	-	-
+{
+	mWrittenVal = mReadVal8 + 1;
+	if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
+		return false;
+	}
+	if (!writeDevice(mOperandAddress, mWrittenVal)) {
+		return false;
+	}
+	setNZflags(mWrittenVal);
+	return true;
+}
+
+bool P6502::INXExecHdlr()
+		
+	
+	// Increment X by One
+	// X + 1 -> X
+	// N	Z	C	I	D	V
+	// +	+	-	-	-	-
+{
+	mRegisterX = mRegisterX + 1;
+	setNZflags(mRegisterX);
+	return true;
+}
+
+bool P6502::INYExecHdlr()
+		
+	
+	// Increment Y by One
+	// Y + 1 -> Y
+	// N	Z	C	I	D	V
+	// +	+	-	-	-	-
+{
+	mRegisterY = mRegisterY + 1;
+	setNZflags(mRegisterY);
+	return true;
+}
+
+bool P6502::JMPExecHdlr()
+		
+	
+	// Jump to New Location
+	// OP2:OP1 -> PC
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+{
+		
+	mProgramCounter = mOperandAddress;
+	return true;
+}
+
+bool P6502::JSRExecHdlr()
+		
+	
+	// Jump to New Location Saving Return Address
+	// Push PC+2; OP2:OP1 -> PC
+	// The stack byte contains the program count high first, followed by program count low
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+{
+		
+	pushWord(mOpcodePC + 2); // this is the same as PC after the opcode has been read + 2
+
+	mProgramCounter = mOperandAddress;
+
+	return true;
+}
+
+bool P6502::LDAExecHdlr()
+		
+	
+	// Load Accumulator with Memory
+	// M -> A
+	// N	Z	C	I	D	V
+	// +	+	-	-	-	-
+{
+	mAcc = mReadVal8;
+	setNZflags(mAcc);
+	return true;
+}
+
+bool P6502::LDXExecHdlr()
+		
+	
+	// Load X with Memory
+	// M -> X
+	// N	Z	C	I	D	V
+	// +	+	-	-	-	-
+{
+	mRegisterX = mReadVal8;
+	setNZflags(mRegisterX);
+	return true;
+}
+
+bool P6502::LDYExecHdlr()
+		
+	
+	// Load Y with Memory
+	// M -> Y
+	// N	Z	C	I	D	V
+	// +	+	-	-	-	-
+{
+	mRegisterY = mReadVal8;
+	setNZflags(mRegisterY);
+	return true;
+}
+
+bool P6502::LSRExecHdlr()
+		
+	//
+	// LSR
+	// 
+	// Shift One Bit Right (Memory or Accumulator)
+	// 0 -> [76543210] -> C
+	// N	Z	C	I	D	V
+	// 0	+	+	-	-	-
+{
+	mStatusRegister &= ~C_set_mask;
+	mStatusRegister |= ((mReadVal8 & 0x1) != 0 ? C_set_mask : 0);
+	uint8_t val_8_u = (mReadVal8 >> 1) & 0x7f;
+	if (mInstructionInfo.writesMem) {
+		if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
+			return false;
+		}
+		if (!writeDevice(mOperandAddress, val_8_u)) {
+			return false;
+			mWrittenVal = val_8_u;
+		}
+	}
+	else
+		mAcc = val_8_u;
+	setNZflags(val_8_u);
+
+	return true;
+}
+
+bool P6502::NOPExecHdlr()
+		
+	
+	// No Operation
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+{
+	return true;
+}
+
+bool P6502::ORAExecHdlr()
+		
+	
+	// OR Memory with Accumulator
+	// A OR M -> A
+	// N	Z	C	I	D	V
+	// +	+	-	-	-	-
+{
+	mAcc |=  mReadVal8;
+	setNZflags(mAcc);
+	return true;
+}
+
+bool P6502::PHAExecHdlr()
+		
+	
+	// Push Accumulator on Stack
+	// push A
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+{
+	push(mAcc);
+	return true;
+}
+
+bool P6502::PHPExecHdlr()
+		
+	
+	// Push Status on Stack
+	// push SR.
+	// The status register will be pushed with the B
+	// flag and b5 set to 1
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+{
+	push(mStatusRegister | B_set_mask | b5_set_mask);
+	return true;
+}
+
+bool P6502::PLAExecHdlr()
+		
+	
+	// Pull Accumulator from Stack
+	// pull A
+	// N	Z	C	I	D	V
+	// +	+	-	-	-	-
+{
+	pull(mAcc);
+	setNZflags(mAcc);
+	return true;
+}
+
+bool P6502::PLPExecHdlr()
+		
+	
+	// Pull Status register from Stack
+	// Pull SR (B flag and b5 ignored)
+	// N	Z	C	I	D	V
+	// +	+	+	+	+	+
+{
+	uint8_t stack_val; 
+	pull(stack_val);
+	stack_val &= ~(B_set_mask | b5_set_mask);
+	mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
+	mStatusRegister |= stack_val;
+	return true;
+}
+
+bool P6502::ROLExecHdlr()
+		
+	
+	// Rotate One Bit Left (Memory or Accumulator)
+	// C <- [76543210] <- C
+	// N	Z	C	I	D	V
+	// +	+	+	-	-	-
+{
+	uint8_t val_8_u = ((mReadVal8 << 1) & 0xfe) | C_flag;
+	mStatusRegister &= ~C_set_mask;
+	mStatusRegister |= ((mReadVal8 & 0x80)!=0? C_set_mask : 0);	
+	if (mInstructionInfo.writesMem) {
+		if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
+			return false;
+		}
+		if (!writeDevice(mOperandAddress, val_8_u)) {
+			return false;
+		}
+		mWrittenVal = val_8_u;
+	}
+	else
+		mAcc = val_8_u;
+	setNZflags(val_8_u);
+	return true;
+}
+
+bool P6502::RORExecHdlr()
+		
+	
+	// Rotate One Bit Right (Memory or Accumulator)
+	// C -> [76543210] -> C
+	// N	Z	C	I	D	V
+	// +	+	+	-	-	-
+{
+	uint8_t val_8_u = ((mReadVal8 >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
+	mStatusRegister &= ~C_set_mask;
+	mStatusRegister |= ((mReadVal8 & 0x1) ? C_set_mask : 0);		
+	if (mInstructionInfo.writesMem) {
+		if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
+			return false;
+		}
+		if (!writeDevice(mOperandAddress, val_8_u)) {
+			return false;
+		}
+		mWrittenVal = val_8_u;
+	}
+	else
+		mAcc = val_8_u;
+	setNZflags(val_8_u);
+	return true;
+}
+
+bool P6502::RTIExecHdlr()
+		
+	
+	// Return from Interrupt
+	// Pull SR (b5 and B flag ignored) and then pull PC
+	// The low byte is pulled first.
+	// N	Z	C	I	D	V
+	// +	+	+	+	+	+
+{
+
+	uint8_t oStackPointer = mStackPointer;
+	uint8_t oStatusRegister = mStatusRegister;
+	uint16_t oProgramCounter = mProgramCounter;
+
+	// Pull Status Register
+	uint8_t stack_val;
+	pull(stack_val);
+	stack_val &= ~(B_set_mask | b5_set_mask);
+	mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
+	mStatusRegister |= stack_val;
+
+	// Pull PC
+	uint16_t oPC = mProgramCounter;
+	pullWord(mProgramCounter);
+
+	if (DBG_LEVEL_DEV(this,DBG_INTERRUPTS)) {
+		DBG_LOG(this, DBG_INTERRUPTS, "RTI executed at 0x" + Utility::int2HexStr(oPC,4) + "; execution resumed at 0x" + Utility::int2HexStr(mProgramCounter,4) +"!\n");
+		DBG_LOG(this, DBG_INTERRUPTS, getInterruptStack(mStackPointer - 2, oStackPointer, oProgramCounter, oStatusRegister));
+	}
+
+	return true;
+}
+
+bool P6502::RTSExecHdlr()
+		
+	
+	// Return from Subroutine
+	// Pull PC, PC+1 -> PC
+	// The low byte is pulled first .
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+
+{
+
+	uint16_t oPC = mProgramCounter;
+	pullWord(mProgramCounter);
+	mProgramCounter++;
+
+	return true;
+}
+
+bool P6502::SBCExecHdlr()
+		
+	
+	// Subtract Memory from Accumulator with Borrow
+	// If decimal flag is set, substraction will be BCD (Binary-Coded Decimal) and only the C flag will have a useful value
+	// A - M - C* -> A
+	// N	Z	C	I	D	V
+	// +	+	+	-	-	+
+	//
+	// V is set if sign bit is incorrect
+	// C is cleared if overflow in b7
+{
+	{
+		int16_t val_C, val_V;
+		if (D_flag) {
+
+			// Calculate zero, negative & overflow flag as for non-BDC subtraction
+			int16_t val_ZNV = (int8_t)mAcc - (int8_t)mReadVal8 - (1 - C_flag);
+			setNZVflags((val_ZNV & 0x80) != 0, (val_ZNV & 0xff) == 0, val_ZNV < -128 || val_ZNV > 127);
+
+			// BCD Subtraction and calculation of carry flag
+			int8_t low_digit = (mAcc & 0xf) - (mReadVal8 & 0xf) - (1-C_flag); // can become -10 (0-9-1) to 9 (9-0-0)
+			int8_t borrow = 0;
+			if (low_digit < 0) {
+				low_digit += 0x0a;
+				borrow = 0x10;
+			}
+			low_digit &= 0x0f;
+			int16_t high_digit = (mAcc & 0xf0) - (mReadVal8 & 0xf0) - borrow; // can become -0xa0 (0-0x90-0x10) to 0x90 (0x90-0-0) 
+			int8_t set_C = 1;
+			if (high_digit < 0) {
+				high_digit += 0xa0;
+				set_C = 0;
+			}
+			mAcc = (high_digit | low_digit) & 0xff;
+			mStatusRegister &= ~C_set_mask;
+			mStatusRegister |= set_C;
+
+		}
+		else {
+			val_V = (int8_t)mAcc - (int8_t)mReadVal8 - (1-C_flag);
+			val_C = mAcc - mReadVal8 - (1 - C_flag);
+			mAcc = val_C & 0xff;
+			setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, val_C >= 0, val_V < -128 || val_V > 127);
+		}
+			
+
+		return true;
+	}
+}
+
+bool P6502::SECExecHdlr()
+		
+	
+	// Set Carry Flag
+	// N	Z	C	I	D	V
+	// -	-	1	-	-	-
+{
+	mStatusRegister |= C_set_mask;
+	return true;
+}
+
+bool P6502::SEDExecHdlr()
+		
+	
+	// Set Decimal Flag
+	// N	Z	C	I	D	V
+	// -	-	-	-	1	-
+{
+	mStatusRegister |= D_set_mask;
+	return true;
+}
+
+bool P6502::SEIExecHdlr()
+		
+	
+	// Set Interrupt Disable Status
+	// N	Z	C	I	D	V
+	// -	-	-	1	-	-
+{
+	uint8_t oStatusRegister = mStatusRegister; 
+	mStatusRegister |= I_set_mask;
+	return true;
+}
+
+bool P6502::STAExecHdlr()
+		
+	
+	// Store Accumulator in Memory
+	// A -> M
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+{
+	writeDevice(mOperandAddress, mAcc);
+	mWrittenVal = mAcc;
+	return true;
+}
+
+bool P6502::STXExecHdlr()
+		
+	
+	// Store X in Memory
+	// X -> M
+	// N	Z	C	I	D	V
+	// -	-	-	-	-	-
+{
+	writeDevice(mOperandAddress, mRegisterX);
+	mWrittenVal = mRegisterX;
+	return true;
+}
+
+//
+// STY -STore Y
+//
+// Store Y in Memory
+// 
+// Y -> M
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502::STYExecHdlr()
+{
+	writeDevice(mOperandAddress, mRegisterY);
+	mWrittenVal = mRegisterY;
+	return true;
+}
+
+//
+// TSX - Transfer A to X
+//
+// Transfer Accumulator to X
+// 
+// A -> X
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502::TAXExecHdlr()
+{
+	mRegisterX = mAcc;
+	setNZflags(mRegisterX);
+	return true;
+}
+
+//
+// TSX - Transfer A to Y
+//
+// Transfer Accumulator to Y
+// 
+// A -> Y
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502::TAYExecHdlr()
+{
+	mRegisterY = mAcc;
+	setNZflags(mRegisterY);
+	return true;
+}
+
+//
+// TSX - Transfer SP to X
+//
+// Transfer Stack Pointer to X
+// 
+// SP -> X
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502::TSXExecHdlr()
+{
+	mRegisterX = mStackPointer;
+	setNZflags(mRegisterX);
+	return true;
+}
+
+//
+// TXA - Transfer X to A
+//
+// Transfer X to Accumulator
+// 
+// X -> A
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502::TXAExecHdlr()
+{
+	mAcc = mRegisterX;
+	setNZflags(mAcc);
+	return true;
+}
+
+//
+// TXS - Transfer X to SP
+//
+// Transfer X to Stack Register: X -> SP
+// 
+// X -> SP
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502::TXSExecHdlr()
+{
+	mStackPointer = mRegisterX;
+	return true;
+}
+
+//
+// TYA - Transfer Y to A
+//
+// Transfer Y to Accumulator: Y -> A
+// 
+// Y -> A
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502::TYAExecHdlr()
+{
+	mAcc = mRegisterY;
+	setNZflags(mAcc);
+	return true;
+}
+
+
+
+//
+// Undocumented 6502 NMOS instructions that are used by some programs
+//
+
+//
+// LAX - Load Accumulator and X
+//
+// Load Accumulator and X with Memory
+// 
+// M -> A -> X
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502::LAXExecHdlr()
+
+{
+	mAcc = mRegisterX = mReadVal8;
+	setNZflags(mAcc);
+	return true;
+}
+
+//
+// SBX - SuBtract AND X
+//
+// Subtract Memory from Accumulator AND X
+// (A AND X) - oper -> X
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+bool P6502::SBXExecHdlr()
+
+{
+	mRegisterX = (mAcc & mRegisterX) - mReadVal8;
+	setNZCflags(mRegisterX, mRegisterX >= mReadVal8);
+	return true;
+}
+
+//
+// ISC - Increment SubtraCt
+//
+// Increment and Subtract <=> INC <mem> + SBC <mem>
+// 
+// M + 1 -> M, A - M - C* -> A
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	+
+//
+bool P6502::ISCExecHdlr()
+{
+	uint8_t val_8_u = mReadVal8 + 1;
+	int16_t val_C, val_V;
+
+	//
+	// M + 1 -> M
+	//
+	if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
+		return false;
+	}
+
+	if (!writeDevice(mOperandAddress, val_8_u)) {
+		return false;
+	}
+	mWrittenVal = val_8_u;
+
+	// 
+	// A - M - C* -> A
+	//
+	val_V = (int8_t)mAcc - (int8_t)val_8_u - (1 - C_flag);
+	val_C = mAcc - val_8_u - (1 - C_flag);
+	mAcc = val_C & 0xff;
+	setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, val_C >= 0, val_V < -128 || val_V > 127);
+
+	return true;
+}
+
+//
+// DCP - DeCrement P?
+// 
+// Decrement Memory by One
+// 
+// M - 1 -> M, A - M
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+//
+bool P6502::DCPExecHdlr()
+{
+	// M - 1
+	uint8_t val_8_u = mReadVal8 - 1;
+	if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
+		return false;
+	}
+	if (!writeDevice(mOperandAddress, val_8_u)) {
+		return false;
+	}
+	mWrittenVal = val_8_u;
+
+	//
+	// A - M
+	//
+	val_8_u = mAcc - mReadVal8;
+	setNZCflags(val_8_u, mAcc >= mReadVal8);
+	return true;
+}
+
+//
+// ANC - AND with Carry
+//
+// AND Memory with Carry
+// 
+// A AND oper, b7 -> C
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+bool P6502::ANCExecHdlr()
+{
+	mAcc &= mReadVal8;
+
+	// N & Z flags set based on result
+	setNZflags(mAcc);
+
+	// C flag = b7 of A
+	mStatusRegister &= ~C_set_mask | ((mAcc & 0x80) != 0 ? C_set_mask : 0x0);
+	return true;
+}
+
+//
+// ALR - AND Logical shift Right
+// 
+// AND followed by LSR
+// 
+// A AND oper, 0 -> [76543210] -> C
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+bool P6502::ALRExecHdlr()
+{
+	// AND
+	uint8_t val_before_shift = mAcc & mReadVal8;
+
+	// N & Z flags set based on result
+	setNZflags(val_before_shift);
+
+	// LSR
+	mAcc = (val_before_shift >> 1) & 0x7f;
+
+	// Set C as for LSR
+	mStatusRegister &= ~C_set_mask;
+	mStatusRegister |= ((val_before_shift & 0x1) != 0 ? C_set_mask : 0);
+
+	return true;
+}
+
+//
+// ARR - AND Rotate Right
+// 
+// AND followed by ROR
+// 
+// A AND oper, C -> [76543210] -> C
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	+
+//
+bool P6502::ARRExecHdlr()
+{
+	// AND
+	uint8_t val_before_shift = mAcc & mReadVal8;
+
+	// ROR
+	mAcc = ((val_before_shift >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
+
+	// N & Z flags set based on result
+	setNZflags(val_before_shift);
+
+	// Set C as for ROR
+	mStatusRegister &= ~C_set_mask;
+	mStatusRegister |= ((val_before_shift & 0x1) != 0 ? C_set_mask : 0);	
+
+	return true;
+}
+
+//
+// LAS - Load AND Save
+// 
+// Load Memory ANDed with SP into A, X & SP
+// 
+// M AND SP -> A, X, SP
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502::LASExecHdlr()
+{
+	mAcc = mRegisterX = mStackPointer = mReadVal8 & mStackPointer;
+	setNZflags(mAcc);
+	return true;
+}
+
+//
+// RLA - Rotate Left AND
+// 
+// ROL followed by AND
+// 
+// M = C <- [76543210] <- C, A AND M -> A
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+bool P6502::RLAExecHdlr()
+{
+	// ROL
+	uint8_t val_8_u = ((mReadVal8 << 1) & 0xfe) | C_flag;
+	mStatusRegister &= ~C_set_mask;
+	mStatusRegister |= ((mReadVal8 & 0x80) != 0 ? C_set_mask : 0);
+
+	// Write back the result to memory
+	if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
+		return false;
+	}
+	if (!writeDevice(mOperandAddress, val_8_u)) {
+		return false;
+	}
+	mWrittenVal = val_8_u;
+
+	// AND
+	mAcc &= val_8_u;
+
+	// N & Z flags set based on result
+	setNZflags(val_8_u);
+
+	return true;
+}
+
+//
+// RRA - Rotate Right Add
+// 
+// ROR followed by ADC
+// 
+// M = C -> [76543210] -> C, A + M + C -> A, C
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	+
+//
+bool P6502::RRAExecHdlr()
+{
+	// ROR
+	uint8_t rotated_val = ((mReadVal8 >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
+	mStatusRegister &= ~C_set_mask;
+	mStatusRegister |= ((mReadVal8 & 0x1) ? C_set_mask : 0);
+	if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
+		return false;
+	}
+	if (!writeDevice(mOperandAddress, rotated_val)) {
+		return false;
+	}
+	mWrittenVal = rotated_val;
+	setNZflags(rotated_val);
+
+	// ADC
+	int16_t val_C, val_V;
+	val_V = (int8_t)mAcc + (int8_t)rotated_val + C_flag;	// Add as signed no to determine overflow (V)
+	val_C = mAcc + rotated_val + C_flag;					// Add as unsigned no to determine carry (C)
+	mAcc = val_C & 0xff;
+	setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, (val_C & 0x100) != 0, val_V < -128 || val_V > 127);
+
+	return true;
+}
+
+//
+// SAX - Store A and X
+// 
+// Store A and X into Memory
+// 
+// A AND X -> M
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502::SAXExecHdlr()
+{
+	mWrittenVal = mAcc & mRegisterX;
+	writeDevice(mOperandAddress, mAcc);
+
+	return true;
+}
+
+//
+// SLO - Shift Left OR
+// 
+// ASL followed by OR
+// 
+// M = C <- [76543210] <- 0, A OR M -> A
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+bool P6502::SLOExecHdlr()
+{
+	// ASL
+	mStatusRegister &= ~C_set_mask;
+	mStatusRegister |= ((mReadVal8 & 0x80) != 0 ? C_set_mask : 0);
+	uint8_t val_8_u = (mReadVal8 << 1) & 0xfe;
+	if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
+		return false;
+	}
+	if (!writeDevice(mOperandAddress, val_8_u)) {
+		return false;
+	}
+	mWrittenVal = val_8_u;
+
+	// OR
+	mAcc |= val_8_u;
+
+	// N & Z flags set based on result
+	setNZflags(val_8_u);
+
+	return true;
+}
+
+//
+// SRE - Shift Right Exclusive OR
+// 
+// LSR followed by EOR
+// 
+// M = 0 ->[76543210]->C, A EOR M->A
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+bool P6502::SREExecHdlr()
+{
+	// LSR
+	mStatusRegister &= ~C_set_mask;
+	mStatusRegister |= ((mReadVal8 & 0x1) != 0 ? C_set_mask : 0);
+	uint8_t val_8_u = (mReadVal8 >> 1) & 0x7f;
+	if (mInstructionInfo.writesMem) {
+		if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
+			return false;
+		}
+		if (!writeDevice(mOperandAddress, val_8_u)) {
+			return false;
+			mWrittenVal = val_8_u;
+		}
+	}
+	else
+		mAcc = val_8_u;
+	setNZflags(val_8_u);
+
+	// XOR
+	mAcc ^= val_8_u;
+
+	// N & Z flags set based on result
+	setNZflags(val_8_u);
+
+	return true;
+}
+
+bool P6502::undefinedExecHdlr()
+{
+	//cout << "Undefined instruction 0x" << hex << (int)mOpcode << " encountered!\n";
+	return true;
+}
+
+//
+// Methods for evaluating the operand part of an instruction
+// 
+// There is one method per addressing mode
 //
 // Doesn't care about which specific instruction it is (e.g., LDA, STA etc.). It only
 // looks at the addressing mode independent of the specific instruction.
 // 
-// Returns:
+// Updates:
 // 
-// operand_16_u:	the constant numeric part of the specific instruction's operand (when applicable)
-// calc_op_adr:		calculated memory access address for the specific instruction (when applicable)
-// read_val_8_u:	value read from memory or from internal register (A,X,Y,SR,PC) by the specific instruction (when applicable)
+// mOperand16:			the constant numeric part of the specific instruction's operand (when applicable)
+// mOperandAddress:		calculated memory access address for the specific instruction (when applicable)
+// mReadVal8:			value read from memory or from internal register (A,X,Y,SR,PC) by the specific instruction (when applicable)
 //
-bool P6502::getOperand(Codec6502::InstructionInfo &instr, uint16_t& operand_16_u, uint16_t &calc_op_adr, uint8_t& read_val_8_u)
+
+
+
+//
+// Implied addressing - with a result
+// 
+// Implicit (no explicit operand)
+// 
+// e.g., LSR A
+//
+bool P6502::accAdrHdlr()
 {
-	operand_16_u = 0x0; // needs to have a default value as e.g. the Implied addressing mode doesn't define any operand
-	calc_op_adr = 0x0; // needs to have a default value as e.g. the Accumulator/Implied addressing modes don't define any addresses
-	read_val_8_u = 0x0; // needs to have a default value as e.g. the Implied addressing mode doesn't define any result value
-
-	switch (instr.mode) {
-
-	case Codec6502::Mode::Accumulator: // e.g., LSR A
-
-		// OPC mAcc
-		// Read A (no numeric operand)
-
-		// Save the value resulting from the evaluation of the operand
-		read_val_8_u = mAcc;
-
-		break;
-
-	case Codec6502::Mode::Implied: // e.g., SEC
-
-		// implicit (no explicit operand)
-		break;
-
-	case Codec6502::Mode::Relative: // e.g., BNE
-
-		// OPC <branch target>
-		// Read relative branch address
-	{
-		uint8_t rel_a;
-		if (!readProgramMem(mProgramCounter++, rel_a))
-			return false;
-
-		// Save the constant numeric part of the operand for later use when executing the specific instruction
-		operand_16_u = rel_a;
-
-		// Save the calculated address for use when executing the specific instruction later on
-		calc_op_adr = (rel_a + mProgramCounter) & 0xffff;
-
-		// Add one cycle if branch to other page
-		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(mProgramCounter, calc_op_adr))
-			tick();
-
-		break;
-	}
-
-	case Codec6502::Mode::Immediate: // e.g., LDA @$12
-
-		// OPC #$12
-		// Read value $12
-	{
-		uint8_t op8;
-		if (!readProgramMem(mProgramCounter++, op8))
-			return false;
-
-		// Save the constant numeric part of the operand for later use when executing the specific instruction
-		operand_16_u = op8;
-
-		// Save the value resulting from the evaluation of the operand
-		read_val_8_u = op8;
-
-		break;
-	}
-
-	case Codec6502::Mode::ZeroPage: // e.g., LDA $12
-
-		// OPC $12
-		// Read/Write value Mem[$12]
-	{
-
-		// Read address operand
-		uint8_t zp_a;
-		if (!readProgramMem(mProgramCounter++, zp_a))
-			return false;
-
-		// Save the constant numeric part of the operand for later use when executing the specific instruction
-		operand_16_u = zp_a;
-
-		// Save the calculated address for use when executing the specific instruction later on
-		calc_op_adr = zp_a;
-
-		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
-		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !readZP(zp_a, read_val_8_u))
-			return false;
-
-		break;
-	}
-
-	case Codec6502::Mode::ZeroPage_X: // e.g., LDA $12,X
-
-		// OPC $12,X
-		// Read/Write Mem[$12+X]
-	{
-
-		// Read address operand
-		uint8_t zp_a;
-		if (!readProgramMem(mProgramCounter++, zp_a))
-			return false;
-
-		// Save the constant numeric part of the operand for later use when executing the specific instruction
-		operand_16_u = zp_a;
-
-		// Calculate address and save it for use when executing the specific instruction later on
-		calc_op_adr = (uint8_t) (zp_a + mRegisterX);
-
-		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
-		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !readZP(calc_op_adr, read_val_8_u))
-			return false;
-
-		break;
-	}
-
-	case Codec6502::Mode::ZeroPage_Y: // e.g., LDA $12,Y
-
-		// OPC $12,Y
-		// Read/Write Mem[$12+Y]
-	{
-
-		// Read address operand
-		uint8_t zp_a;
-		if (!readProgramMem(mProgramCounter++, zp_a))
-			return false;
-
-		// Save the constant numeric part of the operand for later use when executing the specific instruction
-		operand_16_u = zp_a;
-
-		// Calculate address and save it for use when executing the specific instruction later on
-		calc_op_adr = (uint8_t) (zp_a + mRegisterY);
-
-		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
-		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !readZP(calc_op_adr, read_val_8_u))
-			return false;
-
-
-		break;
-	}
-
-	case Codec6502::Mode::Absolute: // e.g., LDA $1234
-
-		// OPC $1234
-		// Read/Write Mem[$1234]
-	{
-
-		// Read address operand
-		uint8_t a_L, a_H;
-		if (!readProgramMem(mProgramCounter++, a_L) || !readProgramMem(mProgramCounter++, a_H))
-			return false;
-
-		// Save the constant numeric part of the operand for later use when executing the specific instruction
-		operand_16_u = (a_H << 8) | a_L;
-
-		// Save the calculated address for use when executing the specific instruction later on
-		calc_op_adr = operand_16_u;
-
-		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
-		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !readDevice(calc_op_adr, read_val_8_u))
-			return false;
-
-		break;
-
-	}
-
-	case Codec6502::Mode::Absolute_X: // e.g., LDA $1234,X
-
-		// OPC $1234,X
-		// Read/Write Mem[$1234+X]
-	{
-
-		// Read address operand
-		uint8_t a_L, a_H;
-		if (!readProgramMem(mProgramCounter++, a_L) || !readProgramMem(mProgramCounter++, a_H))
-			return false;
-
-		// Save the constant numeric part of the operand for later use when executing the specific instruction
-		operand_16_u = (a_H << 8) | a_L;
-
-		// Calculate address and save it for use when executing the specific instruction later on
-		calc_op_adr = operand_16_u + mRegisterX;
-
-		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
-		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !readDevice(calc_op_adr, read_val_8_u))
-			return false;
-
-		// Add one cycle if page boundary crossed
-		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(calc_op_adr, operand_16_u))
-			tick();
-
-		break;
-	}
-
-	case Codec6502::Mode::Absolute_Y: // e.g., LDA $1234,X
-
-		// OPC $1234,Y
-		// Read/Write Mem[$1234+Y]
-	{
-
-		// Read address operand
-		uint8_t a_L, a_H;
-		if (!readProgramMem(mProgramCounter++, a_L))
-			return false;
-		if (!readProgramMem(mProgramCounter++, a_H))
-			return false;
-
-		// Save the constant numeric part of the operand for later use when executing the specific instruction
-		operand_16_u = (a_H << 8) | a_L;
-
-		// Calculate address and save it for use when executing the specific instruction later on
-		calc_op_adr = operand_16_u + mRegisterY;
-
-		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
-		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !readDevice(calc_op_adr, read_val_8_u))
-			return false;
-
-		// Add one cycle if page boundary crossed
-		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(calc_op_adr, operand_16_u))
-			tick();
-
-		break;
-	}
-
-	case Codec6502::Mode::Indirect: // e.g., JMP ($1234)
-
-		// OPC ($1234)
-		// Read 16-bit little-endian word from Mem[Mem[$1234]]
-	{
-
-		// Read address operand
-		uint8_t a_L, a_H;
-		if (!readProgramMem(mProgramCounter++, a_L))
-			return false;
-		if (!readProgramMem(mProgramCounter++, a_H))
-			return false;
-
-		// Save the constant numeric part of the operand for later use when executing the specific instruction
-		operand_16_u = (a_H << 8) | a_L;
-
-		// Read indirect address
-		uint16_t adr_i = operand_16_u;
-		if (!readDevice(adr_i, a_L) || !readDevice(adr_i+1, a_H))
-			return false;
-
-		// Calculate address and save it for use when executing the specific instruction later on
-		calc_op_adr = (a_H << 8) | a_L;
-
-		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
-		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !readDevice(calc_op_adr, read_val_8_u))
-			return false;
-
-		break;
-	}
-
-	case Codec6502::Mode::PreInd_X: // pre-indexed indirect -  // e.g., LDA ($12,X)
-
-		// OPC ($12,X)
-		// Read/Write Mem[Mem[$12+X]]
-	{
-
-		// Read zero page address operand
-		uint8_t zp_a;
-		if (!readProgramMem(mProgramCounter++, zp_a))
-			return false;
-
-		// Save the constant numeric part of the operand for later use when executing the specific instruction
-		operand_16_u = zp_a;
-
-		// Read indirect address
-		uint8_t mem_a = zp_a + mRegisterX;
-		uint8_t mem_a_1 = mem_a + 1; // allow value to wrap around as for an actual NMOS 6502
-		uint8_t a_L, a_H;
-		if (!readZP(mem_a, a_L) || !readZP(mem_a_1, a_H))
-			return false;
-
-		// Calculate address and save it for use when executing the specific instruction later on
-		calc_op_adr = (a_H << 8) | a_L;
-
-		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
-		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !readDevice(calc_op_adr, read_val_8_u))
-			return false;
-
-		break;
-	}
-
-	case Codec6502::Mode::PostInd_Y: // post-indexed indirect -  // e.g., LDA ($12),Y
-
-		// OPC ($12),Y
-		// Read/Write Mem[Mem[$12]+Y]
-	{
-
-		// Read zero page address operand (e.g. $12)
-		uint8_t zp_a;
-		if (!readProgramMem(mProgramCounter++, zp_a))
-			return false;
-
-		// Save the constant numeric part of the operand for later use when executing the specific instruction
-		operand_16_u = zp_a;
-
-		// Read Indirect address -  e.g. ($12)
-		uint8_t a_L, a_H;
-		uint8_t zp_a_1 = zp_a + 1; // allow value to wrap around as for an actual NMOS 6502
-		if (!readZP((uint16_t)zp_a, a_L) || !readZP((uint16_t) zp_a_1, a_H))
-			return false;
-		uint16_t mem_a = (a_H << 8) | a_L;
-
-		// Calculate address and save it for use when executing the specific instruction later on
-		calc_op_adr = mem_a + mRegisterY;
-
-		// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
-		// to make it available as 'read_val_8_u' later on when executing the instruction
-		if (instr.readsMem && !readDevice(calc_op_adr, read_val_8_u))
-			return false;
-
-		// Add one cycle if page boundary crossed
-		if (instr.addCycleAtPageBoundary && pageBoundaryCrossed(mem_a, calc_op_adr))
-			tick();
-
-		break;
-	}
-	default:
-		return false;
-		break;
-	}
+	// Save the value resulting from the evaluation of the operand
+	mReadVal8 = mAcc;
 
 	return true;
+}
+
+//
+// Implied addressing - without a result
+// 
+// Implicit (no explicit operand)
+// 
+// e.g., SEC
+//
+bool P6502::impliedAdrHdlr()
+{
+	return true;
+}
+
+//
+// Relative addressing
+//
+// Mnemonic <branch target>
+// 
+// Read relative branch address
+// 
+// E.g., BNE
+//
+bool P6502::relativeAdrHdlr()
+{
+	
+	uint8_t rel_a;
+	if (!readProgramMem(mProgramCounter++, rel_a))
+		return false;
+
+	// Save the constant numeric part of the operand for later use when executing the specific instruction
+	mOperand16 = rel_a;
+
+	// Save the calculated address for use when executing the specific instruction later on
+	mOperandAddress = (rel_a + mProgramCounter) & 0xffff;
+
+	// Add one cycle if branch to other page
+	if (mInstructionInfo.addCycleAtPageBoundary && pageBoundaryCrossed(mProgramCounter, mOperandAddress))
+		tick();
+
+	return true;
+
+}
+
+//
+// Immediate Addressing
+//
+// Mnemonic #<value>
+// 
+// Read <value>
+//
+// e.g., LDA @$12
+//
+bool P6502::immediateAdrHdlr()
+{
+	
+	if (!readProgramMem(mProgramCounter++, mReadVal8))
+		return false;
+
+	// Save the constant numeric part of the operand for later use when executing the specific instruction
+	mOperand16 = mReadVal8;
+
+	return true;
+}
+
+//
+// Zero page addressing
+//
+// Mnemonic <zero-page address>
+// Read/Write value Mem[<zero-page address>]
+// 
+// e.g., LDA $12
+//
+bool P6502::zeroPageAdrHdlr()
+{
+	
+	// Read address operand
+	uint8_t zp_a;
+	if (!readProgramMem(mProgramCounter++, zp_a))
+		return false;
+
+	// Save the constant numeric part of the operand for later use when executing the specific instruction
+	mOperand16 = zp_a;
+
+	// Save the calculated address for use when executing the specific instruction later on
+	mOperandAddress = zp_a;
+
+	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+	// to make it available as 'mReadVal8' later on when executing the instruction
+	if (mInstructionInfo.readsMem && !readZP(zp_a, mReadVal8))
+		return false;
+
+	return true;
+}
+
+//
+// Indexed addressing, Zero page - X
+//
+// Mnemonic <zero-page address>,X
+// Read/Write Mem[<zero-page address>+X]
+// 
+// e.g., LDA $12,X
+//
+bool P6502::zeroPageXAdrHdlr()
+{
+
+	// Read address operand
+	uint8_t zp_a;
+	if (!readProgramMem(mProgramCounter++, zp_a))
+		return false;
+
+	// Save the constant numeric part of the operand for later use when executing the specific instruction
+	mOperand16 = zp_a;
+
+	// Calculate address and save it for use when executing the specific instruction later on
+	mOperandAddress = (uint8_t) (zp_a + mRegisterX);
+
+	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+	// to make it available as 'mReadVal8' later on when executing the instruction
+	if (mInstructionInfo.readsMem && !readZP(mOperandAddress, mReadVal8))
+		return false;
+	return true;
+}
+
+//
+// Indexed addressing, Zero page - Y
+//
+// Mnemonic <zero-page address>,Y
+// Read/Write Mem[<zero-page address>+Y]
+// 
+// e.g., LDA $12,Y
+//
+bool P6502::zeroPageYAdrHdlr()
+{
+	
+	// Read address operand
+	uint8_t zp_a;
+	if (!readProgramMem(mProgramCounter++, zp_a))
+		return false;
+
+	// Save the constant numeric part of the operand for later use when executing the specific instruction
+	mOperand16 = zp_a;
+
+	// Calculate address and save it for use when executing the specific instruction later on
+	mOperandAddress = (uint8_t) (zp_a + mRegisterY);
+
+	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+	// to make it available as 'mReadVal8' later on when executing the instruction
+	if (mInstructionInfo.readsMem && !readZP(mOperandAddress, mReadVal8))
+		return false;
+
+
+	return true;
+}
+
+//
+// Absolute addressing
+//
+// Mnemonic<absolute address>
+// Read/Write Mem[<absolute address>]
+//
+// e.g., LDA $1234
+bool P6502::absoluteAdrHdlr()
+{
+	
+	// Read address operand
+	uint8_t a_L, a_H;
+	if (!readProgramMem(mProgramCounter++, a_L) || !readProgramMem(mProgramCounter++, a_H))
+		return false;
+
+	// Save the constant numeric part of the operand for later use when executing the specific instruction
+	mOperand16 = (a_H << 8) | a_L;
+
+	// Save the calculated address for use when executing the specific instruction later on
+	mOperandAddress = mOperand16;
+
+	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+	// to make it available as 'mReadVal8' later on when executing the instruction
+	if (mInstructionInfo.readsMem && !readDevice(mOperandAddress, mReadVal8))
+		return false;
+
+	return true;
+
+}
+
+//
+// Indexed addressing, Absolute - X
+//
+// Mnemonic <absolute address>,X
+// Read/Write Mem[<absolute address>+X]
+//
+// e.g., LDA $1234,X
+//
+bool P6502::absoluteXAdrHdlr()
+{
+
+	// Read address operand
+	uint8_t a_L, a_H;
+	if (!readProgramMem(mProgramCounter++, a_L) || !readProgramMem(mProgramCounter++, a_H))
+		return false;
+
+	// Save the constant numeric part of the operand for later use when executing the specific instruction
+	mOperand16 = (a_H << 8) | a_L;
+
+	// Calculate address and save it for use when executing the specific instruction later on
+	mOperandAddress = mOperand16 + mRegisterX;
+
+	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+	// to make it available as 'mReadVal8' later on when executing the instruction
+	if (mInstructionInfo.readsMem && !readDevice(mOperandAddress, mReadVal8))
+		return false;
+
+	// Add one cycle if page boundary crossed
+	if (mInstructionInfo.addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16))
+		tick();
+
+	return true;
+}
+
+//
+// Indexed addressing, Absolute - Y
+//
+// Mnemonic <absolute address>,Y
+// Read/Write Mem[<absolute address>+Y]
+//
+// e.g., LDA $1234,Y
+//
+bool P6502::absoluteYAdrHdlr()
+{
+	
+	// Read address operand
+	uint8_t a_L, a_H;
+	if (!readProgramMem(mProgramCounter++, a_L))
+		return false;
+	if (!readProgramMem(mProgramCounter++, a_H))
+		return false;
+
+	// Save the constant numeric part of the operand for later use when executing the specific instruction
+	mOperand16 = (a_H << 8) | a_L;
+
+	// Calculate address and save it for use when executing the specific instruction later on
+	mOperandAddress = mOperand16 + mRegisterY;
+
+	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+	// to make it available as 'mReadVal8' later on when executing the instruction
+	if (mInstructionInfo.readsMem && !readDevice(mOperandAddress, mReadVal8))
+		return false;
+
+	// Add one cycle if page boundary crossed
+	if (mInstructionInfo.addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16))
+		tick();
+
+	return true;
+}
+
+//
+// Indirect addressing
+//
+// Mnemonic (<absolute address>)
+// 
+// Read 16-bit little-endian word from Mem[Mem[<absolute address>]]
+// 
+// e.g., JMP ($1234)
+//
+bool P6502::indirectAdrHdlr()
+{
+
+	// Read address operand
+	uint8_t a_L, a_H;
+	if (!readProgramMem(mProgramCounter++, a_L))
+		return false;
+	if (!readProgramMem(mProgramCounter++, a_H))
+		return false;
+
+	// Save the constant numeric part of the operand for later use when executing the specific instruction
+	mOperand16 = (a_H << 8) | a_L;
+
+	// Read indirect address
+	uint16_t adr_i = mOperand16;
+	if (!readDevice(adr_i, a_L) || !readDevice(adr_i+1, a_H))
+		return false;
+
+	// Calculate address and save it for use when executing the specific instruction later on
+	mOperandAddress = (a_H << 8) | a_L;
+
+	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+	// to make it available as 'mReadVal8' later on when executing the instruction
+	if (mInstructionInfo.readsMem && !readDevice(mOperandAddress, mReadVal8))
+		return false;
+
+	return true;
+}
+
+//
+// Pre-index indirect addressing  - X
+//
+// Mnemonic (<zero-page address>,X)
+// 
+// Read/Write Mem[Mem[<zero-page address>+X]]
+// 
+// E.g., LDA ($12,X)
+//
+bool P6502::preIndXAdrHdlr()
+{
+	
+	// Read zero page address operand
+	uint8_t zp_a;
+	if (!readProgramMem(mProgramCounter++, zp_a))
+		return false;
+
+	// Save the constant numeric part of the operand for later use when executing the specific instruction
+	mOperand16 = zp_a;
+
+	// Read indirect address
+	uint8_t mem_a = zp_a + mRegisterX;
+	uint8_t mem_a_1 = mem_a + 1; // allow value to wrap around as for an actual NMOS 6502
+	uint8_t a_L, a_H;
+	if (!readZP(mem_a, a_L) || !readZP(mem_a_1, a_H))
+		return false;
+
+	// Calculate address and save it for use when executing the specific instruction later on
+	mOperandAddress = (a_H << 8) | a_L;
+
+	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+	// to make it available as 'mReadVal8' later on when executing the instruction
+	if (mInstructionInfo.readsMem && !readDevice(mOperandAddress, mReadVal8))
+		return false;
+
+	return true;
+}
+
+//
+// Post-indexed indirect addressing
+//
+// Mnemonic (<zero-page address>),Y
+// 
+// Read/Write Mem[Mem[<zero-page address>]+Y]
+// 
+// e.g., LDA ($12),Y
+//
+bool P6502::postIndYAdrHdlr()
+{
+
+	// Read zero page address operand (e.g. $12)
+	uint8_t zp_a;
+	if (!readProgramMem(mProgramCounter++, zp_a))
+		return false;
+
+	// Save the constant numeric part of the operand for later use when executing the specific instruction
+	mOperand16 = zp_a;
+
+	// Read Indirect address -  e.g. ($12)
+	uint8_t a_L, a_H;
+	uint8_t zp_a_1 = zp_a + 1; // allow value to wrap around as for an actual NMOS 6502
+	if (!readZP((uint16_t)zp_a, a_L) || !readZP((uint16_t) zp_a_1, a_H))
+		return false;
+	uint16_t mem_a = (a_H << 8) | a_L;
+
+	// Calculate address and save it for use when executing the specific instruction later on
+	mOperandAddress = mem_a + mRegisterY;
+
+	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
+	// to make it available as 'mReadVal8' later on when executing the instruction
+	if (mInstructionInfo.readsMem && !readDevice(mOperandAddress, mReadVal8))
+		return false;
+
+	// Add one cycle if page boundary crossed
+	if (mInstructionInfo.addCycleAtPageBoundary && pageBoundaryCrossed(mem_a, mOperandAddress))
+		tick();
+
+	return true;
+}
+
+//
+// Illegal/unknown addressing mode
+//
+// Should never be called unless there is a bug somewhere...
+//
+bool P6502::undefinedAdrHdlr()
+{
+	
+	return false;
+		
 }
 
 string P6502::getState()
@@ -2016,7 +2589,7 @@ bool P6502::outputState(ostream& sout)
 	if (!mCodec.decodeInstrFromBytes(pc, bytes, n_instr_s, false)) {
 		return false;
 	}
-	string x_instr_s = mCodec.decode(mOpcodePC, mOpcode, mOperand);
+	string x_instr_s = mCodec.decode(mOpcodePC, mOpcode, mOperand16);
 	
 	sout << "Executed instruction:    " << setfill(' ') << setw(30) << left << x_instr_s << "\n";
 	sout << "Resulting State:         " << getState() << "\n";
