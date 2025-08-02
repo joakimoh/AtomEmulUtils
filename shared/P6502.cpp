@@ -571,7 +571,6 @@ bool P6502::executeInstr()
 //
 bool P6502::ADCExecHdlr()
 {
-
 	int16_t val_C, val_V;
 	if (D_flag) {
 
@@ -619,7 +618,6 @@ bool P6502::ADCExecHdlr()
 //
 bool P6502::ANDExecHdlr()
 {
-
 	mAcc &= mReadVal8;
 	setNZflags(mAcc);
 
@@ -661,7 +659,6 @@ bool P6502::ASLExecHdlr()
 //
 bool P6502::BCCExecHdlr()
 {
-
 	if (!C_flag)
 		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
 
@@ -678,6 +675,7 @@ bool P6502::BCSExecHdlr()
 {
 	if (C_flag)
 		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+
 	return true;
 }
 
@@ -691,78 +689,106 @@ bool P6502::BEQExecHdlr()
 {
 	if (Z_flag)
 		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+
 	return true;
 }
+
+//
+// BIT - BIt Test
+//
+// Test Bits in Memory with Accumulator
+// 
+// A AND M -> Z, M7 -> N, M6 -> V
+// 
+// N	Z	C	I	D	V
+// M7	+	-	-	-	M6
+//
 bool P6502::BITExecHdlr()
-		
-	
 {
-	// Test Bits in Memory with Accumulator
-	// A AND M -> Z, M7 -> N, M6 -> V
-	// N	Z	C	I	D	V
-	// M7	+	-	-	-	M6
-	{
-		uint8_t val_8_u = mAcc & mReadVal8;
-		mStatusRegister &= ~(Z_set_mask | N_set_mask | V_set_mask);
-		if (val_8_u == 0)
-			mStatusRegister |= Z_set_mask;
-		if ((mReadVal8 & 0x80) != 0)
-			mStatusRegister |= N_set_mask;
-		if ((mReadVal8 & 0x40) != 0)
-			mStatusRegister |= V_set_mask;
-		return true;
-	}
+
+	uint8_t val_8_u = mAcc & mReadVal8;
+	mStatusRegister &= ~(Z_set_mask | N_set_mask | V_set_mask);
+	if (val_8_u == 0)
+		mStatusRegister |= Z_set_mask;
+	if ((mReadVal8 & 0x80) != 0)
+		mStatusRegister |= N_set_mask;
+	if ((mReadVal8 & 0x40) != 0)
+		mStatusRegister |= V_set_mask;
+
+	return true;
+
 }
+
+//
+// BMI - Branch MInus
+//
+// Branch on Result Minus
+// 
+// Branch on N = 1
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
 bool P6502::BMIExecHdlr()
-		
-	
-	// Branch on Result Minus
-	// Branch on N = 1
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
 {
 	if (N_flag)
 		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+
 	return true;
 }
 
+//
+// BNE - Branch Not Equal
+//
+// Branch on Result not Zero
+// 
+// Branch on Z = 0
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
 bool P6502::BNEExecHdlr()
-		
-	
-	// Branch on Result not Zero
-	// Branch on Z = 0
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
 {
 	if (!Z_flag)
 		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+
 	return true;
 }
 
+//
+// BPL - Branch PLus
+//
+// Branch on Result Plus
+// 
+// Branch on N = 0
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
 bool P6502::BPLExecHdlr()
-		
-	
-	// Branch on Result Plus
-	// Branch on N = 0
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
 {
 	if (!N_flag)
 		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+
 	return true;
 }
 
+//
+// BRK - BReaK
+//
+// Force Break
+// 
+// Initiates a software interrupt
+// 
+// push PC+2, push SR (together with a set b4 <=> B)
+// 
+// The high PC byte is pushed first (so that the PC is stored in little endian format in the memory)
+// 
+// N	Z	C	I	D	V
+// -	-	-	1	-	-
+//
 bool P6502::BRKExecHdlr()
-		
-	
-	// Force Break
-	// Initiates a software interrupt
-	// push PC+2, push SR (together with a set b4 = B)
-	// The high PC byte is pushed first (so that the PC is stored in little endian format in the memory)
-	// N	Z	C	I	D	V
-	// -	-	-	1	-	-
 {
-	// Force Break
 
 	// Save SP, SR & PC for logging later on
 	uint8_t oStackPointer = mStackPointer;
@@ -784,130 +810,171 @@ bool P6502::BRKExecHdlr()
 		DBG_LOG(this, DBG_INTERRUPTS, getInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister));
 	}
 
-
 	return true;
 }
 
+//
+// BVC - Branch oVerflow Clear
+//
+// Branch on Overflow Clear
+// 
+// Branch on V = 0
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
 bool P6502::BVCExecHdlr()
-		
-	
-	// Branch on Overflow Clear
-	// Branch on V = 0
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
 {
 	if (!V_flag)
 		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+
 	return true;
 }
 
+//
+// BVS - Branch oVerflow Set
+//
+// Branch on Overflow Set
+// 
+// Branch on V = 1
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
 bool P6502::BVSExecHdlr()
-		
-	
-	// Branch on Overflow Set
-	// Branch on V = 1
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
 {
 	if (V_flag)
 		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+
 	return true;
 }
 
+//
+// CLC - CLear Carry flag
+//
+// Clear Carry Flag
+// 
+// N	Z	C	I	D	V
+// -	-	0	-	-	-
+//
 bool P6502::CLCExecHdlr()
-		
-	
-	// Clear Carry Flag
-	// N	Z	C	I	D	V
-	// -	-	0	-	-	-
 {
 	mStatusRegister &= ~C_set_mask;
+
 	return true;
 }
 
+//
+// CLD - CLear Decimal mode
+//
+// Clear Decimal Mode
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	0	-
+//
 bool P6502::CLDExecHdlr()
-		
-	
-	// Clear Decimal Mode
-	// N	Z	C	I	D	V
-	// -	-	-	-	0	-
 {
 	mStatusRegister &= ~D_set_mask;
+
 	return true;
 }
 
+//
+// CLI - CLear Interrupt
+//
+// Clear Interrupt Disable Bit
+// 
+// N	Z	C	I	D	V
+// -	-	-	0	-	-
+//
 bool P6502::CLIExecHdlr()
-		
-	
-	// Clear Interrupt Disable Bit
-	// N	Z	C	I	D	V
-	// -	-	-	0	-	-
 {
 	uint8_t oStatusRegister = mStatusRegister;
 	mStatusRegister &= ~I_set_mask;
+
 	return true;
 }
 
+//
+// CLV - CLer oVerflow flag
+//
+// Clear Overflow Flag
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	0
+//
 bool P6502::CLVExecHdlr()
-		
-	
-	// Clear Overflow Flag
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	0
 {
 	mStatusRegister &= ~V_set_mask;
+
 	return true;
 }
 
+//
+// CMP - CoMPare
+//
+// Compare Memory with Accumulator
+// 
+// A - M
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
 bool P6502::CMPExecHdlr()
-		
-	
-	// Compare Memory with Accumulator
-	// A - M
-	// N	Z	C	I	D	V
-	// +	+	+	-	-	-
-
-{
-		
+{	
 	uint8_t val_8_u = mAcc - mReadVal8;
 	setNZCflags(val_8_u, mAcc >= mReadVal8);
+
 	return true;
 }
 
+//
+// CPX -  ComPare X
+//
+// Compare Memory and X
+// 
+// X - M
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
 bool P6502::CPXExecHdlr()
-		
-	
-	// Compare Memory and X
-	// X - M
-	// N	Z	C	I	D	V
-	// +	+	+	-	-	-
-{
-		
+{	
 	uint8_t val_8_u = mRegisterX - mReadVal8;
 	setNZCflags(val_8_u, mRegisterX >= mReadVal8);
+
 	return true;
 }
 
+//
+// CPY - ComPare Y
+//
+// Compare Memory and Y
+// 
+// Y - M
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
 bool P6502::CPYExecHdlr()
-		
-	
-	// Compare Memory and Y
-	// Y - M
-	// N	Z	C	I	D	V
-	// +	+	+	-	-	-
 {
 	uint8_t val_8_u = mRegisterY - mReadVal8;
 	setNZCflags(val_8_u, mRegisterY >= mReadVal8);
+
 	return true;
 }
 
+//
+// DEC - DEcrement
+//
+// Decrement Memory by One
+// 
+// M - 1 -> M
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
 bool P6502::DECExecHdlr()
-		
-	
-	// Decrement Memory by One
-	// M - 1 -> M
-	// N	Z	C	I	D	V
-	// +	+	-	-	-	-
 {
 	uint8_t val_8_u = mReadVal8 - 1;
 	if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
@@ -918,56 +985,76 @@ bool P6502::DECExecHdlr()
 	}
 	mWrittenVal = val_8_u;
 	setNZflags(val_8_u);
+
 	return true;
 }
 
+//
+// DEX - DEcrement X
+//
+// Decrement X by One
+// 
+// X - 1 -> X
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
 bool P6502::DEXExecHdlr()
-		
-	
-	// Decrement X by One
-	// X - 1 -> X
-	// N	Z	C	I	D	V
-	// +	+	-	-	-	-
+
 {
 	mRegisterX = mRegisterX - 1;
 	setNZflags(mRegisterX);
+
 	return true;
 }
 
+//
+// DEY - DEcrement Y
+//
+// Decrement Y by One
+// 
+// Y - 1 -> Y
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
 bool P6502::DEYExecHdlr()
-		
-	
-	// Decrement Y by One
-	// Y - 1 -> Y
-	// N	Z	C	I	D	V
-	// +	+	-	-	-	-
 {
 	mRegisterY = mRegisterY - 1;
 	setNZflags(mRegisterY);
+
 	return true;
 }
 
+//
+// EOR - Exclusive OR
+//
+// Exclusive-OR Memory with Accumulator
+// 
+// A EOR M -> A
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
 bool P6502::EORExecHdlr()
-		
-	
-	// Exclusive-OR Memory with Accumulator
-	// A EOR M -> A
-	// N	Z	C	I	D	V
-	// +	+	-	-	-	-
-
 {
 	mAcc ^= mReadVal8;
 	setNZflags(mAcc);
+
 	return true;
 }
 
+//
+// INC - INCrement
+//
+// Increment Memory by One
+// 
+// M + 1 -> M
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
 bool P6502::INCExecHdlr()
-		
-	
-	// Increment Memory by One
-	// M + 1 -> M
-	// N	Z	C	I	D	V
-	// +	+	-	-	-	-
 {
 	mWrittenVal = mReadVal8 + 1;
 	if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
@@ -977,58 +1064,78 @@ bool P6502::INCExecHdlr()
 		return false;
 	}
 	setNZflags(mWrittenVal);
+
 	return true;
 }
 
+//
+// INX - INcrement X
+//
+// Increment X by One
+// 
+// X + 1 -> X
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
 bool P6502::INXExecHdlr()
-		
-	
-	// Increment X by One
-	// X + 1 -> X
-	// N	Z	C	I	D	V
-	// +	+	-	-	-	-
+
 {
 	mRegisterX = mRegisterX + 1;
 	setNZflags(mRegisterX);
+
 	return true;
 }
 
+//
+// INY - INcrement Y
+//
+// Increment Y by One
+// 
+// Y + 1 -> Y
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
 bool P6502::INYExecHdlr()
-		
-	
-	// Increment Y by One
-	// Y + 1 -> Y
-	// N	Z	C	I	D	V
-	// +	+	-	-	-	-
 {
 	mRegisterY = mRegisterY + 1;
 	setNZflags(mRegisterY);
+
 	return true;
 }
 
+//
+// JMP - JuMP
+//
+// Jump to New Location
+// 
+// OP2:OP1 -> PC
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
 bool P6502::JMPExecHdlr()
-		
-	
-	// Jump to New Location
-	// OP2:OP1 -> PC
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
 {
-		
 	mProgramCounter = mOperandAddress;
+
 	return true;
 }
 
+//
+// JSR - Jump SubRoutine
+//
+// Jump to New Location Saving Return Address
+// 
+// Push PC+2; OP2:OP1 -> PC
+// 
+// The stack byte contains the program count high first, followed by program count low
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
 bool P6502::JSRExecHdlr()
-		
-	
-	// Jump to New Location Saving Return Address
-	// Push PC+2; OP2:OP1 -> PC
-	// The stack byte contains the program count high first, followed by program count low
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
-{
-		
+{	
 	pushWord(mOpcodePC + 2); // this is the same as PC after the opcode has been read + 2
 
 	mProgramCounter = mOperandAddress;
@@ -1036,54 +1143,72 @@ bool P6502::JSRExecHdlr()
 	return true;
 }
 
+//
+// LDA - Load A
+//
+// Load Accumulator with Memory
+// 
+// M -> A
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
 bool P6502::LDAExecHdlr()
-		
-	
-	// Load Accumulator with Memory
-	// M -> A
-	// N	Z	C	I	D	V
-	// +	+	-	-	-	-
 {
 	mAcc = mReadVal8;
 	setNZflags(mAcc);
+
 	return true;
 }
 
+//
+// LDX - Load X
+//
+// Load X with Memory
+// 
+// M -> X
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
 bool P6502::LDXExecHdlr()
-		
-	
-	// Load X with Memory
-	// M -> X
-	// N	Z	C	I	D	V
-	// +	+	-	-	-	-
+
 {
 	mRegisterX = mReadVal8;
 	setNZflags(mRegisterX);
+
 	return true;
 }
 
+//
+// LDY - Load Y
+//
+// Load Y with Memory
+// 
+// M -> Y
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
 bool P6502::LDYExecHdlr()
-		
-	
-	// Load Y with Memory
-	// M -> Y
-	// N	Z	C	I	D	V
-	// +	+	-	-	-	-
 {
 	mRegisterY = mReadVal8;
 	setNZflags(mRegisterY);
+
 	return true;
 }
 
+//
+// LSR - Logical Shift Right
+//
+// Shift One Bit Right (Memory or Accumulator)
+// 
+// 0 -> [76543210] -> C
+// 
+// N	Z	C	I	D	V
+// 0	+	+	-	-	-
+//
 bool P6502::LSRExecHdlr()
-		
-	//
-	// LSR
-	// 
-	// Shift One Bit Right (Memory or Accumulator)
-	// 0 -> [76543210] -> C
-	// N	Z	C	I	D	V
-	// 0	+	+	-	-	-
 {
 	mStatusRegister &= ~C_set_mask;
 	mStatusRegister |= ((mReadVal8 & 0x1) != 0 ? C_set_mask : 0);
@@ -1104,91 +1229,125 @@ bool P6502::LSRExecHdlr()
 	return true;
 }
 
+//
+// NOP - No OPeration
+//
+// No Operation
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
 bool P6502::NOPExecHdlr()
-		
-	
-	// No Operation
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
 {
 	return true;
 }
 
+//
+// ORA - OR A
+//
+// OR Memory with Accumulator
+// 
+// A OR M -> A
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
 bool P6502::ORAExecHdlr()
-		
-	
-	// OR Memory with Accumulator
-	// A OR M -> A
-	// N	Z	C	I	D	V
-	// +	+	-	-	-	-
 {
 	mAcc |=  mReadVal8;
 	setNZflags(mAcc);
+
 	return true;
 }
 
+//
+// PHA - PusH A
+//
+// Push Accumulator on Stack
+// 
+// push A
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
 bool P6502::PHAExecHdlr()
-		
-	
-	// Push Accumulator on Stack
-	// push A
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
+
 {
 	push(mAcc);
+
 	return true;
 }
 
+//
+// PHP - PusH Processor status
+//
+// Push Status on Stack
+// 
+// push SR.
+// 
+// The status register will be pushed with the B
+// flag and b5 set to 1
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
 bool P6502::PHPExecHdlr()
-		
-	
-	// Push Status on Stack
-	// push SR.
-	// The status register will be pushed with the B
-	// flag and b5 set to 1
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
 {
 	push(mStatusRegister | B_set_mask | b5_set_mask);
+
 	return true;
 }
 
+//
+// PLA - PuLl A
+//
+// Pull Accumulator from Stack
+// 
+// pull A
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
 bool P6502::PLAExecHdlr()
-		
-	
-	// Pull Accumulator from Stack
-	// pull A
-	// N	Z	C	I	D	V
-	// +	+	-	-	-	-
 {
 	pull(mAcc);
 	setNZflags(mAcc);
+
 	return true;
 }
 
-bool P6502::PLPExecHdlr()
-		
-	
-	// Pull Status register from Stack
-	// Pull SR (B flag and b5 ignored)
-	// N	Z	C	I	D	V
-	// +	+	+	+	+	+
+//
+// PLP - PuLl Processor status
+//
+// Pull Status register from Stack
+// 
+// Pull SR (B flag and b5 ignored)
+// 
+// N	Z	C	I	D	V
+// +	+	+	+	+	+
+//
+bool P6502::PLPExecHdlr()		
 {
 	uint8_t stack_val; 
 	pull(stack_val);
 	stack_val &= ~(B_set_mask | b5_set_mask);
 	mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
 	mStatusRegister |= stack_val;
+
 	return true;
 }
 
+//
+// ROL - ROtate Left
+//
+// Rotate One Bit Left (Memory or Accumulator)
+// 
+// C <- [76543210] <- C
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
 bool P6502::ROLExecHdlr()
-		
-	
-	// Rotate One Bit Left (Memory or Accumulator)
-	// C <- [76543210] <- C
-	// N	Z	C	I	D	V
-	// +	+	+	-	-	-
 {
 	uint8_t val_8_u = ((mReadVal8 << 1) & 0xfe) | C_flag;
 	mStatusRegister &= ~C_set_mask;
@@ -1205,16 +1364,21 @@ bool P6502::ROLExecHdlr()
 	else
 		mAcc = val_8_u;
 	setNZflags(val_8_u);
+
 	return true;
 }
 
-bool P6502::RORExecHdlr()
-		
-	
-	// Rotate One Bit Right (Memory or Accumulator)
-	// C -> [76543210] -> C
-	// N	Z	C	I	D	V
-	// +	+	+	-	-	-
+//
+// ROR - ROtate Right
+//
+// Rotate One Bit Right (Memory or Accumulator)
+// 
+// C -> [76543210] -> C
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+bool P6502::RORExecHdlr()	
 {
 	uint8_t val_8_u = ((mReadVal8 >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
 	mStatusRegister &= ~C_set_mask;
@@ -1231,17 +1395,23 @@ bool P6502::RORExecHdlr()
 	else
 		mAcc = val_8_u;
 	setNZflags(val_8_u);
+
 	return true;
 }
 
+//
+// RTI
+//
+// Return from Interrupt
+// 
+// Pull SR (b5 and B flag ignored) and then pull PC
+// 
+// The low byte is pulled first.
+// 
+// N	Z	C	I	D	V
+// +	+	+	+	+	+
+//
 bool P6502::RTIExecHdlr()
-		
-	
-	// Return from Interrupt
-	// Pull SR (b5 and B flag ignored) and then pull PC
-	// The low byte is pulled first.
-	// N	Z	C	I	D	V
-	// +	+	+	+	+	+
 {
 
 	uint8_t oStackPointer = mStackPointer;
@@ -1267,17 +1437,20 @@ bool P6502::RTIExecHdlr()
 	return true;
 }
 
+//
+// RTS
+//
+// Return from Subroutine
+// 
+// Pull PC, PC+1 -> PC
+// 
+// The low byte is pulled first.
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
 bool P6502::RTSExecHdlr()
-		
-	
-	// Return from Subroutine
-	// Pull PC, PC+1 -> PC
-	// The low byte is pulled first .
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
-
 {
-
 	uint16_t oPC = mProgramCounter;
 	pullWord(mProgramCounter);
 	mProgramCounter++;
@@ -1285,17 +1458,22 @@ bool P6502::RTSExecHdlr()
 	return true;
 }
 
+//
+// SBC
+//
+// Subtract Memory from Accumulator with Borrow
+// 
+// If decimal flag is set, substraction will be BCD (Binary-Coded Decimal) and only the C flag will have a useful value
+// 
+// A - M - C* -> A
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	+
+//
+// V is set if sign bit is incorrect
+// C is cleared if overflow in b7
+//
 bool P6502::SBCExecHdlr()
-		
-	
-	// Subtract Memory from Accumulator with Borrow
-	// If decimal flag is set, substraction will be BCD (Binary-Coded Decimal) and only the C flag will have a useful value
-	// A - M - C* -> A
-	// N	Z	C	I	D	V
-	// +	+	+	-	-	+
-	//
-	// V is set if sign bit is incorrect
-	// C is cleared if overflow in b7
 {
 	{
 		int16_t val_C, val_V;
@@ -1336,68 +1514,90 @@ bool P6502::SBCExecHdlr()
 	}
 }
 
+//
+// SEC
+//
+// Set Carry Flag
+// 
+// N	Z	C	I	D	V
+// -	-	1	-	-	-
+//
 bool P6502::SECExecHdlr()
-		
-	
-	// Set Carry Flag
-	// N	Z	C	I	D	V
-	// -	-	1	-	-	-
 {
 	mStatusRegister |= C_set_mask;
-	return true;
-}
 
-bool P6502::SEDExecHdlr()
-		
-	
-	// Set Decimal Flag
-	// N	Z	C	I	D	V
-	// -	-	-	-	1	-
-{
-	mStatusRegister |= D_set_mask;
-	return true;
-}
-
-bool P6502::SEIExecHdlr()
-		
-	
-	// Set Interrupt Disable Status
-	// N	Z	C	I	D	V
-	// -	-	-	1	-	-
-{
-	uint8_t oStatusRegister = mStatusRegister; 
-	mStatusRegister |= I_set_mask;
-	return true;
-}
-
-bool P6502::STAExecHdlr()
-		
-	
-	// Store Accumulator in Memory
-	// A -> M
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
-{
-	writeDevice(mOperandAddress, mAcc);
-	mWrittenVal = mAcc;
-	return true;
-}
-
-bool P6502::STXExecHdlr()
-		
-	
-	// Store X in Memory
-	// X -> M
-	// N	Z	C	I	D	V
-	// -	-	-	-	-	-
-{
-	writeDevice(mOperandAddress, mRegisterX);
-	mWrittenVal = mRegisterX;
 	return true;
 }
 
 //
-// STY -STore Y
+// SED
+//
+// Set Decimal Flag
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	1	-
+//
+bool P6502::SEDExecHdlr()
+{
+	mStatusRegister |= D_set_mask;
+
+	return true;
+}
+
+//
+// SEI
+//
+// Set Interrupt Disable Status
+// 
+// N	Z	C	I	D	V
+// -	-	-	1	-	-
+//
+bool P6502::SEIExecHdlr()
+{
+	uint8_t oStatusRegister = mStatusRegister; 
+	mStatusRegister |= I_set_mask;
+
+	return true;
+}
+
+//
+// STA
+//
+// Store Accumulator in Memory
+// 
+// A -> M
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502::STAExecHdlr()
+{
+	writeDevice(mOperandAddress, mAcc);
+	mWrittenVal = mAcc;
+
+	return true;
+}
+
+//
+// STX
+//
+// Store X in Memory
+// 
+// X -> M
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502::STXExecHdlr()
+{
+	writeDevice(mOperandAddress, mRegisterX);
+	mWrittenVal = mRegisterX;
+
+	return true;
+}
+
+//
+// STY
 //
 // Store Y in Memory
 // 
@@ -1410,11 +1610,12 @@ bool P6502::STYExecHdlr()
 {
 	writeDevice(mOperandAddress, mRegisterY);
 	mWrittenVal = mRegisterY;
+
 	return true;
 }
 
 //
-// TSX - Transfer A to X
+// TSX
 //
 // Transfer Accumulator to X
 // 
@@ -1427,11 +1628,12 @@ bool P6502::TAXExecHdlr()
 {
 	mRegisterX = mAcc;
 	setNZflags(mRegisterX);
+
 	return true;
 }
 
 //
-// TSX - Transfer A to Y
+// TSX
 //
 // Transfer Accumulator to Y
 // 
@@ -1444,11 +1646,12 @@ bool P6502::TAYExecHdlr()
 {
 	mRegisterY = mAcc;
 	setNZflags(mRegisterY);
+
 	return true;
 }
 
 //
-// TSX - Transfer SP to X
+// TSX
 //
 // Transfer Stack Pointer to X
 // 
@@ -1461,11 +1664,12 @@ bool P6502::TSXExecHdlr()
 {
 	mRegisterX = mStackPointer;
 	setNZflags(mRegisterX);
+
 	return true;
 }
 
 //
-// TXA - Transfer X to A
+// TXA
 //
 // Transfer X to Accumulator
 // 
@@ -1478,11 +1682,12 @@ bool P6502::TXAExecHdlr()
 {
 	mAcc = mRegisterX;
 	setNZflags(mAcc);
+
 	return true;
 }
 
 //
-// TXS - Transfer X to SP
+// TXS
 //
 // Transfer X to Stack Register: X -> SP
 // 
@@ -1494,11 +1699,12 @@ bool P6502::TXAExecHdlr()
 bool P6502::TXSExecHdlr()
 {
 	mStackPointer = mRegisterX;
+
 	return true;
 }
 
 //
-// TYA - Transfer Y to A
+// TYA
 //
 // Transfer Y to Accumulator: Y -> A
 // 
@@ -1511,6 +1717,7 @@ bool P6502::TYAExecHdlr()
 {
 	mAcc = mRegisterY;
 	setNZflags(mAcc);
+
 	return true;
 }
 
@@ -1521,7 +1728,7 @@ bool P6502::TYAExecHdlr()
 //
 
 //
-// LAX - Load Accumulator and X
+// LAX
 //
 // Load Accumulator and X with Memory
 // 
@@ -1535,11 +1742,12 @@ bool P6502::LAXExecHdlr()
 {
 	mAcc = mRegisterX = mReadVal8;
 	setNZflags(mAcc);
+
 	return true;
 }
 
 //
-// SBX - SuBtract AND X
+// SBX
 //
 // Subtract Memory from Accumulator AND X
 // (A AND X) - oper -> X
@@ -1551,11 +1759,12 @@ bool P6502::SBXExecHdlr()
 {
 	mRegisterX = (mAcc & mRegisterX) - mReadVal8;
 	setNZCflags(mRegisterX, mRegisterX >= mReadVal8);
+
 	return true;
 }
 
 //
-// ISC - Increment SubtraCt
+// ISC
 //
 // Increment and Subtract <=> INC <mem> + SBC <mem>
 // 
@@ -1593,7 +1802,7 @@ bool P6502::ISCExecHdlr()
 }
 
 //
-// DCP - DeCrement P?
+// DCP
 // 
 // Decrement Memory by One
 // 
@@ -1620,11 +1829,12 @@ bool P6502::DCPExecHdlr()
 	//
 	val_8_u = mAcc - mReadVal8;
 	setNZCflags(val_8_u, mAcc >= mReadVal8);
+
 	return true;
 }
 
 //
-// ANC - AND with Carry
+// ANC
 //
 // AND Memory with Carry
 // 
@@ -1642,11 +1852,12 @@ bool P6502::ANCExecHdlr()
 
 	// C flag = b7 of A
 	mStatusRegister &= ~C_set_mask | ((mAcc & 0x80) != 0 ? C_set_mask : 0x0);
+
 	return true;
 }
 
 //
-// ALR - AND Logical shift Right
+// ALR
 // 
 // AND followed by LSR
 // 
@@ -1674,7 +1885,7 @@ bool P6502::ALRExecHdlr()
 }
 
 //
-// ARR - AND Rotate Right
+// ARR
 // 
 // AND followed by ROR
 // 
@@ -1702,7 +1913,7 @@ bool P6502::ARRExecHdlr()
 }
 
 //
-// LAS - Load AND Save
+// LAS
 // 
 // Load Memory ANDed with SP into A, X & SP
 // 
@@ -1715,11 +1926,12 @@ bool P6502::LASExecHdlr()
 {
 	mAcc = mRegisterX = mStackPointer = mReadVal8 & mStackPointer;
 	setNZflags(mAcc);
+
 	return true;
 }
 
 //
-// RLA - Rotate Left AND
+// RLA
 // 
 // ROL followed by AND
 // 
@@ -1754,7 +1966,7 @@ bool P6502::RLAExecHdlr()
 }
 
 //
-// RRA - Rotate Right Add
+// RRA
 // 
 // ROR followed by ADC
 // 
@@ -1789,7 +2001,7 @@ bool P6502::RRAExecHdlr()
 }
 
 //
-// SAX - Store A and X
+// SAX
 // 
 // Store A and X into Memory
 // 
@@ -1807,7 +2019,7 @@ bool P6502::SAXExecHdlr()
 }
 
 //
-// SLO - Shift Left OR
+// SLO
 // 
 // ASL followed by OR
 // 
@@ -1840,7 +2052,7 @@ bool P6502::SLOExecHdlr()
 }
 
 //
-// SRE - Shift Right Exclusive OR
+// SRE
 // 
 // LSR followed by EOR
 // 
@@ -1877,6 +2089,10 @@ bool P6502::SREExecHdlr()
 	return true;
 }
 
+//
+// Each opcode that doesn't result in a predictable
+// function is mapped to this method.
+//
 bool P6502::undefinedExecHdlr()
 {
 	//cout << "Undefined instruction 0x" << hex << (int)mOpcode << " encountered!\n";
