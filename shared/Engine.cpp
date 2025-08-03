@@ -167,10 +167,45 @@ bool Engine::run()
     double lines_per_field = 0;
     double p_speed_factor = mSpeedFactor;
     ALLEGRO_EVENT event;
+    /*
+    int field_time = 0;
+    int field_time_count[25] = { 0 };
+    int half_line_time_count[25] = { 0 };
+    int instr_time_count[25] = { 0 };
+    int uc_time_count = 0;
+    int vdu_time_count = 0;
+    */
 
     while (!mQuit)
     {
-
+        /*
+        if (field_time % (int) round(mFieldRate * mSpeedFactor) == 0) {
+            cout << dec << "\n";
+            int time_count = 0;
+            for (int i = 0; i < mFieldScheduledDevices.size(); i++) {
+                cout << setw(10) << "FIELD " << setw(15) << mFieldScheduledDevices[i]->name << ": " << field_time_count[i] / 1e6 << " ms\n";
+                time_count += field_time_count[i];
+                field_time_count[i] = 0;
+            }
+            cout << setw(10) << "LINE " << setw(15) << mVDU->name << ": " << vdu_time_count / 1e6 << " ms\n";
+            time_count += vdu_time_count;
+            vdu_time_count = 0;
+            for (int i = 0; i < mHalfLineScheduledDevices.size(); i++) {
+                cout << setw(10) << "1/2 LINE " << setw(15) << mHalfLineScheduledDevices[i]->name << ": " << half_line_time_count[i] / 1e6 << " ms\n";
+                time_count += half_line_time_count[i];
+                half_line_time_count[i] = 0;
+            }
+            cout << setw(10) << "INSTR " << setw(15) << mMicroprocessor->name << ": " << uc_time_count / 1e6 << " ms\n";
+            time_count += uc_time_count;
+            uc_time_count = 0;
+            for (int i = 0; i < mInstrScheduledDevices.size(); i++) {
+                cout << setw(10) << "INSTR " << setw(15) << mInstrScheduledDevices[i]->name << ": " << instr_time_count[i] / 1e6 << " ms\n";
+                time_count += instr_time_count[i];
+                instr_time_count[i] = 0;
+            }
+            cout << setw(27) << "TOTAL: " << time_count / 1e6 << " ms\n";
+        }
+        */
         if (mState != ENG_HALT) {
 
             int p_field_rate = mFieldRate;
@@ -189,12 +224,18 @@ bool Engine::run()
                     al_destroy_timer(mfieldTimer);
                     mfieldTimer = NULL;
                 }
-                mfieldTimer = al_create_timer(1.0 / mFieldRate / mSpeedFactor);
+                mfieldTimer = al_create_timer(1.0 / (mFieldRate * mSpeedFactor));
                 al_register_event_source(mQueue, al_get_timer_event_source(mfieldTimer));
                 al_start_timer(mfieldTimer);
 
                 if (mSoundDevice != NULL)
                     mSoundDevice->setFieldRate(mFieldRate, mSpeedFactor);
+                /*
+                if (mSpeedFactor > 1)
+                    mVDU->setSkipFields((int)round(mSpeedFactor));
+                else
+                    mVDU->setSkipFields(1);
+                */
             }
 
 
@@ -203,9 +244,13 @@ bool Engine::run()
             // the software.
             int cycles_per_field = (int)round(mCPUClock * 1e6 / field_rate_d);
 
-            // Advance time for each devices that is scheduled on field basis
-            for (int i = 0; i < mFieldScheduledDevices.size(); i++)
+            // Advance time for each device that is scheduled on field basis
+            for (int i = 0; i < mFieldScheduledDevices.size(); i++) {
+                //auto start = std::chrono::steady_clock::now();
                 mFieldScheduledDevices[i]->advance(mCycleCount + cycles_per_field);
+                //auto end = std::chrono::steady_clock::now();
+                //field_time_count[i] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            }
 
             //
             // Advance time one field scan line at a time until a complete field has been scanned
@@ -230,6 +275,7 @@ bool Engine::run()
                 uint64_t start_count = mCycleCount;
 
                 // Advance time for the VDU corresponding to one scan line (1/2 scan line if it is the last line and interlace is enabled)
+                //auto start = std::chrono::steady_clock::now();
                 if (interlaced_mode && add_half_line) {
                     mVDU->advanceHalfLine(target_cycle_count);
                     line_count += 0.5;
@@ -237,8 +283,10 @@ bool Engine::run()
                 }
                 else {
                     mVDU->advanceLine(target_cycle_count);
-                    line_count++;
+                    line_count++;        
                 }
+                //auto end = std::chrono::steady_clock::now();
+                //vdu_time_count += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 
                 uint64_t half_line_step = (target_cycle_count - start_count) / 2;
                 uint64_t start_target_cnt = start_count + half_line_step;
@@ -246,8 +294,12 @@ bool Engine::run()
                     uint64_t half_line_target = start_target_cnt + half_line_step * half_line;
 
                     // update devices scheduled on half line basis
-                    for (int i = 0; i < mHalfLineScheduledDevices.size(); i++)
+                    for (int i = 0; i < mHalfLineScheduledDevices.size(); i++) {
+                        //auto start = std::chrono::steady_clock::now();
                         mHalfLineScheduledDevices[i]->advance(half_line_target);
+                        //auto end = std::chrono::steady_clock::now();
+                        //half_line_time_count[i] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+                    }
 
                     // update devices scheduled on instruction basis in a tight loop
                     while (mCycleCount < half_line_target) {
@@ -261,16 +313,23 @@ bool Engine::run()
                             uint16_t ret_adr = mMicroprocessor->getPC() + 3;
 
                             // Execute one microprocessor instruction and advance time accordingly (mCycleCount updated)
+                            //auto start = std::chrono::steady_clock::now();
                             if (!mMicroprocessor->advanceInstr(mCycleCount)) {
                                 // Execution stopped - exit
                                 mExecMutex.unlock();
                                 return 0;
                             }
+                            //auto end = std::chrono::steady_clock::now();
+                            //uc_time_count += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 
                             // Advance time for each device scheduled on instruction basis so that it matches the time
                             // of the microprocessor.
-                            for (int d = 0; d < mInstrScheduledDevices.size(); d++)
+                            for (int d = 0; d < mInstrScheduledDevices.size(); d++) {
+                                //auto start = std::chrono::steady_clock::now();
                                 mInstrScheduledDevices[d]->advance(mCycleCount);
+                                //auto end = std::chrono::steady_clock::now();
+                                //instr_time_count[d] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+                            }
 
                             // If a break point has been set and is triggered, then save instruction data and change the break point state
                             // to triggered (ENG_BRK_DET). Another thread (a Debugger thread calling setBreakPointAndWait()) will
@@ -339,6 +398,7 @@ bool Engine::run()
 
 
             field_cnt = (field_cnt + 1) % mFieldRate;
+            //field_time++;
 
         }
 

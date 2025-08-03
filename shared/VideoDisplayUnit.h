@@ -74,6 +74,9 @@ public:
 	virtual int getScreenScanLines() = 0;
 	virtual int fieldScanLineOffset() = 0;
 
+	int mSkipFields = 1;
+	bool setSkipFields(int n) { if (n > 0 && n < 10) { mSkipFields = n; return true; } return false; }
+
 	//
 	// Interlace-related methods
 	//

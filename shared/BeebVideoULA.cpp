@@ -245,6 +245,7 @@ bool BeebVideoULA::advanceLine(uint64_t& endCycle)
 
 	bool teletext = getCRField(CR_TELETEXT) == 1;
 
+	//if (adjusted_scanline == mVerticalSyncPos && mField % mSkipFields == 0) {
 	if (adjusted_scanline == mVerticalSyncPos) {
 
 		DBG_LOG(this, DBG_VDU, "UPDATE SCREEN");

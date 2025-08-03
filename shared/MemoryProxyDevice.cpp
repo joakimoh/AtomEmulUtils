@@ -72,11 +72,15 @@ void MemoryProxyDevice::processPortUpdate(int index)
 {
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (index == mDevices[i]->CSPortindex) {
-			//cout << "CS for " << mDevices[i]->dev->name << " changed to " << (int)mDevices[i]->val << "\n";
-			if (mDevices[i]->CS == 0)
+			//cout << "CS for " << mDevices[i]->dev->name << " changed to " << (int)mDevices[i]->CS << "\n";
+			if (mDevices[i]->CS == 0) {
 				mSelectedDevice = mDevices[i]->dev;
-			else if (mSelectedDevice == mDevices[i]->dev)
+				//cout << "Device " << mSelectedDevice->name << " selected\n";
+			}
+			else if (mSelectedDevice == mDevices[i]->dev) {
+				//cout << "No device selected!\n";
 				mSelectedDevice = NULL;
+			}
 			break;
 		}
 	}

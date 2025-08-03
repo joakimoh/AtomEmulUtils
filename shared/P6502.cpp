@@ -563,9 +563,14 @@ bool P6502::executeInstr()
 //
 
 //
+// ADC
+// 
 // Add Memory to Accumulator with Carry
+// 
 // If decimal flag is set, addition will be BCD (Binary-Coded Decimal) and only the C flag will have a useful value
+// 
 // A + M + C -> A, C
+// 
 // N	Z	C	I	D	V
 // +	+	+	-	-	+
 //
@@ -611,8 +616,12 @@ bool P6502::ADCExecHdlr()
 }
 
 //
+// AND
+// 
 // AND Memory with Accumulator
+// 
 // A AND M -> A
+// 
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
 //
@@ -625,8 +634,12 @@ bool P6502::ANDExecHdlr()
 }
 
 //
+// ASL
+// 
 // Shift Left One Bit (Memory or Accumulator)
+// 
 // C < [76543210] <- 0
+// 
 // N	Z	C	I	D	V
 // +	+	+	-	-	-
 //
@@ -652,8 +665,12 @@ bool P6502::ASLExecHdlr()
 }
 
 //
+// BCC
+// 
 // Branch on Carry Clear
+// 
 // Branch on C = 0
+// 
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
@@ -666,8 +683,12 @@ bool P6502::BCCExecHdlr()
 }
 
 //
+// BCS
+// 
 // Branch on Carry Set
+// 
 // Branch on C = 1
+// 
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
@@ -680,8 +701,12 @@ bool P6502::BCSExecHdlr()
 }
 
 //
+// BEQ
+// 
 // Branch on Result Zero
+// 
 // Branch on Z = 0
+// 
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
@@ -694,7 +719,7 @@ bool P6502::BEQExecHdlr()
 }
 
 //
-// BIT - BIt Test
+// BIT
 //
 // Test Bits in Memory with Accumulator
 // 
@@ -720,7 +745,7 @@ bool P6502::BITExecHdlr()
 }
 
 //
-// BMI - Branch MInus
+// BMI
 //
 // Branch on Result Minus
 // 
@@ -738,7 +763,7 @@ bool P6502::BMIExecHdlr()
 }
 
 //
-// BNE - Branch Not Equal
+// BNE
 //
 // Branch on Result not Zero
 // 
@@ -756,7 +781,7 @@ bool P6502::BNEExecHdlr()
 }
 
 //
-// BPL - Branch PLus
+// BPL
 //
 // Branch on Result Plus
 // 
@@ -774,7 +799,7 @@ bool P6502::BPLExecHdlr()
 }
 
 //
-// BRK - BReaK
+// BRK
 //
 // Force Break
 // 
@@ -814,7 +839,7 @@ bool P6502::BRKExecHdlr()
 }
 
 //
-// BVC - Branch oVerflow Clear
+// BVC
 //
 // Branch on Overflow Clear
 // 
@@ -832,7 +857,7 @@ bool P6502::BVCExecHdlr()
 }
 
 //
-// BVS - Branch oVerflow Set
+// BVS
 //
 // Branch on Overflow Set
 // 
@@ -850,7 +875,7 @@ bool P6502::BVSExecHdlr()
 }
 
 //
-// CLC - CLear Carry flag
+// CLC
 //
 // Clear Carry Flag
 // 
@@ -865,7 +890,7 @@ bool P6502::CLCExecHdlr()
 }
 
 //
-// CLD - CLear Decimal mode
+// CLD
 //
 // Clear Decimal Mode
 // 
@@ -880,7 +905,7 @@ bool P6502::CLDExecHdlr()
 }
 
 //
-// CLI - CLear Interrupt
+// CLI
 //
 // Clear Interrupt Disable Bit
 // 
@@ -896,7 +921,7 @@ bool P6502::CLIExecHdlr()
 }
 
 //
-// CLV - CLer oVerflow flag
+// CLV
 //
 // Clear Overflow Flag
 // 
@@ -911,7 +936,7 @@ bool P6502::CLVExecHdlr()
 }
 
 //
-// CMP - CoMPare
+// CMP
 //
 // Compare Memory with Accumulator
 // 
@@ -929,7 +954,7 @@ bool P6502::CMPExecHdlr()
 }
 
 //
-// CPX -  ComPare X
+// CPX
 //
 // Compare Memory and X
 // 
@@ -947,7 +972,7 @@ bool P6502::CPXExecHdlr()
 }
 
 //
-// CPY - ComPare Y
+// CPY
 //
 // Compare Memory and Y
 // 
@@ -965,7 +990,7 @@ bool P6502::CPYExecHdlr()
 }
 
 //
-// DEC - DEcrement
+// DEC
 //
 // Decrement Memory by One
 // 
@@ -990,7 +1015,7 @@ bool P6502::DECExecHdlr()
 }
 
 //
-// DEX - DEcrement X
+// DEX
 //
 // Decrement X by One
 // 
@@ -1009,7 +1034,7 @@ bool P6502::DEXExecHdlr()
 }
 
 //
-// DEY - DEcrement Y
+// DEY
 //
 // Decrement Y by One
 // 
@@ -1027,7 +1052,7 @@ bool P6502::DEYExecHdlr()
 }
 
 //
-// EOR - Exclusive OR
+// EOR
 //
 // Exclusive-OR Memory with Accumulator
 // 
@@ -1045,7 +1070,7 @@ bool P6502::EORExecHdlr()
 }
 
 //
-// INC - INCrement
+// INC 
 //
 // Increment Memory by One
 // 
@@ -1069,7 +1094,7 @@ bool P6502::INCExecHdlr()
 }
 
 //
-// INX - INcrement X
+// INX
 //
 // Increment X by One
 // 
@@ -1088,7 +1113,7 @@ bool P6502::INXExecHdlr()
 }
 
 //
-// INY - INcrement Y
+// INY
 //
 // Increment Y by One
 // 
@@ -1106,7 +1131,7 @@ bool P6502::INYExecHdlr()
 }
 
 //
-// JMP - JuMP
+// JMP
 //
 // Jump to New Location
 // 
@@ -1123,7 +1148,7 @@ bool P6502::JMPExecHdlr()
 }
 
 //
-// JSR - Jump SubRoutine
+// JSR
 //
 // Jump to New Location Saving Return Address
 // 
@@ -1144,7 +1169,7 @@ bool P6502::JSRExecHdlr()
 }
 
 //
-// LDA - Load A
+// LDA
 //
 // Load Accumulator with Memory
 // 
@@ -1162,7 +1187,7 @@ bool P6502::LDAExecHdlr()
 }
 
 //
-// LDX - Load X
+// LDX
 //
 // Load X with Memory
 // 
@@ -1181,7 +1206,7 @@ bool P6502::LDXExecHdlr()
 }
 
 //
-// LDY - Load Y
+// LDY
 //
 // Load Y with Memory
 // 
@@ -1199,7 +1224,7 @@ bool P6502::LDYExecHdlr()
 }
 
 //
-// LSR - Logical Shift Right
+// LSR
 //
 // Shift One Bit Right (Memory or Accumulator)
 // 
@@ -1230,7 +1255,7 @@ bool P6502::LSRExecHdlr()
 }
 
 //
-// NOP - No OPeration
+// NOP
 //
 // No Operation
 // 
@@ -1243,7 +1268,7 @@ bool P6502::NOPExecHdlr()
 }
 
 //
-// ORA - OR A
+// ORA
 //
 // OR Memory with Accumulator
 // 
@@ -1261,7 +1286,7 @@ bool P6502::ORAExecHdlr()
 }
 
 //
-// PHA - PusH A
+// PHA
 //
 // Push Accumulator on Stack
 // 
@@ -1279,7 +1304,7 @@ bool P6502::PHAExecHdlr()
 }
 
 //
-// PHP - PusH Processor status
+// PHP
 //
 // Push Status on Stack
 // 
@@ -1299,7 +1324,7 @@ bool P6502::PHPExecHdlr()
 }
 
 //
-// PLA - PuLl A
+// PLA
 //
 // Pull Accumulator from Stack
 // 
@@ -1317,7 +1342,7 @@ bool P6502::PLAExecHdlr()
 }
 
 //
-// PLP - PuLl Processor status
+// PLP
 //
 // Pull Status register from Stack
 // 
@@ -1338,7 +1363,7 @@ bool P6502::PLPExecHdlr()
 }
 
 //
-// ROL - ROtate Left
+// ROL
 //
 // Rotate One Bit Left (Memory or Accumulator)
 // 
@@ -1369,7 +1394,7 @@ bool P6502::ROLExecHdlr()
 }
 
 //
-// ROR - ROtate Right
+// ROR
 //
 // Rotate One Bit Right (Memory or Accumulator)
 // 
@@ -1413,7 +1438,6 @@ bool P6502::RORExecHdlr()
 //
 bool P6502::RTIExecHdlr()
 {
-
 	uint8_t oStackPointer = mStackPointer;
 	uint8_t oStatusRegister = mStatusRegister;
 	uint16_t oProgramCounter = mProgramCounter;

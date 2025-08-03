@@ -28,12 +28,13 @@ public:
 	// Intrusive read of a device's memory that could trigger actions on the device's side
 	bool read(uint16_t adr, uint8_t& data) {
 		if (mSelectedDevice != NULL) return mSelectedDevice->read(adr, data);
-		return false;
+		data = 0xff; // Return success and a tri-state value if no device is currently selected
+		return true; //
 	}
 
 	bool write(uint16_t adr, uint8_t data) {
 		if (mSelectedDevice != NULL) return mSelectedDevice->write(adr, data);
-		return false;
+		return false; // Writing when no device is selected will always be an erroneous action
 	}
 
 	bool selected(uint16_t adr) {

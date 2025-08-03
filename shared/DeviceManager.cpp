@@ -905,7 +905,7 @@ bool DeviceManager::createMemoryMap()
 	// From memory proxes
 	for (int i = 0; i < mMemoryProxyDevices.size(); i++) {
 
-		MemoryMappedDevice* dev = mMemoryProxyDevices[i];
+		MemoryProxyDevice* dev = mMemoryProxyDevices[i];
 		vector<AddressSpace> dev_spaces = dev->getClaimedAddressSpace().getAddressSpaces();
 		for (int j = 0; j < dev_spaces.size(); j++) {
 			AddressSpace space = dev_spaces[j];
