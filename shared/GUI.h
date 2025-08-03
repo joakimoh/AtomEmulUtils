@@ -43,7 +43,8 @@ enum {
     SAVE_TAPE_ID,
 
     SPEED_ID,
-    SPEED_10_ID,
+    SPEED_1_ID,
+	SPEED_10_ID,
     SPEED_25_ID,
     SPEED_50_ID,
     SPEED_100_ID,
@@ -80,6 +81,7 @@ private:
 
 		ALLEGRO_START_OF_MENU("&Speed", SPEED_ID),
 			{ "Real-time",         SPEED_100_ID,           ALLEGRO_MENU_ITEM_CHECKED, NULL },
+			{ "1%",                SPEED_1_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 			{ "10%",               SPEED_10_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 			{ "25%",               SPEED_25_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 			{ "50%",               SPEED_50_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },

@@ -369,9 +369,23 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         break;
     }
 
+    case SPEED_1_ID:
+        if (mEmulationSpeed != NULL) {
+            *mEmulationSpeed = 0.1;
+            al_set_menu_item_flags(mMenu, SPEED_1_ID, ALLEGRO_MENU_ITEM_CHECKED);
+            al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_100_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_200_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_300_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_500_ID, 0);
+        }
+    break; 
     case SPEED_10_ID:
         if (mEmulationSpeed != NULL) {
             *mEmulationSpeed = 0.1;
+            al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_10_ID, ALLEGRO_MENU_ITEM_CHECKED);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
@@ -385,6 +399,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
     case SPEED_25_ID:
         if (mEmulationSpeed != NULL) {
             *mEmulationSpeed = 0.25;
+            al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, ALLEGRO_MENU_ITEM_CHECKED);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
@@ -398,6 +413,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
     case SPEED_50_ID:
         if (mEmulationSpeed != NULL) {
             *mEmulationSpeed = 0.5;
+            al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, ALLEGRO_MENU_ITEM_CHECKED);
@@ -411,6 +427,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
     case SPEED_100_ID:
         if (mEmulationSpeed != NULL) {
             *mEmulationSpeed = 1;
+            al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
@@ -424,6 +441,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
     case SPEED_200_ID:
         if (mEmulationSpeed != NULL) {
             *mEmulationSpeed = 2;
+            al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
@@ -437,6 +455,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
     case SPEED_300_ID:
         if (mEmulationSpeed != NULL) {
             *mEmulationSpeed = 3;
+            al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
@@ -450,6 +469,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
     case SPEED_500_ID:
         if (mEmulationSpeed != NULL) {
             *mEmulationSpeed = 5;
+            al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
