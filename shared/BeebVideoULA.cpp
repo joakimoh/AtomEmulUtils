@@ -548,31 +548,30 @@ bool BeebVideoULA::validateInternalState(uint8_t newControlRegisterValue)
 	//
 	// The Pixel Rate is given by the NCol field
 	//
-	// NCOL	Pixel Rate	BBC Model B Mode Examples
-	//	0	1 * CLK		N/A
-	//	1	2 * CLK		2. CLK = 2 => 4 MHz,	5:			CLK = 1 => 2 MHz
-	//	2	4 * CLK		1: CLK = 2 => 8 MHz,	4,6(,7):	CLK = 1 => 4 MHz
-	//	3	8 * CLK		0: CLK = 2  => 16 MHz,	3:			CLK = 1 => 8 MHz
+	// NCOL	Pixel Rate	BBC Model B Mode usage
+	//	0	2 MHz		-
+	//	1	4 MHz		Modes 2 and 5
+	//	2	8 MHz		Modes 1, 4 and 6
+	//	3	16 MHz		Modes 0 and 3
 	//
-	// The normalised rate (pixel rate / CLK rate) is the one of interest	
 	int pixel_rate = 1 << (getCRField(CR_N_COLS) + 1);
-	mNormalisedPixelRate = pixel_rate / mCRTC_CLK;
 
-	//mNCols = (1 << getCRField(CR_N_COLS)) * 10;
 
 	//
 	// The no of columns depends on the pixel rate and the no of active chars per row
 	//
-	// No of columns = 'active chars per row' x  'normalised pixel rate' / 8
+	// No of columns = 'active chars per row' x 'normalised pixel rate' / 8
+	// where 'normalised pixel rate' = 'pixel rate' / 'CRTC CLK rate'
 	//
 	//	Pixel Rate		Active Chars per row	CLK		Normalised pixel rate	No of columns	BBC Model B Mode Examples
 	//	16 MHz			80						2 MHz	8 per CLK				80				Modes 0, 3
-	//	8 MHz			80						2 MHz	4 per CLK				40				Modes 1 
+	//	8 MHz			80						2 MHz	4 per CLK				40				Mode 1 
 	//  8 MHz			40						1 MHz	8 per CLK				40				Modes 4, 6
 	//	4 MHz			80						2 MHz	2 per CLK				20				Mode 2
 	//	4 MHz			40						1 MHz	4 per CLK				20				Mode 5	
 	// 	4 MHz			64						2 MHz	2 per CLK				32				Example of a user-defined mode (common in games)
 	//
+	mNormalisedPixelRate = pixel_rate / mCRTC_CLK;
 	mNCols = getActiveCharsPerLine()  * mNormalisedPixelRate / 8;
 
 
