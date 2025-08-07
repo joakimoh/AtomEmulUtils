@@ -22,6 +22,10 @@ protected:
 	ALLEGRO_BITMAP* mDisplay = NULL;
 
 	int mScanLine = 0;
+	int pScanLine = 1;
+
+	int mField = 0;
+	int pField = 1;
 
 	VideoSettings mVideoSettings;
 

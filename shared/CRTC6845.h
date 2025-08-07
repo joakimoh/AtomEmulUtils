@@ -142,7 +142,6 @@ public:
 	int mCharCols_R0 = 1;
 	int mCharSkew_R8 = 0;
 	int mCursSkew_R8 = 0;
-	int mField = 0;
 #define _INTERLACE_MODE(x) ((x&1)==0?"Non - interlaced":((x&3)==3?"Interlaced & Video":"Interlaced"))
 	inline bool non_interlaced(int m) { return ((m & 0x1) == 0x0); }
 	inline bool interlaced(int m) { return ((m & 0x3) == 0x1); }

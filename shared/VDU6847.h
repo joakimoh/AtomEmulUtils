@@ -120,10 +120,8 @@ public:
 	ALLEGRO_LOCKED_REGION *mLockedDisplayBitMap;
 	ALLEGRO_STATE mAllegroState;
 
-	
-	int mField = 0;
 
-	// Base parameters
+	// Base parameters from the M6847 datasheet
 	const int mFieldScanLines = 262;							// No of scan lines per field
 	const int mScreenScanLines = 524;							// No of scan lines per frame
 	const int mFieldFreq = 60;									// Field frequency - 60 Hz for NTSC
@@ -132,32 +130,46 @@ public:
 	const double mTAV = 128 / mClockFreq;						// Duration of active horizontal area (excluding borders) [us]
 	const int mTVBlkH = 13 * 2;									// Vertical blanking [in scan lines]
 	const int mBVBlkH = 6 * 2;									//
-
-	// Calculated parameters (based on the base parameters)
 	const double mlineDur = (1e6 / mFieldFreq) / mFieldScanLines;	// Line duration - approximately 63.6 us for NTSC
 	const double mHalfCycleD = 1 / (mClockFreq * 2);			// Duration (in us) of one 1/2 cycle of the base frequency <=> one horizontal 'pixel'
 	const double mBrdH = mTAVB - mTAV;							// Duration of horizontal borders [us]
 	const double mHBlkDur = mlineDur - mTAVB;					// Horizontal blanking duration [us]
+	const double mFP = 0.137 * mHBlkDur;						// Horizontal front porch (end of right border until hz sync pulse starts)
+	const double mBP = mHBlkDur - mFP;							// Horizontal back porch (start of sync pulse until start of left border)
 
-	// Display regions
-	const int mPixelW = 2;										// Horizontal pixel width
-	const int mActScreenAreaW = 256 * mPixelW;					// Active visible screen area 256 x (192 * 2)
-	const int mActScreenAreaH = 192 * 2;
-	const int mTBrdH = 25 * 2;									// Top & Bottom (inactive but still) visible borders
-	const int mBBrdH = 26 * 2; 
-	const double mLBrdW = mBrdH / (2 * mHalfCycleD) * mPixelW;		// Left & Right (inactive but still) visible horizontal borders
-	const double mRBrdW = mBrdH / (2 * mHalfCycleD) * mPixelW;		// #pixels = duration / 1/2 cycle duration
-
-	const int mScreenW = (int)round(mLBrdW + mActScreenAreaW + mRBrdW);	// Visible area
-	const int mScreenH = (int)round(mTBrdH + mActScreenAreaH + mBBrdH);	//
+	// Vertical displayed and border lines
+	const int mBasePixelW = 2;										// Horizontal pixel width for rendering
+	const int mDisplayedLines = 192 * 2;							//
+	const int mTopBorderLines = 25 * 2;								// Top & Bottom borders
+	const int mBottomBorderLines = 26 * 2;							//
+	const int mBorderLines = mTopBorderLines + mBottomBorderLines;
+	const int mBlankingLines = mScreenScanLines - mBorderLines - mDisplayedLines;
+	const int mTopBlankingLines = mTVBlkH;
+	const int mBottomBlankingLines = mBlankingLines - mTopBlankingLines;
 	
-	const double mLineW = mlineDur / (mHalfCycleD) *mPixelW;	// Total line width in 'pixels'
-	const double mLBlkW = (mLineW - mScreenW) / 2;			// Left invisible part of a line in 'pixels'
-	const double mRBlkW = (mLineW - mScreenW) / 2;			// Right invisible part of a line in 'pixels'
-										
-	const int mTotalH = mTVBlkH + mScreenH + mBVBlkH;		// Total display height (in scan lines) including invisible vertical blanking
-																// - should equal mScreenScanLines
-	const int mTotalW = (int)round(mLBlkW + mScreenW + mRBlkW);	// Total display width including invisible horizontal blanking
+
+	// Horizontal displayed, border and blanking pixels
+	const int mHzDisplayedPixels = 256 * mBasePixelW;
+	const int mHzBlankingPixels = (int)round(mHBlkDur / mHalfCycleD * mBasePixelW);
+	const int mHzBorderPixels = (int)round(mBrdH / (mHalfCycleD) * mBasePixelW);
+	const int mHzPixels = mHzBlankingPixels + mHzBorderPixels + mHzDisplayedPixels;
+	const int mHzLeftBorderPixels = mHzBorderPixels / 2;
+	const int mHzRightBorderPixels = mHzBorderPixels - mHzLeftBorderPixels;	
+	const int mHzLeftBlankingPixels = (int)round(mBP / mHalfCycleD * mBasePixelW);
+	const int mHzRightBlankingPixels = mHzBlankingPixels - mHzLeftBlankingPixels;
+
+	// Visible pixels
+	const int mScreenW = mHzDisplayedPixels + mHzBorderPixels;	// Visible area
+	const int mScreenH = mDisplayedLines + mBorderLines;	//
+
+	// Ranges (positions) for visible and displayed horizontal pixels
+	int mVisiblePixelsStart = mHzLeftBlankingPixels;
+	int mVisiblePixelsEnd = mVisiblePixelsStart + mScreenW;
+	int mDisplayedPixelsStart = mVisiblePixelsStart + mHzLeftBorderPixels;
+	int mDisplayedPixelsEnd = mDisplayedPixelsStart + mHzDisplayedPixels;
+
+
+	unsigned int* mBitmapDataP = NULL;
 
 	uint32_t mColours[2][4] = {
 						{
@@ -175,6 +187,37 @@ public:
 	};
 
 	bool readGraphicsMem(uint16_t adr, uint8_t& data);
+
+	int mLineRenderedPixels = 0;
+	int pPixelClockCycles = 1;
+
+	int mCycleCountLineRef = 0; // Save the CPU cycle count when a new line starts
+
+	int mBytesPerLine = 1;
+	int mPixelWidth = 1;
+	int mPixelHeight = 1;
+	int mBigPixelLine = 1;
+	int mPixelsPerByte = 8;
+	int mRenderedPixelsPerByte = 8;
+	int mShiftsPerByte = 1;
+	uint32_t mPixelColour = 0xff000000;
+	void calcGraphicModeSettings();
+
+	int mAdjustedScanLine = 0;
+	int mDisplayedLine = 0;
+	int mAdjustedDisplayedLine = 0;
+	int mVisibleLine = 0;
+	int mAdjustedVisibleLine = 0;
+	int mPixelByte = 0;
+	void calcLineSettings();
+
+	uint32_t calcGraphicModePixelColour(uint8_t pixelData);
+	uint32_t calcSemiGraphicModePixelColour(uint8_t colourSelector, uint8_t pixelData);
+
+	bool advanceChar(uint64_t& endCycle);
+
+	int mRenderedPixels = 0;
+	void drawPartialBorder(int borderStartPixel, int borderWidth);
 
 public:
 
@@ -196,15 +239,15 @@ public:
 	int getHorizontalSyncPos() { return 0; }
 	int getCharsPerLine() { return 32; }
 	int getScreenScanLine() { return mScanLine; }
-	int getLeftBorderChars() { return mLBrdW / 8; }
-	int getTopBorderLines() { return mTBrdH; }
-	int getActiveCharsPerLine() { return mActScreenAreaW/8; }
-	int getActiveLines() { return mActScreenAreaH; }
-	int getActiveCharRows() { return mActScreenAreaH / 8; }
-	int getRightBorderChars() { return mRBrdW / 8; }
-	int getBottomBorderLines() { return mBBrdH; }
-	int getRetraceLines() { return mTVBlkH + mBVBlkH; }
-	int getRetraceChars() { return mLBlkW + mRBlkW; }
+	int getLeftBorderChars() { return mHzLeftBorderPixels / 8; }
+	int getTopBorderLines() { return mTopBorderLines; }
+	int getActiveCharsPerLine() { return mHzDisplayedPixels / 8; }
+	int getActiveLines() { return mDisplayedLines; }
+	int getActiveCharRows() { return mDisplayedLines / 8; }
+	int getRightBorderChars() { return mHzRightBorderPixels / 8; }
+	int getBottomBorderLines() { return mBottomBorderLines; }
+	int getRetraceLines() { return mBlankingLines; }
+	int getRetraceChars() { return mHzBlankingPixels; }
 	int getScreenScanLines() { return 524;  }
 
 	//
@@ -238,6 +281,8 @@ public:
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;
+
+	void processPortUpdate(int index);
 
 };
 

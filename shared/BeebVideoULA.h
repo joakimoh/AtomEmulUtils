@@ -86,7 +86,6 @@ public:
 
 	int mScanLine = 0;			// Current scan line
 	int mScreenScanLines = 312;		// Scan lines per field
-	int mField = 0;				// Field count
 	int mNCols = 0;				// No of visible columns
 	int mCursorSegment = -1;	// The current cursor segment being drawn (0-2 when active)
 	int mVerticalSyncPos = 0;	// Vertical sync pos (in scan lines)
