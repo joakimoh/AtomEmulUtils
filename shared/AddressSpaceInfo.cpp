@@ -1,4 +1,8 @@
 #include "AddressSpaceInfo.h"
+#include <string>
+#include "Utility.h"
+
+using namespace std;
 
 
 AddressSpace::AddressSpace(uint16_t adr, uint16_t sz) : mAdr(adr), mSz(sz)
@@ -35,6 +39,12 @@ ostream& operator<<(ostream& sout, const AddressSpace& space)
 	return  sout;
 }
 
+string& operator+(string& sout, const AddressSpace& space)
+{
+	sout += "[0x" + Utility::int2HexStr(space.mAdr,4) + ",0x" + Utility::int2HexStr(space.mAdr + space.mSz - 1, 4) + "]";
+	return  sout;
+}
+
 AddressSpaceInfo::AddressSpaceInfo(uint16_t adr, uint16_t sz)
 {
 	mSpaces.push_back(AddressSpace(adr, sz));
@@ -50,6 +60,19 @@ ostream& operator<<(ostream& sout, const AddressSpaceInfo& spaceInfo)
 	}
 	return  sout;
 }
+
+string& operator+(string& sout, const AddressSpaceInfo& spaceInfo)
+{
+
+	for (int i = 0; i < spaceInfo.mSpaces.size(); i++) {
+		if (i > 0)
+			sout += ", ";
+		sout = sout + spaceInfo.mSpaces[i];
+	}
+	return  sout;
+}
+
+
 
 bool AddressSpaceInfo::addGap(uint16_t adr, uint16_t sz)
 {

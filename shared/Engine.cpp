@@ -96,9 +96,8 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
         sample_rate,          // audio sample rate corresponding to a rate of at least twice per scan line
         mAllegroDisplay, allegro_display_bitmap, video_settings->getVideoResolution(),
         mDM, program, data, connection_manager, mMicroprocessor, mVDU, mSoundDevice,
-        mFieldScheduledDevices, mHalfLineScheduledDevices, mInstrScheduledDevices,
-        mSpeedFactor
-
+        mEmulationPeriodScheduledDevices, mSubRateScheduledDevices, mInstrScheduledDevices,
+        mSpeedFactor, mEmulationBaseRate, mSubEmulationRate
     );
     if (!mDM->setDevices(mDevices)) {
         cout << "Failed to initialise debug manager with device info!\n";
@@ -121,9 +120,9 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
     mGUI = new GUI(this, mQueue, mAllegroDisplay, mDevices, &mSpeedFactor, mDM, mOutDir);
 
     // Setup emulation timer
-    mfieldTimer = al_create_timer(1.0 / mFieldRate / mSpeedFactor);
-    al_register_event_source(mQueue, al_get_timer_event_source(mfieldTimer));
-    al_start_timer(mfieldTimer);
+    mEmulationTimer = al_create_timer(1.0 / mEmulationBaseRate / mSpeedFactor);
+    al_register_event_source(mQueue, al_get_timer_event_source(mEmulationTimer));
+    al_start_timer(mEmulationTimer);
 
     // Create mutex for debug purpose
     mutex mExecMutex;
@@ -133,10 +132,10 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
 Engine::~Engine()
 {
 
-    if (mfieldTimer != NULL) {
-        al_stop_timer(mfieldTimer);
-        al_unregister_event_source(mQueue, al_get_timer_event_source(mfieldTimer));
-        al_destroy_timer(mfieldTimer);
+    if (mEmulationTimer != NULL) {
+        al_stop_timer(mEmulationTimer);
+        al_unregister_event_source(mQueue, al_get_timer_event_source(mEmulationTimer));
+        al_destroy_timer(mEmulationTimer);
     }
     al_uninstall_audio();
 
@@ -156,249 +155,81 @@ Engine::~Engine()
 
 bool Engine::run()
 {
-    ALLEGRO_KEYBOARD_STATE keyboard_state;
 
-    int field_cnt = 0;
-    bool key_pressed = false;
-    int field_cycle_count = 0;
-    int p_cycle_count = 0;
-    double line_count = 0;
-    double p_line_count = 0;
-    double lines_per_field = 0;
-    double p_speed_factor = mSpeedFactor;
     ALLEGRO_EVENT event;
+
+    // Duration of one emulation period in CPU cycles.
+    int CPU_cycles_base_rate = (int)round(mCPUClock * 1e6 / mEmulationBaseRate);
+
+    // Duration of one emulation period in CPU cycles.
+    int CPU_cycle_sub_rate = (int)round(mCPUClock * 1e6 / mSubEmulationRate);
+
     /*
-    int field_time = 0;
-    int field_time_count[25] = { 0 };
-    int half_line_time_count[25] = { 0 };
-    int instr_time_count[25] = { 0 };
-    int uc_time_count = 0;
-    int vdu_time_count = 0;
+    cout << "CPU Rate:  " << mCPUClock << " MHz\n";
+    cout << "Base Rate: " << mEmulationBaseRate << " <=> " << CPU_cycles_base_rate << " CPU Cycles\n";
+    cout << "Sub Rate:  " << mSubEmulationRate << " <=> " << CPU_cycle_sub_rate << " CPU Cycles\n";
+
+    for (int i = 0; i < mEmulationPeriodScheduledDevices.size(); i++)
+        cout << "BASE  " << mEmulationPeriodScheduledDevices[i]->name << "\n";
+
+    for (int i = 0; i < mSubRateScheduledDevices.size(); i++)
+        cout << "SUB   " << mSubRateScheduledDevices[i]->name << "\n";
+
+    for (int i = 0; i < mInstrScheduledDevices.size(); i++)
+        cout << "INSTR " << mInstrScheduledDevices[i]->name << "\n";
     */
 
     while (!mQuit)
     {
-        /*
-        if (field_time % (int) round(mFieldRate * mSpeedFactor) == 0) {
-            cout << dec << "\n";
-            int time_count = 0;
-            for (int i = 0; i < mFieldScheduledDevices.size(); i++) {
-                cout << setw(10) << "FIELD " << setw(15) << mFieldScheduledDevices[i]->name << ": " << field_time_count[i] / 1e6 << " ms\n";
-                time_count += field_time_count[i];
-                field_time_count[i] = 0;
-            }
-            cout << setw(10) << "LINE " << setw(15) << mVDU->name << ": " << vdu_time_count / 1e6 << " ms\n";
-            time_count += vdu_time_count;
-            vdu_time_count = 0;
-            for (int i = 0; i < mHalfLineScheduledDevices.size(); i++) {
-                cout << setw(10) << "1/2 LINE " << setw(15) << mHalfLineScheduledDevices[i]->name << ": " << half_line_time_count[i] / 1e6 << " ms\n";
-                time_count += half_line_time_count[i];
-                half_line_time_count[i] = 0;
-            }
-            cout << setw(10) << "INSTR " << setw(15) << mMicroprocessor->name << ": " << uc_time_count / 1e6 << " ms\n";
-            time_count += uc_time_count;
-            uc_time_count = 0;
-            for (int i = 0; i < mInstrScheduledDevices.size(); i++) {
-                cout << setw(10) << "INSTR " << setw(15) << mInstrScheduledDevices[i]->name << ": " << instr_time_count[i] / 1e6 << " ms\n";
-                time_count += instr_time_count[i];
-                instr_time_count[i] = 0;
-            }
-            cout << setw(27) << "TOTAL: " << time_count / 1e6 << " ms\n";
-        }
-        */
         if (mState != ENG_HALT) {
 
-            int p_field_rate = mFieldRate;
-            double field_rate_d = mVDU->getFieldRate();
-            mFieldRate = (int)round(field_rate_d);
+            checkForSpeedChange();
 
-            //
-            // Update field timer and sound timing when either the field rate or the emulation speed is updated
-            //
-            if (p_speed_factor != mSpeedFactor || (mFieldRate != p_field_rate && mFieldRate > 10)) {
-                p_field_rate = mFieldRate;
-                p_speed_factor = mSpeedFactor;
-                if (mfieldTimer != NULL) {
-                    al_stop_timer(mfieldTimer);
-                    al_unregister_event_source(mQueue, al_get_timer_event_source(mfieldTimer));
-                    al_destroy_timer(mfieldTimer);
-                    mfieldTimer = NULL;
-                }
-                mfieldTimer = al_create_timer(1.0 / (mFieldRate * mSpeedFactor));
-                al_register_event_source(mQueue, al_get_timer_event_source(mfieldTimer));
-                al_start_timer(mfieldTimer);
+            // Advance time for each device that is scheduled on emulation period basis
+            for (int i = 0; i < mEmulationPeriodScheduledDevices.size(); i++)
+                mEmulationPeriodScheduledDevices[i]->advance(mCycleCount + CPU_cycles_base_rate);
 
-                if (mSoundDevice != NULL)
-                    mSoundDevice->setFieldRate(mFieldRate, mSpeedFactor);
-                /*
-                if (mSpeedFactor > 1)
-                    mVDU->setSkipFields((int)round(mSpeedFactor));
-                else
-                    mVDU->setSkipFields(1);
-                */
-            }
+            // update devices scheduled on instruction and sub rate basis for the emulation period
+            uint64_t end_cycle = mCycleCount + CPU_cycles_base_rate;
+            while (mCycleCount < end_cycle) {
 
+                // Acquire execution mutex
+                mExecMutex.lock();
 
-            // Get field duration (in CPU cycles).
-            // Required for the cases these parameters are not hard-coded but can be reconfigured by
-            // the software.
-            int cycles_per_field = (int)round(mCPUClock * 1e6 / field_rate_d);
+                if (mState != ENG_HALT && mState != ENG_BRK_DET) {
 
-            // Advance time for each device that is scheduled on field basis
-            for (int i = 0; i < mFieldScheduledDevices.size(); i++) {
-                //auto start = std::chrono::steady_clock::now();
-                mFieldScheduledDevices[i]->advance(mCycleCount + cycles_per_field);
-                //auto end = std::chrono::steady_clock::now();
-                //field_time_count[i] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-            }
+                    // Remember the return address for a potential JSR instruction
+                    mCPURetAdr = mMicroprocessor->getPC() + 3;
 
-            //
-            // Advance time one field scan line at a time until a complete field has been scanned
-            // 
-            // For interlaced modes, only every second scan line will be processed...
-            //
-            bool end_of_field = false;
-            bool add_half_line = false;
-            //cout << "\n\n*** START OF FIELD\n";
-            while (!end_of_field) {
-                int screen_scan_line = mVDU->getScreenScanLine();
-                int field = mVDU->fieldScanLineOffset();
-                int active_lines = mVDU->getActiveLines();
-                int adjusted_scanline = screen_scan_line - field;
-                int n_screen_scan_lines = mVDU->getScreenScanLines();
-                bool interlaced_mode = mVDU->interlaceOn();
-
-                // Scan one field screen scan line and save time passed in target cycle count to be used as reference
-                // target time for the 6502 and the other devices (PIA, VIA, Sound, Tape Recorder, RAM & ROM). This
-                // is required to keep execution synchronised with the field updating.
-                uint64_t target_cycle_count;
-                uint64_t start_count = mCycleCount;
-
-                // Advance time for the VDU corresponding to one scan line (1/2 scan line if it is the last line and interlace is enabled)
-                //auto start = std::chrono::steady_clock::now();
-                if (interlaced_mode && add_half_line) {
-                    mVDU->advanceHalfLine(target_cycle_count);
-                    line_count += 0.5;
-                    end_of_field = true;
-                }
-                else {
-                    mVDU->advanceLine(target_cycle_count);
-                    line_count++;        
-                }
-                //auto end = std::chrono::steady_clock::now();
-                //vdu_time_count += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-
-                uint64_t half_line_step = (target_cycle_count - start_count) / 2;
-                uint64_t start_target_cnt = start_count + half_line_step;
-                for (int half_line = 0; half_line < 2; half_line++) {
-                    uint64_t half_line_target = start_target_cnt + half_line_step * half_line;
-
-                    // update devices scheduled on half line basis
-                    for (int i = 0; i < mHalfLineScheduledDevices.size(); i++) {
-                        //auto start = std::chrono::steady_clock::now();
-                        mHalfLineScheduledDevices[i]->advance(half_line_target);
-                        //auto end = std::chrono::steady_clock::now();
-                        //half_line_time_count[i] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-                    }
-
-                    // update devices scheduled on instruction basis in a tight loop
-                    while (mCycleCount < half_line_target) {
-
-                        // Acquire execution mutex
-                        mExecMutex.lock();
-
-                        if (mState != ENG_HALT && mState != ENG_BRK_DET) {
-
-                            // Remember the return address for a potential JSR instruction
-                            uint16_t ret_adr = mMicroprocessor->getPC() + 3;
-
-                            // Execute one microprocessor instruction and advance time accordingly (mCycleCount updated)
-                            //auto start = std::chrono::steady_clock::now();
-                            if (!mMicroprocessor->advanceInstr(mCycleCount)) {
-                                // Execution stopped - exit
-                                mExecMutex.unlock();
-                                return 0;
-                            }
-                            //auto end = std::chrono::steady_clock::now();
-                            //uc_time_count += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-
-                            // Advance time for each device scheduled on instruction basis so that it matches the time
-                            // of the microprocessor.
-                            for (int d = 0; d < mInstrScheduledDevices.size(); d++) {
-                                //auto start = std::chrono::steady_clock::now();
-                                mInstrScheduledDevices[d]->advance(mCycleCount);
-                                //auto end = std::chrono::steady_clock::now();
-                                //instr_time_count[d] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-                            }
-
-                            // If a break point has been set and is triggered, then save instruction data and change the break point state
-                            // to triggered (ENG_BRK_DET). Another thread (a Debugger thread calling setBreakPointAndWait()) will
-                            // then stop its wait and use the saved instruction data.u65
-                            uint8_t read_data, written_data;
-                            bool read_adr_triggered = mMicroprocessor->readAdr(read_data) == mBreakAdr;
-                            bool written_adr_triggered = mMicroprocessor->writtenAdr(written_data) == mBreakAdr;
-                            uint16_t opcode_adr_triggered = mMicroprocessor->getPC() == mBreakAdr;     
-                            bool was_JSR = mMicroprocessor->getOpcode() == P6502_JSR_OPCODE;
-                            if (
-                                mState == ENG_X_BRK_WAIT && opcode_adr_triggered
-                                ) {
-                                mState = ENG_BRK_DET;
-                                mReadData = 0x0;
-                                mWrittenData = 0x0;
-                                mOperandAddress = 0x0;
-                            }
-                            else if (
-                                read_adr_triggered && (
-                                    mState == ENG_R_BRK_WAIT || mState == ENG_RW_BRK_WAIT ||
-                                    (mState == ENG_R_V_BRK_WAIT || mState == ENG_RW_V_BRK_WAIT) && read_data == mReadData
-                                    ) ||
-                                written_adr_triggered && (
-                                    mState == ENG_W_BRK_WAIT || mState == ENG_RW_BRK_WAIT ||
-                                    (mState == ENG_W_V_BRK_WAIT || mState == ENG_RW_V_BRK_WAIT) && written_data == mWrittenData
-                                )
-                            ) {
-                                mState = ENG_BRK_DET;
-                                mReadData = read_data;
-                                mWrittenData = written_data;
-                                mOperandAddress = mMicroprocessor->operandAddress();
-                            }
-
-                            if (mState == ENG_STEP) {
-                                if (mSteps == 1)
-                                    mState = ENG_HALT;
-                                else
-                                    mSteps--;
-                            }
-                            else if (mState == ENG_STEP_OVER) {
-                                if (was_JSR) {
-                                    mState = ENG_WAIT_ON_RET;
-                                    mRetAdr = ret_adr;
-                                } else
-                                    mState = ENG_HALT;
-                            }
-                            else if (mState == ENG_WAIT_ON_RET && mMicroprocessor->getPC() == mRetAdr) {
-                                mState = ENG_HALT;
-                            }
-                        }
-
-                        // Release execution mutex
+                    // Execute one microprocessor instruction and advance time accordingly (mCycleCount updated)
+                    uint64_t p_cycle_count = mCycleCount;
+                    if (!mMicroprocessor->advanceInstr(mCycleCount)) {
+                        // Execution stopped - exit
                         mExecMutex.unlock();
+                        return 0;
                     }
+
+                    // Advance time for each device scheduled on instruction basis so that it matches the time
+                    // of the microprocessor.
+                    for (int d = 0; d < mInstrScheduledDevices.size(); d++)
+                        mInstrScheduledDevices[d]->advance(mCycleCount);
+
+                    // Update devices scheduled on sub rate basis
+                    if (mCycleCount % CPU_cycle_sub_rate < p_cycle_count % CPU_cycle_sub_rate) {
+                        for (int i = 0; i < mSubRateScheduledDevices.size(); i++)
+                            mSubRateScheduledDevices[i]->advance(mCycleCount);
+                    }
+
+                    // Check whether a breakpoint has been reached or not and take action if it has been reached
+                    checkForBreakPoint();
                 }
 
-                // Check for end of field
-                if (interlaced_mode && adjusted_scanline == n_screen_scan_lines - 2) {
-                    add_half_line = true;
-                }
-                else if (!interlaced_mode && adjusted_scanline == n_screen_scan_lines - 2) {
-                    end_of_field = true;
-                }
+                // Release execution mutex
+                mExecMutex.unlock();
+
+ 
 
             }
-
-
-            field_cnt = (field_cnt + 1) % mFieldRate;
-            //field_time++;
 
         }
 
@@ -429,55 +260,129 @@ bool Engine::run()
 
         }
 
-        //
-        // Check for user key input
-        //
-
-        // Get keyboard state
-        al_get_keyboard_state(&keyboard_state);
-
-        if (!key_pressed ) {
-
-            // Start microprocessor debugging (tracing) if user presses <CTRL-D>
-            if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_D)) {
-                toggleTracing(DBG_6502);
-                key_pressed = true;
-
-            }
-
-            // Arm the delayed triggering-based debugging (tracing) if user presses <CTRL-T>
-            // Debugging starts after the user has pressed <CTRl-T> and the specified triggering condition is met
-            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_T)) {
-                mDM->armTriggering();
-                key_pressed = true;
-            }
-
-            // Start/stop video display unit tracing if user presses <CTRL-V>
-            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_V)) {     
-                toggleTracing(DBG_VDU);
-                key_pressed = true;
-            }
-
-            // Stop any ongoing continuous debugger tracing if user presses <CTRL-B>
-            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_B)) {
-                mDM->disableBuffering();
-                mRecurringTracing = false;
-                key_pressed = true;
-            }
-        }
-        else {
-            if (!al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) &&
-                !al_key_down(&keyboard_state, ALLEGRO_KEY_D) &&
-                !al_key_down(&keyboard_state, ALLEGRO_KEY_T) &&
-                !al_key_down(&keyboard_state, ALLEGRO_KEY_V) &&
-                !al_key_down(&keyboard_state, ALLEGRO_KEY_B)
-            )
-                key_pressed = false;
-        }
-
+        // Check for
+        checkForUserInput();
     }
 
     return true;
+}
+
+// If a break point has been set and is triggered, then save instruction data and change the break point state
+// to triggered (ENG_BRK_DET). Another thread (a Debugger thread calling setBreakPointAndWait()) will
+// then stop its wait and use the saved instruction data.u65
+void Engine::checkForBreakPoint()
+{
+    uint8_t read_data, written_data;
+    bool read_adr_triggered = mMicroprocessor->readAdr(read_data) == mBreakAdr;
+    bool written_adr_triggered = mMicroprocessor->writtenAdr(written_data) == mBreakAdr;
+    uint16_t opcode_adr_triggered = mMicroprocessor->getPC() == mBreakAdr;
+    bool was_JSR = mMicroprocessor->getOpcode() == P6502_JSR_OPCODE;
+    if (
+        mState == ENG_X_BRK_WAIT && opcode_adr_triggered
+        ) {
+        mState = ENG_BRK_DET;
+        mReadData = 0x0;
+        mWrittenData = 0x0;
+        mOperandAddress = 0x0;
+    }
+    else if (
+        read_adr_triggered && (
+            mState == ENG_R_BRK_WAIT || mState == ENG_RW_BRK_WAIT ||
+            (mState == ENG_R_V_BRK_WAIT || mState == ENG_RW_V_BRK_WAIT) && read_data == mReadData
+            ) ||
+        written_adr_triggered && (
+            mState == ENG_W_BRK_WAIT || mState == ENG_RW_BRK_WAIT ||
+            (mState == ENG_W_V_BRK_WAIT || mState == ENG_RW_V_BRK_WAIT) && written_data == mWrittenData
+            )
+        ) {
+        mState = ENG_BRK_DET;
+        mReadData = read_data;
+        mWrittenData = written_data;
+        mOperandAddress = mMicroprocessor->operandAddress();
+    }
+
+    if (mState == ENG_STEP) {
+        if (mSteps == 1)
+            mState = ENG_HALT;
+        else
+            mSteps--;
+    }
+    else if (mState == ENG_STEP_OVER) {
+        if (was_JSR) {
+            mState = ENG_WAIT_ON_RET;
+            mRetAdr = mCPURetAdr;
+        }
+        else
+            mState = ENG_HALT;
+    }
+    else if (mState == ENG_WAIT_ON_RET && mMicroprocessor->getPC() == mRetAdr) {
+        mState = ENG_HALT;
+    }
+
+}
+
+//
+// Update emulation timer and sound timing when the emulation speed is updated
+//
+void Engine::checkForSpeedChange()
+{
+    if (mSpeedFactor != pSpeedFactor) {
+        mSpeedFactor = mSpeedFactor;
+        al_stop_timer(mEmulationTimer);
+        al_set_timer_speed(mEmulationTimer, 1.0 / mEmulationBaseRate / mSpeedFactor);
+        al_start_timer(mEmulationTimer);
+        if (mSoundDevice != NULL)
+            mSoundDevice->setFieldRate(mEmulationBaseRate, mSpeedFactor);
+    }
+    pSpeedFactor = mSpeedFactor;
+}
+
+// Check for user key input
+void Engine::checkForUserInput()
+{
+    ALLEGRO_KEYBOARD_STATE keyboard_state;
+
+    // Get keyboard state
+    al_get_keyboard_state(&keyboard_state);
+
+    if (!mKeyPressed) {
+
+        // Start microprocessor debugging (tracing) if user presses <CTRL-D>
+        if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_D)) {
+            toggleTracing(DBG_6502);
+            mKeyPressed = true;
+
+        }
+
+        // Arm the delayed triggering-based debugging (tracing) if user presses <CTRL-T>
+        // Debugging starts after the user has pressed <CTRl-T> and the specified triggering condition is met
+        else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_T)) {
+            mDM->armTriggering();
+            mKeyPressed = true;
+        }
+
+        // Start/stop video display unit tracing if user presses <CTRL-V>
+        else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_V)) {
+            toggleTracing(DBG_VDU);
+            mKeyPressed = true;
+        }
+
+        // Stop any ongoing continuous debugger tracing if user presses <CTRL-B>
+        else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_B)) {
+            mDM->disableBuffering();
+            mRecurringTracing = false;
+            mKeyPressed = true;
+        }
+    }
+    else {
+        if (!al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) &&
+            !al_key_down(&keyboard_state, ALLEGRO_KEY_D) &&
+            !al_key_down(&keyboard_state, ALLEGRO_KEY_T) &&
+            !al_key_down(&keyboard_state, ALLEGRO_KEY_V) &&
+            !al_key_down(&keyboard_state, ALLEGRO_KEY_B)
+            )
+            mKeyPressed = false;
+    }
 }
 
 bool Engine::toggleTracing(DebugLevel level)

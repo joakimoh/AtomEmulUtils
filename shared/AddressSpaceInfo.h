@@ -24,6 +24,8 @@ public:
 	}
 
 	friend ostream& operator<<(ostream& sout, const AddressSpace& space);
+	friend string& operator+(string& sout, const AddressSpace& space);
+
 
 	bool contains(uint16_t adr);
 	bool contains(AddressSpace& space);
@@ -48,7 +50,8 @@ public:
 	bool operator==(AddressSpaceInfo& memSpace);
 	bool operator!=(AddressSpaceInfo& memSpace);
 
-	friend ostream& operator<<(ostream& sout, const AddressSpaceInfo& space);
+	friend ostream& operator<<(ostream& sout, const AddressSpaceInfo& spaceInfo);
+	friend string& operator+(string& sout, const AddressSpaceInfo& spaceInfo);
 
 	bool contains(uint16_t adr);
 	bool contains(AddressSpace& space);

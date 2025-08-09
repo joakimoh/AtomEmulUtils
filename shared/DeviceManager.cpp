@@ -78,8 +78,9 @@ DeviceManager::DeviceManager(
 	VideoSettings videoSettings,
 	string memMapFile, double& cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, Resolution disRes, DebugManager* debugManager,
 	Program program, Program data, ConnectionManager& connection_manager, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device,
-	vector<Device*>& fieldScheduledDevices, vector<Device*>& halflineScheduledDevices, vector<Device*>& instrScheduledDevices,
-	double speed) :mDM(debugManager), mCM(&connection_manager)
+	vector<Device*>& baseRateScheduledDevices, vector<Device*>& subRateScheduledDevices, vector<Device*>& instructionRateScheduledDevices,
+	double speed, double& baseSchedulingRate, double& subSchedulingRate
+) : mDM(debugManager), mCM(&connection_manager)
 {
 
 	mDevicesByAddress.resize(64 * 1024);
@@ -484,14 +485,14 @@ DeviceManager::DeviceManager(
 					throw runtime_error("Syntax error");
 				}
 				sin >> sch_s;
-				if (sch_s == "FIELD") {
-					sch_dev->scheduling = FIELD;
+				if (sch_s == "BASE_RATE") {
+					sch_dev->scheduling = BASE_RATE;
 				}
-				else if (sch_s == "HLINE") {
-					sch_dev->scheduling = HLINE;
+				else if (sch_s == "SUB_RATE") {
+					sch_dev->scheduling = SUB_RATE;
 				}
-				else if (sch_s == "INSTR") {
-					sch_dev->scheduling = INSTR;
+				else if (sch_s == "INSTR_RATE") {
+					sch_dev->scheduling = INSTR_RATE;
 				}
 				else if (sch_s == "NONE")
 					sch_dev->scheduling = NONE;
@@ -499,6 +500,12 @@ DeviceManager::DeviceManager(
 					cout << "Invalid scheduling '" << sch_s << "' policy at line " << dec << line_no << ":\n\t" << line << "\n";
 					throw runtime_error("Syntax error");
 				}
+			}
+			else if (cmd == "EMU_BASE_RATE") {
+				sin >> baseSchedulingRate;
+			}
+			else if (cmd == "EMU_SUB_RATE") {
+				sin >> subSchedulingRate;
 			}
 			else if (cmd == "INIT") {
 				string dst_port_s;
@@ -526,7 +533,7 @@ DeviceManager::DeviceManager(
 			}
 		}
 		catch (...) {
-			cout << "Error found at line " << dec << line_no << "of the memory map file:\n\t" << line << "\n";
+			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
 			throw runtime_error("Syntax error");
 		}
 
@@ -594,14 +601,15 @@ DeviceManager::DeviceManager(
 		Device* d = mDevices[i];
 		d->power();
 		d->updatePorts();
-		if (d->category == MICROROCESSOR_DEVICE || d->category == VDU_DEVICE || d->category == MEMORY_DEVICE)
+		if (d->category == MICROROCESSOR_DEVICE || d->category == MEMORY_DEVICE) {
 			continue;
-		else if (d->scheduling == INSTR)
-			instrScheduledDevices.push_back(d);
-		else if (d->scheduling == HLINE)
-			halflineScheduledDevices.push_back(d);
-		else if (d->scheduling == FIELD)
-			fieldScheduledDevices.push_back(d);
+		}
+		else if (d->scheduling == INSTR_RATE)
+			instructionRateScheduledDevices.push_back(d);
+		else if (d->scheduling == SUB_RATE)
+			subRateScheduledDevices.push_back(d);
+		else if (d->scheduling == BASE_RATE)
+			baseRateScheduledDevices.push_back(d);
 		if (DBG_LEVEL(DBG_VERBOSE))
 			cout << d->name << " scheduled on " << _SCHEDULING(d->scheduling) << " basis\n";
 	}

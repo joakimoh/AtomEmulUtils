@@ -17,8 +17,6 @@ class BeebVideoULA : public VideoDisplayUnit {
 
 private:
 
-	void updateScreenSz(int fullW, int fullH, int activeW, int activeH);
-
 	int mDispUsCnt = 0;
 	int mPreludeUsCnt = 0;
 	int mVideoULACnt = 0;
@@ -28,8 +26,6 @@ private:
 	int mBorderCnt = 0;
 	int mReadCnt = 0;
 	int mLineCnt = 0;
-
-	int mActiveLines = 200; // dummy init value
 
 	BITMAP_PTR mMaxDisplayBitmap_p = NULL;
 
@@ -43,6 +39,8 @@ public:
 
 	// Video ULA Ports
 	int DISPTMG, CURSOR, INV, RA, HS, VS, CRTC_CLK, C;// SCROLL_CTRL;
+	uint8_t mVS = 0x0;
+	uint8_t mHS = 0x0;
 	//uint8_t mSCROLL_CTRL = 0x0;		// INPUT - C0 & C1 selected by VIA PB Port <=> decides hardware scroll address
 	uint8_t mC = 0x0;		// C1:C0 - set based on SCROLL_CTRL input
 	uint8_t mCRTC_CLK = 1;	// OUTPUT - Clock to CRTC M6845 (1 or 2 MHz)
@@ -85,20 +83,53 @@ public:
 	ALLEGRO_STATE mAllegroState;
 
 	int mScanLine = 0;			// Current scan line
-	int mScreenScanLines = 312;		// Scan lines per field
-	int mNCols = 0;				// No of visible columns
+	int mScreenScanLines = 312;	// Scan lines per field
 	int mCursorSegment = -1;	// The current cursor segment being drawn (0-2 when active)
 	int mVerticalSyncPos = 0;	// Vertical sync pos (in scan lines)
 	int mScreenW = 640;			// Visible screen area (including borders)
 	int mScreenH = 256;			//
 
 	uint8_t mPixelW = 1;
-	int mNormalisedPixelRate = 1;
 	int mPixelsPerCharacter = 8;	// The no of "big" pixels per byte for modes 0-6 (8 for 2-colour, 4 for 4-colour and 2 for 6-colour)
 	int mHzPixelsPerSymbol = 8;		// The no of horizontal screen pixels per symbol (8 for mode 0-6, 16 for mode 7)
-	int mVtPixelsPerRow = 8;		// The no of vertical screen pixels per character row (8 for modes 0-2,4-5, 10 for modes 3 and 6, 20 for mode 7)
+	int mHzChars = 0;
+	int mHzVisibleChars = 0;
+	int mHzVisiblePixels = 0;
+	int mHzNonCharVisiblePixels = 0;
 
+	bool mTeletextEnabled = false;
+
+	// Data related to the rendering of a single 'character'
+	int mLineRenderedPixels = 0;
+	int mRenderedPixels = 0;
+	int mCharPos = 0;
+	int mCycleCountLineRef = 0;
+	int mVisibleCharPos = 0;
+
+
+	// Data related to a complete scan line
+	int mAdjustedScanLine = 0;
+	int mFieldRate = 50;
+	int mVisibleScanLine = 0;
+	bool mAddHalfLine = false;
+
+	// Data related to a complete field
+	int mOddField = 0;
+	int mDisEna = 0;
+	int pDisEna = 1;
+	int mFieldOffset = 0;
 	bool mNewField = false;
+
+	BITMAP_PTR mLineBitmapDataP = NULL;
+
+
+	uint8_t mCursorSegments = 0;
+	bool mClk2mHz = 0;
+	int mPixelRate = 1;
+
+	// Display sizes
+	int mVisibleLines;
+	int mVisibleLineOffset;
 
 	uint16_t mHwScrollSub = 0x0;
 
@@ -121,19 +152,24 @@ public:
 		// 15	Flashing White/Black
 	};
 
-	bool readGraphicsMem(uint16_t adr, uint8_t& data);
-
-	bool validateInternalState(uint8_t newControlRegisterValue);
-	void updateHwScrollConstant();
-
-	void lockDisplay();
-	void unlockDisplay();
-
 	CRTC6845* mCRTC = NULL;
 	TT5050* mTGC = NULL;
 
 	vector<TT5050::TTColour> mTgcData;
 	bool mValidTgcData = false;
+
+	bool readGraphicsMem(uint16_t adr, uint8_t& data);
+
+	void lockDisplay();
+	void unlockDisplay();
+
+	bool advanceChar(uint64_t& endCycle);
+
+	bool updateInternalState(uint8_t newControlRegisterValue);
+	void updateHwScrollConstant();
+	void calcLineSettings();
+	bool addHalfLine(uint64_t &endCycle);
+
 
 public:
 
@@ -171,16 +207,6 @@ public:
 	// Check if interlace is enabled (On)
 	bool interlaceOn();
 
-	// Advance 1/2 scan line - required for interlace modes as
-	// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines
-	// to get 625 (PAL) or 525 (NTSC) scan lines per frame (i.e., a pair of even and odd fields)
-	// at 50 Hz (PAL) or 60 Hz (NTSC).
-	bool advanceHalfLine(uint64_t& endCycle);
-
-
-	// Advance a complete scan line
-	bool advanceLine(uint64_t& endCycle);
-
 	// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
 	int fieldScanLineOffset();
 
@@ -189,8 +215,6 @@ public:
 
 	// Advance until clock cycle stopcycle has been reached
 	bool advance(uint64_t stopCycle);
-
-	
 
 	// Get pointer to other device to be able to call its methods
 	bool connectDevice(Device* dev);

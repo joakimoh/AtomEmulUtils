@@ -87,16 +87,6 @@ public:
 
 	// Check if interlace is enabled (On)
 	virtual bool interlaceOn() = 0;
-
-	// Advance 1/2 scan line - required for interlace modes as
-	// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines
-	// to get 625 (PAL) or 525 (NTSC) scan lines per frame (i.e., a pair of even and odd fields)
-	// at 50 Hz (PAL) or 60 Hz (NTSC).
-	virtual bool advanceHalfLine(uint64_t& endCycle) = 0;
-
-
-	// Advance a complete scan line
-	virtual bool advanceLine(uint64_t& endCycle) = 0;
 	
 	// Read a VDU register (if applicable for the VDU type)
 	virtual bool read(uint16_t adr, uint8_t& data);

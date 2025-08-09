@@ -89,11 +89,15 @@ CONNECT	PIA:PortC;2		SPEAKER:OUT
 // the access of that peripheral's register). The device being triggered should be
 // a non-memory mapped device (like a keyboard, tape recorder, speaker etc.).
 // Default (when no triggering is specified) is to schedule each device periodically
-// synchronised with the microcontroller instruction execution (INSTR)
+// synchronised with the microcontroller instruction execution (INSTR_RATE)
 //
-// SCHEDULING IS ONE OF FIELD, HLINE, INSTR, NONE
+// SCHEDULING IS ONE OF BASE_RATE, SUB_RATE, INSTR_RATE, NONE
 //
 TRIGGER	ATOMKB	MEM	PIA		READ	b001	// Acorn Atom polls keyboard by reading from PIA Port B
 TRIGGER ATOMKB	MEM	KERNEL	READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release)
-SCHED	ATOMKB	HLINE
-SCHED	SPEAKER	HLINE
+SCHED	ATOMKB	SUB_RATE
+SCHED	SPEAKER	SUB_RATE
+
+// Emulation rates
+EMU_BASE_RATE		60	// NTSC Field Rate
+EMU_SUB_RATE	31250	// From the duration of a 1/2 scan line for NTSC (32us)

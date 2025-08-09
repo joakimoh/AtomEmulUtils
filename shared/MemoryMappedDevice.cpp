@@ -4,6 +4,8 @@
 #include "DebugManager.h"
 #include "DeviceManager.h"
 #include "Utility.h"
+#include "AddressSpaceInfo.h"
+#include <string>
 
 using namespace std;
 
@@ -13,8 +15,9 @@ MemoryMappedDevice::MemoryMappedDevice(
 ): Device(name, typ, cat, cpuClock, debugManager, connectionManager), mWaitStates(waitStates), mDeviceManager(deviceManager), mAddressSpace(adr, sz)
 {
 	mMemoryMapped = true;
-
-	DBG_LOG(this, DBG_VERBOSE, _DEVICE_ID(this->devType) + " at address " + mAddressSpace);
+	string s1 = _DEVICE_ID(this->devType) + " at address "s;
+	string s2 = s1 + mAddressSpace;
+	DBG_LOG(this, DBG_VERBOSE, s2);
 
 }
 

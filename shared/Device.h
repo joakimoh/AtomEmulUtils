@@ -23,8 +23,8 @@ class P6502;
 class RAM;
 class DebugManager;
 
-enum Scheduling {FIELD, HLINE, INSTR, NONE};
-#define _SCHEDULING(x) (x==FIELD?"Field":(x==HLINE?"1/2 line":(x==INSTR?"Instruction":"None")))
+enum Scheduling {BASE_RATE, SUB_RATE, INSTR_RATE, NONE};
+#define _SCHEDULING(x) (x==BASE_RATE?"Field":(x==SUB_RATE?"1/2 line":(x==INSTR_RATE?"Instruction":"None")))
 
 enum DeviceId {
 	ADC_7002_DEV, SD_CARD, BEEB_VIA_LATCH, TI4689_DEV, BEEB_SERIAL_ULA_DEV,
@@ -158,7 +158,7 @@ public:
 
 	double mCPUClock = 2.0;
 
-	Scheduling scheduling = INSTR; // default scheduling if nothing specified
+	Scheduling scheduling = INSTR_RATE; // default scheduling if nothing specified
 
 	string name;
 

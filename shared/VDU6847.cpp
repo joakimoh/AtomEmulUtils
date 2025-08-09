@@ -112,22 +112,25 @@ VDU6847::VDU6847(string name, uint16_t adr, VideoSettings videoSettings, double 
 	lockDisplay();
 
 	if (DBG_LEVEL_DEV(this,DBG_VERBOSE)) {
-		DBG_LOG(this, DBG_VERBOSE,  + "\n\nM6847 Parameters:");
-		DBG_LOG(this, DBG_VERBOSE,  + "Field rate: " + to_string(mFieldFreq) + " [Hz]");
-		DBG_LOG(this, DBG_VERBOSE,  + "Scan lines per field: " + to_string(mFieldScanLines) + " lines");
-		DBG_LOG(this, DBG_VERBOSE,  + "Scan lines per frame: " + to_string(mScreenScanLines) + " lines");
-		DBG_LOG(this, DBG_VERBOSE,  + "Line duration: " + to_string(mlineDur) + " [us] (" + to_string(mLineW) + " pixels)");
-		DBG_LOG(this, DBG_VERBOSE,  + "Duration of horizontal borders: " + to_string(mBrdH) + " [us] (" + to_string(mLBrdW + mRBrdW) + " pixels)");
-		DBG_LOG(this, DBG_VERBOSE,  + "Vertical borders: " + to_string(mTopBorderLines + mBottomBorderLines) + " lines");
-		DBG_LOG(this, DBG_VERBOSE,  + "Vertical blanking: " + to_string(mTVBlkH + mBVBlkH) + " lines");
-		DBG_LOG(this, DBG_VERBOSE,  + "Horizontal blanking: " + to_string(mHBlkDur) + " [us] (" + to_string(mLBlkW + mRBlkW) + " pixels)");
-		DBG_LOG(this, DBG_VERBOSE,  + "Visible Active Display Area: " + to_string(mActScreenAreaW) + " x " + to_string(mActScreenAreaH) + " pixels");
-		DBG_LOG(this, DBG_VERBOSE,  + "Total Visible Display Area: " + to_string(mScreenW) + " x " + to_string(mScreenH) + " pixels");
-		DBG_LOG(this, DBG_VERBOSE,  + "Total Display Area (including invisible parts): " + to_string(mTotalW) + " x " + to_string(mTotalH) + " pixels");
-		DBG_LOG(this, DBG_VERBOSE,  + "Visible Display Area: " + to_string(mScreenW) + " x " + to_string(mScreenH) + "");
-		DBG_LOG(this, DBG_VERBOSE,  + "\n");
+		int mLineW = 2;
+		int mlineDur = 1;
+		DBG_LOG(this, DBG_VERBOSE,  "\n\nM6847 Parameters:");
+		DBG_LOG(this, DBG_VERBOSE,  "Field rate: " + to_string(mFieldFreq) + " [Hz]");
+		DBG_LOG(this, DBG_VERBOSE,  "Scan lines per field: " + to_string(mFieldScanLines) + " lines");
+		DBG_LOG(this, DBG_VERBOSE,  "Scan lines per frame: " + to_string(mScreenScanLines) + " lines");
+		DBG_LOG(this, DBG_VERBOSE,  "Line duration: " + to_string(mlineDur) + " [us] (" + to_string(mLineW) + " pixels)");
+		DBG_LOG(this, DBG_VERBOSE,  "Duration of horizontal borders: " + to_string(mBrdH) + " [us] (" + to_string(mHzBorderPixels) + " pixels)");
+		DBG_LOG(this, DBG_VERBOSE,  "Vertical borders: " + to_string(mTopBorderLines + mBottomBorderLines) + " lines");
+		DBG_LOG(this, DBG_VERBOSE,  "Vertical blanking: " + to_string(mTVBlkH + mBVBlkH) + " lines");
+		DBG_LOG(this, DBG_VERBOSE,  "Horizontal blanking: " + to_string(mHBlkDur) + " [us] (" + to_string(mHzBlankingPixels) + " pixels)");
+		DBG_LOG(this, DBG_VERBOSE,  "Visible Active Display Area: " + to_string(mHzDisplayedPixels) + " x " + to_string(mDisplayedLines) + " pixels");
+		DBG_LOG(this, DBG_VERBOSE,  "Total Visible Display Area: " + to_string(mScreenW) + " x " + to_string(mScreenH) + " pixels");
+		DBG_LOG(this, DBG_VERBOSE,  "Total Display Area (including invisible parts): " + to_string(mScreenScanLines) + " x " + to_string(mHzPixels) + " pixels");
+		DBG_LOG(this, DBG_VERBOSE,  "Visible Display Area: " + to_string(mScreenW) + " x " + to_string(mScreenH) + "");
+		DBG_LOG(this, DBG_VERBOSE,  "\n");
 	}
 
+	mHzHalfLinePixels = (int)round(mHzPixels / 2);
 }
 
 VDU6847::~VDU6847()
@@ -164,27 +167,39 @@ bool VDU6847::power()
 // this unit we will have 56.7 such units per scan line and the first visible one starts after 13.8 / 1.12 = 12.4 units,
 // lasts 32 units (as there are 32 visible characters per scan line) and is followed by 12.4 non-visible units.
 //
-// advance() advances one scan line (but only if the stop cycle hasn't already been reached)
+// advance() advances one character of a scan line (but only if the stop cycle hasn't already been reached)
 //
 bool VDU6847::advance(uint64_t stopCycle)
 {
 	uint64_t dummy;
 	while (mCycleCount < stopCycle)
-		advanceLine(dummy);
+		advanceChar(dummy);
 
 	return true;
 }
 
-
-bool VDU6847::advanceLine(uint64_t& endCycle)
+bool VDU6847::addHalfLine(uint64_t& endCycle)
 {
+	// Check for 1/2 line
+	// 'Render' pixels for the duration of one 1/2 line, but only one 'character' at a time
+	if (mAddHalfLine) {
+		mRenderedPixels = 8;
+		if (mLineRenderedPixels > mVisiblePixelsEnd && mHzHalfLinePixels - mLineRenderedPixels < 8)
+			mRenderedPixels = mHzHalfLinePixels - mLineRenderedPixels;
+		mLineRenderedPixels += mRenderedPixels;
+		mCycleCount = mCycleCountLineRef + (int)round(mLineRenderedPixels / 4.0 * mCPUClock / mClockFreq);
+		if (mLineRenderedPixels == mHzHalfLinePixels) {
+			mLineRenderedPixels = 0;
+			mCycleCountLineRef = mCycleCount;
+			mAddHalfLine = false;
+		}
 
-	int scan_line = mScanLine;
-	while (mScanLine == scan_line)
-		advanceChar(endCycle);
+		endCycle = mCycleCount;
 
-	return true;
-	
+		return true;
+	}
+
+	return false;
 }
 
 bool VDU6847::advanceChar(uint64_t& endCycle)
@@ -195,6 +210,10 @@ bool VDU6847::advanceChar(uint64_t& endCycle)
 		calcLineSettings();
 	pScanLine = mScanLine;
 	pField = mField;
+
+	// Increase time by a 1/2 scan line and return if at the end of the field
+	if (addHalfLine(endCycle))
+		return true;
 
 	if (mLineRenderedPixels == 0 && mAdjustedDisplayedLine == mDisplayedLines) {
 
@@ -393,6 +412,9 @@ bool VDU6847::advanceChar(uint64_t& endCycle)
 			// The Field Sync (FS) signal goes High at the end of the vertical synchronisation pulse
 			updatePort(VDU_PORT_FS, 1); // For the Acorn Atom this will set PIA port C:b7 to '1'
 
+			// Change state to add 1/2 line to ensure that the new field doesn't start until a 1/2 line has passed
+			mAddHalfLine = true;
+
 		}
 	}
 
@@ -460,21 +482,6 @@ inline bool VDU6847::readGraphicsMem(uint16_t adr, uint8_t& data)
 
 // Check if interlace is enabled (On)
 inline bool VDU6847::interlaceOn() { return true; }
-
-// Advance 1/2 scan line - required for interlace modes as
-// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines
-// to get 625 (PAL) or 525 (NTSC) scan lines per frame (i.e., a pair of even and odd fields)
-// at 50 Hz (PAL) or 60 Hz (NTSC).
-bool VDU6847::advanceHalfLine(uint64_t& endCycle)
-{
-	float proc_clk_rate_Mhz = mN60HzCycles * 60 / 1e6;
-
-	mCycleCount += (int )round(63.5 / proc_clk_rate_Mhz / 2);
-
-	endCycle = mCycleCount;
-
-	return true;
-}
 
 // Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
 int VDU6847::fieldScanLineOffset()

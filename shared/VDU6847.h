@@ -188,11 +188,10 @@ public:
 
 	bool readGraphicsMem(uint16_t adr, uint8_t& data);
 
+	// Data related to the rendering of a single 'character'
 	int mLineRenderedPixels = 0;
 	int pPixelClockCycles = 1;
-
 	int mCycleCountLineRef = 0; // Save the CPU cycle count when a new line starts
-
 	int mBytesPerLine = 1;
 	int mPixelWidth = 1;
 	int mPixelHeight = 1;
@@ -201,22 +200,33 @@ public:
 	int mRenderedPixelsPerByte = 8;
 	int mShiftsPerByte = 1;
 	uint32_t mPixelColour = 0xff000000;
-	void calcGraphicModeSettings();
+	int mPixelByte = 0;
+	int mRenderedPixels = 0;
 
+	// Data related to a complete scan line
 	int mAdjustedScanLine = 0;
 	int mDisplayedLine = 0;
 	int mAdjustedDisplayedLine = 0;
 	int mVisibleLine = 0;
 	int mAdjustedVisibleLine = 0;
-	int mPixelByte = 0;
+
+	// Data related to the 1/2 scan line at the beginning or the end of a field
+	bool mAddHalfLine = false;
+	int mAddHalfLineCount = 0;
+	int mHzHalfLinePixels = 0;
+
+	void calcGraphicModeSettings();
 	void calcLineSettings();
 
 	uint32_t calcGraphicModePixelColour(uint8_t pixelData);
 	uint32_t calcSemiGraphicModePixelColour(uint8_t colourSelector, uint8_t pixelData);
 
+	// Render one character (including invisible characters)
 	bool advanceChar(uint64_t& endCycle);
 
-	int mRenderedPixels = 0;
+	bool addHalfLine(uint64_t& endCycle);
+
+	// Render a part of a border corresponding to the size of one character
 	void drawPartialBorder(int borderStartPixel, int borderWidth);
 
 public:
@@ -259,16 +269,6 @@ public:
 
 	// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
 	int fieldScanLineOffset();
-
-	// Advance 1/2 scan line - required for interlace modes as
-	// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines
-	// to get 625 (PAL) or 525 (NTSC) scan lines per frame (i.e., a pair of even and odd fields)
-	// at 50 Hz (PAL) or 60 Hz (NTSC).
-	bool advanceHalfLine(uint64_t& endCycle);
-
-
-	// Advance a complete scan line
-	bool advanceLine(uint64_t& endCycle);
 
 	// Device power on
 	bool power();

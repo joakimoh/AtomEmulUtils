@@ -85,8 +85,8 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 {
 	adr = 0x0;
 
-	if (!mInitialised)
-		return true;
+	//if (!mInitialised)
+	//	return true;
 
 	updateOutputs();
 
@@ -366,6 +366,9 @@ void CRTC6845::updateSettings(uint8_t reg)
 
 	// Total no of character columns
 	mCharCols_R0 = mReg[R0_HorizontalTotal] + 1;
+	// Ensure at least a value of 2 as the mCharCol updating will fail otherwise
+	if (mCharCols_R0 < 2)
+		mCharCols_R0 = 2;
 
 	// No of active (displayed) character columns
 	mActiveRowChars_R1 = mReg[R1_HorizontalDisplayed];
@@ -462,6 +465,9 @@ void CRTC6845::updateSettings(uint8_t reg)
 		mScreenScanLines = scan_lines_R4xR9_R5;
 
 	}
+	// Ensure at least a value of 2 as the mScreenScan updating will fail otherwise
+	if (mScreenScanLines < 2)
+		mScreenScanLines = 2;
 
 	// After power-on each writable register should have been updated to consider the
 	// CRTC as ready for operation
@@ -603,7 +609,7 @@ bool CRTC6845::outputState(ostream& sout)
 		sout << mRegInfo[i].descShort << hex << " = 0x" << setw(2) << setfill('0') << (int)mReg[i] << dec << " " << mRegInfo[i].descLong << "\n";
 
 	sout << "CLK:                                                " << (int)mCLK << "\tMhz\n";
-	sout << "Scan Line duration: [R0,CLK]                 i]       " << mCharCols_R0 * Tc << "\tus\n";
+	sout << "Scan Line duration: [R0,CLK]                        " << mCharCols_R0 * Tc << "\tus\n";
 	sout << "Total no of characters per line [R0]:               " << mCharCols_R0 << "\tchars\n";
 	sout << "Active characters per line [R1]:                    " << mActiveRowChars_R1 << "\tchars\n";
 	sout << "Horizontal sync position [R2]:                      " << mHzSyncPos_R2 << " chars (" << round(mHzSyncPos_R2 * Tc) << " us)\n";
@@ -627,6 +633,11 @@ bool CRTC6845::outputState(ostream& sout)
 	int cursor_disp_mode = (mReg[R10_CursorStart] >> 5) & 0x3; // 00: Non-blink,  01: non-display, 10: blink 16-field, 11: blink 32-field
 	sout << "Cursor mode:                                        " << (cursor_disp_mode == 0 ? "Fixed" : (cursor_disp_mode == 1 ? "None" : (cursor_disp_mode == 2 ? "Blink-16" : "Blink-32"))) <<
 		"\n";
+	sout << "Scan Line:                                           " << mScanLine << "\n";
+	sout << "Char Row:                                            " << mCharRow << "\n";
+	sout << "Char Col:                                            " << mCharCol << "\n";
+	sout << "DSIPTMG:                                             " << (int)mDISPTMG << "\n";
+	sout << "CUDISP:                                              " << (int)mCUDISP << "\n";
 
 	return true;
 }

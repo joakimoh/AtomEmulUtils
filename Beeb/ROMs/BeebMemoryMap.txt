@@ -57,8 +57,10 @@ CONNECT:IP	CRTC:HS				TCG:GLR
 CONNECT:P	CRTC:DISPTMG		TCG:LOSE
 CONNECT		CRTC:DISPTMG		VDU:DISEN
 CONNECT		CRTC:CUDISP			VDU:CURSOR
-CONNECT		CRTC:RA;3;0			VDU:RA
+CONNECT:P	CRTC:RA;3;0			VDU:RA
 CONNECT		CRTC:VS				SYS_VIA:CA;0	// VS => CA1
+CONNECT:P	CRTC:VS				VDU:VS
+CONNECT:P	CRTC:HS				VDU:HS
 CONNECT:P	VIAL:Q;5;4			VDU:C
 CONNECT 	VDU:CRTC_CLK		CRTC:CLK
 
@@ -133,17 +135,17 @@ CONNECT		ACIA:IRQ			CPU:IRQ
 //
 //	Device scheduling
 //
-SCHED	KB			HLINE
+SCHED	KB			SUB_RATE
 SCHED	CRTC		NONE
 TRIGGER	CRTC		CALL	VDU							// Trigger the CRTC explictly by VDU function calls
 SCHED	TCG			NONE
 TRIGGER	TCG			CALL	VDU							// Trigger the TCG explictly by VDU function calls
 TRIGGER ACIA		CALL	SerialULA					// Trigger the ACIA explictly by Serial ULA function calls
-SCHED	ACIA		INSTR
-SCHED	SerialULA	INSTR
-SCHED	VDU			NONE
+SCHED	ACIA		INSTR_RATE
+SCHED	SerialULA	INSTR_RATE
+//SCHED	VDU			NONE
 SCHED	VIAL		NONE
-SCHED	SOUND		HLINE
+SCHED	SOUND		SUB_RATE
 SCHED	MMFS_CARD	NONE
 
 //
@@ -152,3 +154,7 @@ SCHED	MMFS_CARD	NONE
 INIT	KB:SW			0									// Keyboard switches; set to start with Mode 7 (value 0)
 INIT	VDU:INV			1									// Inverted screen for non-teletext modes OFF (value 1) or ON (value 0)
 INIT	SYS_VIA:PB;5;4	3									// Set System VIA PB5:PB4 High (as they should be when not connected to a game pad)
+
+// Emulation rates
+EMU_BASE_RATE	50		// PAL Field Rate
+EMU_SUB_RATE	31250	// From the duration of a 1/2 scan line for PAL (32us)

@@ -139,7 +139,7 @@ public:
 	int mActiveRowChars_R1 = 1;
 	int mHzSyncPos_R2 = 1;
 	int mHzSyncPulseW_R3 = 1;
-	int mCharCols_R0 = 1;
+	int mCharCols_R0 = 4;
 	int mCharSkew_R8 = 0;
 	int mCursSkew_R8 = 0;
 #define _INTERLACE_MODE(x) ((x&1)==0?"Non - interlaced":((x&3)==3?"Interlaced & Video":"Interlaced"))
