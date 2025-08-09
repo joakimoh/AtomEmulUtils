@@ -85,7 +85,6 @@ public:
 	int mScanLine = 0;			// Current scan line
 	int mScreenScanLines = 312;	// Scan lines per field
 	int mCursorSegment = -1;	// The current cursor segment being drawn (0-2 when active)
-	int mVerticalSyncPos = 0;	// Vertical sync pos (in scan lines)
 	int mScreenW = 640;			// Visible screen area (including borders)
 	int mScreenH = 256;			//
 
@@ -113,6 +112,8 @@ public:
 	int mAdjustedScanLine = 0;
 	int mFieldRate = 50;
 	int mVisibleScanLine = 0;
+	enum {INACTIVE_LINE, ACTIVE_LINE, PREV_LINE_ACTIVE} mActiveLineStatus = INACTIVE_LINE;
+	int mActiveScanLine = 0;
 	bool mAddHalfLine = false;
 	bool mNewLine = false;
 

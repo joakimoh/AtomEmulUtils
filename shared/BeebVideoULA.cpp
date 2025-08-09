@@ -98,7 +98,7 @@ BeebVideoULA::BeebVideoULA(
 	Resolution vis_res = mVideoSettings.getVisibleResolution();
 	mVisibleLines = mVideoSettings.getVisibleResolution().height;
 	mDisplayBitmap = al_create_bitmap(vis_res.width, vis_res.height);
-	int mVisibleLineOffset = mVideoSettings.getVisibleOffset().height;
+	mVisibleLineOffset = mVideoSettings.getVisibleOffset().height;
 	mScreenScanLines = mVideoSettings.getTotalResolution().height;
 
 	// Initialise internal state based on default Control Register settings
@@ -237,6 +237,11 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 		mDisEna = mValidTgcData; // true if data from the TGC read in the previous cycle was valid
 	if (mDisEna && mDisEna != pDisEna) {
 		mActiveCharPos = 0;
+		if (mActiveLineStatus != ACTIVE_LINE) {
+			if (mActiveLineStatus == INACTIVE_LINE)
+				mActiveScanLine = 0;
+			mActiveLineStatus = ACTIVE_LINE;
+		}
 		//cout << "\n";
 	}
 	pDisEna = mDisEna;
@@ -705,21 +710,26 @@ bool BeebVideoULA::outputState(ostream& sout)
 		", Clock Rate: 0x" << (int)getCRField(CR_CLOCK_RATE) <<
 		", Cursor Segment: 0x" << (int)getCRField(CR_CURSOR_SEGMENT) <<
 		dec << ")\n";
-	sout << "Video ULA PixelRate:       " << mPixelRate << " MHz\n";
-	sout << "Video ULA PixelWidth:      " << (int)mPixelW << "\n";
-	sout << "Video ULA Pixels/byte:     " << (int)mPixelsPerCharacter << "\n";
-	sout << "Video ULA CRTC Clock:      " << (int)mCRTC_CLK << " MHz\n";
-	sout << "Video ULA Teletext:        " << (getCRField(CR_TELETEXT) ? "ON" : "OFF") << "\n";
-	sout << "Video ULA Cursor Segments: " << hex << (int)getCRField(CR_CURSOR_SEGMENT) << "\n";
-	sout << "Video ULA Pixel Width:     " << dec << (int)mPixelW << "\n";
-	sout << "Video ULA Pixels/byte:     " << dec << mPixelsPerCharacter << "\n";	
-	sout << "Video ULA Scan Lines:      " << dec << mScreenScanLines << "\n";
-	sout << "Video ULA Vertical Sync:   " << dec << mVerticalSyncPos << "\n";
-	sout << "Visible scan line offset:  " << dec << mVisibleLineOffset << "\n";
-	sout << "Visible char offset:       " << dec << mHzVisibleCharOffset << "\n";
-	sout << "Video ULA Char Pos:        " << dec << mCharPos << "\n";
-	sout << "Video ULA Vis Char Pos:    " << dec << mVisibleCharPos << "\n";
-	sout << "Video ULA Scan Line:       " << dec << mScanLine << "\n";
+	sout << "Video ULA PixelRate:                " << mPixelRate << " MHz\n";
+	sout << "Video ULA PixelWidth:               " << (int)mPixelW << "\n";
+	sout << "Video ULA Pixels/byte:              " << (int)mPixelsPerCharacter << "\n";
+	sout << "Video ULA CRTC Clock:               " << (int)mCRTC_CLK << " MHz\n";
+	sout << "Video ULA Teletext:                 " << (getCRField(CR_TELETEXT) ? "ON" : "OFF") << "\n";
+	sout << "Video ULA Cursor Segments:          " << hex << (int)getCRField(CR_CURSOR_SEGMENT) << "\n";
+	sout << "Video ULA Pixel Width:              " << dec << (int)mPixelW << "\n";
+	sout << "Video ULA Pixels/byte:              " << dec << mPixelsPerCharacter << "\n";	
+	sout << "Video ULA Scan Lines:               " << dec << mScreenScanLines << "\n";
+	sout << "Video ULA Visible Lines:            " << dec << mVisibleLines << "\n";
+	sout << "Video ULA Visible Scan Line Offset: " << dec << mVisibleLineOffset << "\n";
+	sout << "Video ULA Chars:                    " << dec << mHzChars << "\n";
+	sout << "Video ULA Visible Chars:            " << dec << mHzVisibleChars << "\n";	
+	sout << "Video ULA Visible Char Offset:      " << dec << mHzVisibleCharOffset << "\n";
+	sout << "Video ULA Char Pos:                 " << dec << mCharPos << "\n";
+	sout << "Video ULA Visible Char Pos:         " << dec << mVisibleCharPos << "\n";
+	sout << "Video ULA Active Char Pos:          " << dec << mActiveCharPos << "\n";
+	sout << "Video ULA Scan Line:                " << dec << mScanLine << "\n";
+	sout << "Video ULA Visible Scan Line:        " << dec << mVisibleScanLine << "\n";
+	sout << "Video ULA Active Scan Line:         " << dec << mActiveScanLine << "\n";
 	sout << "\n";
 	
 	return true;
@@ -875,6 +885,12 @@ void BeebVideoULA::processPortUpdate(int index)
 			mScanLine += 2;
 			calcLineSettings();
 			mNewLine = true;
+			if (mActiveLineStatus == ACTIVE_LINE) {
+				mActiveLineStatus = PREV_LINE_ACTIVE;
+				mActiveScanLine += 2;
+			}
+			else
+				mActiveLineStatus = INACTIVE_LINE;
 		}
 		else {
 		}
