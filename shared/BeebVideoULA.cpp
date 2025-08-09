@@ -108,7 +108,7 @@ BeebVideoULA::BeebVideoULA(
 	al_clear_to_color(black);
 
 	DBG_LOG(this, DBG_VERBOSE, "create display bitmap " + to_string(vis_res.width) + " x " + to_string(vis_res.height));
-	cout << "create display bitmap " + to_string(vis_res.width) + " x " + to_string(vis_res.height) << "\n";
+	//cout << "create display bitmap " + to_string(vis_res.width) + " x " + to_string(vis_res.height) << "\n";
 
 	lockDisplay();
 
@@ -191,10 +191,10 @@ bool BeebVideoULA::addHalfLine(uint64_t &endCycle)
 bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 {
 
-//#define SHOW_FIELD_LINES
+#define SHOW_FIELD_LINES
 #ifdef SHOW_FIELD_LINES
 	uint32_t border_colour = 0xff0ff000;
-	if (field_offset == 1)
+	if (mOddField)
 		border_colour = 0xffff0000;
 #else
 	uint32_t border_colour = 0xff000000;
@@ -236,8 +236,8 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	else
 		mDisEna = mValidTgcData; // true if data from the TGC read in the previous cycle was valid
 	if (mDisEna && mDisEna != pDisEna) {
-		mVisibleCharPos = 0;
-		cout << "\n";
+		mActiveCharPos = 0;
+		//cout << "\n";
 	}
 	pDisEna = mDisEna;
 
@@ -248,8 +248,10 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	// on the screen and "Char" is actually one byte fetched from memory that only sometimes corresponds
 	// to the width of a screen character. 
 
-	if (mCharPos == 0 && mVisibleScanLine >= 0 && mVisibleScanLine < mVisibleLines)
+	if (mNewLine && mVisibleScanLine >= 0 && mVisibleScanLine < mVisibleLines)
 		mLineBitmapDataP = (BITMAP_PTR) ((LOCKED_BITMAP_PTR) mLockedDisplayBitMap->data + mLockedDisplayBitMap->pitch * mVisibleScanLine);
+	if (mNewLine)
+		mNewLine = false;
 	BITMAP_PTR bitmap_data_p = mLineBitmapDataP;
 	if (mLineBitmapDataP != NULL && mLineBitmapDataP < mMaxDisplayBitmap_p)
 		bitmap_data_p = mLineBitmapDataP + mVisibleCharPos * mPixelsPerCharacter * mPixelW;
@@ -324,14 +326,14 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	if (mDisEna && bitmap_data_p != NULL && mVisibleCharPos >= 0 && mVisibleCharPos < mHzVisibleChars)
 		// Active area of an active line
 	{
-		
+		/*
 		if (screen_data >= 0x20 && screen_data < 0x7f)
 			cout << (char)screen_data;
 		else
 			cout << ".";
 		cout << "["<< dec << mVisibleCharPos << "," << mVisibleScanLine << ", " << Utility::int2HexStr(screen_adr, 4) <<
 			", " << Utility::int2HexStr(screen_data, 2) << "," << dec << bitmap_offset << "]";
-		
+		*/
 		uint8_t Rs, Gs, Bs;
 		uint8_t R, G, B;
 
@@ -431,6 +433,7 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	//cout << "endCycle="<< endCycle<<",mCycleCount="<< mCycleCount<<",mCycleCountLineRef=" << mCycleCountLineRef << ",mLineRenderedPixels=" << mLineRenderedPixels << ",mCPUClock="<< mCPUClock<<",mPixelRate=" << mPixelRate << "\n";
 
 	// Next character
+	mActiveCharPos++;
 	mVisibleCharPos++;
 	mCharPos++;
 
@@ -712,6 +715,8 @@ bool BeebVideoULA::outputState(ostream& sout)
 	sout << "Video ULA Pixels/byte:     " << dec << mPixelsPerCharacter << "\n";	
 	sout << "Video ULA Scan Lines:      " << dec << mScreenScanLines << "\n";
 	sout << "Video ULA Vertical Sync:   " << dec << mVerticalSyncPos << "\n";
+	sout << "Visible scan line offset:  " << dec << mVisibleLineOffset << "\n";
+	sout << "Visible char offset:       " << dec << mHzVisibleCharOffset << "\n";
 	sout << "Video ULA Char Pos:        " << dec << mCharPos << "\n";
 	sout << "Video ULA Vis Char Pos:    " << dec << mVisibleCharPos << "\n";
 	sout << "Video ULA Scan Line:       " << dec << mScanLine << "\n";
@@ -819,16 +824,18 @@ bool BeebVideoULA::updateInternalState(uint8_t newControlRegisterValue)
 	mHzVisiblePixels = mVideoSettings.getVisibleResolution().width;
 	mHzNonCharVisiblePixels = mHzVisiblePixels - mHzVisibleChars * mPixelsPerCharacter * mPixelW;
 	mHzChars = mVideoSettings.getTotalResolution().width / (mPixelsPerCharacter * mPixelW);
+	mHzVisibleCharOffset = (int)round(mVideoSettings.getVisibleOffset().width / (mPixelsPerCharacter * mPixelW));
 
 	// Cursor settings (set here and not in the loops below to optimimise performance)
 	mClk2mHz = ((mControlRegister >> 4) & 0x1) != 0;
 	mCursorSegments = (mControlRegister >> 5) & 0x7;
-
+	/*
 	if ((old_control_register_val ^ mControlRegister) & 0xfe) {
 		cout << dec;
 		cout << "--------------------------------------------\n";
 		cout << "Pixel Width:         " << (int)mPixelW << "\n";
 		cout << "Pixels/Symbol:       " << mHzPixelsPerSymbol << "\n";
+		cout << "Visble char offset:  " << mHzVisibleCharOffset << "\n";
 		cout << "Visible Chars        " << mHzVisibleChars << "\n";
 		cout << "Total   Chars        " << mHzChars << "\n";
 		cout << "Pixels/Char:         " << mPixelsPerCharacter << "\n";
@@ -841,7 +848,7 @@ bool BeebVideoULA::updateInternalState(uint8_t newControlRegisterValue)
 		cout << "Scan lines:          " << mScreenScanLines << "\n";
 		cout << "Visible line offset: " << mVisibleLineOffset << "\n";
 	}
-
+	*/
 	return true;
 }
 
@@ -864,8 +871,10 @@ void BeebVideoULA::processPortUpdate(int index)
 			mCycleCountLineRef = 0;
 			mLineRenderedPixels = 0;			
 			mCharPos = 0;
+			mVisibleCharPos = -mHzVisibleCharOffset;
 			mScanLine += 2;
 			calcLineSettings();
+			mNewLine = true;
 		}
 		else {
 		}
@@ -880,7 +889,7 @@ void BeebVideoULA::processPortUpdate(int index)
 			calcLineSettings();
 			mAddHalfLine = true;
 			mNewField = true;
-			cout << "\n";
+			//cout << "\n";
 		}
 		else {
 		}

@@ -614,14 +614,14 @@ bool CRTC6845::outputState(ostream& sout)
 	sout << "Active characters per line [R1]:                    " << mActiveRowChars_R1 << "\tchars\n";
 	sout << "Horizontal sync position [R2]:                      " << mHzSyncPos_R2 << " chars (" << round(mHzSyncPos_R2 * Tc) << " us)\n";
 	sout << "Horizontal sync pulse width [R3]:                   " << mHzSyncPulseW_R3 << " chars (" << round(mHzSyncPulseW_R3 * Tc) << " us)\n";
+	sout << "Vertical sync position [R7];                        " << mVSyncRow_R7 << " Rows\n";
 	sout << "Vertical sync pulse width [R3]:                     " << mScreenVSyncPulseH << " lines (" << round(mScreenVSyncPulseH * mCharCols_R0 * Tc) << " us)\n";
 	sout << "No of character rows per field [R4]:                " << mCharRows_R4 << "\tRows\n";
 	sout << "No of scan lines per field [R4,R9,R5]:              " << getScanLinesPerField() << "\tlines\n";
 	sout << "No of unique scan lines per frame [R4,R9,R5]:       " << mScreenScanLines << "\tlines\n";
-	sout << "No of character rows per field [R4]:                " << mCharRows_R4 << "\tRows\n";
 	sout << "No of active character rows per field [R6]:         " << mActiveRows_R6 << "\tRows\n";
 	sout << "Active scan lines per screen [R6,R9]:               " << mScreenActiveLines << "\tlines\n";
-	sout << "Vertical sync position [R7]:                        " << mScreenVSyncLine << " lines (" << round(mScreenVSyncLine * mCharCols_R0 * Tc / 1000) << " ms)\n";
+	sout << "Vertical sync scan line [R7]:                       " << mScreenVSyncLine << " lines (" << round(mScreenVSyncLine * mCharCols_R0 * Tc / 1000) << " ms)\n";
 	sout << "Interlace mode[R8]:                                 " << _INTERLACE_MODE(mInterlaceMode_R8) << "\n";
 	sout << "Character skew [R8]:                                " << mCharSkew_R8 << "\tchars\n";
 	sout << "Cursor skew [R8]:                                   " << mCursSkew_R8 << "\tchars\n";

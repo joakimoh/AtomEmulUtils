@@ -105,6 +105,8 @@ public:
 	int mCharPos = 0;
 	int mCycleCountLineRef = 0;
 	int mVisibleCharPos = 0;
+	int mActiveCharPos = 0;
+	int mHzVisibleCharOffset = 0;
 
 
 	// Data related to a complete scan line
@@ -112,6 +114,7 @@ public:
 	int mFieldRate = 50;
 	int mVisibleScanLine = 0;
 	bool mAddHalfLine = false;
+	bool mNewLine = false;
 
 	// Data related to a complete field
 	int mOddField = 0;
