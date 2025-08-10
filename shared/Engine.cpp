@@ -254,6 +254,7 @@ bool Engine::run()
             else if (event.type == ALLEGRO_EVENT_TIMER) {
                 // The timer event comes from the emulation speed timer (defaults to 60 Hz)
                 // This will synchronise the execution on 60 Hz basis (via the wait event above)
+
             }
 
             cont = al_get_next_event(mQueue, &event);

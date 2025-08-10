@@ -169,6 +169,8 @@ public:
 	Device(string name, DeviceId typ, DeviceCategory cat, double cpuClock, DebugManager *debugManager, ConnectionManager *connectionManager);
 	~Device();
 
+	uint64_t getCycleCount() { return mCycleCount; }
+
 	// Reset device
 	virtual bool reset() {
 
@@ -213,8 +215,6 @@ public:
 	// Used by a device to make a port available for routing
 	bool registerPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* val);
 	bool registerPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* valIn, uint8_t* valOut);
-
-	uint64_t getCycleCount() { return mCycleCount; }
 
 	// Get pointer to other device to be able to call its methods
 	virtual bool connectDevice(Device* dev);

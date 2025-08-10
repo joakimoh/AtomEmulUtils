@@ -282,8 +282,9 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 
 
 	// Calculate screen address
-	if (!mTeletextEnabled) // Normally modes 0-6 - raster address selected bytes within an 8 row byte block
+	if (!mTeletextEnabled) // Normally modes 0-6 - raster address selects bytes within an 8 row byte block
 		screen_adr = crtc_adr * 8 + (mRA & 0x7);
+
 	else  // Normally mode 7
 		screen_adr = crtc_adr + (0x7400 ^ 0x2000); // CRTC MA13 is used to select the SA5050 and is cleared by 0x2000
 	if (screen_adr >= 0x8000) 
@@ -873,7 +874,7 @@ void BeebVideoULA::processPortUpdate(int index)
 	if (index == C) {
 		updateHwScrollConstant();
 	}
-	else if (index == RA) {
+	else if (index == RA && mTeletextEnabled) {
 		mOddField = (mRA & 0x1 ? 0x1 : 0x0);
 	}
 	else if (index == HS) {
@@ -898,6 +899,8 @@ void BeebVideoULA::processPortUpdate(int index)
 	else if (index == VS ) {
 		if (mVS == 1) {
 			mScanLine = 0;
+			if (!mTeletextEnabled)
+				mOddField = 1 - mOddField;
 			if (!mOddField)
 				mScanLine = 1;
 			mField++;

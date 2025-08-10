@@ -195,7 +195,6 @@ bool VDU6847::addHalfLine(uint64_t& endCycle)
 		}
 
 		endCycle = mCycleCount;
-
 		return true;
 	}
 
