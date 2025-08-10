@@ -289,10 +289,11 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	// For teletext-enabled modes, decode video memory data as videotext data
 	vector<TT5050::TTColour> tgc_data(16);
 	memcpy((char*)&tgc_data[0], (char*)&mTgcData[0], 16 * sizeof(tgc_data[0]));
+	bool valid_TGC_data = false;
 	if (mTeletextEnabled)
 		// Feed video memory data to the CRTC. Result will be collected the next character column due to
 		// delay within the TCG
-		mValidTgcData = mTGC->getScreenData(screen_data, mTgcData);
+		valid_TGC_data = mTGC->getScreenData(screen_data, mTgcData);
 
 	// Get cursor configuration
 	//
@@ -319,7 +320,7 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 		mDisEna = ~(~mDISPTMG | ((mRA >> 3) & 0x1)); // RA3 shall never be set when not in mTeletextEnabled mode as there are only 8 raster lines for modes 0-6
 	else
 		mDisEna = mValidTgcData; // true if data from the TGC read in the previous cycle was valid
-
+	mValidTgcData = valid_TGC_data;
 		
 	if (mDisEna && bitmap_data_p != NULL && mVisibleCharPos >= 0 && mVisibleCharPos < mHzVisibleChars)
 		// Active area of an active line
