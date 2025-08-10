@@ -30,7 +30,8 @@ public:
 		ENG_R_BRK_WAIT, ENG_R_V_BRK_WAIT,
 		ENG_W_BRK_WAIT, ENG_W_V_BRK_WAIT,
 		ENG_RW_BRK_WAIT, ENG_RW_V_BRK_WAIT,
-		ENG_BRK_DET, ENG_WAIT_ON_RET
+		ENG_BRK_DET, ENG_WAIT_ON_RET,
+		ENG_TBD // Only used intially to indicate that the user hasn't specified an initial mode
 	};
 #define _ENGINE_STATE(x) (\
 	x==ENG_RUN?"Run":\
@@ -44,7 +45,7 @@ public:
 								(x==ENG_RW_BRK_WAIT?"Wait on read or write to address":\
 									(x==ENG_RW_V_BRK_WAIT?"Wait on read or written value":\
 										(x==ENG_BRK_DET?"Breakpoint triggered":(x==ENG_STEP_OVER?"Step over":\
-											(x==ENG_WAIT_ON_RET?"Wait on return from subroutine":"???"))\
+											(x==ENG_WAIT_ON_RET?"Wait on return from subroutine":(x==ENG_TBD:"TBD":"???")))\
 										)\
 									)\
 								)\
@@ -130,7 +131,7 @@ private:
 public:
 
 	Engine(string mapFileName, Program &program, Program &data, double emulationSpeed, VideoFormat videoFormat, bool enableHWAcc,
-		DebugManager *debugManager, string outDir);
+		DebugManager *debugManager, string outDir, RunState initialState);
 	~Engine();
 
 	bool run();

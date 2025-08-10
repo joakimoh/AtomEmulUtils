@@ -25,7 +25,7 @@ int main(int argc, const char* argv[])
     
     Engine engine(
         arg_parser.mapFileName, arg_parser.program, arg_parser.data,
-        arg_parser.emulationSpeed, arg_parser.videoFormat, arg_parser.hwAcc, &arg_parser.debugManager, gen_dir
+        arg_parser.emulationSpeed, arg_parser.videoFormat, arg_parser.hwAcc, &arg_parser.debugManager, gen_dir, arg_parser.initialState
     );
 
     engine.run();

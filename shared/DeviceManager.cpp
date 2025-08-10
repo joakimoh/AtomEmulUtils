@@ -541,8 +541,8 @@ DeviceManager::DeviceManager(
 	}
 
 	if (mainVDU == NULL) {
-		cout << "No video data unit device specifed!\n";
-		throw runtime_error("No video data unit device specifed");
+		cout << "Warning: No video display unit specifed - will run headless!\n";
+		//throw runtime_error("No video data unit device specifed");
 	}
 
 	if (microprocessor == NULL) {

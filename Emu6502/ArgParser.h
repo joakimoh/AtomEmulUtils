@@ -6,6 +6,7 @@
 #include "../shared/DebugManager.h"
 #include "../shared/Device.h"
 #include "../shared/VideoSettings.h"
+#include "../shared/Engine.h"
 
 using namespace std;
 
@@ -23,6 +24,8 @@ public:
 	VideoFormat videoFormat = PAL_FMT;
 
 	bool hwAcc = true;
+
+	Engine::RunState initialState = Engine::ENG_TBD;
 
 
 private:

@@ -65,7 +65,7 @@ bool Engine::allegroInit()
 
 
 Engine::Engine(string mapFileName, Program& program, Program& data, double emulationSpeed, VideoFormat videoFormat, bool enableHWAcc,
-    DebugManager *debugManager, string outDir) : mDM(debugManager), mOutDir(outDir)
+    DebugManager *debugManager, string outDir, RunState initialState) : mDM(debugManager), mOutDir(outDir)
 {
     if (!allegroInit()) {
         cout << "Failed to initialise allegro5!\n";
@@ -111,10 +111,15 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
         cout << "Failed to initialise debug manager with microconroller info!\n";
         throw runtime_error("Failed to initialise debug manager with microconroller info!\n");
     }
-    if (mVDU == NULL) {
-        cout << "No video display unit defined!\n";
-        throw runtime_error("No video display unit defined!");
-    }
+    // If headless emulation (i.e. no VDU), then as a default have the microprocessor halted
+    if (mVDU == NULL)
+        mState = ENG_HALT;
+    // Else have it running
+    else
+        mState = ENG_RUN;
+    // Unless the user has explictly specified a preferred initial mode
+    if (initialState != ENG_TBD)
+        mState = initialState;
 
     // Create GUI with menu and callbacks
     mGUI = new GUI(this, mQueue, mAllegroDisplay, mDevices, &mSpeedFactor, mDM, mOutDir);

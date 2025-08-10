@@ -101,6 +101,12 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			emulationSpeed = stod(argv[a + 1]);
 			a++;
 		}
+		else if (strcmp(argv[a], "-halt") == 0) {
+			initialState = Engine::ENG_HALT;
+		}
+		else if (strcmp(argv[a], "-run") == 0) {
+			initialState = Engine::ENG_RUN;
+		}
 		else if (strcmp(argv[a], "-dev") == 0) {
 			debugManager.setLogDevice(argv[a + 1]);
 			a++;
