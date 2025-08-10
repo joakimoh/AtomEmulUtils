@@ -191,7 +191,7 @@ bool BeebVideoULA::addHalfLine(uint64_t &endCycle)
 bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 {
 
-#define SHOW_FIELD_LINES
+//#define SHOW_FIELD_LINES
 #ifdef SHOW_FIELD_LINES
 	uint32_t border_colour = 0xff0ff000;
 	if (mOddField)
@@ -229,22 +229,6 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 
 	}
 
-	// Is the screen (display) in the active area?	
-	mDisEna = false;
-	if (!mTeletextEnabled)
-		mDisEna = ~(~mDISPTMG | ((mRA >> 3) & 0x1)); // RA3 shall never be set when not in mTeletextEnabled mode as there are only 8 raster lines for modes 0-6
-	else
-		mDisEna = mValidTgcData; // true if data from the TGC read in the previous cycle was valid
-	if (mDisEna && mDisEna != pDisEna) {
-		mActiveCharPos = 0;
-		if (mActiveLineStatus != ACTIVE_LINE) {
-			if (mActiveLineStatus == INACTIVE_LINE)
-				mActiveScanLine = 0;
-			mActiveLineStatus = ACTIVE_LINE;
-		}
-		//cout << "\n";
-	}
-	pDisEna = mDisEna;
 
 
 	// Process one scan line (should be 64/128 chars per scan line and the visible part being 20, 40 or 80 chars)
@@ -328,6 +312,14 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	}
 	else
 		mCursorSegment = -1;
+
+	// Is the screen (display) in the active area?	
+	mDisEna = false;
+	if (!mTeletextEnabled)
+		mDisEna = ~(~mDISPTMG | ((mRA >> 3) & 0x1)); // RA3 shall never be set when not in mTeletextEnabled mode as there are only 8 raster lines for modes 0-6
+	else
+		mDisEna = mValidTgcData; // true if data from the TGC read in the previous cycle was valid
+
 		
 	if (mDisEna && bitmap_data_p != NULL && mVisibleCharPos >= 0 && mVisibleCharPos < mHzVisibleChars)
 		// Active area of an active line
@@ -439,7 +431,6 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	//cout << "endCycle="<< endCycle<<",mCycleCount="<< mCycleCount<<",mCycleCountLineRef=" << mCycleCountLineRef << ",mLineRenderedPixels=" << mLineRenderedPixels << ",mCPUClock="<< mCPUClock<<",mPixelRate=" << mPixelRate << "\n";
 
 	// Next character
-	mActiveCharPos++;
 	mVisibleCharPos++;
 	mCharPos++;
 
@@ -727,10 +718,8 @@ bool BeebVideoULA::outputState(ostream& sout)
 	sout << "Video ULA Visible Char Offset:      " << dec << mHzVisibleCharOffset << "\n";
 	sout << "Video ULA Char Pos:                 " << dec << mCharPos << "\n";
 	sout << "Video ULA Visible Char Pos:         " << dec << mVisibleCharPos << "\n";
-	sout << "Video ULA Active Char Pos:          " << dec << mActiveCharPos << "\n";
 	sout << "Video ULA Scan Line:                " << dec << mScanLine << "\n";
 	sout << "Video ULA Visible Scan Line:        " << dec << mVisibleScanLine << "\n";
-	sout << "Video ULA Active Scan Line:         " << dec << mActiveScanLine << "\n";
 	sout << "\n";
 	
 	return true;
@@ -776,15 +765,6 @@ bool BeebVideoULA::updateInternalState(uint8_t newControlRegisterValue)
 	// No of columns = 'active chars per row' x 'normalised pixel rate' / 8
 	// where 'normalised pixel rate' = 'pixel rate' / 'CRTC CLK rate'
 	//
-	//	Pixel Rate		Active Chars per row	CLK		Normalised pixel rate	No of columns	BBC Model B Mode Examples
-	//													= Pixels/Character
-	//	16 MHz			80						2 MHz	8 per CLK/Character		80				Modes 0, 3
-	//	8 MHz			80						2 MHz	4 per CLK/Character		40				Mode 1 
-	//  8 MHz			40						1 MHz	8 per CLK/Character		40				Modes 4, 6
-	//	4 MHz			80						2 MHz	2 per CLK/Character		20				Mode 2
-	//	4 MHz			40						1 MHz	4 per CLK/Character		20				Mode 5	
-	// 	4 MHz			64						2 MHz	2 per CLK/Character		32				Example of a user-defined mode (common in games)
-	//
 	mPixelsPerCharacter = mPixelRate / mCRTC_CLK;
 	if (mPixelsPerCharacter > 8) {
 		return false;
@@ -792,33 +772,24 @@ bool BeebVideoULA::updateInternalState(uint8_t newControlRegisterValue)
 	if (mTeletextEnabled)
 		mPixelsPerCharacter = 16; // as 12 pixels have been stretched to 16 by the TCG
 
-
 	//
-	//	Pixels per memory byte (mPixelsPerCharacter), "big" pixels per column symbol (mHzPixelsPerSymbol) and size of "big" pixel (mPixelW)
-	//
-	//	As configured by the Video ULA Control Register	(CR)							Given by Video ULA PR and additional CRTC configuration
-	//	===================================================								==========================================================
-	//	No of cols	Pixel rate	Pixels/Byte				CRTC Clk		Colours			Total columns	Pixels/symb				Pixel size	Scr.pix./symb	Modes
-	//							(mPixelsPerCharacter)													(mHzPixelsPerSymbol)	(mPixelW)
-	//	==========	==========	=====================	========		=======			=============	====================	==========	==============	=====
-	//	10			2 MHz		1						
-	//	20			4 MHz		2:2 5:4					0-3:2 4-7:1		2:16 5:4		2:128,5:64		8						4			8				2,5
-	//	40			8 MHz		1:4 4,6:8 7:N/A			0-3:2 4-7:1		1:4 4,6:2 7:N/A	1:128 4,6,7:64	8 (7:16)				2 (7:1)		8 (7:16)		1,4,6,7
-	//	80			16 MHz		8						0-3:2 4-7:1		0,3:2			128				8						1			8				0,3
-	//
-
-	//
-	// BBC B	Pixel		CRTC	Normalised	Columns		Pixels/byte	Active		Pixel Width
-	// Mode		Rate		CLK		Pixel Rate	(Chars)					Pixels/Byte
-	//	0		16 MHz		2 MHz	8 per CLK	80 (128)	8			640			1
-	//	1		 8 MHz		2 MHz	4 per CLK	80 (128)	4			320			2
-	//	2		 4 mHz		2 MHz	2 per CLK	80 (128)	2			160			4
-	//	3		16 MHz		2 MHz	8 per CLK	80 (128)	8			640			1
-	//	4		 8 MHz		1 MHz	8 per CLK	40 (64)		8			320			2
-	//	5		 4 MHz		1 MHz	4 per CLK	40 (64)		4			160			4
-	//	6		 8 MHz		1 MHz	8 per CLK	40 (64)		8			320			2
-	//	7
-	//	Game	 4 MHZ		2 MHz	2 per CLK	32 (64)		4			256			2
+	// Examples
+	// 
+	// BBC B	Pixel		CRTC	Normalised	CRTC Chars	Colours		Pixels/Byte	Active		Rendered	Rendered
+	// Mode		Rate		CLK		Pixel Rate	Active		from ULA				Pixels/Row	Pixel Width	Active
+	//											(Total)		Palette											Pixels/Row
+	// ========	======		=====	==========	========	========	===========	===========	===========	==========
+	//	0		16 MHz		2 MHz	8 per CLK	80 (128)	2 (1 bit)	8			640			1			640
+	//	1		 8 MHz		2 MHz	4 per CLK	80 (128)	4 (2 bits)	4			320			2			640
+	//	2		 4 mHz		2 MHz	2 per CLK	80 (128)	16 (4 bits)	2			160			4			640
+	//	3		16 MHz		2 MHz	8 per CLK	80 (128)	2 (1 bit)	8			640			1			640
+	//	4		 8 MHz		1 MHz	8 per CLK	40 (64)		2 (1 bit)	8			320			2			640
+	//	5		 4 MHz		1 MHz	4 per CLK	40 (64)		4 (2 bits)	4			160			4			640
+	//	6		 8 MHz		1 MHz	8 per CLK	40 (64)		2 (1 bit)	8			320			2			640
+	//	7		 N/A		1 MHz	N/A			40 (64)		N/A			(12)		480			1			480
+	//	"12"	 4 MHZ		1 MHz	4 per CLK	40 (64)		4 (2 bits)	4			160			4			640
+	//	"13"	 2 MHz		1 MHz	2 per CLK	20 (32)		16 (4 bits)	2			 80			8			640
+	//	Other	 8 MHZ		2 MHz	4 per CLK	64 (128)	4 (2 bits)	4			256			2			512
 
 	// Pixel width in "actual pixels" for a 640-pixel wide screen
 	mPixelW = 16 / mPixelRate;
@@ -840,26 +811,7 @@ bool BeebVideoULA::updateInternalState(uint8_t newControlRegisterValue)
 	// Cursor settings (set here and not in the loops below to optimimise performance)
 	mClk2mHz = ((mControlRegister >> 4) & 0x1) != 0;
 	mCursorSegments = (mControlRegister >> 5) & 0x7;
-	/*
-	if ((old_control_register_val ^ mControlRegister) & 0xfe) {
-		cout << dec;
-		cout << "--------------------------------------------\n";
-		cout << "Pixel Width:         " << (int)mPixelW << "\n";
-		cout << "Pixels/Symbol:       " << mHzPixelsPerSymbol << "\n";
-		cout << "Visble char offset:  " << mHzVisibleCharOffset << "\n";
-		cout << "Visible Chars        " << mHzVisibleChars << "\n";
-		cout << "Total   Chars        " << mHzChars << "\n";
-		cout << "Pixels/Char:         " << mPixelsPerCharacter << "\n";
-		cout << "Pixel Rate:          " << mPixelRate << " MHz\n";
-		cout << "CRTC Clock:          " << (int)mCRTC_CLK << " MHz\n";
-		cout << "Teletext:            " << (mTeletextEnabled ? "Enabled" : "Disabled") << "\n";
-		cout << "Resolution:          " << "Visible " << mVideoSettings.getVisibleResolution().width << " x " << mVideoSettings.getVisibleResolution().height <<
-			" (Total: " << mVideoSettings.getTotalResolution().width << " x " << mVideoSettings.getTotalResolution().height << ")\n";
-		cout << "Visible lines:       " << mVisibleLines << "\n";
-		cout << "Scan lines:          " << mScreenScanLines << "\n";
-		cout << "Visible line offset: " << mVisibleLineOffset << "\n";
-	}
-	*/
+
 	return true;
 }
 
@@ -875,6 +827,9 @@ void BeebVideoULA::processPortUpdate(int index)
 		updateHwScrollConstant();
 	}
 	else if (index == RA && mTeletextEnabled) {
+		// Odd/Even field is given by RA0 bit for the  teletext mode
+		// For other modes is can just changed on field basis with any
+		// intial value
 		mOddField = (mRA & 0x1 ? 0x1 : 0x0);
 	}
 	else if (index == HS) {
@@ -886,12 +841,6 @@ void BeebVideoULA::processPortUpdate(int index)
 			mScanLine += 2;
 			calcLineSettings();
 			mNewLine = true;
-			if (mActiveLineStatus == ACTIVE_LINE) {
-				mActiveLineStatus = PREV_LINE_ACTIVE;
-				mActiveScanLine += 2;
-			}
-			else
-				mActiveLineStatus = INACTIVE_LINE;
 		}
 		else {
 		}
@@ -899,7 +848,7 @@ void BeebVideoULA::processPortUpdate(int index)
 	else if (index == VS ) {
 		if (mVS == 1) {
 			mScanLine = 0;
-			if (!mTeletextEnabled)
+			if (!mTeletextEnabled) // odd/even field is determined by RA0 for teletext modes so don't changed it here!
 				mOddField = 1 - mOddField;
 			if (!mOddField)
 				mScanLine = 1;

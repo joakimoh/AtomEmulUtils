@@ -36,7 +36,7 @@ typedef int DebugLevel;
 #define DBG_ADC				0x10000
 #define	DBG_ALL				0xfffff
 
-#define DBG_ON
+//#define DBG_ON
 
 #ifdef DBG_ON
 

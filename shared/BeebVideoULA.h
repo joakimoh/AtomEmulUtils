@@ -112,15 +112,12 @@ public:
 	int mAdjustedScanLine = 0;
 	int mFieldRate = 50;
 	int mVisibleScanLine = 0;
-	enum {INACTIVE_LINE, ACTIVE_LINE, PREV_LINE_ACTIVE} mActiveLineStatus = INACTIVE_LINE;
-	int mActiveScanLine = 0;
 	bool mAddHalfLine = false;
 	bool mNewLine = false;
 
 	// Data related to a complete field
 	int mOddField = 0;
 	int mDisEna = 0;
-	int pDisEna = 1;
 	int mFieldOffset = 0;
 	bool mNewField = false;
 
