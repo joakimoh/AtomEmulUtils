@@ -186,7 +186,7 @@ bool Engine::run()
 
     while (!mQuit)
     {
-        if (mState != ENG_HALT) {
+        if (mState != ENG_HALT && mState  != ENG_BRK_DET) {
 
             checkForSpeedChange();
 
@@ -201,7 +201,7 @@ bool Engine::run()
                 // Acquire execution mutex
                 mExecMutex.lock();
 
-                if (mState != ENG_HALT && mState != ENG_BRK_DET) {
+                if (mState != ENG_HALT) {
 
                     // Remember the return address for a potential JSR instruction
                     mCPURetAdr = mMicroprocessor->getPC() + 3;
@@ -231,8 +231,6 @@ bool Engine::run()
 
                 // Release execution mutex
                 mExecMutex.unlock();
-
- 
 
             }
 
@@ -268,6 +266,7 @@ bool Engine::run()
 
         // Check for
         checkForUserInput();
+
     }
 
     return true;
@@ -379,6 +378,13 @@ void Engine::checkForUserInput()
             mRecurringTracing = false;
             mKeyPressed = true;
         }
+
+        // Halt executionif user presses <CTRL-H>
+        else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_H)) {
+            mState = ENG_HALT;
+            mKeyPressed = true;
+        }
+
     }
     else {
         if (!al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) &&
@@ -386,8 +392,9 @@ void Engine::checkForUserInput()
             !al_key_down(&keyboard_state, ALLEGRO_KEY_T) &&
             !al_key_down(&keyboard_state, ALLEGRO_KEY_V) &&
             !al_key_down(&keyboard_state, ALLEGRO_KEY_B)
-            )
+            ) {
             mKeyPressed = false;
+        }
     }
 }
 
@@ -419,9 +426,25 @@ bool Engine::halt()
 
 bool Engine::cont()
 {
+    // If a breakpoint still is defined, wait for it to be triggered
+    if (mBreakPoint)
+        return setBreakPointAndWait();
+
+    // Otherwise just continue execution (and wait for the user pressing <CTRL-H> to stop it
+
     mExecMutex.lock();
     mState = ENG_RUN;
     mExecMutex.unlock();
+    bool wait = true;
+    while (wait) {
+        mExecMutex.lock();
+        wait = (mState != ENG_HALT);
+        mExecMutex.unlock();
+    }
+
+    stringstream sout;
+    mMicroprocessor->outputState(sout);
+    cout << sout.str();
     return true;
 }
 
@@ -458,14 +481,27 @@ bool Engine::step(int n, bool step_over)
     return true;
 }
 
-bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAddress, bool repetition)
+bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t& readData, uint8_t& writtenData, uint16_t& operandAddress, bool repetition)
 {
-
+    mBreakPoint = true;
+    mBreakPointMode = mode;
     mBreakAdr = (int)adr;
     mRecurringTracing = repetition;
+    if (setBreakPointAndWait()) {
+        readData = mReadData;
+        writtenData = mWrittenData;
+        operandAddress = mOperandAddress;
+        return true;
+    }
+    return false;
+}
+
+bool Engine::setBreakPointAndWait()
+{   
     bool triggered = false;
+    bool stopped = false;
     mExecMutex.lock();
-    switch (mode) {
+    switch (mBreakPointMode) {
     case ENG_X_BRK_WAIT:
         mState = ENG_X_BRK_WAIT;
         break;
@@ -494,13 +530,11 @@ bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t &readData
     
     RunState p_state = mState;
     mExecMutex.unlock();
-    while (!triggered) {
+    while (!stopped) {
         mExecMutex.lock();
+        stopped = (mState == ENG_HALT || mState == ENG_BRK_DET);
         triggered = (mState == ENG_BRK_DET);
-        if (triggered) {
-            readData = mReadData;
-            writtenData = mWrittenData;
-            operandAddress = mOperandAddress;
+        if (stopped) {
             if (mRecurringTracing) {
                 mState = p_state;
                 triggered = false;
@@ -516,6 +550,9 @@ bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t &readData
     stringstream sout;
     mMicroprocessor->outputState(sout);
     cout << sout.str();
+
+    if (triggered)
+        mBreakPoint = false;
 
     return true;
 }

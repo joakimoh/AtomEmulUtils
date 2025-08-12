@@ -93,6 +93,9 @@ private:
 	uint8_t mWrittenData = 0xff;
 	uint16_t mOperandAddress = 0xffff;
 
+	bool mBreakPoint = false;
+	RunState mBreakPointMode = ENG_TBD;
+
 	uint16_t mRetAdr = 0x0;
 
 	// Create mutex for debug purpose
@@ -128,6 +131,8 @@ private:
 	// Check for change in emulation speed
 	void checkForSpeedChange();
 
+	bool setBreakPointAndWait();
+
 public:
 
 	Engine(string mapFileName, Program &program, Program &data, double emulationSpeed, VideoFormat videoFormat, bool enableHWAcc,
@@ -144,6 +149,7 @@ public:
 	bool step(int n);
 
 	bool setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAdr, bool repetition);
+
 };
 
 
