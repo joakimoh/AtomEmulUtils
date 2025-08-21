@@ -193,7 +193,7 @@ public:
 	}
 
 	//  Advance until clock cycle stopcycle has been reached
-	virtual bool advance(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }
+	virtual bool advanceUntil(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 	bool updatePort(int index, uint8_t val, bool forceUpdate = false);

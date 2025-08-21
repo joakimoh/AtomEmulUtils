@@ -144,7 +144,7 @@ void TT5050::createInterpolatedSymbols()
 }
 
 // Advance until clock cycle stopcycle has been reached
-bool TT5050::advance(uint64_t stopCycle)
+bool TT5050::advanceUntil(uint64_t stopCycle)
 {
 	// Currently not intended to be used as getScreenData() should instead be called periodically
 
@@ -366,7 +366,7 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 	return mLOSE;
 }
 
-// Process a port update directly (and not just next time the advance() method is called)
+// Process a port update directly (and not just next time the advanceUntil() method is called)
 void  TT5050::processPortUpdate(int index)
 {
 	if (index == GLR) {

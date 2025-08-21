@@ -215,7 +215,7 @@ public:
 	bool power();
 
 	// Advance until clock cycle stopcycle has been reached
-	bool advance(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopCycle);
 
 	// Get pointer to other device to be able to call its methods
 	bool connectDevice(Device* dev);
@@ -225,7 +225,7 @@ public:
 		return mCRTC != NULL && mTGC != NULL && mCRTC->initialised();
 	}
 
-	// Process a port update directly (and not just next time the advance() method is called)
+	// Process a port update directly (and not just next time the advanceUntil() method is called)
 	void processPortUpdate(int port) override;
 
 	// Outputs the internal state of the device

@@ -26,7 +26,7 @@ public:
 
 	BeebViaLatch(string name, double cpuClock, DebugManager* debugManager, ConnectionManager* connectionManager);
 
-	// Process a port update directly (and not just next time the advance() method is called)
+	// Process a port update directly (and not just next time the advanceUntil() method is called)
 	void processPortUpdate(int port) override;
 
 	// Outputs the internal state of the device

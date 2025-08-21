@@ -168,7 +168,7 @@ public:
 	bool power() { mCycleCount = 0; return true; }
 
 	//  Advance until clock cycle stopcycle has been reached
-	bool advance(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopCycle);
 
 	void processPortUpdate(int index);
 

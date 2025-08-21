@@ -243,7 +243,7 @@ public:
 	bool power() { return reset(); }
 
 	// Advance until clock cycle stopcycle has been reached
-	bool advance(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopCycle);
 
 
 	// Called by the device that needs the RGB pixel data (screenData) that
@@ -252,7 +252,7 @@ public:
 
 	bool initialised() { return true; }
 
-	// Process a port update directly (and not just next time the advance() method is called)
+	// Process a port update directly (and not just next time the advanceUntil() method is called)
 	void processPortUpdate(int index) override;
 
 	// Outputs the internal state of the device

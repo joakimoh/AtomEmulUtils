@@ -263,7 +263,7 @@ bool CRTC6845::updateOutputs()
 	return true;
 }
 
-bool CRTC6845::advance(uint64_t stopCycle)
+bool CRTC6845::advanceUntil(uint64_t stopCycle)
 {
 	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;

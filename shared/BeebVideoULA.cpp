@@ -136,7 +136,7 @@ bool BeebVideoULA::power()
 }
 
 // Advance until clock cycle stopcycle has been reached
-bool BeebVideoULA::advance(uint64_t stopCycle)
+bool BeebVideoULA::advanceUntil(uint64_t stopCycle)
 {
 	uint64_t cycle = stopCycle;
 	//cout << "[";

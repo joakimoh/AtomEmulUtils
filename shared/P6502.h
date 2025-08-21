@@ -239,7 +239,7 @@ public:
 
 
 	// Advance until clock cycle stopcycle has been reached
-	bool advance(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopCycle);
 
 	// Advance one instruction if the stop cycle hasn't already been reached
 	bool advanceInstr(uint64_t& endCycle);

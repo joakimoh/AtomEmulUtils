@@ -99,5 +99,5 @@ SCHED	ATOMKB	SUB_RATE
 SCHED	SPEAKER	SUB_RATE
 
 // Emulation rates
-EMU_BASE_RATE		60	// NTSC Field Rate
-EMU_SUB_RATE	31250	// From the duration of a 1/2 scan line for NTSC (32us)
+EMU_BASE_RATE		60		// NTSC Field Rate
+EMU_SUB_RATE		31250	// From the duration of a 1/2 scan line for NTSC (32us)

@@ -250,7 +250,7 @@ bool ACIA6850::reset()
 }
 
 // Advance until clock cycle stopcycle has been reached
-bool ACIA6850::advance(uint64_t stopCycle)
+bool ACIA6850::advanceUntil(uint64_t stopCycle)
 {
 	uint8_t p_SR;
 	uint8_t p_CR;

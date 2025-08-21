@@ -8,7 +8,7 @@ BeebViaLatch::BeebViaLatch(string name, double cpuClock, DebugManager* debugMana
 	registerPort("Q",		OUT_PORT,	0xff, Q,	&mQ);
 }
 
-// Process a port update directly (and not just next time the advance() method is called)
+// Process a port update directly (and not just next time the advanceUntil() method is called)
 void BeebViaLatch::processPortUpdate(int index)
 {
 	if (index == CTRL) {

@@ -7,9 +7,10 @@
 // 
 
 
-TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, DebugManager* debugManager, ConnectionManager* connectionManager, double speed) :
+TI4689::TI4689(string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate, double speed,
+	DebugManager* debugManager, ConnectionManager* connectionManager) :
 
-	SoundDevice(name, TI4689_DEV, cpuClock, sampleFreq, debugManager, connectionManager)
+	SoundDevice(name, TI4689_DEV, cpuClock, sampleFreq, emulationRate, subEmulationRate, speed, debugManager, connectionManager)
 {
 	registerPort("CLK", IN_PORT, 0x1, CLK,	&mCLK);
 	registerPort("D",	IN_PORT, 0xff, D,	&mD);
@@ -21,22 +22,22 @@ TI4689::TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, D
 	// Get a handle to the previously created Mixer
 	mMixer = al_get_default_mixer();
 	
-	setFieldRate(fieldRate, speed);
+	setEmulationRate(speed);
 
 }
 
-void TI4689::setFieldRate(int fieldRate, double speed)
+void TI4689::setEmulationRate(double speed)
 {
-	SoundDevice::setFieldRate(fieldRate, speed);
+	SoundDevice::setEmulationRate(speed);
 
-	mSamplesPerFragment = (int)round(0.5 * mSampleRate / mFieldRate); // one field of audio
-	mCpuCyclesPerSample = (int)round(1e6 * mCPUClock / mSampleRate);
-	mNFragments = 8;
+	mSamplesPerFragment = (int)round(0.5 * mSampleRate / mLowEmulationRate); // one emulation base cycle of audio
+	mCpuCyclesPerSample = (int)round(1e6 * mCPUClock / mBaseSampleRate);
+	mNFragments = 4;
 	
 
 	if (DBG_LEVEL_DEV(this,DBG_VERBOSE)) {
 		DBG_LOG(this, DBG_VERBOSE, "CPU Clock:                    " + to_string(mCPUClock) + " MHz");
-		DBG_LOG(this, DBG_VERBOSE, "Field rate:                   " + to_string(mFieldRate));
+		DBG_LOG(this, DBG_VERBOSE, "Emulation rate:               " + to_string(mLowEmulationRate));
 		DBG_LOG(this, DBG_VERBOSE, "Sample rate:                  " + to_string(mSampleRate));
 		DBG_LOG(this, DBG_VERBOSE, "Samples per fragment:         " + to_string(mSamplesPerFragment));
 		DBG_LOG(this, DBG_VERBOSE, "CPU cycles per sample:        " + to_string(mCpuCyclesPerSample));
@@ -60,7 +61,7 @@ void TI4689::setFieldRate(int fieldRate, double speed)
 		mChannelStream[channel] = al_create_audio_stream(
 			mNFragments,					// #fragments
 			mSamplesPerFragment,			// size of a fragment
-			mRealSampleRate,					// sample frequency
+			mSampleRate,				// sample frequency - compensated for emulation speed
 			ALLEGRO_AUDIO_DEPTH_INT16,		// int16_t samples
 			ALLEGRO_CHANNEL_CONF_2			// Stereo => pair of int16_t samples
 		);
@@ -70,7 +71,7 @@ void TI4689::setFieldRate(int fieldRate, double speed)
 
 		}
 
-		// Fill the channel with silence that lasts eight CRTC fields (mNFragments / mFieldRate)
+		// Fill the channel with silence that lasts eight emulation periods (mNFragments / mLowEmulationRate)
 		void* buf;
 		while ((buf = al_get_audio_stream_fragment(mChannelStream[channel]))) {
 			al_fill_silence(buf, mSamplesPerFragment, ALLEGRO_AUDIO_DEPTH_INT16, ALLEGRO_CHANNEL_CONF_2);
@@ -95,7 +96,7 @@ TI4689::~TI4689()
 }
 
 // Advance until clock cycle stopcycle has been reached
-bool TI4689::advance(uint64_t stopCycle)
+bool TI4689::advanceUntil(uint64_t stopCycle)
 {
 	while (mCycleCount < stopCycle) {
 
@@ -163,7 +164,7 @@ bool TI4689::advance(uint64_t stopCycle)
 				else if (channel <= TI4689_TONE_GENERATOR_3 && mChannelHalfCycleSamples[channel] > 0) {
 
 					//
-					// A Square Wave Tone generator<
+					// A Square Wave Tone generator
 					//
 
 					if (mSampleCount % mChannelHalfCycleSamples[channel] == 0) {
@@ -239,7 +240,7 @@ bool TI4689::advance(uint64_t stopCycle)
 	return true;
 }
 
-// Process input port changes directly (i.e. don't wait until the next call of the advance() method)
+// Process input port changes directly (i.e. don't wait until the next call of the advanceUntil() method)
 void TI4689::processPortUpdate(int index)
 {
 
@@ -291,7 +292,7 @@ void TI4689::processPortUpdate(int index)
 
 					if (mGenSrc[channel].freq > 0) {
 						freq = 1e6 * mCLK / (32 * mGenSrc[channel].freq);
-						mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / freq);
+						mChannelHalfCycleSamples[channel] = (int)round(0.5 * mBaseSampleRate / freq);
 						mOutput[channel] = 1;
 					}
 					else {
@@ -365,7 +366,7 @@ void TI4689::processPortUpdate(int index)
 					break;
 				}
 				if (freq > 0)
-					mNoiseShiftSamples = (int)round(mSampleRate / freq); // shift only once per low to high transition of the freq
+					mNoiseShiftSamples = (int)round(mBaseSampleRate / freq); // shift only once per low to high transition of the freq
 				else
 					mNoiseShiftSamples = -1;
 

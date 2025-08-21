@@ -7,9 +7,11 @@
 //
 
 
-AtomSpeaker::AtomSpeaker(string name, double cpuClock, double fieldRate, int sampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager,
-	double speed) :
-	SoundDevice(name, ATOM_SPEAKER_DEV, cpuClock, sampleFreq, debugManager, connectionManager)
+AtomSpeaker::AtomSpeaker(
+	string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate, double speed,
+	DebugManager  *debugManager, ConnectionManager* connectionManager
+) :
+	SoundDevice(name, ATOM_SPEAKER_DEV, cpuClock, sampleFreq, emulationRate, subEmulationRate, speed, debugManager, connectionManager)
 {
 	registerPort("OUT", IN_PORT, 0x01, OUT, &mOUT);	// From PIA PC2
 
@@ -17,7 +19,7 @@ AtomSpeaker::AtomSpeaker(string name, double cpuClock, double fieldRate, int sam
 
 	al_reserve_samples(0);
 
-	setFieldRate(fieldRate, speed);
+	setEmulationRate(speed);
 
 	
 }
@@ -28,9 +30,9 @@ AtomSpeaker::~AtomSpeaker()
 	al_destroy_audio_stream(mAudioStream);
 }
 
-void AtomSpeaker::setFieldRate(int fieldRate, double speed)
+void AtomSpeaker::setEmulationRate(double speed)
 {
-	SoundDevice::setFieldRate(fieldRate, speed);
+	SoundDevice::setEmulationRate(speed);
 
 	mSamples.clear();
 	mSoundCnt = 0;
@@ -40,14 +42,14 @@ void AtomSpeaker::setFieldRate(int fieldRate, double speed)
 			al_destroy_audio_stream(mAudioStream);
 	}
 
-	mSamplesPerFragment = (int) round(1.0 * mSampleRate / mFieldRate * speed); // 2 frames of audio
-	mNFragments = 8;
+	mSamplesPerFragment = (int)round(1.0 * mSampleRate / mLowEmulationRate); // 2 base emulation cycles of audio
+	mNFragments = 4;
 
 	// Create audio stream
 	mAudioStream = al_create_audio_stream(
 		mNFragments,					// #fragments
 		mSamplesPerFragment,			// size of a fragment
-		mRealSampleRate,					// sample frequency
+		mSampleRate,					// sample frequency
 		ALLEGRO_AUDIO_DEPTH_UINT8,
 		ALLEGRO_CHANNEL_CONF_1
 	);
@@ -56,7 +58,7 @@ void AtomSpeaker::setFieldRate(int fieldRate, double speed)
 		throw runtime_error("Could not create audio stream");
 	}
 
-	// Create and output silence that lasts one field
+	// Create and output silence that lasts one emulation cycle
 	void* buf;	
 	while ((buf = al_get_audio_stream_fragment(mAudioStream))) {
 		al_fill_silence(buf, mSamplesPerFragment, ALLEGRO_AUDIO_DEPTH_UINT8, ALLEGRO_CHANNEL_CONF_1);
@@ -68,13 +70,13 @@ void AtomSpeaker::setFieldRate(int fieldRate, double speed)
 		throw runtime_error("Could not attach audio stream to audio mixer");
 	}
 
-	// Add one field of silence
+	// Add one emulation cycle of silence
 	for (int i = 0; i < mSamplesPerFragment; i++)
 		mSamples.push_back(0x0);
 }
 
 
-bool AtomSpeaker::advance(uint64_t stopCycle)
+bool AtomSpeaker::advanceUntil(uint64_t stopCycle)
 {
 
 	updateAudio(mOUT << 7);

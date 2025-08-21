@@ -97,7 +97,7 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
         mAllegroDisplay, allegro_display_bitmap, video_settings->getVideoResolution(),
         mDM, program, data, connection_manager, mMicroprocessor, mVDU, mSoundDevice,
         mEmulationPeriodScheduledDevices, mSubRateScheduledDevices, mInstrScheduledDevices,
-        mSpeedFactor, mEmulationBaseRate, mSubEmulationRate
+        mSpeedFactor, mEmulationBaseRate, mHighEmulationRate
     );
     if (!mDM->setDevices(mDevices)) {
         cout << "Failed to initialise debug manager with device info!\n";
@@ -163,16 +163,16 @@ bool Engine::run()
 
     ALLEGRO_EVENT event;
 
-    // Duration of one emulation period in CPU cycles.
-    int CPU_cycles_base_rate = (int)round(mCPUClock * 1e6 / mEmulationBaseRate);
+    // Duration of one base (low rate) emulation period in CPU cycles.
+    int CPU_cycle_per_low_rate_cycle = (int)round(mCPUClock * 1e6 / mEmulationBaseRate);
 
-    // Duration of one emulation period in CPU cycles.
-    int CPU_cycle_sub_rate = (int)round(mCPUClock * 1e6 / mSubEmulationRate);
+    // Duration of one sub emulation period in CPU cycles.
+    int CPU_cycle_per_high_rate_cycle = (int)round(mCPUClock * 1e6 / mHighEmulationRate);
 
     /*
     cout << "CPU Rate:  " << mCPUClock << " MHz\n";
-    cout << "Base Rate: " << mEmulationBaseRate << " <=> " << CPU_cycles_base_rate << " CPU Cycles\n";
-    cout << "Sub Rate:  " << mSubEmulationRate << " <=> " << CPU_cycle_sub_rate << " CPU Cycles\n";
+    cout << "Low (Base) Emulation Rate: " << mEmulationBaseRate << " <=> " << CPU_cycle_per_low_rate_cycle << " CPU Cycles\n";
+    cout << "High Emulation Rate:  " << mHighEmulationRate << " <=> " << CPU_cycle_per_high_rate_cycle << " CPU Cycles\n";
 
     for (int i = 0; i < mEmulationPeriodScheduledDevices.size(); i++)
         cout << "BASE  " << mEmulationPeriodScheduledDevices[i]->name << "\n";
@@ -192,10 +192,10 @@ bool Engine::run()
 
             // Advance time for each device that is scheduled on emulation period basis
             for (int i = 0; i < mEmulationPeriodScheduledDevices.size(); i++)
-                mEmulationPeriodScheduledDevices[i]->advance(mCycleCount + CPU_cycles_base_rate);
+                mEmulationPeriodScheduledDevices[i]->advanceUntil(mCycleCount + CPU_cycle_per_low_rate_cycle);
 
-            // update devices scheduled on instruction and sub rate basis for the emulation period
-            uint64_t end_cycle = mCycleCount + CPU_cycles_base_rate;
+            // update devices scheduled on instruction and high emulation rate basis for the low rate emulation period
+            uint64_t end_cycle = mCycleCount + CPU_cycle_per_low_rate_cycle;
             while (mCycleCount < end_cycle) {
 
                 // Acquire execution mutex
@@ -217,12 +217,14 @@ bool Engine::run()
                     // Advance time for each device scheduled on instruction basis so that it matches the time
                     // of the microprocessor.
                     for (int d = 0; d < mInstrScheduledDevices.size(); d++)
-                        mInstrScheduledDevices[d]->advance(mCycleCount);
+                        mInstrScheduledDevices[d]->advanceUntil(mCycleCount);
 
-                    // Update devices scheduled on sub rate basis
-                    if (mCycleCount % CPU_cycle_sub_rate < p_cycle_count % CPU_cycle_sub_rate) {
+                    // Update devices scheduled on high emulation rate basis
+                    // If there (after the execution of one instruction) is a wraparound of mCycleCount % CPU_cycle_per_high_rate_cycle it means that the
+                    // zero value has been reached => time to run the devices scheduled on the sub emulation rate
+                    if (mCycleCount % CPU_cycle_per_high_rate_cycle < p_cycle_count % CPU_cycle_per_high_rate_cycle) {
                         for (int i = 0; i < mSubRateScheduledDevices.size(); i++)
-                            mSubRateScheduledDevices[i]->advance(mCycleCount);
+                            mSubRateScheduledDevices[i]->advanceUntil(mCycleCount);
                     }
 
                     // Check whether a breakpoint has been reached or not and take action if it has been reached
@@ -337,7 +339,7 @@ void Engine::checkForSpeedChange()
         al_set_timer_speed(mEmulationTimer, 1.0 / mEmulationBaseRate / mSpeedFactor);
         al_start_timer(mEmulationTimer);
         if (mSoundDevice != NULL)
-            mSoundDevice->setFieldRate(mEmulationBaseRate, mSpeedFactor);
+            mSoundDevice->setEmulationRate(mSpeedFactor);
     }
     pSpeedFactor = mSpeedFactor;
 }

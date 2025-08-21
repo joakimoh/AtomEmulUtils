@@ -108,11 +108,11 @@ private:
 
 	// Base synchronisation rate for emulation
 	double mEmulationBaseRate = 50;
-	double mSubEmulationRate = mEmulationBaseRate * 625;
+	double mHighEmulationRate = mEmulationBaseRate * 625;
 
 	// Emulation speed
 	double mSpeedFactor = 1;
-	double pSpeedFactor = 1;
+	double pSpeedFactor = 2;
 
 	int mEmulationCycle = 0;
 

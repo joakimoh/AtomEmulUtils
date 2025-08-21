@@ -41,7 +41,7 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugManage
 	al_get_keyboard_state(&mKeyboardState);
 }
 
-bool AtomKeyboardDevice::advance(uint64_t stopCycle)
+bool AtomKeyboardDevice::advanceUntil(uint64_t stopCycle)
 {
 	mCnt += stopCycle - mCycleCount;
 	mCycleCount = stopCycle;

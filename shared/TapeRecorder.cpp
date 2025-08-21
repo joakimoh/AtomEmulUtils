@@ -16,7 +16,7 @@ TapeRecorder::~TapeRecorder()
 	delete mCodec;
 }
 
-bool TapeRecorder::advance(uint64_t stopCycle)
+bool TapeRecorder::advanceUntil(uint64_t stopCycle)
 {
 	if (!mLoadFromTape && !mSaveToTape) {
 		mCycleCount = stopCycle;

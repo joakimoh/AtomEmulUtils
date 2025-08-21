@@ -227,7 +227,7 @@ bool BeebSerialULA::isNewHalfCycle(int &nCpuCycles)
 
 
 // Advance until clock cycle stopcycle has been reached
-bool BeebSerialULA::advance(uint64_t stopCycle)
+bool BeebSerialULA::advanceUntil(uint64_t stopCycle)
 {
 	if (mTapeStartCount < 0) {
 		if (mCAS_IN != pCAS_IN) {

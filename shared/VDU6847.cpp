@@ -167,9 +167,9 @@ bool VDU6847::power()
 // this unit we will have 56.7 such units per scan line and the first visible one starts after 13.8 / 1.12 = 12.4 units,
 // lasts 32 units (as there are 32 visible characters per scan line) and is followed by 12.4 non-visible units.
 //
-// advance() advances one character of a scan line (but only if the stop cycle hasn't already been reached)
+// advanceUntil() advances one character of a scan line (but only if the stop cycle hasn't already been reached)
 //
-bool VDU6847::advance(uint64_t stopCycle)
+bool VDU6847::advanceUntil(uint64_t stopCycle)
 {
 	uint64_t dummy;
 	while (mCycleCount < stopCycle)

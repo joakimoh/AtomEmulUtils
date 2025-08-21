@@ -95,15 +95,16 @@ private:
 
 public:
 
-	TI4689(string name, double cpuClock, double fieldRate, int sampleFreq, DebugManager* debugManager, ConnectionManager* connectionManager, double speed);
+	TI4689(string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate, double speed,
+		DebugManager* debugManager, ConnectionManager* connectionManager);
 	~TI4689();
 
-	void setFieldRate(int fieldRate, double speed);
+	void setEmulationRate(double speed);
 
 	// Advance until clock cycle stopcycle has been reached
-	bool advance(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopCycle);
 
-	// Process input port changes directly (i.e. don't wait until the next call of the advance() method)
+	// Process input port changes directly (i.e. don't wait until the next call of the advanceUntil() method)
 	void processPortUpdate(int index);
 
 	// Outputs the internal state of the device

@@ -21,7 +21,7 @@ bool PIA8255::reset()
 	return true;
 }
 
-bool PIA8255::advance(uint64_t stopCycle)
+bool PIA8255::advanceUntil(uint64_t stopCycle)
 {
 
 	bool reset_transition = mRESET != pRESET;

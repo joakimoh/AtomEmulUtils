@@ -13,6 +13,8 @@ class VIA6522 : public MemoryMappedDevice {
 
 private:
 
+	int mCPUCyclesPerPhi2Cycle = 1;
+
 	// Ports that can be connected to other devices
 	uint8_t mIRQ = 0x1;
 	uint8_t pIRQ = 0x1;
@@ -191,7 +193,7 @@ public:
 	bool power() { return reset(); }
 
 	// Advance until clock cycle stopcycle has been reached
-	bool advance(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopCycle);
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

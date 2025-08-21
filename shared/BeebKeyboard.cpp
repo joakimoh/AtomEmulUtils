@@ -99,7 +99,7 @@ void BeebKeyboard::processPortUpdate(int index)
 }
 
 //  Advance until clock cycle stopcycle has been reached
-bool BeebKeyboard::advance(uint64_t stopCycle)
+bool BeebKeyboard::advanceUntil(uint64_t stopCycle)
 {
 	mCycleCount = stopCycle;
 

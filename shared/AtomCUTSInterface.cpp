@@ -32,7 +32,7 @@ AtomCUTSInterface::AtomCUTSInterface(string name, double systemClock, DebugManag
 }
 
 
-bool AtomCUTSInterface::advance(uint64_t stopCycle)
+bool AtomCUTSInterface::advanceUntil(uint64_t stopCycle)
 {
 	while (mCycleCount < stopCycle) {
 

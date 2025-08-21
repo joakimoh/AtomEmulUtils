@@ -30,6 +30,8 @@ VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8
 	registerPort("CA", IO_PORT, 0x03, CA, &mCAIn, &mCAOut);
 	registerPort("CB", IO_PORT, 0x03, CB, &mCBIn, &mCBOut);
 
+	mCPUCyclesPerPhi2Cycle = max(1, (int)round(mCPUClock / mClock));
+
 	DBG_LOG(this, DBG_VERBOSE, "VIA 6522 at address 0x" + Utility::int2HexStr(mAddressSpace.getStartOfSpace(),4) +
 		" to 0x" + Utility::int2HexStr(mAddressSpace.getStartOfSpace() + mAddressSpace.getEndOfSpace(),4) + " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)\n");
 
@@ -58,7 +60,7 @@ bool VIA6522::reset()
 	return true;
 }
 
-bool VIA6522::advance(uint64_t stopCycle)
+bool VIA6522::advanceUntil(uint64_t stopCycle)
 {
 	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
@@ -90,9 +92,8 @@ bool VIA6522::advance(uint64_t stopCycle)
 
 	while (mCycleCount < stopCycle) {
 
-		// Advance exactly one phi2 cycle (or at least one CPU cycle)
-		int one_phi2_cycle = (int)round(mCPUClock / mClock);
-		mCycleCount += max(1, one_phi2_cycle);
+		// Advance one phi2 cycle		
+		mCycleCount += mCPUCyclesPerPhi2Cycle;
 
 		// Ports
 		uint8_t CA1_In = mCAIn & 0x1;
@@ -545,7 +546,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		return false;
 
 	// Advance VIA one cycle to check for transitions before read operation
-	advance(mCycleCount + 1);
+	advanceUntil(mCycleCount + 1);
 
 	uint16_t a = (adr - mAddressSpace.getStartOfSpace()) & 0xf;
 	switch (a) {

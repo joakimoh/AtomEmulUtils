@@ -29,12 +29,15 @@ private:
 	int mSoundCnt = 0;
 public:
 
-	AtomSpeaker(string name, double cpuClock, double fieldRate, int sampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager, double speed);
+	AtomSpeaker(
+		string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate, double speed,
+		DebugManager  *debugManager, ConnectionManager* connectionManager
+	);
 	~AtomSpeaker();
 
-	bool advance(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopCycle);
 
-	void setFieldRate(int fieldRate, double speed);
+	void setEmulationRate(double speed);
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

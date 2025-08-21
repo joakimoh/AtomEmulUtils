@@ -39,7 +39,7 @@ public:
 	TapeRecorder(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager);
 	~TapeRecorder();
 
-	bool advance(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopCycle);
 
 	bool startLoadFile(string tapeFile);
 	bool startSaveFile(string tapeFile);

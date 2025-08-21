@@ -212,7 +212,7 @@ public:
 	bool power() { return reset(); }
 
 	// Advance until clock cycle stopcycle has been reached
-	bool advance(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopCycle);
 	bool advanceChar();
 	bool updateOutputs();
 

@@ -137,7 +137,7 @@ public:
 	bool power() { return reset(); }
 
 	// Advance until clock cycle stopcycle has been reached
-	bool advance(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopCycle);
 
 	// Process clock updates to drive shifting on changes
 	void processPortUpdate(int index);

@@ -14,18 +14,24 @@ class SoundDevice : public Device {
 
 protected:
 
-	int mFieldRate = 60;
+	double mBaseLowEmulationRate = 60;
+	double mBaseHighEmulationRate = mBaseLowEmulationRate * 522;
+	double mLowEmulationRate = mBaseLowEmulationRate;
+	double mHighEmulationRate = mBaseHighEmulationRate;
 	int mSampleRate = 32000;			// sample rate for real-time emulation
-	int mRealSampleRate = mSampleRate; // sample rate compensated for non-real time emulation speed
+	int mBaseSampleRate = 32000;
 
-	double mSpeed = 1.0;
 
 
 public:
 
-	SoundDevice(string name, DeviceId devId, double cpuClock, int SampleFreq, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	SoundDevice(
+		string name, DeviceId devId, double cpuClock, int SampleFreq, double baseEmulationRate, double baseSubEmulationRate, double emulationSpeed,
+		DebugManager  *debugManager, ConnectionManager* connectionManager
+	);
 
-	virtual void setFieldRate(int fieldRate, double speed);
+	virtual void setEmulationRate(double baseEmulationRate, double subEmulationRate, double speed);
+	virtual void setEmulationRate(double speed);
 
 };
 

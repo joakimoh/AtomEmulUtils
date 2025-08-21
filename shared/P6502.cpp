@@ -393,7 +393,7 @@ bool P6502::reset()
 
 // 
 // Advance until stop cycle has been reached
-bool P6502::advance(uint64_t stopCycle)
+bool P6502::advanceUntil(uint64_t stopCycle)
 {
 
 	while (mCycleCount < stopCycle) {

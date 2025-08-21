@@ -13,7 +13,7 @@ ADC7002::ADC7002(string name, double cpuClock, uint16_t adr, uint16_t sz, int wa
 	mSpeed8 = (int)round(mSpeed8 * cpuClock / mCLK);
 }
 
-bool ADC7002::advance(uint64_t stopCycle)
+bool ADC7002::advanceUntil(uint64_t stopCycle)
 {
 	while (mCycleCount < stopCycle) {
 
