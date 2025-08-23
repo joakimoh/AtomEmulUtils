@@ -245,12 +245,9 @@ public:
 	// Advance until clock cycle stopcycle has been reached
 	bool advanceUntil(uint64_t stopCycle);
 
-
 	// Called by the device that needs the RGB pixel data (screenData) that
 	// the TT5050 generates based on page memory data (pageData).
 	bool getScreenData(uint8_t pageData, vector <TTColour>& screenData);
-
-	bool initialised() { return true; }
 
 	// Process a port update directly (and not just next time the advanceUntil() method is called)
 	void processPortUpdate(int index) override;

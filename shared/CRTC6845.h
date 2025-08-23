@@ -167,43 +167,6 @@ public:
 	bool dump(uint16_t adr, uint8_t& data) override;
 	bool write(uint16_t adr, uint8_t data);
 
-	double getScanLineDuration();
-	double getScanLinesPerField();
-	int getScreenScanLines();
-	double getFieldRate();
-	int getCharScanLines();
-	int getVerticalSyncLine();
-	int getVerticalSyncHeight() { return mScreenVSyncPulseH; }
-	int getHorizontalSyncPos();
-	int getHorizontalSyncWidth() { return mHzSyncPulseW_R3; }
-	int getCharsPerLine();
-	int getScreenScanLine() { return mScanLine;  }
-
-	int getActiveCharsPerLine();
-	int getActiveCharRows();
-	int getActiveLines();
-
-	void getSkew(int& displaySkew, int& cursorSkew) { displaySkew = mCharSkew_R8; cursorSkew = mCursSkew_R8; }
-
-	//
-	// Interlace-related methods
-	//
-
-	// Check if interlace is enabled (On)
-	bool interlaceOn();
-
-	// Check if video interlace is active
-	bool interlacedVideo() { return interlaced_video(mInterlaceMode_R8); }
-
-	// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
-	int fieldScanLineOffset();
-
-	// Advance 1/2 scan line - required for interlace modes as
-	// each field is usally 312 1/2 (PAL) or 262 1/2 (NTSC) scan lines
-	// to get 625 (PAL) or 525 (NTSC) scan lines per frame (i.e., a pair of even and odd fields)
-	// at 50 Hz (PAL) or 60 Hz (NTSC).
-	bool advanceHalfLine(uint64_t& endCycle) { return true; }
-
 	// Reset device
 	bool reset();
 
@@ -221,8 +184,6 @@ public:
 
 	// Called by other device to get next memory address to fetch char/graphics data from
 	bool getMemFetchAdr(uint16_t& adr);
-
-	bool initialised() { return mInitialised; }
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

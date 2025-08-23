@@ -167,11 +167,6 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 {
 	vector <uint8_t> screenData12(12);
 
-	if (!initialised()) {
-		mCycleCount += max(1, (int)round(mCPUClock / 1.0));
-		return true;
-	}
-
 	// Advance time 1 us
 	mCycleCount += max(1, (int) round(mCPUClock / 1.0));
 

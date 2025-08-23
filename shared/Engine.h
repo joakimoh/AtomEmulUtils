@@ -65,7 +65,6 @@ private:
 
 	uint64_t mCycleCount = 0;
 	bool mQuit = false;
-	int mFieldRate = 50;
 
 	DeviceManager* mDevices = NULL;
 

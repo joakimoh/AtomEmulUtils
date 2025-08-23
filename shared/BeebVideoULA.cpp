@@ -504,114 +504,6 @@ void BeebVideoULA::unlockDisplay()
 	al_restore_state(&mAllegroState);
 }
 
-
-double BeebVideoULA::getScanLineDuration()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getScanLineDuration();
-	else
-		return 64.0;
-}
-
-double BeebVideoULA::getScanLinesPerField()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getScanLinesPerField();
-	else
-		return 312.0;
-}
-
-int BeebVideoULA::getScreenScanLines()
-{
-	return mScreenScanLines;
-}
-
-double BeebVideoULA::getFieldRate()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getFieldRate();
-	else
-		return 50.0;
-}
-
-int BeebVideoULA::getCharScanLines()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getCharScanLines();
-	else
-		return 12;
-}
-
-int BeebVideoULA::getVerticalSyncLine()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getVerticalSyncLine();
-	else
-		return 0;
-}
-
-int BeebVideoULA::getVerticalSyncHeight()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getVerticalSyncHeight();
-	else
-		return 1;
-}
-
-int BeebVideoULA::getHorizontalSyncPos()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getHorizontalSyncPos();
-	else
-		return 51;
-
-}
-
-int BeebVideoULA::getCharsPerLine()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getCharsPerLine();
-	else
-		return 40;
-}
-
-int BeebVideoULA::getActiveCharsPerLine()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getActiveCharsPerLine();
-	else
-		return 40;
-}
-
-int BeebVideoULA::getScreenScanLine()
-{
-	return mScanLine;
-}
-
-int BeebVideoULA::getActiveLines()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getActiveLines();
-	else
-		return 200;
-}
-
-int BeebVideoULA::getActiveCharRows()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getActiveCharRows();
-	else
-		return 20;
-}
-
-int BeebVideoULA::getHorizontalSyncWidth()
-{
-	if (mCRTC != NULL && mCRTC->initialised())
-		return mCRTC->getHorizontalSyncWidth();
-	else
-		return 2;
-}
-
 // Get pointer to other device to be able to call its methods
 bool BeebVideoULA::connectDevice(Device* dev)
 {
@@ -625,18 +517,6 @@ bool BeebVideoULA::connectDevice(Device* dev)
 	}
 
 	return true;
-}
-
-// Check if interlace is enabled (On)
-bool BeebVideoULA::interlaceOn()
-{
-	return (mCRTC != NULL && mCRTC->interlaceOn());
-}
-
-// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
-int BeebVideoULA::fieldScanLineOffset()
-{
-	return mOddField;
 }
 
 //

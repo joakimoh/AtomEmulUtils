@@ -39,54 +39,6 @@ public:
 	bool setVideoRam(RAM* ram);
 	uint16_t getVideoMemAdr();
 
-	virtual double getScanLineDuration() = 0;
-
-	//
-	// Get the no of scan lines per field
-	// 
-	// For non-interlaced modes, this will be the same as the
-	// no of scan lines per frame (as field is then the same as a frame).
-	// 
-	// For interlaced modes, this will be the no of scan lines per one odd/even
-	// field where two such fields will correspond to a frame.
-	//s
-	virtual double getScanLinesPerField() = 0;
-
-	//
-	// Get the field rate
-	//
-	// For  non-interlaced modes, this will be the same as the
-	// frame rate (as field is then the same as a frame).
-	// 
-	// For interlaced modes, this will be the  rate of completing a
-	// single field (irrespetively if it was an even or odd one).
-	// The frame rate will be 1/2 the field rate in this case as
-	// it takes two consecutive fields (one even + one odd)
-	// to "paint"" a complete frame.
-	//
-	virtual double getFieldRate() = 0;
-
-
-	virtual int getCharScanLines() = 0;
-	virtual int getVerticalSyncLine() = 0;
-	virtual int getHorizontalSyncPos() = 0;
-	virtual int getCharsPerLine() = 0;
-	virtual int getActiveCharsPerLine() = 0;
-	virtual int getScreenScanLine() = 0;
-	virtual int getActiveLines() = 0;
-	virtual int getActiveCharRows() = 0;
-	virtual int getScreenScanLines() = 0;
-	virtual int fieldScanLineOffset() = 0;
-
-	int mSkipFields = 1;
-	bool setSkipFields(int n) { if (n > 0 && n < 10) { mSkipFields = n; return true; } return false; }
-
-	//
-	// Interlace-related methods
-	//
-
-	// Check if interlace is enabled (On)
-	virtual bool interlaceOn() = 0;
 	
 	// Read a VDU register (if applicable for the VDU type)
 	virtual bool read(uint16_t adr, uint8_t& data);

@@ -241,34 +241,6 @@ public:
 	bool dump(uint16_t adr, uint8_t& data) override;
 	bool write(uint16_t adr, uint8_t data);
 
-	double getScanLineDuration() { return (1.0/60) / 262.5;  }
-	double getScanLinesPerField() { return 262.5; }
-	double getFieldRate() { return 60; }
-	int getCharScanLines() { return 12;}
-	int getVerticalSyncLine() { return mTVBlkH;  }
-	int getHorizontalSyncPos() { return 0; }
-	int getCharsPerLine() { return 32; }
-	int getScreenScanLine() { return mScanLine; }
-	int getLeftBorderChars() { return mHzLeftBorderPixels / 8; }
-	int getTopBorderLines() { return mTopBorderLines; }
-	int getActiveCharsPerLine() { return mHzDisplayedPixels / 8; }
-	int getActiveLines() { return mDisplayedLines; }
-	int getActiveCharRows() { return mDisplayedLines / 8; }
-	int getRightBorderChars() { return mHzRightBorderPixels / 8; }
-	int getBottomBorderLines() { return mBottomBorderLines; }
-	int getRetraceLines() { return mBlankingLines; }
-	int getRetraceChars() { return mHzBlankingPixels; }
-	int getScreenScanLines() { return 524;  }
-
-	//
-	// Interlace-related methods
-	//
-
-	// Check if interlace is enabled (On)
-	bool interlaceOn();
-
-	// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
-	int fieldScanLineOffset();
 
 	// Device power on
 	bool power();

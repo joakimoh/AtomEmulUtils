@@ -162,7 +162,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
             start_adr = stoi(start_adr_s, 0, 16);
             end_adr = stoi(end_adr_s, 0, 16);
         }
-        catch (const invalid_argument& ia) {
+        catch (const invalid_argument) {
             cout << "Illegal format of file name '" << memory_dump_file_name << "'!\n";
             return false;
         }

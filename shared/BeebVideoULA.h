@@ -110,7 +110,6 @@ public:
 
 	// Data related to a complete scan line
 	int mAdjustedScanLine = 0;
-	int mFieldRate = 50;
 	int mVisibleScanLine = 0;
 	bool mAddHalfLine = false;
 	bool mNewLine = false;
@@ -184,33 +183,6 @@ public:
 	bool dump(uint16_t adr, uint8_t& data) override;
 	bool write(uint16_t adr, uint8_t data);
 
-	double getScanLineDuration();
-	double getScanLinesPerField();
-	double getFieldRate();
-	int getCharScanLines();
-	int getVerticalSyncLine();
-	int getVerticalSyncHeight();
-	int getHorizontalSyncPos();
-	int getHorizontalSyncWidth();
-	int getCharsPerLine();
-	int getActiveCharsPerLine();
-	int getScreenScanLine();
-	int getActiveCharRows();
-	int getScreenScanLines();
-	int getActiveLines();
-
-
-
-	//
-	// Interlace-related methods
-	//
-
-	// Check if interlace is enabled (On)
-	bool interlaceOn();
-
-	// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
-	int fieldScanLineOffset();
-
 	// Device power on
 	bool power();
 
@@ -219,11 +191,6 @@ public:
 
 	// Get pointer to other device to be able to call its methods
 	bool connectDevice(Device* dev);
-
-
-	bool initialised() {
-		return mCRTC != NULL && mTGC != NULL && mCRTC->initialised();
-	}
 
 	// Process a port update directly (and not just next time the advanceUntil() method is called)
 	void processPortUpdate(int port) override;

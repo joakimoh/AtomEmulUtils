@@ -444,7 +444,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 		// Therefore each screen scan line parameter will be twice that as specified by the CRTC registers.
 		// There will be an extra 1/2 can line added to each field (and therefore one extra to the complete screen) as well,
 		// For PAL, there will e.g., be 312x2=624 screen scan lines based on configuration but with this extra 1/2 scan line per field,
-		// the total no of screen scan lines will become 625.The extra 1/2 scan line is addded by a call to the advanceHalfLine()
+		// the total no of screen scan lines will become 625.
 
 		mScreenRasterLines = mCharLines_R9 * 2;
 		mScreenActiveLines = mActiveLines_R6xR9 * 2;
@@ -509,94 +509,9 @@ void CRTC6845::updateSettings(uint8_t reg)
 
 }
 
-
 void CRTC6845::printSettings()
 {
 	outputState(cout);
-}
-
-
-inline double CRTC6845::getScanLineDuration()
-{
-	return mCharCols_R0 / mCLK;
-}
-
-inline double CRTC6845::getScanLinesPerField()
-{
-	if (mScreenScanLines * mCharCols_R0 > 0) {
-		if (interlaceOn())
-			return mScreenScanLines / 2.0 + 0.5;
-		else
-			return mScreenScanLines / 2.0;
-	}
-	else
-		return 50;
-
-}
-
-inline int CRTC6845::getScreenScanLines()
-{
-	return mScreenScanLines;
-}
-
-inline double CRTC6845::getFieldRate()
-{
-	if (mScreenScanLines * mCharCols_R0 > 0) {
-		if (interlaceOn())
-			return mCLK * 1e6 / ((mScreenScanLines / 2.0 + 0.5) * mCharCols_R0);
-		else
-			return mCLK * 1e6 / (mScreenScanLines / 2.0 * mCharCols_R0);
-	}
-	else
-		return 50;
-}
-
-inline int CRTC6845::getCharScanLines()
-{
-	return mCharLines_R9;
-}
-
-inline int CRTC6845::getVerticalSyncLine()
-{
-	return mScreenVSyncLine;
-}
-
-inline int CRTC6845::getHorizontalSyncPos()
-{
-	return mHzSyncPos_R2;
-}
-
-inline int CRTC6845::getCharsPerLine()
-{
-	return mCharCols_R0;
-}
-
-inline int CRTC6845::getActiveCharsPerLine()
-{
-	return mActiveRowChars_R1;
-}
-
-inline int CRTC6845::getActiveLines()
-{
-	return mScreenActiveLines;
-}
-
-inline int CRTC6845::getActiveCharRows()
-{
-	return mActiveRows_R6;
-}
-
-
-// Check if interlace is enabled (On)
-inline bool CRTC6845::interlaceOn()
-{
-	return (!non_interlaced(mInterlaceMode_R8));
-}
-
-// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
-int CRTC6845::fieldScanLineOffset()
-{
-	return (mField % 2);
 }
 
 bool CRTC6845::outputState(ostream& sout)
@@ -608,6 +523,15 @@ bool CRTC6845::outputState(ostream& sout)
 	for (int i = 0; i < 18; i++)
 		sout << mRegInfo[i].descShort << hex << " = 0x" << setw(2) << setfill('0') << (int)mReg[i] << dec << " " << mRegInfo[i].descLong << "\n";
 
+	// Field settings (default for non-interlaced mode)
+	int scan_lines_per_field = mScreenScanLines / 2.0;
+	double field_rate = mCLK * 1e6 / (mScreenScanLines / 2.0 * mCharCols_R0);
+	if ((mInterlaceMode_R8 & 0x1) != 0) {
+		// Settings for interlaced modes
+		scan_lines_per_field = mScreenScanLines / 2.0 + 0.5;	
+		field_rate = mCLK * 1e6 / ((mScreenScanLines / 2.0 + 0.5) * mCharCols_R0);
+	}
+
 	sout << "CLK:                                                " << (int)mCLK << "\tMhz\n";
 	sout << "Scan Line duration: [R0,CLK]                        " << mCharCols_R0 * Tc << "\tus\n";
 	sout << "Total no of characters per line [R0]:               " << mCharCols_R0 << "\tchars\n";
@@ -617,7 +541,7 @@ bool CRTC6845::outputState(ostream& sout)
 	sout << "Vertical sync position [R7];                        " << mVSyncRow_R7 << " Rows\n";
 	sout << "Vertical sync pulse width [R3]:                     " << mScreenVSyncPulseH << " lines (" << round(mScreenVSyncPulseH * mCharCols_R0 * Tc) << " us)\n";
 	sout << "No of character rows per field [R4]:                " << mCharRows_R4 << "\tRows\n";
-	sout << "No of scan lines per field [R4,R9,R5]:              " << getScanLinesPerField() << "\tlines\n";
+	sout << "No of scan lines per field [R4,R9,R5]:              " << scan_lines_per_field << "\tlines\n";
 	sout << "No of unique scan lines per frame [R4,R9,R5]:       " << mScreenScanLines << "\tlines\n";
 	sout << "No of active character rows per field [R6]:         " << mActiveRows_R6 << "\tRows\n";
 	sout << "Active scan lines per screen [R6,R9]:               " << mScreenActiveLines << "\tlines\n";
@@ -629,7 +553,7 @@ bool CRTC6845::outputState(ostream& sout)
 	sout << "Cursor raster lines [R10:R11]                       [" << dec << (int)(mReg[R10_CursorStart] & 0x1f) << ":" << (int)mReg[R11_CursorEnd] << "]\n";
 	sout << "Start address [R12:R13]:                            0x" << hex << mStartAdr_R12_R13 << dec << "\n";
 	sout << "Cursor position [R14:R15]:                          0x" << hex << ((mReg[R14_CursorH] << 8) | mReg[R15_CursorL]) << dec << "\n";
-	sout << "Field Rate [CLK,R0,R4,R9,R5]:                       " << getFieldRate() << "\tHz\n";
+	sout << "Field Rate [CLK,R0,R4,R9,R5]:                       " << field_rate << "\tHz\n";
 	int cursor_disp_mode = (mReg[R10_CursorStart] >> 5) & 0x3; // 00: Non-blink,  01: non-display, 10: blink 16-field, 11: blink 32-field
 	sout << "Cursor mode:                                        " << (cursor_disp_mode == 0 ? "Fixed" : (cursor_disp_mode == 1 ? "None" : (cursor_disp_mode == 2 ? "Blink-16" : "Blink-32"))) <<
 		"\n";

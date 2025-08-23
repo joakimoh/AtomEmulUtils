@@ -475,18 +475,6 @@ inline bool VDU6847::readGraphicsMem(uint16_t adr, uint8_t& data)
 	return mVideoMem->read(adr, data) && updatePort(VDU_PORT_DIN, data);
 }
 
-//
-// Interlace-related methods
-//
-
-// Check if interlace is enabled (On)
-inline bool VDU6847::interlaceOn() { return true; }
-
-// Get scan line offset (0 for even field or non-interlaced mode, 1 for odd field)
-int VDU6847::fieldScanLineOffset()
-{
-	return (mField % 2);
-}
 
 // Outputs the internal state of the device
 bool VDU6847::outputState(ostream& sout)
