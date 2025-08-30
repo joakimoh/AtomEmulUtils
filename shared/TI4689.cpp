@@ -30,7 +30,7 @@ void TI4689::setEmulationRate(double speed)
 {
 	SoundDevice::setEmulationRate(speed);
 
-	mSamplesPerFragment = (int)round(0.5 * mSampleRate / mLowEmulationRate); // one emulation base cycle of audio
+	mSamplesPerFragment = (int)round(1.0 * mSampleRate / mLowEmulationRate); // one emulation base cycle of audio
 	mCpuCyclesPerSample = (int)round(1e6 * mCPUClock / mBaseSampleRate);
 	mNFragments = 4;
 	

@@ -177,6 +177,33 @@ private:
 	string ACRLE2Str(uint8_t l);
 	string ddr2Str(char port, uint8_t ddr);
 
+	void checkForShift();
+	void checkTimers();
+	void checkForHandShaking();
+
+	// Ports
+	uint8_t CA1_In = mCAIn & 0x1;
+	uint8_t CA1_Out = mCAOut & 0x1;
+	uint8_t pCA1_In = pCAIn & 0x1;
+	uint8_t CA2_In = (mCAIn >> 1) & 0x1;
+	uint8_t CA2_Out = (mCAOut >> 1) & 0x1;
+	uint8_t pCA2_In = (pCAIn >> 1) & 0x1;
+	uint8_t CB1_In = mCBIn & 0x1;
+	uint8_t CB1_Out = mCBOut & 0x1;
+	uint8_t pCB1_In = pCBIn & 0x1;
+	uint8_t CB2_In = (mCBIn >> 1) & 0x1;
+	uint8_t CB2_Out = (mCBOut >> 1) & 0x1;
+	uint8_t pCB2_In = (pCBIn >> 1) & 0x1;
+	uint8_t PB6_In = (mPBIn >> 6) & 0x1;
+	uint8_t pPB6_In = (pPBIn >> 6) & 0x1;
+
+	uint8_t CA1_mode = PCR_CA1_CTRL;
+	uint8_t CA2_mode = PCR_CA2_CTRL;
+	uint8_t CB1_mode = PCR_CB1_CTRL;
+	uint8_t CB2_mode = PCR_CB2_CTRL;
+
+	bool shifting_active = false;
+
 public:
 
 	VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugManager  *debugManager, ConnectionManager* connectionManager,
