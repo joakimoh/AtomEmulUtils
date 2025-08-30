@@ -405,7 +405,7 @@ bool P6502::advanceUntil(uint64_t stopCycle)
 }
 
 
-// Advance one instruction if the stop cycle hasn't already been reached
+// Advance one instruction
 bool P6502::advanceInstr(uint64_t& endCycle)
 {
 	bool success = true;

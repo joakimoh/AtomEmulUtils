@@ -208,24 +208,26 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 
 		mNewField = false;
 
-		DBG_LOG(this, DBG_VDU, "UPDATE SCREEN");
+		if (true) {
 
-		// Unlock the screen display (bitmap) so it can be written to
-		unlockDisplay();
+			DBG_LOG(this, DBG_VDU, "UPDATE SCREEN");
 
-		// Clear the screen display
-		al_clear_to_color(black);
+			// Unlock the screen display (bitmap) so it can be written to
+			unlockDisplay();
 
-		// Draw the display bitmap including borders to fill the complete screen display
-		al_draw_bitmap(mDisplayBitmap, 0, 0, 0);
+			// Clear the screen display
+			al_clear_to_color(black);
 
-		// Make the updates visible on the screen display	
-		al_flip_display();
+			// Draw the display bitmap including borders to fill the complete screen display
+			al_draw_bitmap(mDisplayBitmap, 0, 0, 0);
+
+			// Make the updates visible on the screen display	
+			al_flip_display();
 
 
-		// Lock the screen display (bitmap) again
-		lockDisplay();
-
+			// Lock the screen display (bitmap) again
+			lockDisplay();
+		}
 
 	}
 
