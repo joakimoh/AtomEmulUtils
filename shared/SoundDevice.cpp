@@ -22,4 +22,5 @@ void SoundDevice::setEmulationRate(double speed)
 	mLowEmulationRate = mBaseLowEmulationRate * speed;
 	mHighEmulationRate = mBaseHighEmulationRate * speed;
 	mSampleRate = mBaseSampleRate * speed;
+	mEmulationSpeed = speed;
 }

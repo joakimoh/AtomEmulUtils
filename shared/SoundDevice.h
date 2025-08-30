@@ -20,6 +20,7 @@ protected:
 	double mHighEmulationRate = mBaseHighEmulationRate;
 	int mSampleRate = 32000;			// sample rate for real-time emulation
 	int mBaseSampleRate = 32000;
+	double mEmulationSpeed = 1.0;
 
 
 

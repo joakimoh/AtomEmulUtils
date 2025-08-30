@@ -70,7 +70,7 @@ private:
 
 	VideoDisplayUnit* mVDU = NULL;
 	SoundDevice* mSoundDevice = NULL;
-	vector<Device*> mEmulationPeriodScheduledDevices, mSubRateScheduledDevices, mInstrScheduledDevices;
+	vector<Device*> mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices;
 	P6502* mMicroprocessor = NULL;
 	double mCPUClock = 1.0;
 
@@ -106,8 +106,8 @@ private:
 	bool mKeyPressed = false;
 
 	// Base synchronisation rate for emulation
-	double mEmulationBaseRate = 50;
-	double mHighEmulationRate = mEmulationBaseRate * 625;
+	double mLowEmulationRate = 50;
+	double mHighEmulationRate = mLowEmulationRate * 625;
 
 	// Emulation speed
 	double mSpeedFactor = 1;

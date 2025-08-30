@@ -92,9 +92,6 @@ bool VIA6522::advanceUntil(uint64_t stopCycle)
 
 	while (mCycleCount < stopCycle) {
 
-		// Advance one phi2 cycle		
-		mCycleCount += mCPUCyclesPerPhi2Cycle;
-
 		// Ports
 		uint8_t CA1_In = mCAIn & 0x1;
 		uint8_t CA1_Out = mCAOut & 0x1;
@@ -493,6 +490,9 @@ bool VIA6522::advanceUntil(uint64_t stopCycle)
 
 		updateIRQ();
 
+		// Advance one phi2 cycle		
+		mCycleCount += mCPUCyclesPerPhi2Cycle;
+
 	}
 
 	pPCR = mPCR;
@@ -546,7 +546,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		return false;
 
 	// Advance VIA one cycle to check for transitions before read operation
-	advanceUntil(mCycleCount + 1);
+	advanceUntil(mCycleCount + mCPUCyclesPerPhi2Cycle);
 
 	uint16_t a = (adr - mAddressSpace.getStartOfSpace()) & 0xf;
 	switch (a) {

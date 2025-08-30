@@ -489,11 +489,11 @@ DeviceManager::DeviceManager(
 					throw runtime_error("Syntax error");
 				}
 				sin >> sch_s;
-				if (sch_s == "BASE_RATE") {
-					sch_dev->scheduling = BASE_RATE;
+				if (sch_s == "LOW_RATE") {
+					sch_dev->scheduling = LOW_RATE;
 				}
-				else if (sch_s == "SUB_RATE") {
-					sch_dev->scheduling = SUB_RATE;
+				else if (sch_s == "HIGH_RATE") {
+					sch_dev->scheduling = HIGH_RATE;
 				}
 				else if (sch_s == "INSTR_RATE") {
 					sch_dev->scheduling = INSTR_RATE;
@@ -505,10 +505,10 @@ DeviceManager::DeviceManager(
 					throw runtime_error("Syntax error");
 				}
 			}
-			else if (cmd == "EMU_BASE_RATE") {
+			else if (cmd == "EMU_LOW_RATE") {
 				sin >> baseSchedulingRate;
 			}
-			else if (cmd == "EMU_SUB_RATE") {
+			else if (cmd == "EMU_HIGH_RATE") {
 				sin >> subSchedulingRate;
 			}
 			else if (cmd == "INIT") {
@@ -610,9 +610,9 @@ DeviceManager::DeviceManager(
 		}
 		else if (d->scheduling == INSTR_RATE)
 			instructionRateScheduledDevices.push_back(d);
-		else if (d->scheduling == SUB_RATE)
+		else if (d->scheduling == HIGH_RATE)
 			subRateScheduledDevices.push_back(d);
-		else if (d->scheduling == BASE_RATE)
+		else if (d->scheduling == LOW_RATE)
 			baseRateScheduledDevices.push_back(d);
 		if (DBG_LEVEL(DBG_VERBOSE))
 			cout << d->name << " scheduled on " << _SCHEDULING(d->scheduling) << " basis\n";

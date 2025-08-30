@@ -61,7 +61,7 @@ void TI4689::setEmulationRate(double speed)
 		mChannelStream[channel] = al_create_audio_stream(
 			mNFragments,					// #fragments
 			mSamplesPerFragment,			// size of a fragment
-			mSampleRate,				// sample frequency - compensated for emulation speed
+			mSampleRate,					// sample frequency - compensated for emulation speed
 			ALLEGRO_AUDIO_DEPTH_INT16,		// int16_t samples
 			ALLEGRO_CHANNEL_CONF_2			// Stereo => pair of int16_t samples
 		);
@@ -71,7 +71,7 @@ void TI4689::setEmulationRate(double speed)
 
 		}
 
-		// Fill the channel with silence that lasts eight emulation periods (mNFragments / mLowEmulationRate)
+		// Fill the channel with one fragment of silence
 		void* buf;
 		while ((buf = al_get_audio_stream_fragment(mChannelStream[channel]))) {
 			al_fill_silence(buf, mSamplesPerFragment, ALLEGRO_AUDIO_DEPTH_INT16, ALLEGRO_CHANNEL_CONF_2);
@@ -95,7 +95,7 @@ TI4689::~TI4689()
 	}
 }
 
-// Advance until clock cycle stopcycle has been reached
+// Advance until the CPU stopCycle has been reached
 bool TI4689::advanceUntil(uint64_t stopCycle)
 {
 	while (mCycleCount < stopCycle) {
@@ -181,7 +181,7 @@ bool TI4689::advanceUntil(uint64_t stopCycle)
 				}
 
 				// Change value range [0,1] to range [-1,+1] x channel volume
-				val = ((mOutput[channel] << 1) - 1) * mChannelVolume[channel];;
+				val = ((mOutput[channel] << 1) - 1) * mChannelVolume[channel];
 
 				// Add stereo sample
 				if (mSamplesSize[channel] < mSamplesPerFragment) {
@@ -232,9 +232,11 @@ bool TI4689::advanceUntil(uint64_t stopCycle)
 			}
 
 			mSampleCount++;
-		}
 
-		mCycleCount++;
+			mCycleCount += mCpuCyclesPerSample;
+		}
+		else
+			mCycleCount++;
 	}
 
 	return true;
@@ -289,10 +291,12 @@ void TI4689::processPortUpdate(int index)
 						DBG_LOG(this, DBG_AUDIO, "Set MSB of " + generator+ " to 0x" + Utility::int2HexStr(TI4689_MSB_FREQ(mD),1));
 					}
 					double freq = 0;
+					double perceived_frq = 0;
 
 					if (mGenSrc[channel].freq > 0) {
-						freq = 1e6 * mCLK / (32 * mGenSrc[channel].freq);
-						mChannelHalfCycleSamples[channel] = (int)round(0.5 * mBaseSampleRate / freq);
+						freq = 1e6 * mCLK / (32 * mGenSrc[channel].freq); 
+						perceived_frq = freq * mEmulationSpeed; // perceived frequency considering the emulation speed
+						mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / perceived_frq);
 						mOutput[channel] = 1;
 					}
 					else {

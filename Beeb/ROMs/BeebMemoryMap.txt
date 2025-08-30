@@ -135,7 +135,7 @@ CONNECT		ACIA:IRQ			CPU:IRQ
 //
 //	Device scheduling
 //
-SCHED	KB			SUB_RATE
+SCHED	KB			HIGH_RATE
 SCHED	CRTC		NONE
 TRIGGER	CRTC		CALL	VDU							// Trigger the CRTC explictly by VDU function calls
 SCHED	TCG			NONE
@@ -145,7 +145,7 @@ SCHED	ACIA		INSTR_RATE
 SCHED	SerialULA	INSTR_RATE
 //SCHED	VDU			NONE
 SCHED	VIAL		NONE
-SCHED	SOUND		SUB_RATE
+SCHED	SOUND		HIGH_RATE
 SCHED	MMFS_CARD	NONE
 
 //
@@ -156,5 +156,5 @@ INIT	VDU:INV			1									// Inverted screen for non-teletext modes OFF (value 1)
 INIT	SYS_VIA:PB;5;4	3									// Set System VIA PB5:PB4 High (as they should be when not connected to a game pad)
 
 // Emulation rates
-EMU_BASE_RATE	50		// PAL Field Rate
-EMU_SUB_RATE	31250	// From the duration of a 1/2 scan line for PAL (32us)
+EMU_LOW_RATE	50		// PAL Field Rate
+EMU_HIGH_RATE	31250	// From the duration of a 1/2 scan line for PAL (32us)

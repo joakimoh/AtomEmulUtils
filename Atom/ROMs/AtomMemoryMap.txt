@@ -91,13 +91,13 @@ CONNECT	PIA:PortC;2		SPEAKER:OUT
 // Default (when no triggering is specified) is to schedule each device periodically
 // synchronised with the microcontroller instruction execution (INSTR_RATE)
 //
-// SCHEDULING IS ONE OF BASE_RATE, SUB_RATE, INSTR_RATE, NONE
+// SCHEDULING IS ONE OF LOW_RATE, HIGH_RATE, INSTR_RATE, NONE
 //
 TRIGGER	ATOMKB	MEM	PIA		READ	b001	// Acorn Atom polls keyboard by reading from PIA Port B
 TRIGGER ATOMKB	MEM	KERNEL	READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release)
-SCHED	ATOMKB	SUB_RATE
-SCHED	SPEAKER	SUB_RATE
+SCHED	ATOMKB	HIGH_RATE
+SCHED	SPEAKER	HIGH_RATE
 
 // Emulation rates
-EMU_BASE_RATE		60		// NTSC Field Rate
-EMU_SUB_RATE		31250	// From the duration of a 1/2 scan line for NTSC (32us)
+EMU_LOW_RATE		60		// NTSC Field Rate
+EMU_HIGH_RATE		31250	// From the duration of a 1/2 scan line for NTSC (32us)
