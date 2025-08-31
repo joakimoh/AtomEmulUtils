@@ -8,10 +8,10 @@
 
 
 AtomSpeaker::AtomSpeaker(
-	string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate, double speed,
+	string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate,
 	DebugManager  *debugManager, ConnectionManager* connectionManager
 ) :
-	SoundDevice(name, ATOM_SPEAKER_DEV, cpuClock, sampleFreq, emulationRate, subEmulationRate, speed, debugManager, connectionManager)
+	SoundDevice(name, ATOM_SPEAKER_DEV, cpuClock, sampleFreq, emulationRate, subEmulationRate, debugManager, connectionManager)
 {
 	registerPort("OUT", IN_PORT, 0x01, OUT, &mOUT);	// From PIA PC2
 
@@ -19,7 +19,7 @@ AtomSpeaker::AtomSpeaker(
 
 	al_reserve_samples(0);
 
-	setEmulationRate(speed);
+	setEmulationSpeed(1.0);
 
 	
 }
@@ -30,9 +30,9 @@ AtomSpeaker::~AtomSpeaker()
 	al_destroy_audio_stream(mAudioStream);
 }
 
-void AtomSpeaker::setEmulationRate(double speed)
+void AtomSpeaker::setEmulationSpeed(double speed)
 {
-	SoundDevice::setEmulationRate(speed);
+	SoundDevice::setEmulationSpeed(speed);
 
 	mSamples.clear();
 	mSoundCnt = 0;

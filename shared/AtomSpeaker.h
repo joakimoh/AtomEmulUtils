@@ -30,14 +30,14 @@ private:
 public:
 
 	AtomSpeaker(
-		string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate, double speed,
+		string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate,
 		DebugManager  *debugManager, ConnectionManager* connectionManager
 	);
 	~AtomSpeaker();
 
 	bool advanceUntil(uint64_t stopCycle);
 
-	void setEmulationRate(double speed);
+	void setEmulationSpeed(double speed);
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

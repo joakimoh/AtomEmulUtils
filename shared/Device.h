@@ -154,6 +154,9 @@ protected:
 
 	bool mKeepsTime = true;
 
+
+	double mEmulationSpeed = 1.0;
+
 public:
 
 	double mCPUClock = 2.0;
@@ -235,6 +238,10 @@ public:
 
 	//
 	bool getTimeSec(double& t) { t = mCycleCount * 1e-6 / mCPUClock; return mKeepsTime; }
+
+	// Tells the device about the current emulation rate, should this be used by the device
+	// Normally overriden by each device that uses this rate
+	virtual void setEmulationSpeed(double emulationSpeed) { mEmulationSpeed = emulationSpeed; }
 
 };
 

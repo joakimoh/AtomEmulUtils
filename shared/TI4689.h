@@ -95,11 +95,11 @@ private:
 
 public:
 
-	TI4689(string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate, double speed,
+	TI4689(string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate,
 		DebugManager* debugManager, ConnectionManager* connectionManager);
 	~TI4689();
 
-	void setEmulationRate(double speed);
+	void setEmulationSpeed(double speed);
 
 	// Advance until clock cycle stopcycle has been reached
 	bool advanceUntil(uint64_t stopCycle);

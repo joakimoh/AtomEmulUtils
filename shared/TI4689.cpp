@@ -7,10 +7,10 @@
 // 
 
 
-TI4689::TI4689(string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate, double speed,
+TI4689::TI4689(string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate,
 	DebugManager* debugManager, ConnectionManager* connectionManager) :
 
-	SoundDevice(name, TI4689_DEV, cpuClock, sampleFreq, emulationRate, subEmulationRate, speed, debugManager, connectionManager)
+	SoundDevice(name, TI4689_DEV, cpuClock, sampleFreq, emulationRate, subEmulationRate, debugManager, connectionManager)
 {
 	registerPort("CLK", IN_PORT, 0x1, CLK,	&mCLK);
 	registerPort("D",	IN_PORT, 0xff, D,	&mD);
@@ -22,13 +22,13 @@ TI4689::TI4689(string name, double cpuClock, int sampleFreq, double emulationRat
 	// Get a handle to the previously created Mixer
 	mMixer = al_get_default_mixer();
 	
-	setEmulationRate(speed);
+	setEmulationSpeed(1.0);
 
 }
 
-void TI4689::setEmulationRate(double speed)
+void TI4689::setEmulationSpeed(double speed)
 {
-	SoundDevice::setEmulationRate(speed);
+	SoundDevice::setEmulationSpeed(speed);
 
 	mSamplesPerFragment = (int)round(1.0 * mSampleRate / mLowEmulationRate); // one emulation base cycle of audio
 	mCpuCyclesPerSample = (int)round(1e6 * mCPUClock / mBaseSampleRate);

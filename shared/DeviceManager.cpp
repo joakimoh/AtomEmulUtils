@@ -160,7 +160,7 @@ DeviceManager::DeviceManager(
 				else if (dev_type == "ATOMSP") {
 
 					AtomSpeaker* sp = new AtomSpeaker(
-						dev_name, cpuClock, audioSampleFreq, baseSchedulingRate, subSchedulingRate, speed, mDM, &connection_manager
+						dev_name, cpuClock, audioSampleFreq, baseSchedulingRate, subSchedulingRate, mDM, &connection_manager
 					);
 					mDevices.push_back(sp);
 					sound_device = sp;
@@ -170,7 +170,7 @@ DeviceManager::DeviceManager(
 				else if (dev_type == "TI4689") {
 
 					TI4689* sd = new TI4689(
-						dev_name, cpuClock, audioSampleFreq, baseSchedulingRate, subSchedulingRate, speed, mDM, &connection_manager
+						dev_name, cpuClock, audioSampleFreq, baseSchedulingRate, subSchedulingRate, mDM, &connection_manager
 					);
 					mDevices.push_back(sd);
 					sound_device = sd;
@@ -640,7 +640,7 @@ DeviceManager::DeviceManager(
 		connection_manager.printRouting();
 
 	if (sound_device != NULL)
-		sound_device->setEmulationRate(baseSchedulingRate, subSchedulingRate, speed);
+		sound_device->setEmulationSpeed(baseSchedulingRate, subSchedulingRate, speed);
 
 	//printMemoryMap();
 

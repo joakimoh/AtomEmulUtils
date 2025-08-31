@@ -339,7 +339,7 @@ void Engine::checkForSpeedChange()
         al_set_timer_speed(mEmulationTimer, 1.0 / mLowEmulationRate / mSpeedFactor);
         al_start_timer(mEmulationTimer);
         if (mSoundDevice != NULL)
-            mSoundDevice->setEmulationRate(mSpeedFactor);
+            mSoundDevice->setEmulationSpeed(mSpeedFactor);
     }
     pSpeedFactor = mSpeedFactor;
 }

@@ -208,7 +208,7 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 
 		mNewField = false;
 
-		if (true) {
+		if (mField % mFieldsPerRefreshPeriod == 0) {
 
 			DBG_LOG(this, DBG_VDU, "UPDATE SCREEN");
 
@@ -747,3 +747,4 @@ void BeebVideoULA::processPortUpdate(int index)
 	}
 
 }
+

@@ -29,6 +29,8 @@ protected:
 
 	VideoSettings mVideoSettings;
 
+	int mFieldsPerRefreshPeriod = 1;
+
 public:
 
 	VideoDisplayUnit(string name, DeviceId devId, VideoSettings videoSettings, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz,
@@ -38,13 +40,15 @@ public:
 
 	bool setVideoRam(RAM* ram);
 	uint16_t getVideoMemAdr();
-
 	
 	// Read a VDU register (if applicable for the VDU type)
 	virtual bool read(uint16_t adr, uint8_t& data);
 
 	// Write to a VDU register (if applicable for the VDU type)
 	virtual bool write(uint16_t adr, uint8_t data);
+
+	// Make sure the screen update rate is always the same as the field rate (normally 50 or 60 Hz), irrespectively of the emulation rate
+	void setEmulationSpeed(double emulationSpeed) override;
 };
 
 #endif
