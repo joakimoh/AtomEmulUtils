@@ -5,9 +5,9 @@ SoundDevice::SoundDevice(
 	string name, DeviceId devId, double cpuClock, int SampleFreq, double baseEmulationRate, double baseSubEmulationRate,
 	DebugManager* debugManager, ConnectionManager* connectionManager
 ) :
-	Device(name, devId, SOUND_DEVICE, cpuClock, debugManager, connectionManager), mSampleRate(SampleFreq)
+	Device(name, devId, SOUND_DEVICE, cpuClock, debugManager, connectionManager), mBaseSampleRate(SampleFreq)
 {
-	setEmulationSpeed(baseEmulationRate, baseSubEmulationRate, 1.0);
+	setEmulationSpeed(baseEmulationRate, baseSubEmulationRate, mEmulationSpeed);
 }
 
 void SoundDevice::setEmulationSpeed(double baseEmulationRate, double subEmulationRate, double speed)
@@ -21,6 +21,6 @@ void SoundDevice::setEmulationSpeed(double speed)
 {
 	mLowEmulationRate = mBaseLowEmulationRate * speed;
 	mHighEmulationRate = mBaseHighEmulationRate * speed;
-	mSampleRate = mBaseSampleRate * speed;
+	mSampleRate = (int) round(mBaseSampleRate * speed);
 	mEmulationSpeed = speed;
 }

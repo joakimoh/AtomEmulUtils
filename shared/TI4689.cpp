@@ -22,7 +22,7 @@ TI4689::TI4689(string name, double cpuClock, int sampleFreq, double emulationRat
 	// Get a handle to the previously created Mixer
 	mMixer = al_get_default_mixer();
 	
-	setEmulationSpeed(1.0);
+	setEmulationSpeed(mEmulationSpeed);
 
 }
 
@@ -296,12 +296,12 @@ void TI4689::processPortUpdate(int index)
 					if (mGenSrc[channel].freq > 0) {
 						freq = 1e6 * mCLK / (32 * mGenSrc[channel].freq); 
 						perceived_frq = freq * mEmulationSpeed; // perceived frequency considering the emulation speed
-						mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / perceived_frq);
-						mOutput[channel] = 1;
+						mChannelHalfCycleSamples[channel] = (int)round(0.5 * mSampleRate / perceived_frq);  // duration of a 1/2 tone in samples
+						//mOutput[channel] = 1;
 					}
 					else {
 						mChannelHalfCycleSamples[channel] = 0;
-						mOutput[channel] = 0;
+						//mOutput[channel] = 0;
 					}
 					DBG_LOG(
 						this, DBG_AUDIO, " <=> Frequency " + to_string(freq) + " Hz (0x" +

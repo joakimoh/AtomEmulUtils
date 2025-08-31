@@ -19,7 +19,7 @@ AtomSpeaker::AtomSpeaker(
 
 	al_reserve_samples(0);
 
-	setEmulationSpeed(1.0);
+	setEmulationSpeed(mEmulationSpeed);
 
 	
 }
