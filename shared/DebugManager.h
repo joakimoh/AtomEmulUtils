@@ -96,6 +96,7 @@ typedef struct InstrLogData_struct {
 	uint8_t readVal = 0;
 	uint8_t writtenVal = 0;
 	int memContent = -1;
+	int cycles = -1; // No of cycles the instruction took to execute
 } InstrLogData;
 
 

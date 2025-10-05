@@ -288,7 +288,7 @@ void TI4689::processPortUpdate(int index)
 					}
 					else {
 						mGenSrc[channel].freq = (mGenSrc[channel].freq & 0x00f) | (TI4689_MSB_FREQ(mD) << 4);
-						DBG_LOG(this, DBG_AUDIO, "Set MSB of " + generator+ " to 0x" + Utility::int2HexStr(TI4689_MSB_FREQ(mD),1));
+						DBG_LOG(this, DBG_AUDIO, "Set MSB of " + generator + " to 0x" + Utility::int2HexStr(TI4689_MSB_FREQ(mD),1));
 					}
 					double freq = 0;
 					double perceived_frq = 0;
@@ -330,8 +330,9 @@ void TI4689::processPortUpdate(int index)
 						mChannelVolume[channel] = 0;
 						mOutput[channel] = 0;
 					}
-					else
+					else {
 						mChannelVolume[channel] = (int)round(mChannelLevelMax * pow(10, -a / 10.0));
+					}
 					DBG_LOG(
 						this, DBG_AUDIO,
 						"Set Attenuation for "s + generator + " to 0x" + Utility::int2HexStr(a,2) + " = > Attenuation " +

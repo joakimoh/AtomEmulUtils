@@ -76,7 +76,7 @@ void VIA6522::checkForShift()
 
 		case 0x0:	// Shift in on positive edge of CB1 - no interrupt flag set
 			mCB1ShiftPulseLevel = CB1_In;
-			DBG_LOG_COND(mCB1ShiftPulseLevel != CB1_In, this, DBG_IO_ERIPHERAL, "Mode 0: CB1 shift in pulse '" + to_string(mCB1ShiftPulseLevel) + "' generated from CB1 input...\n");
+			DBG_LOG_COND(mCB1ShiftPulseLevel != CB1_In, this, DBG_IO_PERIPHERAL, "Mode 0: CB1 shift in pulse '" + to_string(mCB1ShiftPulseLevel) + "' generated from CB1 input...\n");
 			mShiftInterrupt = false;
 			break;
 

@@ -532,7 +532,7 @@ void DebugManager::printInstrLogData(ostream &sout, InstrLogData instrLogData)
 
 	string t_s = Utility::encodeCPUTime(instrLogData.logTime);
 
-	sout << t_s << " " << setfill(' ') << setw(30) << left << instr_s << right <<
+	sout << t_s << " [" << instrLogData.cycles << "] " << setfill(' ') << setw(30) << left << instr_s << right <<
 		" " <<  hex << setfill('0') <<
 		"A:" << setw(2) << (int)instrLogData.A <<
 		" X:" << setw(2) << (int)instrLogData.X <<

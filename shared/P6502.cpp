@@ -453,6 +453,9 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		return false;
 	}
 
+	// Save cycle count before fetching and executing the instruction
+	uint64_t start_cycle = mCycleCount;
+
 	// Get mOpcode of next instruction
 	mOpcodePC = mProgramCounter;
 	if (!readProgramMem(mProgramCounter++, mOpcode)) {
@@ -465,6 +468,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	// Fetch the instructuon operands and execute the instruction
 	uint8_t oI_flag = I_flag;
 	bool exec_success = true;
+
 	if (!executeInstr()) {
 		exec_success = false;
 		DBG_LOG(this, DBG_ERROR, "Invalid instruction 0x" + Utility::int2HexStr(mOpcode, 2) + " at address 0x" + Utility::int2HexStr(mOpcodePC, 4) + "!\n");
@@ -479,6 +483,16 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 
 	DBG_LOG_COND(false && I_flag != oI_flag, this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[mInstructionInfo.instruction] + " at address 0x" + Utility::int2HexStr(mOpcodePC,4) + "\n");
 
+	// Increase time by the no of clock cycles specified for the instruction and mode.
+	// This excludes extra cycle at page boundary as this is instead accounted for
+	// in the methods for evaluating the operand part of the instruction.
+	tick(mInstructionInfo.cycles);
+
+	// Return time reached
+	endCycle = mCycleCount;
+
+	// Calculate the no of cycles for the executed instruction
+	int cycles = endCycle - start_cycle;
 
 	if (DBG_TRACING()) {
 
@@ -509,12 +523,15 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			uint16_t w = (h << 8) | l;
 			instr_log_data.stack = w;
 
+			instr_log_data.cycles = cycles;
+
 			DBG_LOG(this, DBG_6502, instr_log_data);
 		}
 		else {
 
 			string instr_s = mCodec.decode(mOpcodePC, mOpcode, mOperand16);
 			stringstream sout;
+			sout << "[" << cycles << "] ";
 			sout << setfill(' ') << setw(30) << left << instr_s << right <<
 				" " << getState();
 			if (mInstructionInfo.readsMem || mInstructionInfo.writesMem)
@@ -535,15 +552,6 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			DBG_LOG(this, DBG_6502, sout.str());
 		}
 	}
-	
-
-		
-	// Increase time by the no of clock cycles specified for the instruction and mode.
-	// This excludes extra cycle at page boundary as this is instead address in getOperand().
-	tick(mInstructionInfo.cycles);
-
-	// Return time reached
-	endCycle = mCycleCount;
 
 
 	// Always return true even if the instruction execution failed in some way in order
@@ -677,7 +685,7 @@ bool P6502::ASLExecHdlr()
 bool P6502::BCCExecHdlr()
 {
 	if (!C_flag)
-		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
 
 	return true;
 }
@@ -695,7 +703,7 @@ bool P6502::BCCExecHdlr()
 bool P6502::BCSExecHdlr()
 {
 	if (C_flag)
-		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
 
 	return true;
 }
@@ -713,7 +721,7 @@ bool P6502::BCSExecHdlr()
 bool P6502::BEQExecHdlr()	
 {
 	if (Z_flag)
-		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
 
 	return true;
 }
@@ -757,7 +765,7 @@ bool P6502::BITExecHdlr()
 bool P6502::BMIExecHdlr()
 {
 	if (N_flag)
-		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
 
 	return true;
 }
@@ -775,7 +783,7 @@ bool P6502::BMIExecHdlr()
 bool P6502::BNEExecHdlr()
 {
 	if (!Z_flag)
-		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
 
 	return true;
 }
@@ -793,7 +801,7 @@ bool P6502::BNEExecHdlr()
 bool P6502::BPLExecHdlr()
 {
 	if (!N_flag)
-		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
 
 	return true;
 }
@@ -851,7 +859,7 @@ bool P6502::BRKExecHdlr()
 bool P6502::BVCExecHdlr()
 {
 	if (!V_flag)
-		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
 
 	return true;
 }
@@ -869,7 +877,7 @@ bool P6502::BVCExecHdlr()
 bool P6502::BVSExecHdlr()
 {
 	if (V_flag)
-		mProgramCounter = (mOpcodePC+2 + (int8_t) mOperand16) & 0xffff;
+		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
 
 	return true;
 }
@@ -2184,10 +2192,10 @@ bool P6502::relativeAdrHdlr()
 		return false;
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
-	mOperand16 = rel_a;
+	mOperand16 = (int8_t) rel_a;
 
 	// Save the calculated address for use when executing the specific instruction later on
-	mOperandAddress = (rel_a + mProgramCounter) & 0xffff;
+	mOperandAddress = (mOperand16 + mProgramCounter) & 0xffff;
 
 	// Add one cycle if branch to other page
 	if (mInstructionInfo.addCycleAtPageBoundary && pageBoundaryCrossed(mProgramCounter, mOperandAddress))
