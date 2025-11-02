@@ -13,6 +13,8 @@
 #include "SoundDevice.h"
 #include "P6502.h"
 #include "Display.h"
+#include <chrono>
+using namespace std::chrono;
 
 
 
@@ -170,6 +172,7 @@ bool Engine::run()
     int CPU_cycles_per_high_rate_cycle = (int)round(mCPUClock * 1e6 / mHighEmulationRate);
 
     /*
+    cout << "Timer: " << (1000 / mLowEmulationRate / mSpeedFactor) << " ms\n";
     cout << "CPU Rate:  " << mCPUClock << " MHz\n";
     cout << "Low (Base) Emulation Rate: " << mLowEmulationRate << " Hz <=> " << CPU_cycles_per_low_rate_cycle << " CPU Cycles\n";
     cout << "High Emulation Rate: " << mHighEmulationRate << " Hz <=> " << CPU_cycles_per_high_rate_cycle << " CPU Cycles\n";
@@ -181,7 +184,13 @@ bool Engine::run()
         cout << "High Rate Scheduled: " << mHighRateScheduledDevices[i]->name << "\n";
 
     for (int i = 0; i < mInstrScheduledDevices.size(); i++)
-        cout << "Intruction Scheduled: " << mInstrScheduledDevices[i]->name << "\n";
+        cout << "Intruction Scheduled: " << mInstrScheduledDevices[i]->name << "\n";    
+    
+    int c = 0;
+    uint64_t cycles_per_second = 0;
+    int r = (int)mLowEmulationRate;
+    auto start  = high_resolution_clock::now();
+    uint64_t pCycleCount = 0;
     */
 
     while (!mQuit)
@@ -221,7 +230,7 @@ bool Engine::run()
 
                     // Update devices scheduled on high emulation rate basis if one high rate period has elapsed.
                     // If there (after the execution of one instruction) is a wraparound of mCycleCount % CPU_cycles_per_high_rate_cycle it means that the
-                    // zero value has been reached => time to run the devices scheduled on the sub emulation rate
+                    // zero value has been reached => time to run the devices scheduled on the high rate
                     if (mCycleCount % CPU_cycles_per_high_rate_cycle < p_cycle_count % CPU_cycles_per_high_rate_cycle) {
                         for (int i = 0; i < mHighRateScheduledDevices.size(); i++)
                             mHighRateScheduledDevices[i]->advanceUntil(mCycleCount);
@@ -240,6 +249,18 @@ bool Engine::run()
 
         // wait for event
         al_wait_for_event(mQueue, &event);
+
+        /*
+        cycles_per_second += mCycleCount - pCycleCount;
+        pCycleCount = mCycleCount;
+        if (c++ % r == 0) {
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+            cout << duration << ", " << cycles_per_second << " cycles\n";
+            start = high_resolution_clock::now();
+            cycles_per_second = 0;
+        }
+        */
 
         bool cont = true;
         // There could be more than one event in the queue - make sure to empty it before waiting for the next timer event
@@ -334,7 +355,6 @@ void Engine::checkForBreakPoint()
 void Engine::checkForSpeedChange()
 {
     if (mSpeedFactor != pSpeedFactor) {
-        mSpeedFactor = mSpeedFactor;
         al_stop_timer(mEmulationTimer);
         al_set_timer_speed(mEmulationTimer, 1.0 / mLowEmulationRate / mSpeedFactor);
         al_start_timer(mEmulationTimer);

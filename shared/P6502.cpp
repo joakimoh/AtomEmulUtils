@@ -464,8 +464,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	}
 	mInstructionInfo = mInstrData[mOpcode].info;
 
-
-	// Fetch the instructuon operands and execute the instruction
+	// Fetch the instruction operands and execute the instruction
 	uint8_t oI_flag = I_flag;
 	bool exec_success = true;
 
