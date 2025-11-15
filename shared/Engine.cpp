@@ -90,14 +90,14 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
     int sample_rate = (int)round(res.height * video_settings->getFieldRate());
 
     // Set up devices
-    ConnectionManager connection_manager(mDM);
+    mConnectionManager = new ConnectionManager(mDM);
     mDevices = new DeviceManager(
         *video_settings,
         mapFileName,
         mCPUClock,            // CPU Clock frequency in MHz
         sample_rate,          // audio sample rate corresponding to a rate of at least twice per scan line
         mAllegroDisplay, allegro_display_bitmap, video_settings->getVideoResolution(),
-        mDM, program, data, connection_manager, mMicroprocessor, mVDU, mSoundDevice,
+        mDM, program, data, mConnectionManager, mMicroprocessor, mVDU, mSoundDevice,
         mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices,
         mSpeedFactor, mLowEmulationRate, mHighEmulationRate
     );
@@ -158,6 +158,8 @@ Engine::~Engine()
         delete mGUI;
     if (mDevices != NULL)
         delete mDevices;
+    if (mConnectionManager != NULL)
+        delete mConnectionManager;
 }
 
 bool Engine::run()
@@ -360,6 +362,8 @@ void Engine::checkForSpeedChange()
         al_start_timer(mEmulationTimer);
         if (mSoundDevice != NULL)
             mSoundDevice->setEmulationSpeed(mSpeedFactor);
+        if (mVDU != NULL)
+            mVDU->setEmulationSpeed(mSpeedFactor);
     }
     pSpeedFactor = mSpeedFactor;
 }

@@ -18,6 +18,7 @@
 
 class SoundDevice;
 class Debugmanager;
+class ConnectionManager;
 
 using namespace std;
 
@@ -80,6 +81,8 @@ private:
 
 	DebugManager *mDM = NULL;
 	bool mRecurringTracing = false;
+
+	ConnectionManager *mConnectionManager = NULL;
 
 
 	GUI *mGUI = NULL;

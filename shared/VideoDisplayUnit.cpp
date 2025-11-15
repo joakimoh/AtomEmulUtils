@@ -33,6 +33,6 @@ bool VideoDisplayUnit::write(uint16_t adr, uint8_t data)
 // Make sure the screen update rate is always the same as the field rate (normally 50 or 60 Hz), irrespectively of the emulation rate
 void VideoDisplayUnit::setEmulationSpeed(double emulationSpeed)
 {
-	int field_rate = mVideoSettings.getFieldRate();
-	mFieldsPerRefreshPeriod = (int)round(field_rate / emulationSpeed);
+	// int field_rate = mVideoSettings.getFieldRate();
+	mFieldsPerRefreshPeriod = max(1,(int)round(emulationSpeed));
 }

@@ -42,7 +42,8 @@ private:
 	double getDoubleVal(stringstream& sin);
 	int getIntVal(stringstream& sin);
 
-	vector<MemoryMappedDevice*> mDevicesByAddress;
+	typedef MemoryMappedDevice* MemoryMappedDevice_p;
+	MemoryMappedDevice_p* mDevicesByAddress = NULL;
 
 	bool createMemoryMap();
 
@@ -51,7 +52,7 @@ public:
 	DeviceManager(
 		VideoSettings videoSettings,
 		string memMapFile, double& cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, Resolution disRes, DebugManager* debugManager,
-		Program program, Program data, ConnectionManager& connectionManager, P6502*& microprocessor, VideoDisplayUnit*& vdu,
+		Program program, Program data, ConnectionManager* connectionManager, P6502*& microprocessor, VideoDisplayUnit*& vdu,
 		SoundDevice * &sound_device,
 		vector<Device*>& baseRateScheduledDevices, vector<Device*>& subRateScheduledDevices, vector<Device*>& instructionRateScheduledDevices, double speed,
 		double &baseSchedulingRate, double&subSchedulingRate

@@ -23,12 +23,14 @@ int main(int argc, const char* argv[])
 
     string gen_dir = filesystem::current_path().string();
     
-    Engine engine(
+    Engine *engine = new Engine(
         arg_parser.mapFileName, arg_parser.program, arg_parser.data,
         arg_parser.emulationSpeed, arg_parser.videoFormat, arg_parser.hwAcc, &arg_parser.debugManager, gen_dir, arg_parser.initialState
     );
 
-    engine.run();
+    engine->run();
+
+    delete engine;
 
     return 0;
 
