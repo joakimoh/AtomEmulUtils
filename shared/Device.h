@@ -126,7 +126,7 @@ class Device {
 
 private:
 	bool updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal);
-	bool updateConnectedPorts(vector<InputReference>& connectedPorts, uint8_t val, DevicePort* port, bool changed);
+	bool updateConnectedPorts(vector<InputReference>& connectedPorts, uint8_t val, DevicePort* port);
 
 	void getPortSelection(DevicePort* srcPort, InputReference& dstPort, string& srcSel, string& dstSel);
 

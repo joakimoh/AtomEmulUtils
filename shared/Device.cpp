@@ -176,8 +176,7 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 	// Get reference to the current source port value
 	uint8_t& port_val = *port.valOut;
 
-	// No need to progate value if the source port is unchanged unless connected to a destination port that is bidirectional.
-	// (A change of the dst port from IN->OUT->IN would then require it to be updated to "get back" the old src port value.)
+	// No need to progate value if the source port is unless an update is enforced
 	bool changed = port_val != val || forceUpdate;
 	if (!changed)// && !port.conToBiDirP)
 		return true;
@@ -193,19 +192,15 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 	port_val = val;
 
 	// Update the destination ports based on the new value
-	return updateConnectedPorts(port.inputs, val, &port, changed);
+	return updateConnectedPorts(port.inputs, val, &port);
 }
 
-bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_t val, DevicePort *port, bool changed)
+bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_t val, DevicePort *port)
 {
 
 	for (int i = 0; i < connectedPorts.size(); i++) {
 
 		InputReference &input = connectedPorts[i];
-
-		// Skip destination ports that are not bidirectional for unchanged source ports
-		if (!changed && input.port->dir == IN_PORT)
-			continue;
 
 		if (updateDstPortValue(port, input,val)) { // update destination port on change or always for a bidirectional port
 
