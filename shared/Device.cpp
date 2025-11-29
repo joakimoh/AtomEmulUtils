@@ -246,24 +246,6 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 	}
 
 
-
-	// Check whether the bidirectional port bits connected to the destination port are currently outputs
-	// A non-zero value means that the bidirectional port bits are currently an outputs
-	if (srcPort->dir == IO_PORT) {
-		uint8_t dst_dir_mask;
-		uint8_t src_dir_mask = srcPort->ioDirMask;
-		uint8_t dir_or;
-		if (shifts >= 0)
-			dir_or = (src_dir_mask >> shifts) & dst_sel_mask;
-		else
-			dir_or = (src_dir_mask << (-shifts)) & dst_sel_mask;
-		dst_dir_mask = dir_or & dst_mask;
-
-		// TBD Do something to avoid update for IO Port that are set as input currently...
-
-	}
-
-
 	// Always update the destination port's recollection of the source port's value
 	int i = 0;
 	for (; i < dstPort.port->portSources.size() && dstPort.port->portSources[i].srcPort != srcPort; i++);
