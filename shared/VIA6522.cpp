@@ -27,8 +27,8 @@ VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8
 
 	mCPUCyclesPerPhi2Cycle = max(1, (int)round(mCPUClock / mClock));
 
-	DBG_LOG(this, DBG_VERBOSE, "VIA 6522 at address 0x" + Utility::int2HexStr(mAddressSpace.getStartOfSpace(),4) +
-		" to 0x" + Utility::int2HexStr(mAddressSpace.getStartOfSpace() + mAddressSpace.getEndOfSpace(),4) + " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)\n");
+	DBG_LOG(this, DBG_VERBOSE, "VIA 6522 at address 0x" + Utility::int2HexStr(mStartOfSpace,4) +
+		" to 0x" + Utility::int2HexStr(mStartOfSpace + mAddressSpace.getEndOfSpace(),4) + " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)\n");
 
 }
 
@@ -561,7 +561,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 	// Advance VIA one cycle to check for transitions before read operation
 	advanceUntil(mCycleCount + mCPUCyclesPerPhi2Cycle);
 
-	uint16_t a = (adr - mAddressSpace.getStartOfSpace()) & 0xf;
+	uint16_t a = (adr - mStartOfSpace) & 0xf;
 	switch (a) {
 
 	case IRB:
@@ -724,7 +724,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 bool VIA6522::dump(uint16_t adr, uint8_t& data)
 {
 	if (selected(adr)) {
-		uint16_t a = (adr - mAddressSpace.getStartOfSpace()) & 0xf;
+		uint16_t a = (adr - mStartOfSpace) & 0xf;
 		switch (a) {
 
 		case IRB:
@@ -847,7 +847,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		return false;
 
 
-	switch ((adr - mAddressSpace.getStartOfSpace()) & 0xf) {
+	switch ((adr - mStartOfSpace) & 0xf) {
 
 
 	case ORB:

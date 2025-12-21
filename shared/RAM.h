@@ -11,7 +11,7 @@ using namespace std;
 class RAM : public MemoryMappedDevice {
 
 private:
-
+	
 
 public:
 

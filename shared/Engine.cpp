@@ -14,6 +14,7 @@
 #include "P6502.h"
 #include "Display.h"
 #include <chrono>
+#include "KeyboardDevice.h"
 using namespace std::chrono;
 
 
@@ -98,7 +99,7 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
         sample_rate,          // audio sample rate corresponding to a rate of at least twice per scan line
         mAllegroDisplay, allegro_display_bitmap, video_settings->getVideoResolution(),
         mDM, program, data, mConnectionManager, mMicroprocessor, mVDU, mSoundDevice,
-        mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices,
+        mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices, mKeyboardDevice,
         mSpeedFactor, mLowEmulationRate, mHighEmulationRate
     );
     if (!mDM->setDevices(mDevices)) {
@@ -130,9 +131,15 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
     mEmulationTimer = al_create_timer(1.0 / mLowEmulationRate / mSpeedFactor);
     al_register_event_source(mQueue, al_get_timer_event_source(mEmulationTimer));
     al_start_timer(mEmulationTimer);
+  
+
+    // Catch keyboard events
+    al_register_event_source(mQueue, al_get_keyboard_event_source());
 
     // Create mutex for debug purpose
     mutex mExecMutex;
+
+   
 
 }
 
@@ -268,7 +275,6 @@ bool Engine::run()
         // There could be more than one event in the queue - make sure to empty it before waiting for the next timer event
         while (cont) {
 
-            // act on event
             if (event.type == ALLEGRO_EVENT_MENU_CLICK) {
                 mGUI->itemSelected(&event);
             }
@@ -280,8 +286,8 @@ bool Engine::run()
                 al_flush_event_queue(mQueue);
             }
             else if (event.type == ALLEGRO_EVENT_TIMER) {
-                // The timer event comes from the emulation speed timer (defaults to 60 Hz)
-                // This will synchronise the execution on 60 Hz basis (via the wait event above)
+                // The timer event comes from the emulation speed timer (usually set to 50 or 60 Hz)
+                // This will synchronise the execution on 50/60 Hz basis (via the wait event above)
 
             }
 

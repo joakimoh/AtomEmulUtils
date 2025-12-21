@@ -192,10 +192,7 @@ private:
 	uint16_t mOpcodePC = 0xffff;
 	uint8_t mOpcode = 0xff;
 	uint16_t mOperand16 = 0xffff;
-	uint16_t mOperandAddress = 0xffff;
-
-	MemoryMappedDevice* mLastPgmDevice = NULL;
-	
+	uint16_t mOperandAddress = 0xffff;	
 	
 	bool writeDevice(uint16_t adr, uint8_t data);
 

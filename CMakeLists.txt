@@ -1,7 +1,8 @@
 ﻿# CMakeList.txt : CMake project for Assemblerutils
 #
 cmake_minimum_required (VERSION 3.8)
-project ("AssemblerUtils" VERSION 2.2)
+message(CMAKE_VERSION="${CMAKE_VERSION}")
+project ("AtomEmulutils" VERSION 2.2)
 include(FetchContent)
 
 #option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
@@ -37,7 +38,8 @@ FetchContent_Declare(
 )
 FetchContent_GetProperties(allegro5)
 if(NOT allegro5_POPULATED)
-  FetchContent_Populate(allegro5)
+
+  FetchContent_MakeAvailable(allegro5)
 	if (MSVC)
 		set(SHARED ON)
 	else()
@@ -46,7 +48,17 @@ if(NOT allegro5_POPULATED)
 	set(WANT_TESTS OFF)
 	set(WANT_EXAMPLES OFF)
 	set(WANT_DEMO OFF)
-  add_subdirectory(${allegro5_SOURCE_DIR} ${allegro5_BINARY_DIR} EXCLUDE_FROM_ALL)
+
+	set (MY_ALLEGRO_SOURCE_DIR ${allegro5_SOURCE_DIR})
+	set (MY_ALLEGRO_BINARY_DIR ${allegro5_BINARY_DIR})
+
+	#cmake_path(RELATIVE_PATH MY_ALLEGRO_SOURCE_DIR BASE_DIRECTORY ${allegro5_SOURCE_DIR})
+	#cmake_path(RELATIVE_PATH MY_ALLEGRO_BINARY_DIR BASE_DIRECTORY ${allegro5_SOURCE_DIR})
+
+	message(SRC_DIR=${MY_ALLEGRO_SOURCE_DIR})
+	message(BIN_DIR=${MY_ALLEGRO_BINARY_DIR})
+
+	#add_subdirectory(${allegro5_SOURCE_DIR} ${allegro5_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 #set(WANT_STATIC_RUNTIME "Whether or not to link the C and C++ runtimes statically (currently only implemented on Windows)" OFF)
 
@@ -55,10 +67,9 @@ find_package(ZLIB REQUIRED)
 
 
 
-set (MY_ALLEGRO_SOURCE_DIR ${allegro5_SOURCE_DIR})
-set (MY_ALLEGRO_BINARY_DIR ${allegro5_BINARY_DIR})
 
-# Create sub driectory for shared library
+
+# Create sub directory for shared library
 add_subdirectory(shared)
 
 # Common
@@ -126,7 +137,7 @@ set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}")
 include(InstallRequiredSystemLibraries)
 set(CPACK_PACKAGE_DIRECTORY "distribution")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
-set(CPACK_PACKAGE_NAME "AssemblerUtils")
+set(CPACK_PACKAGE_NAME "AtomEmulutils")
 set(CPACK_PACKAGE_VERSION_MAJOR "${AtomTapeUtils_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${AtomTapeUtils_VERSION_MINOR}")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Utility to disassemble 6502 machine code")
@@ -137,7 +148,7 @@ IF (WIN32)
 ELSEIF(UNIX)
   set(CPACK_GENERATOR "DEB")
   set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
-  #set(CPACK_DEBIAN_PACKAGE_NAME "AssemblerUtils-dev")
+  #set(CPACK_DEBIAN_PACKAGE_NAME "AtomEmulutils-dev")
   #set(CPACK_DEBIAN_PACKAGE_VERSION 1.0.0)
   #set(CPACK_DEBIAN_PACKAGE_RELEASE 1)
   set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Joakim Ohlsson")

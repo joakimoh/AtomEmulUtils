@@ -94,8 +94,8 @@ VDU6847::VDU6847(string name, uint16_t adr, VideoSettings videoSettings, double 
 	// Initialise the VDU registers with zeros
 	mMem.assign(mAddressSpace.getSizeOfSpace(), 0);
 
-	DBG_LOG(this,DBG_VERBOSE, "VDU 6847 at address 0x" + Utility::int2HexStr(mAddressSpace.getStartOfSpace(),4) +
-		" to 0x" + Utility::int2HexStr(mAddressSpace.getStartOfSpace() + mAddressSpace.getEndOfSpace(),4) + " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)"
+	DBG_LOG(this,DBG_VERBOSE, "VDU 6847 at address 0x" + Utility::int2HexStr(mStartOfSpace,4) +
+		" to 0x" + Utility::int2HexStr(mStartOfSpace + mAddressSpace.getEndOfSpace(),4) + " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)"
 	);
 
 	// Initialise line counters
@@ -444,7 +444,7 @@ bool VDU6847::read(uint16_t adr, uint8_t& data)
 	if (!MemoryMappedDevice::triggerBeforeRead(adr, data))
 		return false;
 
-	data = mMem[adr - mAddressSpace.getStartOfSpace()];
+	data = mMem[adr - mStartOfSpace];
 
 	return true;
 
@@ -453,7 +453,7 @@ bool VDU6847::read(uint16_t adr, uint8_t& data)
 bool VDU6847::dump(uint16_t adr, uint8_t& data)
 {
 	if (selected(adr)) {
-		data = mMem[adr - mAddressSpace.getStartOfSpace()];
+		data = mMem[adr - mStartOfSpace];
 		return true;
 	}
 	return false;
@@ -464,7 +464,7 @@ bool VDU6847::write(uint16_t adr, uint8_t data)
 	if (!selected(adr))
 		return false;
 
-	mMem[adr - mAddressSpace.getStartOfSpace()] = data;
+	mMem[adr - mStartOfSpace] = data;
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	return MemoryMappedDevice::triggerAfterWrite(adr, data);

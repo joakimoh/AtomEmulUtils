@@ -19,6 +19,7 @@ MemoryMappedDevice::MemoryMappedDevice(
 	string s2 = s1 + mAddressSpace;
 	DBG_LOG(this, DBG_VERBOSE, s2);
 
+	mStartOfSpace = mAddressSpace.getStartOfSpace();
 }
 
 bool MemoryMappedDevice::selected(uint16_t adr)

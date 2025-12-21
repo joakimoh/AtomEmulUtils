@@ -9,7 +9,7 @@ using namespace std;
 
 
 AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager) :
-	Device(name, ATOM_KB_DEV, KEYBOARD_DEVICE, cpuClock, debugManager, connectionManager)
+	KeyboardDevice(name, ATOM_KB_DEV, cpuClock, debugManager, connectionManager)
 {
 	// Specify ports that can be connected to other devices	
 	registerPort("ROW", IN_PORT, 0x0f, KB_ROW, &mSelectedRow);
@@ -40,6 +40,7 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugManage
 
 	al_get_keyboard_state(&mKeyboardState);
 }
+
 
 bool AtomKeyboardDevice::advanceUntil(uint64_t stopCycle)
 {

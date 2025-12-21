@@ -16,7 +16,7 @@ class MemoryMappedDevice : public Device {
 
 protected:
 
-
+	uint16_t mStartOfSpace = 0;
 
 	int CS;
 	uint8_t mCS = 0x0;

@@ -6,6 +6,7 @@
 #include "Device.h"
 #include <allegro5/allegro5.h>
 #include "DebugManager.h"
+#include "KeyboardDevice.h"
 
 
 typedef struct Key_struct {
@@ -13,11 +14,9 @@ typedef struct Key_struct {
 	string	keyName; // e.g, "COPY", "ESC" and "A"
 }  Key;
 
-class BeebKeyboard : public Device {
+class BeebKeyboard : public KeyboardDevice {
 
 private:
-
-	ALLEGRO_KEYBOARD_STATE mKeyboardState;
 
 	vector<vector<Key>> mKeyboardMatrix = {
 		{

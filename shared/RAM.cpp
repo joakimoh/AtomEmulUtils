@@ -39,7 +39,7 @@ bool RAM::read(uint16_t adr, uint8_t& data)
 			return false;
 	}
 	
-	data = mMem[adr - mAddressSpace.getStartOfSpace()];
+	data = mMem[adr - mStartOfSpace];
 
 	return true;
 
@@ -48,7 +48,7 @@ bool RAM::read(uint16_t adr, uint8_t& data)
 bool RAM::dump(uint16_t adr, uint8_t& data)
 {
 	if (selected(adr))
-		data = mMem[adr - mAddressSpace.getStartOfSpace()];
+		data = mMem[adr - mStartOfSpace];
 	else
 		data = 0x0;
 
@@ -61,7 +61,7 @@ bool RAM::write(uint16_t adr, uint8_t data)
 	if (!selected(adr) || mCS != 0)
 		return false;
 
-	mMem[adr - mAddressSpace.getStartOfSpace()] = data;
+	mMem[adr - mStartOfSpace] = data;
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	return !mTriggerOnWrite || MemoryMappedDevice::triggerAfterWrite(adr, data);

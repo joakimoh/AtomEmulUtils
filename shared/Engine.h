@@ -19,10 +19,14 @@
 class SoundDevice;
 class Debugmanager;
 class ConnectionManager;
+class KeyboardDevice;
 
 using namespace std;
 
 class Engine {
+
+private:
+	KeyboardDevice *mKeyboardDevice = NULL;
 
 public:
 	// Debugger state

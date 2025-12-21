@@ -64,7 +64,7 @@ bool ROM::read(uint16_t adr, uint8_t& data)
 	if (!MemoryMappedDevice::triggerBeforeRead(adr, data) || mCS != 0)
 		return false;
 
-	data = mMem[adr - mAddressSpace.getStartOfSpace()];
+	data = mMem[adr - mStartOfSpace];
 
 	return true;
 
@@ -73,7 +73,7 @@ bool ROM::read(uint16_t adr, uint8_t& data)
 bool ROM::dump(uint16_t adr, uint8_t& data)
 {
 	if (selected(adr)) {
-		data = mMem[adr - mAddressSpace.getStartOfSpace()];
+		data = mMem[adr - mStartOfSpace];
 		return true;
 	}
 	return false;

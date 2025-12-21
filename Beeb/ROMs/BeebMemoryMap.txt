@@ -143,7 +143,6 @@ TRIGGER	TCG			CALL	VDU							// Trigger the TCG explictly by VDU function calls
 TRIGGER ACIA		CALL	SerialULA					// Trigger the ACIA explictly by Serial ULA function calls
 SCHED	ACIA		INSTR_RATE
 SCHED	SerialULA	INSTR_RATE
-//SCHED	VDU			NONE
 SCHED	VIAL		NONE
 SCHED	SOUND		HIGH_RATE
 SCHED	MMFS_CARD	NONE

@@ -155,17 +155,20 @@ void Device::getPortSelection(DevicePort *srcPort, InputReference & dstPort, str
 //
 bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 {
-	if (index < 0 && index >= mPorts.size())
+	if (index < 0 || index >= mPorts.size())
 		return false;
 
 	// Get reference to the source port
 	DevicePort &port = *mPorts[index];
-
+	
 	// No need to propagate value if there are no connected ports...
 	if (port.fanOut < 1) {
-		*port.valOut = val; // still update the source port even if it is not connected!
+		*port.valOut = val;
 		return true;
 	}
+
+	// Get reference to the current source port value
+	uint8_t& port_val = *port.valOut;
 
 	// Check that the source port is not an input port
 	if (port.dir == IN_PORT) {
@@ -173,11 +176,13 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 		return false;
 	}
 
-	// Get reference to the current source port value
-	uint8_t& port_val = *port.valOut;
-
-	// No need to progate value if the source port is unless an update is enforced
+	// Changes or enforced update?
 	bool changed = port_val != val || forceUpdate;
+
+	// Update the source port value with the new value
+	port_val = val;
+
+	// No need to progate value if the source port is unchanged unless an update is enforced
 	if (!changed)// && !port.conToBiDirP)
 		return true;
 
@@ -188,12 +193,10 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 	}
 #endif
 
-	// Update the source port value with the new value
-	port_val = val;
-
 	// Update the destination ports based on the new value
 	return updateConnectedPorts(port.inputs, val, &port);
 }
+
 
 bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_t val, DevicePort *port)
 {
@@ -245,12 +248,14 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 			" with value 0x" + Utility::int2HexStr(nval, 2) + " (0x" + Utility::int2HexStr(pval, 2) + ")");
 	}
 
+	vector <OutputReference>& dst_port_sources = dstPort.port->portSources;
+	int dst_port_sources_sz = dst_port_sources.size();
 
 	// Always update the destination port's recollection of the source port's value
 	int i = 0;
-	for (; i < dstPort.port->portSources.size() && dstPort.port->portSources[i].srcPort != srcPort; i++);
-	if (i < dstPort.port->portSources.size() )
-		dstPort.port->portSources[i].dstVal = nval;
+	for (; i < dst_port_sources_sz && dst_port_sources[i].srcPort != srcPort; i++);
+	if (i < dst_port_sources_sz)
+		dst_port_sources[i].dstVal = nval;
 
 	// Update destination port on change or always for a bidirectional port
 	if (pval != nval || dstPort.port->dir == IO_PORT) {
@@ -270,10 +275,11 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 				DBG_LOG(this, DBG_PORT, "\nABRITRATION FOR PORT " + dstPort.port->dev->name + ":" + dstPort.port->name + " = 0x" + 
 					Utility::int2HexStr(pval,2));
 #endif
+			
 
-			for (int i = 0; i < dstPort.port->portSources.size(); i++) {
+			for (int i = 0; i < dst_port_sources_sz; i++) {
 
-				OutputReference &src_ref = dstPort.port->portSources[i];
+				OutputReference &src_ref = dst_port_sources[i];
 
 				// update arbitrated value	
 				aval &= src_ref.dstVal | ~src_ref.dstMask; // arbitrate with each source port's value

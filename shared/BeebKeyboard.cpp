@@ -28,7 +28,7 @@
 // PL17				IN				LED2	PB2:0 as BDC 6;PB3 has val		Low							CAPS Lock LED
 //
 BeebKeyboard::BeebKeyboard(string name, double cpuClock, uint8_t startupOptions, DebugManager  *debugManager, ConnectionManager* connectionManager):
-	Device(name, BEEB_KEYBOARD_DEV, KEYBOARD_DEVICE, cpuClock, debugManager, connectionManager)
+	KeyboardDevice(name, BEEB_KEYBOARD_DEV, cpuClock, debugManager, connectionManager)
 {
 	// Specify ports that can be connected to other devices	
 	registerPort("SW",			IN_PORT,	0xf, SW,		&mSW);

@@ -33,6 +33,7 @@
 #include "SDCard.h"
 #include "ADC7002.h"
 #include "MemoryProxyDevice.h"
+#include "KeyboardDevice.h"
 
 using namespace std;
 
@@ -79,7 +80,7 @@ DeviceManager::DeviceManager(
 	string memMapFile, double& cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, Resolution disRes, DebugManager* debugManager,
 	Program program, Program data, ConnectionManager* mCM, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device,
 	vector<Device*>& baseRateScheduledDevices, vector<Device*>& subRateScheduledDevices, vector<Device*>& instructionRateScheduledDevices,
-	double speed, double& baseSchedulingRate, double& subSchedulingRate
+	KeyboardDevice*& keyboardDevice, double speed, double& baseSchedulingRate, double& subSchedulingRate
 ) : mDM(debugManager), mCM(mCM)
 {
 	// Create 64k of memory data where each location will point at a memory-mapped device
@@ -140,6 +141,7 @@ DeviceManager::DeviceManager(
 
 					AtomKeyboardDevice* kb = new AtomKeyboardDevice(dev_name, cpuClock, mDM, mCM);
 					mDevices.push_back(kb);
+					keyboardDevice = kb;
 
 				}
 
@@ -148,6 +150,7 @@ DeviceManager::DeviceManager(
 					uint8_t startup_options = getHexVal(sin) & 0xff;
 					BeebKeyboard* kb = new BeebKeyboard(dev_name, cpuClock, startup_options, mDM, mCM);
 					mDevices.push_back(kb);
+					keyboardDevice = kb;
 
 				}
 

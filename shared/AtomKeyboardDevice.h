@@ -1,11 +1,12 @@
-#ifndef KEYBOARD_DEVICE_H
-#define KEYBOARD_DEVICE_H
+#ifndef ATOM_KEYBOARD_DEVICE_H
+#define ATOM_KEYBOARD_DEVICE_H
 
 #include <vector>
 #include <map>
 #include "Device.h"
 #include <allegro5/allegro5.h>
 #include "DebugManager.h"
+#include "KeyboardDevice.h"
 
 
 typedef struct AtomKey_struct {
@@ -22,11 +23,11 @@ typedef struct AtomModifier_struct {
 	bool repeat;
 } AtomModifier;
 
-class AtomKeyboardDevice : public Device {
+class AtomKeyboardDevice : public KeyboardDevice {
 
 private:
 
-	ALLEGRO_KEYBOARD_STATE mKeyboardState;
+	
 
 	map<int, AtomKey> mKeycodes = {
 
