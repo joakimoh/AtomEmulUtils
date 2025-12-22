@@ -9,7 +9,7 @@ add_library(
 	"VideoDisplayUnit.h" "SoundDevice.h"  "BeebKeyboard.h" "CRTC6845.h" "TT5050.h"
 	"BeebRomSel.h"  "ACIA6850.h" "Utility.h"  "BeebSerialULA.h" "VideoSettings.h" 
 	 "ConnectionManager.h"  "DeviceManager.h" "SDCard.cpp" "SDCard.h" "ADC7002.cpp" "ADC7002.h" "Debugger.cpp" "Engine.cpp" "Engine.h" "Display.cpp" 
-	 "MemoryProxyDevice.cpp" "AddressSpaceInfo.cpp" "KeyboardDevice.h" "KeyboardDevice.cpp")
+	 "MemoryProxyDevice.cpp" "AddressSpaceInfo.cpp" "KeyboardDevice.h" "KeyboardDevice.cpp" "DeviceMemorySegment.cpp" "MemorySegmentTree.h"  "MemorySegmentTree.h" "MemorySegmentTree.cpp")
 
 # Locate zlib
 find_package(ZLIB REQUIRED)

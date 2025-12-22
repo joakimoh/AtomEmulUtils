@@ -10,6 +10,7 @@
 #include <iostream>
 #include "VideoSettings.h"
 #include "Device.h"
+#include "MemorySegmentTree.h"
 
 
 using namespace std;
@@ -44,9 +45,11 @@ private:
 	int getIntVal(stringstream& sin);
 
 	typedef MemoryMappedDevice* MemoryMappedDevice_p;
-	MemoryMappedDevice_p* mDevicesByAddress = NULL;
+	//MemoryMappedDevice_p* mDevicesByAddress = NULL;
 
 	bool createMemoryMap();
+
+	MemorySegmentTree mMemoryTree;
 
 public:
 

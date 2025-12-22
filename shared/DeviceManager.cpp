@@ -34,6 +34,8 @@
 #include "ADC7002.h"
 #include "MemoryProxyDevice.h"
 #include "KeyboardDevice.h"
+#include "DeviceMemorySegment.h"
+#include "MemorySegmentTree.h"
 
 using namespace std;
 
@@ -84,7 +86,7 @@ DeviceManager::DeviceManager(
 ) : mDM(debugManager), mCM(mCM)
 {
 	// Create 64k of memory data where each location will point at a memory-mapped device
-	mDevicesByAddress = new MemoryMappedDevice_p[64 * 1024];
+	//mDevicesByAddress = new MemoryMappedDevice_p[64 * 1024];
 
 	vector<VideoDisplayUnit*> vdus;
 
@@ -652,8 +654,8 @@ DeviceManager::~DeviceManager()
 	for (int i = 0; i < mDevices.size(); i++)
 		delete mDevices[i];
 
-	if (mDevicesByAddress != NULL)
-		delete[] mDevicesByAddress;
+	//if (mDevicesByAddress != NULL)
+	//	delete[] mDevicesByAddress;
 }
 
 bool DeviceManager::loadData(Program data)
@@ -916,7 +918,9 @@ bool DeviceManager::createMemoryMap()
 	// Initialise address to device lookup table
 
 	// Clear the lookup table as a start
-	for (int a = 0x0; a <= 0xffff; mDevicesByAddress[a++] = NULL);
+	//for (int a = 0x0; a <= 0xffff; mDevicesByAddress[a++] = NULL);
+
+	
 
 	// From memory proxes
 	for (int i = 0; i < mMemoryProxyDevices.size(); i++) {
@@ -927,9 +931,13 @@ bool DeviceManager::createMemoryMap()
 			AddressSpace space = dev_spaces[j];
 			uint16_t a1 = space.getStartOfSpace();
 			uint16_t a2 = space.getEndOfSpace();
-			for (int a = a1; a <= a2; a++)
-				mDevicesByAddress[a] = dev;
+			//for (int a = a1; a <= a2; a++)
+			//	mDevicesByAddress[a] = dev;
+			DeviceMemorySegment segment(a1, a2, dev);
+			mMemoryTree.insert(segment);
 		}
+
+		
 	}
 
 	// And from non-overlapping memory-mapped devices
@@ -940,8 +948,10 @@ bool DeviceManager::createMemoryMap()
 			AddressSpace space = dev_spaces[j];
 			uint16_t a1 = space.getStartOfSpace();
 			uint16_t a2 = space.getEndOfSpace();
-			for (int a = a1; a <= a2; a++)
-				mDevicesByAddress[a] = dev;
+			//for (int a = a1; a <= a2; a++)
+			//	mDevicesByAddress[a] = dev;
+			DeviceMemorySegment segment(a1, a2, dev);
+			mMemoryTree.insert(segment);
 		}
 	}
 
@@ -952,11 +962,15 @@ bool DeviceManager::createMemoryMap()
 
 MemoryMappedDevice* DeviceManager::getSelectedMemoryMappedDevice(uint16_t adr)
 {
-	MemoryMappedDevice* dev = mDevicesByAddress[adr];
+	return mMemoryTree.search(adr);
+	/*
+	MemoryMappedDevice* dev = mDevicesByAddress[adr];	
+	
 	if (dev != NULL && dev->selected(adr))
 		return dev;
 
 	return NULL;
+	*/
 }
 
 void DeviceManager::printMemoryMap()
