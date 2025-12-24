@@ -2,36 +2,66 @@
 // Based on the balanced binary tree on https://www.geeksforgeeks.org/dsa/balanced-binary-tree/
 //
 #include "MemorySegmentTree.h"
+#include "MemoryMappedDevice.h"
+#include <vector>
+#include <iostream>
+#include <fstream>
+#include <filesystem>
+#include "Utility.h"
 
 using namespace std;
 
-// Function to get the height of the node
-int MemorySegmentTree::height(Node* node)
+MemorySegmentTree::~MemorySegmentTree()
 {
-    return node ? node->height : 0;
+    deleteNodes();
 }
 
-// Function to get the balance factor of the node
-int MemorySegmentTree::balanceFactor(Node* node)
+void MemorySegmentTree::deleteNodes()
 {
-    return node ? height(node->left)
-        - height(node->right)
-        : 0;
+    deleteSubtree(mRoot);
+    delete mRoot;
+    mRoot = nullptr;
 }
 
-// Function to update the height of the node
-void MemorySegmentTree::updateHeight(Node* node)
+void MemorySegmentTree::deleteSubtree(MemorySegmentNode* node)
 {
-    node->height = 1
-        + max(height(node->left),
-            height(node->right));
+    if (node != nullptr) {
+        deleteSubtree(node->left);
+        deleteSubtree(node->right);
+        delete node;
+    }
 }
 
-// Right rotation function
-Node* MemorySegmentTree::rotateRight(Node* y)
+// Get the height of the node
+int MemorySegmentTree::getHeight(MemorySegmentNode* node)
 {
-    Node* x = y->left;
-    Node* T2 = x->right;
+    if (node == nullptr)
+        return 0;
+    else
+        return node->height;
+
+}
+
+// Get the balance factor of a subtree
+int MemorySegmentTree::getBalance(MemorySegmentNode* node)
+{
+    if (node == nullptr)
+        return 0;
+    else
+        return getHeight(node->left) - getHeight(node->right);
+}
+
+// Update the height of the node
+void MemorySegmentTree::updateHeight(MemorySegmentNode* node)
+{
+    node->height = 1 + max(getHeight(node->left), getHeight(node->right));
+}
+
+//  Rotate a subtree to the right
+MemorySegmentNode* MemorySegmentTree::rotateRight(MemorySegmentNode* y)
+{
+    MemorySegmentNode* x = y->left;
+    MemorySegmentNode* T2 = x->right;
 
     x->right = y;
     y->left = T2;
@@ -42,11 +72,11 @@ Node* MemorySegmentTree::rotateRight(Node* y)
     return x;
 }
 
-// Left rotation function
-Node* MemorySegmentTree::rotateLeft(Node* x)
+//  Rotate a subtree to the left
+MemorySegmentNode* MemorySegmentTree::rotateLeft(MemorySegmentNode* x)
 {
-    Node* y = x->right;
-    Node* T2 = y->left;
+    MemorySegmentNode* y = x->right;
+    MemorySegmentNode* T2 = y->left;
 
     y->left = x;
     x->right = T2;
@@ -57,12 +87,12 @@ Node* MemorySegmentTree::rotateLeft(Node* x)
     return y;
 }
 
-// Function to insert a node
-Node* MemorySegmentTree::insert(Node* node, DeviceMemorySegment segment)
+// Insert a node
+MemorySegmentNode* MemorySegmentTree::insert(MemorySegmentNode* node, DeviceMemorySegment segment)
 {
     // Perform the normal BST insertion
     if (!node)
-        return new Node(segment);
+        return new MemorySegmentNode(segment);
 
     if (segment < node->segment)
         node->left = insert(node->left, segment);
@@ -76,7 +106,7 @@ Node* MemorySegmentTree::insert(Node* node, DeviceMemorySegment segment)
 
     // Get the balance factor to check whether this node
     // became unbalanced
-    int balance = balanceFactor(node);
+    int balance = getBalance(node);
 
     // If the node becomes unbalanced, there are 4 cases
 
@@ -105,81 +135,15 @@ Node* MemorySegmentTree::insert(Node* node, DeviceMemorySegment segment)
 
 // Function to find the node with the minimum value
 // (used in deletion)
-Node* MemorySegmentTree::findMin(Node* node)
+MemorySegmentNode* MemorySegmentTree::findMin(MemorySegmentNode* node)
 {
     while (node->left)
         node = node->left;
     return node;
 }
 
-// Function to delete a node
-Node* MemorySegmentTree::remove(Node* node, DeviceMemorySegment segment)
-{
-    // Perform standard BST delete
-    if (!node)
-        return nullptr;
-
-    if (segment < node->segment)
-        node->left = remove(node->left, segment);
-    else if (segment > node->segment)
-        node->right = remove(node->right, segment);
-    else {
-        if (!node->left || !node->right) {
-            Node* temp
-                = node->left ? node->left : node->right;
-            if (!temp) {
-                temp = node;
-                node = nullptr;
-            }
-            else
-                *node = *temp;
-            delete temp;
-        }
-        else {
-            Node* temp = findMin(node->right);
-            node->segment = temp->segment;
-            node->right
-                = remove(node->right, temp->segment);
-        }
-    }
-
-    if (!node)
-        return nullptr;
-
-    // Update height of the current node
-    updateHeight(node);
-
-    // Get the balance factor
-    int balance = balanceFactor(node);
-
-    // Balance the node if it has become unbalanced
-
-    // Left Left Case
-    if (balance > 1 && balanceFactor(node->left) >= 0)
-        return rotateRight(node);
-
-    // Left Right Case
-    if (balance > 1 && balanceFactor(node->left) < 0) {
-        node->left = rotateLeft(node->left);
-        return rotateRight(node);
-    }
-
-    // Right Right Case
-    if (balance < -1 && balanceFactor(node->right) <= 0)
-        return rotateLeft(node);
-
-    // Right Left Case
-    if (balance < -1
-        && balanceFactor(node->right) > 0) {
-        node->right = rotateRight(node->right);
-        return rotateLeft(node);
-    }
-
-    return node;
-}
-
-// Function to search for a segment in the tree
-MemoryMappedDevice* MemorySegmentTree::search(Node* node, uint16_t adr)
+// Search the subtree for a memory segment containing a specific address
+MemoryMappedDevice* MemorySegmentTree::search(MemorySegmentNode* node, uint16_t adr)
 {
     if (!node)
         return nullptr;
@@ -190,36 +154,68 @@ MemoryMappedDevice* MemorySegmentTree::search(Node* node, uint16_t adr)
     return search(node->right, adr);
 }
 
-// Function for inorder traversal of the tree
-void MemorySegmentTree::inorderTraversal(Node* node)
+// Constructor
+MemorySegmentTree::MemorySegmentTree()
+    : mRoot(nullptr)
 {
-    if (node) {
-        inorderTraversal(node->left);
-        cout << node->segment;
-        inorderTraversal(node->right);
-        cout << " ";
+}
+
+// Insert a memory segment
+void MemorySegmentTree::insert(DeviceMemorySegment segment) { mRoot = insert(mRoot, segment); }
+
+// Find the memory segment containing a specific address
+MemoryMappedDevice* MemorySegmentTree::search(uint16_t adr) { return search(mRoot, adr); }
+
+// Depth of a subtree
+int MemorySegmentTree::getDepth(MemorySegmentNode * node)
+{
+    if (node == nullptr)
+        return 0;
+    int left_depth = node->left != nullptr ? 1 + getDepth(node->left) : 1;
+    int right_depth = node->right != nullptr ? 1 + getDepth(node->right) : 1;
+    return max(left_depth, right_depth);
+}
+
+// Print the tree as a graph
+void MemorySegmentTree::print()
+{
+    int depth = getDepth(mRoot);
+    int width = 2 * (int) pow(2, depth - 1);
+    vector<vector<string>> tree_mtx(2*depth, vector<string>(width, ""));
+    //cout << "depth: " << depth << ", rows: " << tree_mtx.size() << ", cols: " << tree_mtx[0].size() << "\n";
+    setPrintMtx(mRoot, 0, 0, depth, width, tree_mtx);
+    for (int row = 0; row < 2*depth; row++) {
+        for (int col = 0; col < width; col++) {
+            if (tree_mtx[row][col] == "")
+                cout << setw(11) << setfill(' ') << " ";
+            else
+                cout << setw(10) << setfill('`') << tree_mtx[row][col] << " ";
+        }
+        cout << "\n";
     }
 }
 
-
-// Constructor
-MemorySegmentTree::MemorySegmentTree()
-    : root(nullptr)
+// Create a graph of the tree
+void MemorySegmentTree::setPrintMtx(MemorySegmentNode* node, int hz_pos, int vt_pos, int depth, int width, vector<vector<string>>& tree_mtx)
 {
-}
+    int hz_cell_span = 2 * (int)pow(2, depth - vt_pos - 1);
+    int n_hz_cells = width / hz_cell_span;
+    int hz_cell_pos = hz_pos * hz_cell_span + hz_cell_span / 2;
+    DeviceMemorySegment &segment = node->segment;
+    tree_mtx[2*vt_pos][hz_cell_pos] = "" + segment.dev->name;
+    tree_mtx[2*vt_pos+1][hz_cell_pos] = "" + Utility::int2HexStr(segment.lowerAdr, 4) + ":" + Utility::int2HexStr(segment.upperAdr, 4);
 
-// Public insert function
-void MemorySegmentTree::insert(DeviceMemorySegment segment) { root = insert(root, segment); }
-
-// Public remove function
-void MemorySegmentTree::remove(DeviceMemorySegment segment) { root = remove(root, segment); }
-
-// Public search function
-MemoryMappedDevice* MemorySegmentTree::search(uint16_t adr) { return search(root, adr); }
-
-// Public function to print the inorder traversal
-void MemorySegmentTree::printInorder()
-{
-    inorderTraversal(root);
-    cout << endl;
+    int offset = hz_cell_span / 4;
+    if (node->left != nullptr) {
+        for (int c = hz_cell_pos - offset; c < hz_cell_pos; c++)
+            tree_mtx[2 * vt_pos + 1][c] = "``````````";
+        tree_mtx[2 * vt_pos + 1][hz_cell_pos - offset] = "         /";
+        setPrintMtx(node->left, hz_pos * 2, vt_pos + 1, depth, width, tree_mtx);
+    }
+    if (node->right != nullptr) {
+        for (int c = hz_cell_pos + 1; c < hz_cell_pos + offset + 1; c++)
+            tree_mtx[2 * vt_pos + 1][c] = "``````````";
+        tree_mtx[2 * vt_pos + 1][hz_cell_pos + offset] = "\\         ";
+        setPrintMtx(node->right, hz_pos * 2 + 1, vt_pos + 1, depth, width, tree_mtx);
+    }
 }

@@ -656,6 +656,8 @@ DeviceManager::~DeviceManager()
 
 	//if (mDevicesByAddress != NULL)
 	//	delete[] mDevicesByAddress;
+
+	mMemoryTree.deleteNodes();
 }
 
 bool DeviceManager::loadData(Program data)
@@ -954,6 +956,8 @@ bool DeviceManager::createMemoryMap()
 			mMemoryTree.insert(segment);
 		}
 	}
+	if (mDM->debugLevelIs(DBG_VERBOSE))
+		mMemoryTree.print();
 
 	return true;
 }

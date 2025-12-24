@@ -7,18 +7,19 @@
 
 #include <iostream>
 #include "DeviceMemorySegment.h"
+#include <vector>
 
 using namespace std;
 
-// Node structure definition
-class Node {
+// Tree node representing one continuous segment of a device's memory space
+class MemorySegmentNode {
 public:
     DeviceMemorySegment segment;
-    Node* left;
-    Node* right;
+    MemorySegmentNode* left;
+    MemorySegmentNode* right;
     int height;
 
-    Node(DeviceMemorySegment segment)
+    MemorySegmentNode(DeviceMemorySegment segment)
         : segment(segment)
         , left(nullptr)
         , right(nullptr)
@@ -28,57 +29,64 @@ public:
 };
 
 class MemorySegmentTree {
+
 private:
 
+    MemorySegmentNode* mRoot;
 
-    Node* root;
+    // Get the height of the node
+    int getHeight(MemorySegmentNode* node);
 
-    // Function to get the height of the node
-    int height(Node* node);
+    // Get the balance of a subtree
+    int getBalance(MemorySegmentNode* node);
 
-    // Function to get the balance factor of the node
-    int balanceFactor(Node* node);
+    // Update the height of the node
+    void updateHeight(MemorySegmentNode* node);
 
-    // Function to update the height of the node
-    void updateHeight(Node* node);
+    // Rotate a subtree to the right
+    MemorySegmentNode* rotateRight(MemorySegmentNode* y);
 
-    // Right rotation function
-    Node* rotateRight(Node* y);
+     // Rotate a subtree to the left
+    MemorySegmentNode* rotateLeft(MemorySegmentNode* x);
 
-    // Left rotation function
-    Node* rotateLeft(Node* x);
-
-    // Function to insert a node
-    Node* insert(Node* node, DeviceMemorySegment segment);
+     // Insert a node
+    MemorySegmentNode* insert(MemorySegmentNode* node, DeviceMemorySegment segment);
 
     // Function to find the node with the minimum value
     // (used in deletion)
-    Node* findMin(Node* node);
+    MemorySegmentNode* findMin(MemorySegmentNode* node);
 
-    // Function to delete a node
-    Node* remove(Node* node, DeviceMemorySegment segment);
+    // Search the subtree for a memory segment containing a specific address
+    MemoryMappedDevice* search(MemorySegmentNode* node, uint16_t adr);
+    
+    // Depth of a subtree
+    int getDepth(MemorySegmentNode* node);
 
-    // Function to search for a segment in the tree
-    MemoryMappedDevice* search(Node* node, uint16_t adr);
+    // Create a graph of the tree
+    void setPrintMtx(MemorySegmentNode* node, int hz_pos, int vt_pos, int depth, int width, vector<vector<string>>& tree_mtx);
 
-    // Function for inorder traversal of the tree
-    void inorderTraversal(Node* node);
+    // Delete a subtree
+    void deleteSubtree(MemorySegmentNode* node);
 
 public:
+
     // Constructor
     MemorySegmentTree();
 
-    // Public insert function
+    // Destructor
+   ~MemorySegmentTree();
+
+   // Delete all nodes
+   void deleteNodes();
+
+    // Insert amemory segment
     void insert(DeviceMemorySegment segment);
 
-    // Public remove function
-    void remove(DeviceMemorySegment segment);
-
-    // Public search function
+    // Find the memory segment containing a specific address
     MemoryMappedDevice* search(uint16_t adr);
 
-    // Public function to print the inorder traversal
-    void printInorder();
+    // Print the tree as a graph
+    void print();
 };
 
 #endif
