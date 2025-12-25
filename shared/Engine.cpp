@@ -160,7 +160,7 @@ Engine::~Engine()
     if (mConnectionManager != NULL)
         delete mConnectionManager;
     if (mDisplay != NULL)
-        delete mDisplay;
+        delete mDisplay;      
 }
 
 bool Engine::run()

@@ -653,6 +653,9 @@ DeviceManager::~DeviceManager()
 		delete[] mDevicesByAddress;
 
 	mMemoryTree.deleteNodes();
+
+	for (int i = 0; i < mMemoryProxyDevices.size(); i++)
+		delete mMemoryProxyDevices[i];	
 }
 
 bool DeviceManager::loadData(Program data)
