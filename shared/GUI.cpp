@@ -16,7 +16,7 @@
 using namespace std;
 
 GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, ALLEGRO_DISPLAY* disp, DeviceManager * devices, double *speed, DebugManager* dm, string outDir):
-    mDevices(devices), mDisplay(disp), mEmulationSpeed(speed), mDM(dm), mEngine(engine), mOutDir(outDir)
+    mDevices(devices), mDisplay(disp), mEmulationSpeed(speed), mDM(dm), mEngine(engine), mOutDir(outDir), mQueue(queue)
 {
     // 
     // Create menu
@@ -36,8 +36,8 @@ GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, ALLEGRO_DISPLAY* disp, Devi
             throw runtime_error("Failed to clone to popup menu!");
         }
     }
-    al_register_event_source(queue, al_get_default_menu_event_source());
-    //al_register_event_source(queue, al_get_mouse_event_source());
+    al_register_event_source(mQueue, al_get_default_menu_event_source());
+    //al_register_event_source(mQueue, al_get_mouse_event_source());
 
     // Check for a Tape Recorder
     Device* dev;
@@ -72,7 +72,10 @@ GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, ALLEGRO_DISPLAY* disp, Devi
 
 GUI::~GUI()
 {
-    al_destroy_menu(mMenu);
+    al_unregister_event_source(mQueue, al_get_default_menu_event_source());
+    if (mMenu != nullptr)
+        al_destroy_menu(mMenu);
+    mMenu = nullptr;
 }
 
 bool GUI::itemSelected(ALLEGRO_EVENT* event)

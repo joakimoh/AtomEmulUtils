@@ -298,8 +298,7 @@ P6502::P6502(string name, double clockSpeed, DebugManager  *debugManager, Connec
 
 P6502::~P6502()
 {
-	for (int i = 0; i < mDevices.size(); i++)
-		delete mDevices[i];
+
 }
 
 bool P6502::serveNMI()

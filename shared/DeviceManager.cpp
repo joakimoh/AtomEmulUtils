@@ -86,7 +86,7 @@ DeviceManager::DeviceManager(
 ) : mDM(debugManager), mCM(mCM)
 {
 	// Create 64k of memory data where each location will point at a memory-mapped device
-	//mDevicesByAddress = new MemoryMappedDevice_p[64 * 1024];
+	mDevicesByAddress = new MemoryMappedDevice_p[64 * 1024];
 
 	vector<VideoDisplayUnit*> vdus;
 
@@ -593,12 +593,6 @@ DeviceManager::DeviceManager(
 		}
 	}
 
-	// Update the microprocessor with memory-mapped devices that it shall be able to access
-	if (!getMemoryMappedDevices(microprocessor->mDevices) || !getMemoryDevices(microprocessor->mMemories)) {
-		cout << "Failed to get memory-mapped devices!\n";
-		throw runtime_error("Failed to get memory-mapped devices");
-	}
-
 	// Create a memory map based on all registered memory-mapped devices
 	createMemoryMap();
 
@@ -645,7 +639,8 @@ DeviceManager::DeviceManager(
 	if (sound_device != NULL)
 		sound_device->setEmulationSpeed(baseSchedulingRate, subSchedulingRate, speed);
 
-	//printMemoryMap();
+	if (mDM->debugLevelIs(DBG_VERBOSE))
+		printMemoryMap();
 
 }
 
@@ -654,8 +649,8 @@ DeviceManager::~DeviceManager()
 	for (int i = 0; i < mDevices.size(); i++)
 		delete mDevices[i];
 
-	//if (mDevicesByAddress != NULL)
-	//	delete[] mDevicesByAddress;
+	if (mDevicesByAddress != NULL)
+		delete[] mDevicesByAddress;
 
 	mMemoryTree.deleteNodes();
 }
@@ -920,7 +915,7 @@ bool DeviceManager::createMemoryMap()
 	// Initialise address to device lookup table
 
 	// Clear the lookup table as a start
-	//for (int a = 0x0; a <= 0xffff; mDevicesByAddress[a++] = NULL);
+	for (int a = 0x0; a <= 0xffff; mDevicesByAddress[a++] = nullptr);
 
 	
 
@@ -933,8 +928,8 @@ bool DeviceManager::createMemoryMap()
 			AddressSpace space = dev_spaces[j];
 			uint16_t a1 = space.getStartOfSpace();
 			uint16_t a2 = space.getEndOfSpace();
-			//for (int a = a1; a <= a2; a++)
-			//	mDevicesByAddress[a] = dev;
+			for (int a = a1; a <= a2; a++)
+				mDevicesByAddress[a] = dev;
 			DeviceMemorySegment segment(a1, a2, dev);
 			mMemoryTree.insert(segment);
 		}
@@ -950,8 +945,8 @@ bool DeviceManager::createMemoryMap()
 			AddressSpace space = dev_spaces[j];
 			uint16_t a1 = space.getStartOfSpace();
 			uint16_t a2 = space.getEndOfSpace();
-			//for (int a = a1; a <= a2; a++)
-			//	mDevicesByAddress[a] = dev;
+			for (int a = a1; a <= a2; a++)
+				mDevicesByAddress[a] = dev;
 			DeviceMemorySegment segment(a1, a2, dev);
 			mMemoryTree.insert(segment);
 		}
@@ -968,6 +963,11 @@ MemoryMappedDevice* DeviceManager::getSelectedMemoryMappedDevice(uint16_t adr)
 {
 	return mMemoryTree.search(adr);
 	/*
+	 // Old code with a huge array (64kB) to lookup the memory-mapped device associated with each invidual
+	 // memory address. Doesn't seem to be signficantly more efficent than using a binary tree to find
+	 // the memory-mapped device associated with a given memory address. Could be because  the huge array
+	 // might not always fit into the processor's L1 cache?
+	 
 	MemoryMappedDevice* dev = mDevicesByAddress[adr];	
 	
 	if (dev != NULL && dev->selected(adr))

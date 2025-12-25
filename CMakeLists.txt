@@ -5,6 +5,12 @@ message(CMAKE_VERSION="${CMAKE_VERSION}")
 project ("AtomEmulutils" VERSION 2.2)
 include(FetchContent)
 
+if (MSVC)
+	# Generate symbols for debugging (MSVC only)
+	add_compile_options("$<$<CONFIG:RELEASE>:/Zi>")
+	add_link_options("$<$<CONFIG:RELEASE>:/DEBUG>")
+endif ()
+
 #option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
 # Turn of warnings to get allegro to compile without errors
@@ -119,14 +125,14 @@ file(COPY ${allegro5_SOURCE_DIR}/addons/audio/allegro5/allegro_audio.h
 # Installation of Disassembler
 install(TARGETS Dis DESTINATION bin)
 install(
-	FILES "Dis/Dis.h"
+	FILES "Dis/ArgParser.h"
     DESTINATION include/Dis
 )
 
 # Installation of Emulator
 install(TARGETS Emu6502 DESTINATION bin)
 install(
-	FILES "Emu6502/Emu6502.h"
+	FILES "Emu6502/ArgParser.h"
     DESTINATION include/Dis
 )
 

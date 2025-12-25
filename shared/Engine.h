@@ -71,7 +71,7 @@ private:
 	uint64_t mCycleCount = 0;
 	bool mQuit = false;
 
-	DeviceManager* mDevices = NULL;
+	DeviceManager* mDeviceManager = nullptr;
 
 	VideoDisplayUnit* mVDU = NULL;
 	SoundDevice* mSoundDevice = NULL;

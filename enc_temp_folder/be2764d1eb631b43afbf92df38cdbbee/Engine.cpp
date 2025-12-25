@@ -153,8 +153,8 @@ Engine::~Engine()
     }
     al_uninstall_audio();
  
-    if (mGUI != NULL)
-        delete mGUI;
+    //if (mGUI != NULL)
+    //    delete mGUI;
     if (mDeviceManager != NULL)
         delete mDeviceManager;
     if (mConnectionManager != NULL)

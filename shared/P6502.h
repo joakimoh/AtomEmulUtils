@@ -219,8 +219,6 @@ public:
 
 	MemoryMappedDevice* mZPMemDev = NULL;
 	MemoryMappedDevice* mStackMemDev = NULL;
-	vector<MemoryMappedDevice*> mDevices;
-	vector< MemoryMappedDevice*> mMemories;
 
 	P6502(string name, double clockSpeed, DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager *deviceManager);
 	~P6502();

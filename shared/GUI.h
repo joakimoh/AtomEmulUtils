@@ -61,6 +61,8 @@ class Engine;
 class GUI {
 
 private:
+
+	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
 #define MY_ALLEGRO_MENU_SEPARATOR {NULL, (uint16_t)-1,0, NULL}
 
 	ALLEGRO_MENU_INFO mMainMenu[38] = {

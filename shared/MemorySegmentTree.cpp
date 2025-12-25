@@ -20,7 +20,6 @@ void MemorySegmentTree::deleteNodes()
 {
     deleteSubtree(mRoot);
     delete mRoot;
-    mRoot = nullptr;
 }
 
 void MemorySegmentTree::deleteSubtree(MemorySegmentNode* node)
