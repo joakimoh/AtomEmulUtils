@@ -75,7 +75,11 @@ GUI::~GUI()
     al_unregister_event_source(mQueue, al_get_default_menu_event_source());
     if (mMenu != nullptr)
         al_destroy_menu(mMenu);
-    mMenu = nullptr;
+
+    if (mDebugger != nullptr) {
+        mDebugThread.join();
+        delete mDebugger;
+    }
 }
 
 bool GUI::itemSelected(ALLEGRO_EVENT* event)

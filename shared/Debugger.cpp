@@ -372,6 +372,7 @@ bool Debugger::readMemToFileCmd(istream& sin)
 	}
 	bool success = readMemCmd(sin, *fout_p);
 	fout_p->close();
+	delete fout_p;
 	return success;
 }
 

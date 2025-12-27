@@ -13,7 +13,7 @@ class MemoryProxyDevice : public MemoryMappedDevice {
 	};
 
 private:
-	vector<MemoryDeviceInfo*> mDevices;
+	vector<MemoryDeviceInfo*> mDeviceInfos;
 	AddressSpaceInfo mSpace;
 	int mCSPortIndex = 0;
 	MemoryMappedDevice* mSelectedDevice = NULL;
@@ -22,6 +22,8 @@ public:
 
 	MemoryProxyDevice(string name, uint16_t adr, uint16_t sz, MemoryMappedDevice* firstDevice, DebugManager* debugManager,
 		ConnectionManager* connectionManager, DeviceManager* deviceManager);
+
+	~MemoryProxyDevice();
 
 	bool addDevice(MemoryMappedDevice* dev);
 

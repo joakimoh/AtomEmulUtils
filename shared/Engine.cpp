@@ -85,7 +85,7 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
     mAllegroDisplay = mDisplay->getDisplay();
     ALLEGRO_BITMAP *allegro_display_bitmap = mDisplay->getDisplayBitmap();
 
-    // Set the audio sampling rate to rate to the rate of 1/2 a scan line (usually 1/32us = 31.25 kHz)
+    // Set the audio sampling rate
     VideoSettings *video_settings = mDisplay->getVideoSettings();
     Resolution res = video_settings->getTotalResolution();
     int sample_rate = (int)round(res.height * video_settings->getFieldRate());
@@ -153,14 +153,23 @@ Engine::~Engine()
     }
     al_uninstall_audio();
  
-    if (mGUI != NULL)
-        delete mGUI;
-    if (mDeviceManager != NULL)
-        delete mDeviceManager;
-    if (mConnectionManager != NULL)
+    
+    cout << "EngineManager: delete GUI...\n";
+    if (mGUI != nullptr)
+        delete mGUI; // deletes Debugger
+   
+    cout << "EngineManager: delete DeviceManager...\n";
+    if (mDeviceManager != nullptr)
+        delete mDeviceManager; // deletes devices and device lookup tables
+ 
+    cout << "EngineManager: delete ConnectionManager...\n";
+    if (mConnectionManager != nullptr)
         delete mConnectionManager;
-    if (mDisplay != NULL)
-        delete mDisplay;      
+
+    cout << "EngineManager: delete Display...\n";
+    if (mDisplay != nullptr)
+        delete mDisplay;  // deletes video settings
+ 
 }
 
 bool Engine::run()

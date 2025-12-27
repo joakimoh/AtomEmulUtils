@@ -44,9 +44,6 @@ private:
 	double getDoubleVal(stringstream& sin);
 	int getIntVal(stringstream& sin);
 
-	typedef MemoryMappedDevice* MemoryMappedDevice_p;
-	MemoryMappedDevice_p* mDevicesByAddress = NULL;
-
 	bool createMemoryMap();
 
 	MemorySegmentTree mMemoryTree;

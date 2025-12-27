@@ -13,6 +13,12 @@ ConnectionManager* connectionManager, DeviceManager* deviceManager): mSpace(firs
 	addDevice(firstDevice);
 }
 
+MemoryProxyDevice::~MemoryProxyDevice()
+{
+	for (int i = 0; i < mDeviceInfos.size(); i++)
+		delete mDeviceInfos[i];
+}
+
 bool MemoryProxyDevice::addDevice(MemoryMappedDevice* dev)
 {
 
@@ -43,7 +49,7 @@ bool MemoryProxyDevice::addDevice(MemoryMappedDevice* dev)
 	// Add a new port to the proxy's list of CS inputs
 	MemoryDeviceInfo *dev_info = new MemoryDeviceInfo();
 	dev_info->dev = dev;
-	mDevices.push_back(dev_info);
+	mDeviceInfos.push_back(dev_info);
 
 	// Register the port
 	string port_name = "CS" + to_string(mCSPortIndex++);
@@ -70,14 +76,14 @@ bool MemoryProxyDevice::addDevice(MemoryMappedDevice* dev)
 // Process a port update directly
 void MemoryProxyDevice::processPortUpdate(int index)
 {
-	for (int i = 0; i < mDevices.size(); i++) {
-		if (index == mDevices[i]->CSPortindex) {
-			//cout << "CS for " << mDevices[i]->dev->name << " changed to " << (int)mDevices[i]->CS << "\n";
-			if (mDevices[i]->CS == 0) {
-				mSelectedDevice = mDevices[i]->dev;
+	for (int i = 0; i < mDeviceInfos.size(); i++) {
+		if (index == mDeviceInfos[i]->CSPortindex) {
+			//cout << "CS for " << mDeviceInfos[i]->dev->name << " changed to " << (int)mDeviceInfos[i]->CS << "\n";
+			if (mDeviceInfos[i]->CS == 0) {
+				mSelectedDevice = mDeviceInfos[i]->dev;
 				//cout << "Device " << mSelectedDevice->name << " selected\n";
 			}
-			else if (mSelectedDevice == mDevices[i]->dev) {
+			else if (mSelectedDevice == mDeviceInfos[i]->dev) {
 				//cout << "No device selected!\n";
 				mSelectedDevice = NULL;
 			}
