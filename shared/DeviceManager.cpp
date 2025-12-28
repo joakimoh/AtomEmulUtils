@@ -644,20 +644,15 @@ DeviceManager::DeviceManager(
 DeviceManager::~DeviceManager()
 {
 	// Delete all devices
-	cout << "DeviceManager: delete each device...\n";
 	for (int i = 0; i < mDevices.size(); i++) {
-		cout << "delete " << mDevices[i]->name << "\n";
 		delete mDevices[i];
 	}
-	cout << "DeviceManager: devices deleted...\n";
 	
 	// Also delete paged memory proxy devices (if they exist)
-	cout << "DeviceManager: delete each proxy...\n";
 	for (int i = 0; i < mMemoryProxyDevices.size(); i++) {
-		cout << "delete " << mMemoryProxyDevices[i]->name << "\n";
+
 		delete mMemoryProxyDevices[i];
 	}
-	cout << "DeviceManager: proxys deleted...\n";
 }
 
 bool DeviceManager::loadData(Program data)

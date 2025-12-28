@@ -13,7 +13,6 @@ using namespace std;
 
 MemorySegmentTree::~MemorySegmentTree()
 {
-    cout << "destructor of memory segment tree called...\n";
     deleteNodes();
 }
 

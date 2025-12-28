@@ -170,7 +170,7 @@ public:
 	DeviceCategory category;
 
 	Device(string name, DeviceId typ, DeviceCategory cat, double cpuClock, DebugManager *debugManager, ConnectionManager *connectionManager);
-	~Device();
+	virtual ~Device();
 
 	uint64_t getCycleCount() { return mCycleCount; }
 

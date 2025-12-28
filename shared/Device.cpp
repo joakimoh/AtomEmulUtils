@@ -42,7 +42,6 @@ Device::Device(string n, DeviceId typ, DeviceCategory cat, double cpuClock, Debu
 
 Device::~Device()
 {
-	cout << "Calling destructor of " << this -> name << "\n";
 	for (int i = 0; i < mPorts.size(); i++)
 		delete mPorts[i];
 }

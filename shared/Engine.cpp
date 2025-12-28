@@ -154,19 +154,15 @@ Engine::~Engine()
     al_uninstall_audio();
  
     
-    cout << "EngineManager: delete GUI...\n";
     if (mGUI != nullptr)
         delete mGUI; // deletes Debugger
     
-    cout << "EngineManager: delete DeviceManager...\n";
     if (mDeviceManager != nullptr)
         delete mDeviceManager; // deletes devices and device lookup tables
     
-    cout << "EngineManager: delete ConnectionManager...\n";
     if (mConnectionManager != nullptr)
         delete mConnectionManager;
 
-    cout << "EngineManager: delete Display...\n";
     if (mDisplay != nullptr)
         delete mDisplay;  // deletes video settings
  
