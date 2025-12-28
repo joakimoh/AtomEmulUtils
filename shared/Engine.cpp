@@ -102,7 +102,7 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
         mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices, mKeyboardDevice,
         mSpeedFactor, mLowEmulationRate, mHighEmulationRate
     );
-    if (!mDM->setDevices(mDeviceManager)) {
+    if (!mDM->setDeviceManager(mDeviceManager)) {
         cout << "Failed to initialise debug manager with device info!\n";
         throw runtime_error("Failed to initialise debug manager with device info!\n");
     }
@@ -157,11 +157,11 @@ Engine::~Engine()
     cout << "EngineManager: delete GUI...\n";
     if (mGUI != nullptr)
         delete mGUI; // deletes Debugger
-   
+    
     cout << "EngineManager: delete DeviceManager...\n";
     if (mDeviceManager != nullptr)
         delete mDeviceManager; // deletes devices and device lookup tables
- 
+    
     cout << "EngineManager: delete ConnectionManager...\n";
     if (mConnectionManager != nullptr)
         delete mConnectionManager;

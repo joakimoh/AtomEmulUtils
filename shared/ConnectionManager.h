@@ -39,7 +39,7 @@ public:
 	ConnectionManager(DebugManager* debugManager);
 	~ConnectionManager();
 
-	void setDevices(DeviceManager* devices);
+	void setDeviceManager(DeviceManager* devices);
 
 	// Used by a device to make a port available for routing
 	bool addDevicePort(Device* dev, DevicePort* localPort);

@@ -17,10 +17,12 @@ Display::Display(ALLEGRO_EVENT_QUEUE* queue, VideoFormat& videoFormat, bool Enab
 
 Display::~Display()
 {
+    cout << "destructor of Display called...\n";
     al_unregister_event_source(mQueue, al_get_display_event_source(mDisplay));
-
+    cout << "calling Display:: al_destroy_display...\n";
     al_destroy_display(mDisplay);
 
+    cout << "Display: delete video settings...\n";
     delete mVideoSettings;
     
 }

@@ -92,7 +92,7 @@ DeviceManager::DeviceManager(
 	mainVDU = NULL;
 	sound_device = NULL;
 
-	mCM->setDevices(this);
+	mCM->setDeviceManager(this);
 
 	ifstream fin(memMapFile, ios::in | ios::ate);
 
@@ -645,17 +645,19 @@ DeviceManager::~DeviceManager()
 {
 	// Delete all devices
 	cout << "DeviceManager: delete each device...\n";
-	for (int i = 0; i < mDevices.size(); i++)
+	for (int i = 0; i < mDevices.size(); i++) {
+		cout << "delete " << mDevices[i]->name << "\n";
 		delete mDevices[i];
+	}
+	cout << "DeviceManager: devices deleted...\n";
 	
 	// Also delete paged memory proxy devices (if they exist)
 	cout << "DeviceManager: delete each proxy...\n";
-	for (int i = 0; i < mMemoryProxyDevices.size(); i++)
+	for (int i = 0; i < mMemoryProxyDevices.size(); i++) {
+		cout << "delete " << mMemoryProxyDevices[i]->name << "\n";
 		delete mMemoryProxyDevices[i];
-
-	// Delete the binary tree mapping memory locations to memory-mapped
-
-	mMemoryTree.deleteNodes();
+	}
+	cout << "DeviceManager: proxys deleted...\n";
 }
 
 bool DeviceManager::loadData(Program data)

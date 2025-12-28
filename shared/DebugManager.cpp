@@ -287,7 +287,7 @@ bool DebugManager::tracingActive()
 // Set debug port
 //
 // Only a temporary setting as the existance of the port cannot be checked
-// at the time - will be checked when the setDevices() method is called later on
+// at the time - will be checked when the setDeviceManager() method is called later on
 //
 void DebugManager::setDebugPort(string portDevice, string port)
 {
@@ -461,9 +461,9 @@ void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 		return;
 	}
 
-	if (mMemLogAdr > 0 && mDevices != NULL) {
+	if (mMemLogAdr > 0 && mDeviceManager != NULL) {
 		uint8_t data;
-		mDevices->dumpDeviceMemory(mMemLogAdr, data);
+		mDeviceManager->dumpDeviceMemory(mMemLogAdr, data);
 		instrLogData.memContent = (int)data;
 	}
 
@@ -492,12 +492,12 @@ bool DebugManager::setMicrocontroller(Device* microcontrollerDevice)
 	return true;
 }
 
-bool DebugManager::setDevices(DeviceManager * devices)
+bool DebugManager::setDeviceManager(DeviceManager * deviceManager)
 {
-	mDevices = devices;
+	mDeviceManager = deviceManager;
 	mInitialised = true;
 
-	if (devices == NULL)
+	if (deviceManager == nullptr)
 		return false;
 
 	Device* dev;
@@ -505,7 +505,7 @@ bool DebugManager::setDevices(DeviceManager * devices)
 		string dev_name = mTmpLogPorts[i].device;
 		string port_name = mTmpLogPorts[i].port;		
 		DevicePort* device_port;
-		if (!mDevices->getDevice(dev_name, dev) || !dev->getPortIndex(port_name, device_port)) {
+		if (!mDeviceManager->getDevice(dev_name, dev) || !dev->getPortIndex(port_name, device_port)) {
 			cout << "Port " << dev_name << ":" << port_name << " doesn't exist!\n";
 			return false;
 		}
@@ -513,7 +513,7 @@ bool DebugManager::setDevices(DeviceManager * devices)
 	}
 
 	if (mTmpLogDeviceName != "") {
-		if (!mDevices->getDevice(mTmpLogDeviceName, dev)) {
+		if (!mDeviceManager->getDevice(mTmpLogDeviceName, dev)) {
 			cout << "Device " << mTmpLogDeviceName << " doesn't exist!\n";
 			return false;
 		}

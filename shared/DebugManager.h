@@ -131,7 +131,7 @@ private:
 	uint16_t mFetchAdr = 0x0;
 	
 
-	Device* mLogDevice = NULL;
+	Device* mLogDevice = nullptr;
 	string mTmpLogDeviceName;
 
 
@@ -163,8 +163,8 @@ private:
 
 	bool matchFetchAddress(uint16_t fetchAdr);
 
-	DeviceManager* mDevices = NULL;
-	Device* mMicrocontroller = NULL;
+	DeviceManager* mDeviceManager = nullptr;
+	Device* mMicrocontroller = nullptr;
 
 	void printInstrLogData(ostream &sout, InstrLogData instrLogData);
 	bool string2debugLevel(string debugLevelS, DebugLevel &debugLevel);
@@ -224,7 +224,7 @@ public:
 
 	bool matchPort(DevicePort* port);
 
-	bool setDevices(DeviceManager *devices);
+	bool setDeviceManager(DeviceManager * deviceManager);
 	bool setMicrocontroller(Device* microcontrollerDevice);
 
 	bool quickTracing() { return !mExtensiveLog; }

@@ -15,7 +15,7 @@ ConnectionManager::~ConnectionManager()
 {
 }
 
-void ConnectionManager::setDevices(DeviceManager* devices)
+void ConnectionManager::setDeviceManager(DeviceManager* devices)
 {
 	mDevices = devices;
 }
