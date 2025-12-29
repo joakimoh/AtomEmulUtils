@@ -160,20 +160,20 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 
 	// Get reference to the source port
 	DevicePort &port = *mPorts[index];
-	
-	// No need to propagate value if there are no connected ports...
-	if (port.fanOut < 1) {
-		*port.valOut = val;
-		return true;
-	}
-
-	// Get reference to the current source port value
-	uint8_t& port_val = *port.valOut;
 
 	// Check that the source port is not an input port
 	if (port.dir == IN_PORT) {
 		cout << "INTERNAL ERROR - attempt to use the INPUT port '" << port.dev->name << ":" << port.name << "' as an output port!\n";
 		return false;
+	}
+
+	// Get reference to the current source port value
+	uint8_t& port_val = *port.valOut;
+	
+	// No need to propagate value if there are no connected ports...
+	if (port.fanOut < 1) {
+		port_val = val;
+		return true;
 	}
 
 	// Changes or enforced update?
@@ -194,18 +194,11 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 #endif
 
 	// Update the destination ports based on the new value
-	return updateConnectedPorts(port.inputs, val, &port);
-}
+	for (int i = 0; i < port.inputs.size(); i++) {
 
+		InputReference& input = port.inputs[i];
 
-bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_t val, DevicePort *port)
-{
-
-	for (int i = 0; i < connectedPorts.size(); i++) {
-
-		InputReference &input = connectedPorts[i];
-
-		if (updateDstPortValue(port, input,val)) { // update destination port on change or always for a bidirectional port
+		if (updateDstPortValue(&port, input, val)) { // update destination port on change or always for a bidirectional port
 
 			// Call direct processing on the receiving device - if specified by configuration
 			if (input.process)
@@ -214,8 +207,6 @@ bool Device::updateConnectedPorts(vector<InputReference> &connectedPorts, uint8_
 		}
 
 	}
-
-	return true;
 }
 
 //
@@ -251,11 +242,13 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 	vector <OutputReference>& dst_port_sources = dstPort.port->portSources;
 	int dst_port_sources_sz = dst_port_sources.size();
 
-	// Always update the destination port's recollection of the source port's value
-	int i = 0;
-	for (; i < dst_port_sources_sz && dst_port_sources[i].srcPort != srcPort; i++);
-	if (i < dst_port_sources_sz)
-		dst_port_sources[i].dstVal = nval;
+	// Update the destination ports' recollection of the source port's value - needed in arbitration below
+	if (dstPort.port->arbitration) {
+		int i = 0;
+		for (; i < dst_port_sources_sz && dst_port_sources[i].srcPort != srcPort; i++);
+		if (i < dst_port_sources_sz)
+			dst_port_sources[i].dstVal = nval;
+	}
 
 	// Update destination port on change or always for a bidirectional port
 	if (pval != nval || dstPort.port->dir == IO_PORT) {

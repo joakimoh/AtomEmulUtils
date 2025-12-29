@@ -125,8 +125,8 @@ typedef struct Routing_struct { // specifies how an output port of one device is
 class Device {
 
 private:
+
 	bool updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal);
-	bool updateConnectedPorts(vector<InputReference>& connectedPorts, uint8_t val, DevicePort* port);
 
 	void getPortSelection(DevicePort* srcPort, InputReference& dstPort, string& srcSel, string& dstSel);
 
