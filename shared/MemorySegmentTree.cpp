@@ -1,5 +1,7 @@
 // 
 // Based on the balanced binary tree on https://www.geeksforgeeks.org/dsa/balanced-binary-tree/
+// 
+// Normal c++ set cannot be used as the find method needs to be implemented differently
 //
 #include "MemorySegmentTree.h"
 #include "MemoryMappedDevice.h"
@@ -30,126 +32,157 @@ void MemorySegmentTree::deleteSubtree(MemorySegmentNode* node)
     }
 }
 
-// Get the height of the node
+// Get node height
 int MemorySegmentTree::getHeight(MemorySegmentNode* node)
 {
     if (node == nullptr)
         return 0;
     else
-        return node->height;
+        return 1 + max(getHeight(node->left), getHeight(node->right));
 
-}
-
-// Get the balance factor of a subtree
-int MemorySegmentTree::getBalance(MemorySegmentNode* node)
-{
-    if (node == nullptr)
-        return 0;
-    else
-        return getHeight(node->left) - getHeight(node->right);
-}
-
-// Update the height of the node
-void MemorySegmentTree::updateHeight(MemorySegmentNode* node)
-{
-    node->height = 1 + max(getHeight(node->left), getHeight(node->right));
 }
 
 //  Rotate a subtree to the right
-MemorySegmentNode* MemorySegmentTree::rotateRight(MemorySegmentNode* y)
+MemorySegmentNode* MemorySegmentTree::rotateRight(MemorySegmentNode* originalRoot)
 {
-    MemorySegmentNode* x = y->left;
-    MemorySegmentNode* T2 = x->right;
+    MemorySegmentNode* new_root = originalRoot->left;
+    MemorySegmentNode* value_between_roots = new_root->right;
 
-    x->right = y;
-    y->left = T2;
+    new_root->right = originalRoot;
+    originalRoot->left = value_between_roots;
 
-    updateHeight(y);
-    updateHeight(x);
-
-    return x;
+    return new_root;
 }
 
 //  Rotate a subtree to the left
-MemorySegmentNode* MemorySegmentTree::rotateLeft(MemorySegmentNode* x)
+MemorySegmentNode* MemorySegmentTree::rotateLeft(MemorySegmentNode* originalRoot)
 {
-    MemorySegmentNode* y = x->right;
-    MemorySegmentNode* T2 = y->left;
+    MemorySegmentNode* new_root = originalRoot->right;
+    MemorySegmentNode* value_between_roots = new_root->left;
 
-    y->left = x;
-    x->right = T2;
+    new_root->left = originalRoot;
+    originalRoot->right = value_between_roots;
 
-    updateHeight(x);
-    updateHeight(y);
-
-    return y;
+    return new_root;
 }
 
 // Insert a node
-MemorySegmentNode* MemorySegmentTree::insert(MemorySegmentNode* node, DeviceMemorySegment segment)
+MemorySegmentNode* MemorySegmentTree::insert(MemorySegmentNode* root, DeviceMemorySegment segment)
 {
-    // Perform the normal BST insertion
-    if (!node)
+    // Empty subtree - create a new subtree consisting only of the segment
+    if (root == nullptr)
         return new MemorySegmentNode(segment);
 
-    if (segment < node->segment)
-        node->left = insert(node->left, segment);
-    else if (segment > node->segment)
-        node->right = insert(node->right, segment);
-    else
-        return node; // Duplicate keys are not allowed
-
-    // Update height of this ancestor node
-    updateHeight(node);
-
-    // Get the balance factor to check whether this node
-    // became unbalanced
-    int balance = getBalance(node);
-
-    // If the node becomes unbalanced, there are 4 cases
-
-    // Left Left Case
-    if (balance > 1 && segment < node->left->segment)
-        return rotateRight(node);
-
-    // Right Right Case
-    if (balance < -1 && segment > node->right->segment)
-        return rotateLeft(node);
-
-    // Left Right Case
-    if (balance > 1 && segment > node->left->segment) {
-        node->left = rotateLeft(node->left);
-        return rotateRight(node);
+    // Non-empty subtree - insert segment into it
+    if (segment < root->segment)
+        root->left = insert(root->left, segment);
+    else if (segment > root->segment)
+        root->right = insert(root->right, segment);
+    else {
+        // Error - duplicate key
+        throw runtime_error("duplicate key");
     }
 
-    // Right Left Case
-    if (balance < -1 && segment < node->right->segment) {
-        node->right = rotateRight(node->right);
-        return rotateLeft(node);
+
+    // Get the tree's balance
+    int balance = getHeight(root->left) - getHeight(root->right);
+
+    // Balance the tree if required
+
+    // Unbalanced to the left - segment is part of the left-left subtree (S)
+    // Rotate right once to balance the tree
+    //            ___
+    //           /   \
+    //          |  R  |
+    //           \___/
+    //       ___/    \
+    //      /   \
+    //     |     |
+    //      \___/ 
+    //   ___/   \
+    //  /   \
+    // |  S  |
+    //  \___/
+    //
+    if (balance > 1 && segment < root->left->segment)
+        return rotateRight(root);
+
+    // Unbalanced to the right - segment is part of the right-right subtree (S)
+    // Rotate left once to balance the tree
+    //            ___
+    //           /   \
+    //          |  R  |
+    //           \___/
+    //           /   \___
+    //               /   \
+    //              |     |
+    //               \___/ 
+    //               /   \___
+    //                   /   \
+    //                  |  S  |
+    //                   \___/
+    //
+    if (balance < -1 && segment > root->right->segment)
+        return rotateLeft(root);
+
+    // Unbalanced to the left - segment is part of the left-right subtree (S)
+    // First rotate the left subtree to the left and then the complete tree to the right to balance the tree
+    //            ___
+    //           /   \
+    //          |  R  |
+    //           \___/
+    //       ___/    \
+    //      /   \
+    //     |     |
+    //      \___/ 
+    //      /   \___
+    //          /   \
+    //         |  S  |
+    //          \___/
+    //
+
+    if (balance > 1 && segment > root->left->segment) {
+        root->left = rotateLeft(root->left);
+        return rotateRight(root);
     }
 
-    return node;
-}
+    // Unbalanced to the right - segment is part of the right-left subtree (S)
+    // First rotate the right subtree to the right and then the complete tree to the left to balance the tree
+    //            ___
+    //           /   \
+    //          |  R  |
+    //           \___/
+    //           /   \___
+    //               /   \
+    //              |     |
+    //               \___/ 
+    //            ___/   \
+    //           /   \
+    //          |  S  |
+    //           \___/
+    //
+    if (balance < -1 && segment < root->right->segment) {
+        root->right = rotateRight(root->right);
+        return rotateLeft(root);
+    }
 
-// Function to find the node with the minimum value
-// (used in deletion)
-MemorySegmentNode* MemorySegmentTree::findMin(MemorySegmentNode* node)
-{
-    while (node->left)
-        node = node->left;
-    return node;
+    // Already sufficiently balanced (balance is either -1, 0 or 1) => just return the root
+    return root;
 }
 
 // Search the subtree for a memory segment containing a specific address
-MemoryMappedDevice* MemorySegmentTree::search(MemorySegmentNode* node, uint16_t adr)
+MemoryMappedDevice* MemorySegmentTree::find(MemorySegmentNode* node, uint16_t adr)
 {
-    if (!node)
+    if (node == nullptr)
         return nullptr;
+
     if (adr >= node->segment.lowerAdr && adr <= node->segment.upperAdr)
         return node->segment.dev;
+
     if (adr < node->segment.lowerAdr)
-        return search(node->left, adr);
-    return search(node->right, adr);
+        return find(node->left, adr);
+
+    return find(node->right, adr);
 }
 
 // Constructor
@@ -159,10 +192,16 @@ MemorySegmentTree::MemorySegmentTree()
 }
 
 // Insert a memory segment
-void MemorySegmentTree::insert(DeviceMemorySegment segment) { mRoot = insert(mRoot, segment); }
+void MemorySegmentTree::insert(DeviceMemorySegment segment)
+{
+    mRoot = insert(mRoot, segment);
+}
 
 // Find the memory segment containing a specific address
-MemoryMappedDevice* MemorySegmentTree::search(uint16_t adr) { return search(mRoot, adr); }
+MemoryMappedDevice* MemorySegmentTree::find(uint16_t adr)
+{
+    return find(mRoot, adr);
+}
 
 // Depth of a subtree
 int MemorySegmentTree::getDepth(MemorySegmentNode * node)

@@ -950,7 +950,7 @@ bool DeviceManager::createMemoryMap()
 
 MemoryMappedDevice* DeviceManager::getSelectedMemoryMappedDevice(uint16_t adr)
 {
-	return mMemoryTree.search(adr);
+	return mMemoryTree.find(adr);
 }
 
 void DeviceManager::printMemoryMap()

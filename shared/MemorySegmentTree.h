@@ -17,13 +17,11 @@ public:
     DeviceMemorySegment segment;
     MemorySegmentNode* left;
     MemorySegmentNode* right;
-    int height;
 
     MemorySegmentNode(DeviceMemorySegment segment)
         : segment(segment)
         , left(nullptr)
         , right(nullptr)
-        , height(1)
     {
     }
 };
@@ -37,12 +35,6 @@ private:
     // Get the height of the node
     int getHeight(MemorySegmentNode* node);
 
-    // Get the balance of a subtree
-    int getBalance(MemorySegmentNode* node);
-
-    // Update the height of the node
-    void updateHeight(MemorySegmentNode* node);
-
     // Rotate a subtree to the right
     MemorySegmentNode* rotateRight(MemorySegmentNode* y);
 
@@ -52,12 +44,8 @@ private:
      // Insert a node
     MemorySegmentNode* insert(MemorySegmentNode* node, DeviceMemorySegment segment);
 
-    // Function to find the node with the minimum value
-    // (used in deletion)
-    MemorySegmentNode* findMin(MemorySegmentNode* node);
-
     // Search the subtree for a memory segment containing a specific address
-    MemoryMappedDevice* search(MemorySegmentNode* node, uint16_t adr);
+    MemoryMappedDevice* find(MemorySegmentNode* node, uint16_t adr);
     
     // Depth of a subtree
     int getDepth(MemorySegmentNode* node);
@@ -83,7 +71,7 @@ public:
     void insert(DeviceMemorySegment segment);
 
     // Find the memory segment containing a specific address
-    MemoryMappedDevice* search(uint16_t adr);
+    MemoryMappedDevice* find(uint16_t adr);
 
     // Print the tree as a graph
     void print();
