@@ -1,4 +1,5 @@
 CLOCK 1.0	// CPU Clock in MHz
+VIDEO	NTSC	// Video Format
 
 //
 //	Device instances

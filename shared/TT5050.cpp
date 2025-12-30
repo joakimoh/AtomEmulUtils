@@ -3,11 +3,12 @@
 #include <iomanip>
 #include <cmath>
 #include "Utility.h"
+#include "Display.h"
 
 using namespace std;
 
 TT5050::TT5050(
-	string name, uint16_t adr, double cpuClock, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager
+	string name, uint16_t adr, double cpuClock, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager
 ) : Device(name, TT_5050_DEV, OTHER_DEVICE, cpuClock, debugManager, connectionManager)
 {
 	DBG_LOG(this,DBG_VERBOSE, "Teletext Character Generator SA5050 '" + name + "' added");
@@ -16,8 +17,6 @@ TT5050::TT5050(
 	registerPort("CRS",		IN_PORT, 0x1, CRS,		&mCRS);
 	registerPort("DEW",		IN_PORT, 0x1, DEW,		&mDEW); // Data Entry Window - resets the row adr counter prior to the display period
 	registerPort("GLR",		IN_PORT, 0x1, GLR,		&mGLR); // General Line Reset
-
-
 
 	createInterpolatedSymbols();
 

@@ -79,7 +79,6 @@ private:
 	P6502* mMicroprocessor = NULL;
 	double mCPUClock = 1.0;
 
-	ALLEGRO_DISPLAY* mAllegroDisplay = NULL;
 	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
 	ALLEGRO_TIMER* mEmulationTimer = NULL;
 
@@ -119,6 +118,9 @@ private:
 	// Emulation speed
 	double mSpeedFactor = 1;
 	double pSpeedFactor = 2;
+
+	double mTimerRate = mLowEmulationRate * mSpeedFactor;
+	int mTimerRateInt = (int) round(mTimerRate);
 
 	int mEmulationCycle = 0;
 

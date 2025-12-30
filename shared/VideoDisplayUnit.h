@@ -9,17 +9,22 @@
 #include <allegro5/allegro_primitives.h>
 #include "Device.h"
 #include "VideoSettings.h"
+#include <chrono>
 
 using namespace std;
+
+class Display;
 
 class VideoDisplayUnit : public MemoryMappedDevice {
 
 protected:
 
-	RAM* mVideoMem = NULL;
+	RAM* mVideoMem = nullptr;
 	uint16_t mVideoMemAdr = 0x0;
 
-	ALLEGRO_BITMAP* mDisplay = NULL;
+	ALLEGRO_BITMAP* mDisplayBitmap = nullptr;
+	ALLEGRO_DISPLAY* mAllegroDisplay = nullptr;
+	Display* mDisplay = nullptr;
 
 	int mScanLine = 0;
 	int pScanLine = 1;
@@ -31,10 +36,12 @@ protected:
 
 	int mFieldsPerRefreshPeriod = 1;
 
+	chrono::time_point<std::chrono::high_resolution_clock> mRefreshTimePoint = chrono::high_resolution_clock::now();
+
 public:
 
-	VideoDisplayUnit(string name, DeviceId devId, VideoSettings videoSettings, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz,
-		ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager* deviceManager);
+	VideoDisplayUnit(string name, DeviceId devId, Display *display, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz,
+		uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
 	virtual ~VideoDisplayUnit() {};
 
@@ -49,6 +56,14 @@ public:
 
 	// Make sure the screen update rate is always the same as the field rate (normally 50 or 60 Hz), irrespectively of the emulation rate
 	void setEmulationSpeed(double emulationSpeed) override;
+
+	// Set screen refresh rate
+	void setRefreshRate(double rate);
+
+	double getMeasuredRefreshRate();
+
+	// Called by each VDU when it refreshed the PC screen
+	void refreshEvent();
 };
 
 #endif

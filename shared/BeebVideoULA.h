@@ -73,12 +73,6 @@ public:
 	}
 	uint8_t mPaletteMem[16] = { 0 };	// 16 x 4 bit palette memory
 
-	//
-	// SA5050 Teletext Character Generator
-	// 
-
-	ALLEGRO_DISPLAY* mDisplay = NULL;
-	ALLEGRO_BITMAP* mDisplayBitmap = NULL;
 	ALLEGRO_LOCKED_REGION* mLockedDisplayBitMap;
 	ALLEGRO_STATE mAllegroState;
 
@@ -175,8 +169,8 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	BeebVideoULA(string name, uint16_t adr, VideoSettings videoSettings, double cpuclock, uint8_t waitStates, ALLEGRO_DISPLAY* disp, 
-		ALLEGRO_BITMAP* dispBitmap,DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager* deviceManager);
+	BeebVideoULA(string name, uint16_t adr, Display *display, double cpuclock, uint8_t waitStates, 
+		DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~BeebVideoULA();
 
 	bool read(uint16_t adr, uint8_t& data);

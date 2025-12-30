@@ -236,7 +236,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	TT5050(string name, uint16_t adr, double clockSpeed, ALLEGRO_BITMAP* disp, uint16_t videoMemAdr, DebugManager  *debugManager,
+	TT5050(string name, uint16_t adr, double clockSpeed, uint16_t videoMemAdr, DebugManager  *debugManager,
 		ConnectionManager* connectionManager);
 
 	// Device power on

@@ -1,4 +1,5 @@
 CLOCK	2.0	// CPU clock in MHz
+VIDEO	PAL	// Video Format
 
 //	Device			Name		Addr	Size	Wait		Misc		Comment
 //												States		

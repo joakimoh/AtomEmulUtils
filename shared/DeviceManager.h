@@ -25,6 +25,7 @@ class Program;
 class P6502;
 class RAM;
 class KeyboardDevice;
+class Display;
 
 
 class DeviceManager {
@@ -48,11 +49,14 @@ private:
 
 	MemorySegmentTree mMemoryTree;
 
+	void checkAudioSampleRate();
+	int mAudioSampleRate = 0;
+	Display* mDisplay = nullptr;
+
 public:
 
 	DeviceManager(
-		VideoSettings videoSettings,
-		string memMapFile, double& cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, Resolution disRes, DebugManager* debugManager,
+		string memMapFile, double& cpuClock, Display* display, DebugManager* debugManager,
 		Program program, Program data, ConnectionManager* connectionManager, P6502*& microprocessor, VideoDisplayUnit*& vdu,
 		SoundDevice * &sound_device,
 		vector<Device*>& baseRateScheduledDevices, vector<Device*>& subRateScheduledDevices, vector<Device*>& instructionRateScheduledDevices,

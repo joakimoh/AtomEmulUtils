@@ -15,6 +15,8 @@
 #include <iostream>
 #include <cstdint>
 
+class Display;
+
 
 using namespace std;
 
@@ -52,20 +54,30 @@ enum {
     SPEED_300_ID,
     SPEED_500_ID,
 
+	RATE_ID,
+	RATE_5_ID,
+	RATE_10_ID,
+	RATE_25_ID,
+	RATE_50_ID,
+	RATE_60_ID,
+
     HELP_ABOUT_ID
 };
 
 class Display;
 class Engine;
+class VideoDisplayUnit;
 
 class GUI {
 
 private:
 
+	bool mQuit = false;
+
 	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
 #define MY_ALLEGRO_MENU_SEPARATOR {NULL, (uint16_t)-1,0, NULL}
 
-	ALLEGRO_MENU_INFO mMainMenu[38] = {
+	ALLEGRO_MENU_INFO mMainMenu[45] = {
 
 		ALLEGRO_START_OF_MENU("&File", FILE_ID),
 			{ "&Load data into RAM",   LOAD_INTO_RAM,  0,  NULL },
@@ -92,6 +104,14 @@ private:
 			{ "500%",              SPEED_500_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 			ALLEGRO_END_OF_MENU,
 
+		ALLEGRO_START_OF_MENU("&Screen refresh rate", RATE_ID),
+			{ "5",					RATE_5_ID,				ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "10",					RATE_10_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "25",					RATE_25_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "50",					RATE_50_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "60",					RATE_60_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			ALLEGRO_END_OF_MENU,
+
 		ALLEGRO_START_OF_MENU("&Tape Recorder", TAPE_RECORDER_ID),
 			{ "&Play",             PLAY_ID,                ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 			{ "&Record",           RECORD_ID,              ALLEGRO_MENU_ITEM_DISABLED | ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
@@ -114,30 +134,38 @@ private:
 		  ALLEGRO_END_OF_MENU
 	};
 
-	ALLEGRO_MENU* mMenu = NULL;
+	ALLEGRO_MENU* mMenu = nullptr;
 	bool mPopupMenuOnly = false;
-    ALLEGRO_DISPLAY* mDisplay = NULL;
-    DeviceManager* mDevices = NULL;
-    TapeRecorder* mTapeRec = NULL;
-    double *mEmulationSpeed = NULL;
+    Display* mDisplay = nullptr;
+	ALLEGRO_DISPLAY* mAllegroDisplay = nullptr;
+    DeviceManager* mDevices = nullptr;
+    TapeRecorder* mTapeRec = nullptr;
+    double *mEmulationSpeed = nullptr;
 
-    SDCard *mMMC = NULL;
-    DebugManager* mDM = NULL;
-    Debugger *mDebugger = NULL;
+    SDCard *mMMC = nullptr;
+    DebugManager* mDM = nullptr;
+    Debugger *mDebugger = nullptr;
 
     thread mDebugThread;
 
-	Engine *mEngine = NULL;
+	Engine *mEngine = nullptr;
 	string mOutDir;
+
+	VideoSettings mVideoSettings;
+	VideoDisplayUnit* mVDU = nullptr;
 
 public:
 
-    GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, ALLEGRO_DISPLAY* disp, DeviceManager * devices, double *emulationSpeed, DebugManager *dm, string outDir);
+    GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, Display* display, DeviceManager * devices, VideoDisplayUnit* vdu, double *emulationSpeed, DebugManager *dm, string outDir);
     ~GUI();
 
 	bool itemSelected(ALLEGRO_EVENT  *event);
 
 	bool popupMenu();
+
+	void setActualEmulationSpeed(double speed);
+
+	bool quit() { return mQuit; }
 };
 
 

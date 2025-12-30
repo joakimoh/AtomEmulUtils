@@ -36,6 +36,7 @@
 #include "KeyboardDevice.h"
 #include "DeviceMemorySegment.h"
 #include "MemorySegmentTree.h"
+#include "Display.h"
 
 using namespace std;
 
@@ -78,12 +79,11 @@ string DeviceManager::getFileName(string& path, stringstream& sin)
 }
 
 DeviceManager::DeviceManager(
-	VideoSettings videoSettings,
-	string memMapFile, double& cpuClock, int audioSampleFreq, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap, Resolution disRes, DebugManager* debugManager,
+	string memMapFile, double& cpuClock, Display* display, DebugManager* debugManager,
 	Program program, Program data, ConnectionManager* mCM, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device,
 	vector<Device*>& baseRateScheduledDevices, vector<Device*>& subRateScheduledDevices, vector<Device*>& instructionRateScheduledDevices,
 	KeyboardDevice*& keyboardDevice, double speed, double& baseSchedulingRate, double& subSchedulingRate
-) : mDM(debugManager), mCM(mCM)
+) : mDM(debugManager), mCM(mCM), mDisplay(display)
 {
 	vector<VideoDisplayUnit*> vdus;
 
@@ -159,8 +159,9 @@ DeviceManager::DeviceManager(
 
 				else if (dev_type == "ATOMSP") {
 
+					checkAudioSampleRate();
 					AtomSpeaker* sp = new AtomSpeaker(
-						dev_name, cpuClock, audioSampleFreq, baseSchedulingRate, subSchedulingRate, mDM, mCM
+						dev_name, cpuClock, mAudioSampleRate, baseSchedulingRate, subSchedulingRate, mDM, mCM
 					);
 					mDevices.push_back(sp);
 					sound_device = sp;
@@ -169,8 +170,9 @@ DeviceManager::DeviceManager(
 
 				else if (dev_type == "TI4689") {
 
+					checkAudioSampleRate();
 					TI4689* sd = new TI4689(
-						dev_name, cpuClock, audioSampleFreq, baseSchedulingRate, subSchedulingRate, mDM, mCM
+						dev_name, cpuClock, mAudioSampleRate, baseSchedulingRate, subSchedulingRate, mDM, mCM
 					);
 					mDevices.push_back(sd);
 					sound_device = sd;
@@ -307,10 +309,10 @@ DeviceManager::DeviceManager(
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					uint16_t video_mem_adr = getHexVal(sin);
-					mainVDU = new VDU6847(dev_name, dev_adr, videoSettings, cpuClock, wait_states, disp, dispBitmap, video_mem_adr, mDM, mCM, this);
+					if (!mDisplay->initialised()) mDisplay->init();
+					mainVDU = new VDU6847(dev_name, dev_adr, mDisplay, cpuClock, wait_states, video_mem_adr, mDM, mCM, this);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
-
 				}
 
 				else if (dev_type == "CRTC6845") {
@@ -318,14 +320,16 @@ DeviceManager::DeviceManager(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, videoSettings, cpuClock, wait_states, dispBitmap, mDM, mCM, this);
+					if (!mDisplay->initialised()) mDisplay->init();
+					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, mDisplay, cpuClock, wait_states, mDM, mCM, this);
 					mDevices.push_back(crtc);
 					vdus.push_back(crtc);
 				}
 
 				else if (dev_type == "TT5050") {
 
-					TT5050* tcg = new TT5050(dev_name, 0x0, cpuClock, dispBitmap, 0x0, mDM, mCM);
+					if (!mDisplay->initialised()) mDisplay->init();
+					TT5050* tcg = new TT5050(dev_name, 0x0, cpuClock, 0x0, mDM, mCM);
 					mDevices.push_back(tcg);
 				}
 
@@ -334,7 +338,8 @@ DeviceManager::DeviceManager(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					mainVDU = new BeebVideoULA(dev_name, dev_adr, videoSettings, cpuClock, wait_states, disp, dispBitmap, mDM, mCM, this);
+					if (!mDisplay->initialised()) mDisplay->init();
+					mainVDU = new BeebVideoULA(dev_name, dev_adr, mDisplay, cpuClock, wait_states, mDM, mCM, this);
 					mDevices.push_back(mainVDU);
 					vdus.push_back(mainVDU);
 				}
@@ -510,6 +515,18 @@ DeviceManager::DeviceManager(
 			}
 			else if (cmd == "EMU_HIGH_RATE") {
 				sin >> subSchedulingRate;
+			}
+			else if (cmd == "VIDEO") {
+				string video_fmt_s;
+				sin >> video_fmt_s;
+				if (mDisplay->initialised())
+					throw runtime_error("VIDEO statement must come before adding any video display unit!");
+				if (video_fmt_s == "PAL")
+					mDisplay->init(VideoFormat::PAL_FMT);
+				else if (video_fmt_s == "NTSC")
+					mDisplay->init(VideoFormat::NTSC_FMT);
+				else
+					throw runtime_error("Illegal video format '" + video_fmt_s + "'");
 			}
 			else if (cmd == "INIT") {
 				string dst_port_s;
@@ -961,4 +978,14 @@ void DeviceManager::printMemoryMap()
 		cout << setw(15) << setfill(' ')  << mm_dev->name << " " << space << "\n";
 	}
 
+}
+
+void DeviceManager::checkAudioSampleRate()
+{
+	if (!mDisplay->initialised() || mAudioSampleRate == 0) {
+		if (!mDisplay->initialised()) mDisplay->init();
+		VideoSettings video_settings = mDisplay->getVideoSettings();
+		Resolution res = video_settings.getTotalResolution();
+		mAudioSampleRate = (int)round(res.height * video_settings.getFieldRate());
+	}
 }

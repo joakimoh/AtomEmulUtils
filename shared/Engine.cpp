@@ -80,24 +80,15 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
 
     mQueue = al_create_event_queue();
 
-    // Create display with menus
+    // Create (uninitialised) display
     mDisplay = new Display(mQueue, videoFormat, enableHWAcc, mSpeedFactor, mDM);
-    mAllegroDisplay = mDisplay->getDisplay();
-    ALLEGRO_BITMAP *allegro_display_bitmap = mDisplay->getDisplayBitmap();
-
-    // Set the audio sampling rate
-    VideoSettings *video_settings = mDisplay->getVideoSettings();
-    Resolution res = video_settings->getTotalResolution();
-    int sample_rate = (int)round(res.height * video_settings->getFieldRate());
 
     // Set up devices
     mConnectionManager = new ConnectionManager(mDM);
     mDeviceManager = new DeviceManager(
-        *video_settings,
         mapFileName,
         mCPUClock,            // CPU Clock frequency in MHz
-        sample_rate,          // audio sample rate corresponding to a rate of at least twice per scan line
-        mAllegroDisplay, allegro_display_bitmap, video_settings->getVideoResolution(),
+        mDisplay,
         mDM, program, data, mConnectionManager, mMicroprocessor, mVDU, mSoundDevice,
         mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices, mKeyboardDevice,
         mSpeedFactor, mLowEmulationRate, mHighEmulationRate
@@ -125,7 +116,7 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
         mState = initialState;
 
     // Create GUI with menu and callbacks
-    mGUI = new GUI(this, mQueue, mAllegroDisplay, mDeviceManager, &mSpeedFactor, mDM, mOutDir);
+    mGUI = new GUI(this, mQueue, mDisplay, mDeviceManager, mVDU , &mSpeedFactor, mDM, mOutDir);
 
     // Setup emulation timer
     mEmulationTimer = al_create_timer(1.0 / mLowEmulationRate / mSpeedFactor);
@@ -193,16 +184,18 @@ bool Engine::run()
 
     for (int i = 0; i < mInstrScheduledDevices.size(); i++)
         cout << "Intruction Scheduled: " << mInstrScheduledDevices[i]->name << "\n";    
-    
+    */
     int c = 0;
     uint64_t cycles_per_second = 0;
     int r = (int)mLowEmulationRate;
     auto start  = high_resolution_clock::now();
     uint64_t pCycleCount = 0;
-    */
+    
 
     while (!mQuit)
     {
+        auto start_slow_cycle = high_resolution_clock::now();
+
         if (mState != ENG_HALT && mState  != ENG_BRK_DET) {
 
             checkForSpeedChange();
@@ -258,26 +251,28 @@ bool Engine::run()
         // wait for event
         al_wait_for_event(mQueue, &event);
 
-        /*
+        
         cycles_per_second += mCycleCount - pCycleCount;
         pCycleCount = mCycleCount;
-        if (c++ % r == 0) {
+        if (c++ % mTimerRateInt == 0) {
             auto stop = high_resolution_clock::now();
             auto duration = duration_cast<microseconds>(stop - start);
-            cout << duration << ", " << cycles_per_second << " cycles\n";
+            //cout << duration << ", " << cycles_per_second << " cycles\n";
+            mGUI->setActualEmulationSpeed(1e6 / duration.count() * mSpeedFactor);
             start = high_resolution_clock::now();
             cycles_per_second = 0;
         }
-        */
+        
+        mQuit = mGUI->quit(); 
 
-        bool cont = true;
+        bool cont = true && !mQuit;
         // There could be more than one event in the queue - make sure to empty it before waiting for the next timer event
         while (cont) {
 
             if (event.type == ALLEGRO_EVENT_MENU_CLICK) {
                 mGUI->itemSelected(&event);
             }
-            else if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN && event.mouse.display == mAllegroDisplay && event.mouse.button == ALLEGRO_MOUSE_BUTTON_RIGHT) {
+            else if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN && event.mouse.display == mDisplay->getDisplay() && event.mouse.button == ALLEGRO_MOUSE_BUTTON_RIGHT) {
                 mGUI->popupMenu(); // popup menu but only if ribbon menu isn't supported
             }
             else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
@@ -363,12 +358,15 @@ void Engine::checkForSpeedChange()
 {
     if (mSpeedFactor != pSpeedFactor) {
         al_stop_timer(mEmulationTimer);
-        al_set_timer_speed(mEmulationTimer, 1.0 / mLowEmulationRate / mSpeedFactor);
+        mTimerRate = mLowEmulationRate * mSpeedFactor;
+        mTimerRateInt = (int)round(mTimerRate);
+        al_set_timer_speed(mEmulationTimer, 1.0 / mTimerRate);
         al_start_timer(mEmulationTimer);
         if (mSoundDevice != NULL)
             mSoundDevice->setEmulationSpeed(mSpeedFactor);
         if (mVDU != NULL)
             mVDU->setEmulationSpeed(mSpeedFactor);
+        
     }
     pSpeedFactor = mSpeedFactor;
 }

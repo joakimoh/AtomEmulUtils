@@ -75,10 +75,10 @@ using namespace std;
 //						 -´     `-´     `-´     `-´     `-´     `-´
 
 BeebVideoULA::BeebVideoULA(
-	string name, uint16_t adr, VideoSettings videoSettings, double cpuclock, uint8_t waitStates, ALLEGRO_DISPLAY* disp, ALLEGRO_BITMAP* dispBitmap,
+	string name, uint16_t adr, Display* display, double cpuclock, uint8_t waitStates,
 	DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager* deviceManager
-) : VideoDisplayUnit(name, BEEB_VDU_DEV, videoSettings, cpuclock, waitStates, adr, 0x10, dispBitmap,0x0 /* dummy adr */, debugManager, connectionManager,
-	deviceManager), mDisplay(disp)
+) : VideoDisplayUnit(name, BEEB_VDU_DEV, display, cpuclock, waitStates, adr, 0x10, 0x0 /* dummy adr */, debugManager, connectionManager,
+	deviceManager)
 {
 	//registerPort("SCROLL_CTRL",	IN_PORT,	0x0f, SCROLL_CTRL,	&mSCROLL_CTRL);
 	registerPort("C",			IN_PORT,	0x03,	C,			&mC);
@@ -209,6 +209,8 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 		mNewField = false;
 
 		if (mField % mFieldsPerRefreshPeriod == 0) {
+
+			refreshEvent();
 
 			DBG_LOG(this, DBG_VDU, "UPDATE SCREEN");
 

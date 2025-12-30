@@ -9,11 +9,6 @@
 
 class Display {
 
-	/*
-	*    Simple (incomplete) test of pixel format conversions.
-	*
-	*    This should be made comprehensive.
-	*/
 	typedef struct FORMAT
 	{
 		int format;
@@ -51,27 +46,43 @@ class Display {
 	   {ALLEGRO_PIXEL_FORMAT_RGBA_4444, "RGBA4444"}
 	};
 
-	ALLEGRO_DISPLAY* mDisplay = NULL;
-	ALLEGRO_BITMAP* mDisplayBitmap = NULL;
-	VideoSettings *mVideoSettings = NULL;
+	ALLEGRO_DISPLAY* mDisplay = nullptr;
+	ALLEGRO_BITMAP* mDisplayBitmap = nullptr;
+	VideoSettings mVideoSettings;
 
-	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
+	ALLEGRO_EVENT_QUEUE* mQueue = nullptr;
 
 	DebugManager  *mDM = NULL;
 
 	double mSpeedFactor = 1;
 
+	bool mHwAcc = false;
+	VideoFormat mVideoFmt = PAL_FMT;
+
 
 	const char* get_format_name(int format);
-	bool initDisplay(VideoFormat& videoFormat, bool EnableHwAcc);
+
+	double mMeasuredSpeed = 100;
+	double mMeasuredFrameRate = 1;
+	const string M_WINDOW_TITLE = "6502 System Emulator";
+	
 
 public:
 	Display(ALLEGRO_EVENT_QUEUE* queue, VideoFormat& videoFormat, bool EnableHwAcc, double speedFactor, DebugManager* debugManager);
 	~Display();
 
-	VideoSettings *getVideoSettings() { return mVideoSettings; }
+	VideoSettings getVideoSettings() { return mVideoSettings; }
 	ALLEGRO_DISPLAY * getDisplay() { return mDisplay;  }
 	ALLEGRO_BITMAP* getDisplayBitmap() { return mDisplayBitmap; }
+
+	bool init(VideoFormat videoFormat);
+	bool init();
+
+	bool initialised() { return mDisplay != nullptr && mDisplayBitmap != nullptr; }
+
+	void updateMeasuredSpeed(double speed) { mMeasuredSpeed = speed; }
+	void updateMeasuredFrameRate(double rate) { mMeasuredFrameRate = rate; }
+	void updateWindowTitle();
 };
 
 #endif

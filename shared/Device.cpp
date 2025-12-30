@@ -207,6 +207,8 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 		}
 
 	}
+
+	return true;
 }
 
 //

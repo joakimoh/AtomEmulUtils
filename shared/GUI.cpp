@@ -12,12 +12,18 @@
 #include "VideoSettings.h"
 #include "Display.h"
 #include "Engine.h"
+#include "VideoDisplayUnit.h"
 
 using namespace std;
 
-GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, ALLEGRO_DISPLAY* disp, DeviceManager * devices, double *speed, DebugManager* dm, string outDir):
-    mDevices(devices), mDisplay(disp), mEmulationSpeed(speed), mDM(dm), mEngine(engine), mOutDir(outDir), mQueue(queue)
+GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, Display* display, DeviceManager * devices, VideoDisplayUnit *vdu,
+    double *speed, DebugManager* dm, string outDir):
+    mDevices(devices), mDisplay(display), mEmulationSpeed(speed), mDM(dm), mEngine(engine), mOutDir(outDir), mQueue(queue),
+    mVDU(vdu)
 {
+
+    mVideoSettings = display->getVideoSettings();
+    mAllegroDisplay = display->getDisplay();
     // 
     // Create menu
     mMenu = al_build_menu(mMainMenu);
@@ -25,7 +31,7 @@ GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, ALLEGRO_DISPLAY* disp, Devi
         cout << "Failed to build menu!\n";
         throw runtime_error("Failed to build menu!");
     }
-    if (!al_set_display_menu(mDisplay, mMenu)) {
+    if (!al_set_display_menu(mAllegroDisplay, mMenu)) {
         cout << "Failed to set menu display!\n";
         ALLEGRO_MENU* pmenu = al_clone_menu_for_popup(mMenu);
         mPopupMenuOnly = true;
@@ -68,6 +74,12 @@ GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, ALLEGRO_DISPLAY* disp, Devi
         }
     }
 
+    if (mVideoSettings.getFieldRate() == 50)
+        al_set_menu_item_flags(mMenu, RATE_50_ID, ALLEGRO_MENU_ITEM_CHECKED);
+    else if (mVideoSettings.getFieldRate() == 60)
+        al_set_menu_item_flags(mMenu, RATE_60_ID, ALLEGRO_MENU_ITEM_CHECKED);
+    else
+        throw runtime_error("Unsupported field rate " + to_string(mVideoSettings.getFieldRate()));
 }
 
 GUI::~GUI()
@@ -88,6 +100,10 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         return false;
 
     switch (event->user.data1) {
+
+    case FILE_EXIT_ID:
+        mQuit = true;
+        break;
 
     case ENTER_DBG_ID:
     {
@@ -124,7 +140,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
 
             ALLEGRO_FILECHOOSER* filechooser;
             filechooser = al_create_native_file_dialog("", "Select an existing MMC image", "*.*;", ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
-            al_show_native_file_dialog(mDisplay, filechooser);
+            al_show_native_file_dialog(mAllegroDisplay, filechooser);
             int n = al_get_native_file_dialog_count(filechooser);
             if (n != 1)
                 return false;
@@ -146,7 +162,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         // Select file to dump memory data into
         ALLEGRO_FILECHOOSER* filechooser;
         filechooser = al_create_native_file_dialog("", "Select  file to dump memory data to - name must be <any prefix excluding '_'>_<start adr in hex>_<end adr in hex><any suffix>", "*.*;", ALLEGRO_FILECHOOSER_SAVE);
-        al_show_native_file_dialog(mDisplay, filechooser);
+        al_show_native_file_dialog(mAllegroDisplay, filechooser);
         int n = al_get_native_file_dialog_count(filechooser);
         if (n != 1)
             return false;
@@ -199,7 +215,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
     {
         ALLEGRO_FILECHOOSER* filechooser;
         filechooser = al_create_native_file_dialog("", "Select binary file with data to load into RAM", "*.*;", ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
-        al_show_native_file_dialog(mDisplay, filechooser);
+        al_show_native_file_dialog(mAllegroDisplay, filechooser);
         int n = al_get_native_file_dialog_count(filechooser);
         if (n != 1)
             return false;
@@ -324,7 +340,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         if (!mTapeRec->playing() && !mTapeRec->recording()) {
             ALLEGRO_FILECHOOSER* filechooser;
             filechooser = al_create_native_file_dialog("", "Select an existing CSW tape file", "*.csw;", ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
-            al_show_native_file_dialog(mDisplay, filechooser);
+            al_show_native_file_dialog(mAllegroDisplay, filechooser);
             int n = al_get_native_file_dialog_count(filechooser);
             if (n != 1)
                 return false;
@@ -351,7 +367,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         if (!mTapeRec->playing() && !mTapeRec->recording()) {
             ALLEGRO_FILECHOOSER* filechooser;
             filechooser = al_create_native_file_dialog("", "Name the CSW tape file to be created", "*.csw;", ALLEGRO_FILECHOOSER_SAVE);
-            al_show_native_file_dialog(mDisplay, filechooser);
+            al_show_native_file_dialog(mAllegroDisplay, filechooser);
             int n = al_get_native_file_dialog_count(filechooser);
             if (n != 1)
                 return false;
@@ -378,7 +394,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
 
     case SPEED_1_ID:
         if (mEmulationSpeed != NULL) {
-            *mEmulationSpeed = 0.1;
+            *mEmulationSpeed = 0.01;
             al_set_menu_item_flags(mMenu, SPEED_1_ID, ALLEGRO_MENU_ITEM_CHECKED);
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
@@ -487,7 +503,60 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         }
         break;
 
+    case RATE_5_ID:       
+        if (mVDU != nullptr) {
+            mVDU->setRefreshRate(5);
+            al_set_menu_item_flags(mMenu, RATE_5_ID, ALLEGRO_MENU_ITEM_CHECKED);
+            al_set_menu_item_flags(mMenu, RATE_10_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_25_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_50_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_60_ID, 0);
+        }
+        break;
 
+    case RATE_10_ID:
+        if (mVDU != nullptr) {
+            mVDU->setRefreshRate(10);
+            al_set_menu_item_flags(mMenu, RATE_5_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_10_ID, ALLEGRO_MENU_ITEM_CHECKED);
+            al_set_menu_item_flags(mMenu, RATE_25_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_50_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_60_ID, 0);
+        }
+        break;
+
+    case RATE_25_ID:
+        if (mVDU != nullptr) {
+            mVDU->setRefreshRate(25);
+            al_set_menu_item_flags(mMenu, RATE_5_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_10_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_25_ID, ALLEGRO_MENU_ITEM_CHECKED);
+            al_set_menu_item_flags(mMenu, RATE_50_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_60_ID, 0);
+        }
+        break;
+
+    case RATE_50_ID:
+        if (mVDU != nullptr) {
+            mVDU->setRefreshRate(50);
+            al_set_menu_item_flags(mMenu, RATE_5_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_10_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_25_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_50_ID, ALLEGRO_MENU_ITEM_CHECKED);
+            al_set_menu_item_flags(mMenu, RATE_60_ID, 0);
+        }
+        break;
+
+    case RATE_60_ID:
+        if (mVDU != nullptr) {
+            mVDU->setRefreshRate(60);
+            al_set_menu_item_flags(mMenu, RATE_5_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_10_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_25_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_50_ID, 0);
+            al_set_menu_item_flags(mMenu, RATE_60_ID, ALLEGRO_MENU_ITEM_CHECKED);
+        }
+        break;
     default:
     {
         return false;
@@ -501,9 +570,15 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
 bool GUI::popupMenu()
 {
     if (mPopupMenuOnly) {
-        if (!al_popup_menu(mMenu, mDisplay))
+        if (!al_popup_menu(mMenu, mAllegroDisplay))
             cout << "Failed to launch popup menu!\n";
     }
 
     return true;
+}
+
+void GUI::setActualEmulationSpeed(double speed)
+{
+    mDisplay->updateMeasuredSpeed(speed);
+    mDisplay->updateWindowTitle();
 }

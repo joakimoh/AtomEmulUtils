@@ -20,6 +20,7 @@ private:
 public:
 
 	VideoSettings(VideoFormat fmt, bool hwAcc);
+	VideoSettings() {};
 
 	Resolution getVisibleResolution() { return mVisiblePixels;  }
 

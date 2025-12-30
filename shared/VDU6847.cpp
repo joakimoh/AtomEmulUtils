@@ -6,6 +6,7 @@
 #include <allegro5/allegro_primitives.h>
 #include <cmath>
 #include "Utility.h"
+#include "Display.h"
 
 using namespace std;
 
@@ -72,9 +73,9 @@ using namespace std;
 // 1	1	1	1	7		256 x 192	2			6kB					resolution graphics six (RG6)		Yes - Graphics mode 4
 //
 
-VDU6847::VDU6847(string name, uint16_t adr, VideoSettings videoSettings, double cpuClock, uint8_t waitStates, ALLEGRO_DISPLAY *disp,
-	ALLEGRO_BITMAP* dispBitMap, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager *deviceManager) :
-	VideoDisplayUnit(name, VDU6847_DEV, videoSettings, cpuClock, waitStates, adr, 0x100, dispBitMap, videoMemAdr, debugManager, connectionManager,
+VDU6847::VDU6847(string name, uint16_t adr, Display* display, double cpuClock, uint8_t waitStates, 
+	uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager *deviceManager) :
+	VideoDisplayUnit(name, VDU6847_DEV, display, cpuClock, waitStates, adr, 0x100, videoMemAdr, debugManager, connectionManager,
 		deviceManager), mN60HzCycles((int)round(cpuClock * 1e6 / 60))
 {
 	// Specify ports that can be connectde to other devices
@@ -104,7 +105,7 @@ VDU6847::VDU6847(string name, uint16_t adr, VideoSettings videoSettings, double 
 	// Create display bitmap and clear it
 	mDisplayBitmap = al_create_bitmap(mScreenW, mScreenH);
 
-	al_resize_display(disp, mScreenW, mScreenH);
+	al_resize_display(display->getDisplay(), mScreenW, mScreenH);
 
 	green = al_map_rgb(0, 0xff, 0);
 	black = al_map_rgb(0, 0, 0);
@@ -215,6 +216,8 @@ bool VDU6847::advanceChar(uint64_t& endCycle)
 		return true;
 
 	if (mLineRenderedPixels == 0 && mAdjustedDisplayedLine == mDisplayedLines && mField % mFieldsPerRefreshPeriod == 0) {
+
+		refreshEvent();
 
 		// The Field Sync (FS) signal goes High to Low at the end of the active display area
 		updatePort(VDU_PORT_FS, 0);  // For the Acorn atom this will set PIA port C:b7 to '0'
