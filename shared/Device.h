@@ -241,7 +241,7 @@ public:
 
 	// Tells the device about the current emulation rate, should this be used by the device
 	// Normally overriden by each device that uses this rate
-	virtual void setEmulationSpeed(double emulationSpeed) { mEmulationSpeed = emulationSpeed; }
+	virtual void setEmulationSpeed(double emulationSpeed) { mEmulationSpeed = emulationSpeed;}
 
 };
 

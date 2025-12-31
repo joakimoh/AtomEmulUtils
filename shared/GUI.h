@@ -57,7 +57,9 @@ enum {
 	RATE_ID,
 	RATE_5_ID,
 	RATE_10_ID,
+	RATE_15_ID,
 	RATE_25_ID,
+	RATE_30_ID,
 	RATE_50_ID,
 	RATE_60_ID,
 
@@ -77,7 +79,7 @@ private:
 	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
 #define MY_ALLEGRO_MENU_SEPARATOR {NULL, (uint16_t)-1,0, NULL}
 
-	ALLEGRO_MENU_INFO mMainMenu[45] = {
+	ALLEGRO_MENU_INFO mMainMenu[47] = {
 
 		ALLEGRO_START_OF_MENU("&File", FILE_ID),
 			{ "&Load data into RAM",   LOAD_INTO_RAM,  0,  NULL },
@@ -105,9 +107,12 @@ private:
 			ALLEGRO_END_OF_MENU,
 
 		ALLEGRO_START_OF_MENU("&Screen refresh rate", RATE_ID),
-			{ "5",					RATE_5_ID,				ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "5",					RATE_5_ID,			ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+
 			{ "10",					RATE_10_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "15",					RATE_15_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 			{ "25",					RATE_25_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "30",					RATE_30_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 			{ "50",					RATE_50_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 			{ "60",					RATE_60_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 			ALLEGRO_END_OF_MENU,
@@ -164,6 +169,8 @@ public:
 	bool popupMenu();
 
 	void setActualEmulationSpeed(double speed);
+
+	void setScreenRefreshRate(double rate);
 
 	bool quit() { return mQuit; }
 };

@@ -364,8 +364,10 @@ void Engine::checkForSpeedChange()
         al_start_timer(mEmulationTimer);
         if (mSoundDevice != NULL)
             mSoundDevice->setEmulationSpeed(mSpeedFactor);
-        if (mVDU != NULL)
+        if (mVDU != NULL) {
             mVDU->setEmulationSpeed(mSpeedFactor);
+            mGUI->setScreenRefreshRate(mVDU->getRefreshRate());
+        }
         
     }
     pSpeedFactor = mSpeedFactor;

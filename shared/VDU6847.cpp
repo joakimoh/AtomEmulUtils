@@ -215,25 +215,28 @@ bool VDU6847::advanceChar(uint64_t& endCycle)
 	if (addHalfLine(endCycle))
 		return true;
 
-	if (mLineRenderedPixels == 0 && mAdjustedDisplayedLine == mDisplayedLines && mField % mFieldsPerRefreshPeriod == 0) {
-
-		refreshEvent();
+	if (mLineRenderedPixels == 0 && mAdjustedDisplayedLine == mDisplayedLines) {
 
 		// The Field Sync (FS) signal goes High to Low at the end of the active display area
 		updatePort(VDU_PORT_FS, 0);  // For the Acorn atom this will set PIA port C:b7 to '0'
 
-		unlockDisplay();
+		if (mField % mFieldsPerRefreshPeriod == 0) {
 
-		// Draw the bitmap on the display
-		al_draw_bitmap(mDisplayBitmap, 0, 0, 0);
+			refreshEvent();	
 
-		// Make the updates visible on the display
-		al_flip_display();
+			unlockDisplay();
 
-		// Clear the display
-		al_clear_to_color(black);
+			// Draw the bitmap on the display
+			al_draw_bitmap(mDisplayBitmap, 0, 0, 0);
 
-		lockDisplay();
+			// Make the updates visible on the display
+			al_flip_display();
+
+			// Clear the display
+			al_clear_to_color(black);
+
+			lockDisplay();
+		}
 
 	}
 

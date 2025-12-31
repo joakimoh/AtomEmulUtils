@@ -503,59 +503,39 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         }
         break;
 
-    case RATE_5_ID:       
-        if (mVDU != nullptr) {
-            mVDU->setRefreshRate(5);
-            al_set_menu_item_flags(mMenu, RATE_5_ID, ALLEGRO_MENU_ITEM_CHECKED);
-            al_set_menu_item_flags(mMenu, RATE_10_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_25_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_50_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_60_ID, 0);
-        }
+    case RATE_5_ID:        
+        mVDU->setRefreshRate(5);
+        setScreenRefreshRate(5);
         break;
 
     case RATE_10_ID:
-        if (mVDU != nullptr) {
-            mVDU->setRefreshRate(10);
-            al_set_menu_item_flags(mMenu, RATE_5_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_10_ID, ALLEGRO_MENU_ITEM_CHECKED);
-            al_set_menu_item_flags(mMenu, RATE_25_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_50_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_60_ID, 0);
-        }
-        break;
+         mVDU->setRefreshRate(10);
+         setScreenRefreshRate(10);
+         break;
+
+    case RATE_15_ID:
+         mVDU->setRefreshRate(15);
+         setScreenRefreshRate(15);
+         break;
 
     case RATE_25_ID:
-        if (mVDU != nullptr) {
-            mVDU->setRefreshRate(25);
-            al_set_menu_item_flags(mMenu, RATE_5_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_10_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_25_ID, ALLEGRO_MENU_ITEM_CHECKED);
-            al_set_menu_item_flags(mMenu, RATE_50_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_60_ID, 0);
-        }
+        mVDU->setRefreshRate(25);
+        setScreenRefreshRate(25);
+        break;
+
+    case RATE_30_ID:
+        mVDU->setRefreshRate(30);
+        setScreenRefreshRate(30);
         break;
 
     case RATE_50_ID:
-        if (mVDU != nullptr) {
-            mVDU->setRefreshRate(50);
-            al_set_menu_item_flags(mMenu, RATE_5_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_10_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_25_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_50_ID, ALLEGRO_MENU_ITEM_CHECKED);
-            al_set_menu_item_flags(mMenu, RATE_60_ID, 0);
-        }
-        break;
+        mVDU->setRefreshRate(50);
+        setScreenRefreshRate(50);
+         break;
 
     case RATE_60_ID:
-        if (mVDU != nullptr) {
-            mVDU->setRefreshRate(60);
-            al_set_menu_item_flags(mMenu, RATE_5_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_10_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_25_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_50_ID, 0);
-            al_set_menu_item_flags(mMenu, RATE_60_ID, ALLEGRO_MENU_ITEM_CHECKED);
-        }
+        mVDU->setRefreshRate(60);
+        setScreenRefreshRate(60);
         break;
     default:
     {
@@ -581,4 +561,47 @@ void GUI::setActualEmulationSpeed(double speed)
 {
     mDisplay->updateMeasuredSpeed(speed);
     mDisplay->updateWindowTitle();
+}
+
+void GUI::setScreenRefreshRate(double rate)
+{
+    if (mVDU != nullptr) {
+        rate = mVDU->getRefreshRate();
+        int fps;
+        al_set_menu_item_flags(mMenu, RATE_5_ID, 0);
+        al_set_menu_item_flags(mMenu, RATE_10_ID, 0);
+        al_set_menu_item_flags(mMenu, RATE_15_ID, 0);
+        al_set_menu_item_flags(mMenu, RATE_25_ID, 0);
+        al_set_menu_item_flags(mMenu, RATE_30_ID, 0);
+        al_set_menu_item_flags(mMenu, RATE_50_ID, 0);
+        al_set_menu_item_flags(mMenu, RATE_60_ID, 0);
+        if (rate <= 5) {
+            fps = 5;
+            al_set_menu_item_flags(mMenu, RATE_5_ID, ALLEGRO_MENU_ITEM_CHECKED);
+        }
+        else if (rate <= 10) {
+            fps = 10;
+            al_set_menu_item_flags(mMenu, RATE_10_ID, ALLEGRO_MENU_ITEM_CHECKED);
+        }
+        else if (rate <= 15) {
+            fps = 15;
+            al_set_menu_item_flags(mMenu, RATE_15_ID, ALLEGRO_MENU_ITEM_CHECKED);
+        }
+        else if (rate <= 25) {
+            fps = 25;
+            al_set_menu_item_flags(mMenu, RATE_25_ID, ALLEGRO_MENU_ITEM_CHECKED);
+        }
+        else if (rate <= 30) {
+            fps = 30;
+            al_set_menu_item_flags(mMenu, RATE_30_ID, ALLEGRO_MENU_ITEM_CHECKED);
+        }
+        else if (rate <= 50) {
+            fps = 50;
+            al_set_menu_item_flags(mMenu, RATE_50_ID, ALLEGRO_MENU_ITEM_CHECKED);
+        }
+        else {
+            fps = 60;
+            al_set_menu_item_flags(mMenu, RATE_60_ID, ALLEGRO_MENU_ITEM_CHECKED);
+        }
+    }
 }

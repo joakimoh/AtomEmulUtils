@@ -37,6 +37,8 @@ protected:
 	int mFieldsPerRefreshPeriod = 1;
 
 	chrono::time_point<std::chrono::high_resolution_clock> mRefreshTimePoint = chrono::high_resolution_clock::now();
+	int mAccRefreshCount = 0;
+	int mRefreshedFieldsPerSecond = 50;
 
 public:
 
@@ -54,13 +56,14 @@ public:
 	// Write to a VDU register (if applicable for the VDU type)
 	virtual bool write(uint16_t adr, uint8_t data);
 
-	// Make sure the screen update rate is always the same as the field rate (normally 50 or 60 Hz), irrespectively of the emulation rate
+	//  Make sure the screen update rate is never higher than the field rate (normally 50 or 60 Hz), irrespectively of the emulation rate
 	void setEmulationSpeed(double emulationSpeed) override;
 
-	// Set screen refresh rate
+	// Set PC screen refresh rate
 	void setRefreshRate(double rate);
 
-	double getMeasuredRefreshRate();
+	// Get PC screen refresh rate
+	int getRefreshRate() { return mRefreshedFieldsPerSecond;  }
 
 	// Called by each VDU when it refreshed the PC screen
 	void refreshEvent();

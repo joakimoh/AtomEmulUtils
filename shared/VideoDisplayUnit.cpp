@@ -12,6 +12,8 @@ VideoDisplayUnit::VideoDisplayUnit(
 {
 	mDisplayBitmap = display->getDisplayBitmap();
 	mVideoSettings = display->getVideoSettings();
+
+	mRefreshedFieldsPerSecond = mVideoSettings.getFieldRate() / mFieldsPerRefreshPeriod;
 }
 
 bool VideoDisplayUnit::setVideoRam(RAM* ram)
@@ -35,28 +37,37 @@ bool VideoDisplayUnit::write(uint16_t adr, uint8_t data)
 	return selected(adr);
 }
 
-// Make sure the screen update rate is always the same as the field rate (normally 50 or 60 Hz), irrespectively of the emulation rate
+// Make sure the screen update rate is never higher than the field rate (normally 50 or 60 Hz), irrespectively of the emulation rate
 void VideoDisplayUnit::setEmulationSpeed(double emulationSpeed)
 {
-	// int field_rate = mVideoSettings.getFieldRate();
+	Device::setEmulationSpeed(emulationSpeed);
+
 	mFieldsPerRefreshPeriod = max(1,(int)round(emulationSpeed));
+	if (emulationSpeed > 1)
+		mRefreshedFieldsPerSecond = (int) round(mVideoSettings.getFieldRate() * emulationSpeed / mFieldsPerRefreshPeriod);
+	else
+		mRefreshedFieldsPerSecond = (int)round(mVideoSettings.getFieldRate() * emulationSpeed);
 }
 
 // Set PC screen refresh rate
 void VideoDisplayUnit::setRefreshRate(double rate)
 {
-	mFieldsPerRefreshPeriod = (int) round(mVideoSettings.getFieldRate() / rate);
-}
-
-double VideoDisplayUnit::getMeasuredRefreshRate() {
-	return mVideoSettings.getFieldRate() / mFieldsPerRefreshPeriod;
+	double field_rate = mVideoSettings.getFieldRate() * mEmulationSpeed;
+	mFieldsPerRefreshPeriod = max(1,(int) round(field_rate / rate));
+	mRefreshedFieldsPerSecond = field_rate / mFieldsPerRefreshPeriod;
 }
 
 // Called by each VDU when it refreshed the PC screen
 void VideoDisplayUnit::refreshEvent()
 {
-	auto prev_refresh_time_point_ms = mRefreshTimePoint;
-	mRefreshTimePoint = chrono::high_resolution_clock::now();
-	auto refresh_time_ms = chrono::duration_cast<std::chrono::milliseconds>(mRefreshTimePoint - prev_refresh_time_point_ms).count();
-	mDisplay->updateMeasuredFrameRate(1000 / refresh_time_ms);
+	mAccRefreshCount++;
+	if (mAccRefreshCount >= mRefreshedFieldsPerSecond) {
+		auto prev_refresh_time_point_ms = mRefreshTimePoint;
+		mRefreshTimePoint = chrono::high_resolution_clock::now();
+		int refresh_time_ms = chrono::duration_cast<std::chrono::milliseconds>(mRefreshTimePoint - prev_refresh_time_point_ms).count();
+		double measured_field_rate = mAccRefreshCount * 1000.0 / refresh_time_ms;
+		mDisplay->updateMeasuredFrameRate(measured_field_rate);
+		mAccRefreshCount = 0;		
+	}
+	
 }
