@@ -32,9 +32,9 @@
 // R16, R17   Light pen position				-     -     -     -     -     -     -     -
 //
 CRTC6845::CRTC6845(
-	string name, uint16_t adr, Display* display, double cpuclock, uint8_t waitStates, DebugManager  *debugManager,
+	string name, uint16_t adr, Display* display, double cpuClock, uint8_t waitStates, DebugManager  *debugManager,
 	ConnectionManager* connectionManager, DeviceManager *deviceManager
-) : VideoDisplayUnit(name, CRTC6845_DEV, display, cpuclock, waitStates, adr, 0x2, 0x0 /* dummy adr as not used by the 6845 */, debugManager,
+) : VideoDisplayUnit(name, CRTC6845_DEV, display, cpuClock, waitStates, adr, 0x2, 0x0 /* dummy adr as not used by the 6845 */, debugManager,
 	connectionManager, deviceManager)
 {
 
