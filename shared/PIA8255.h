@@ -28,8 +28,6 @@ private:
 	int PIA_PORT_A, PIA_PORT_B, PIA_PORT_C;
 
 
-
-
 public:
 
 	PIA8255(string name, double cpuclock, uint8_t waitStates, uint16_t adr, DebugManager  *debugManager, ConnectionManager *connectionManager, DeviceManager* deviceManager);

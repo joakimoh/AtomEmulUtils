@@ -6,6 +6,7 @@
 #include <iostream>
 #include "CSWCodec.h"
 #include <cmath>
+#include <chrono>
 
 class AtomCUTSInterface : public Device {
 
@@ -20,6 +21,8 @@ private:
 	int TONE, CAS_IN, ENA_TONE, TAPE_OUT, TAPE_IN, CAS_OUT;
 
 	int mToneHalfcycle = 0;
+
+	int mDebugPrevHalfCycleTimePoint = 0;
 
 public:
 

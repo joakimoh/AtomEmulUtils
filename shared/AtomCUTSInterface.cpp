@@ -1,5 +1,7 @@
 #include "AtomCUTSInterface.h"
 #include <cmath>
+#include <chrono>
+#include <iomanip>
 
 //
 // Model of the CUTS Interface implemented by the Acorn Atom
@@ -45,6 +47,13 @@ bool AtomCUTSInterface::advanceUntil(uint64_t stopCycle)
 		updatePort(CAS_OUT, cas_out);
 
 		// Generate TAPE_IN based on CAS_IN
+		
+		if (DBG_LEVEL(DBG_TAPE) && mTAPE_IN != mCAS_IN) {
+			int prev_half_cycle_time_point = mDebugPrevHalfCycleTimePoint;
+			mDebugPrevHalfCycleTimePoint = mCycleCount;
+			double cycle_len = 2 * (mDebugPrevHalfCycleTimePoint- prev_half_cycle_time_point) / (mCPUClock * 1e6);
+			DBG_LOG(this, DBG_TAPE, to_string(cycle_len > 0 ? 1 / cycle_len : 9999) + " Hz 1/2 cycle detected");
+		}
 		updatePort(TAPE_IN, mCAS_IN);
 
 		mCycleCount++;

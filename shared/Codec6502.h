@@ -177,7 +177,7 @@ public:
 		{0xc8, INY, 					Implied,		2, false,	false,	false, false},
 
 		{0x4c, JMP, 					Absolute,		3, false,	false,	false, false},
-		{0x6c, JMP,						Indirect,		5, false,	false,	false, false},
+		{0x6c, JMP,						Indirect,		5, true,	false,	false, false},
 
 		{0x20, JSR, 					Absolute,		6, false,	false,	false, false},
 

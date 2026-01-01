@@ -45,6 +45,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "-v:\n\tVerbose output\n\n";
 	cout << "\nADVANCED OPTIONS:\n";
 	cout << "-nHA: Turn off Graphics hardware acceleration.\n\n";
+#ifdef DEBUG_ON
 	cout << "-stop <hex address>: stop execution at this address\n\n";
 	cout << "-dump <hex address> <hex size>: dump memory content address to address+size-1 after stopping execution\n\n";
 	cout << "-trace <hex address> <pre trace len> <post trace len>: debug around a certain fetch address\n";
@@ -83,6 +84,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "\t'S' SPI devices\n";
 	cout << "\t'C' ADC devices\n";
 	cout << "\t'A' all the above\n\n";
+#endif
 }
 
 ArgParser::ArgParser(int argc, const char* argv[])

@@ -34,7 +34,6 @@ private:
 	bool mRecord = false;
 	bool mStartPlaying = false;
 
-
 public:
 	TapeRecorder(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager);
 	~TapeRecorder();

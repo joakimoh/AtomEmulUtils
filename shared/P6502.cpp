@@ -2193,8 +2193,10 @@ bool P6502::relativeAdrHdlr()
 	// Save the calculated address for use when executing the specific instruction later on
 	mOperandAddress = (mOperand16 + mProgramCounter) & 0xffff;
 
-	// Add one cycle if branch to other page
+	// Add two cycles if branch to other page; otherwise just one cycle
 	if (mInstructionInfo.addCycleAtPageBoundary && pageBoundaryCrossed(mProgramCounter, mOperandAddress))
+		tick(2);
+	else
 		tick();
 
 	return true;
@@ -2446,6 +2448,10 @@ bool P6502::indirectAdrHdlr()
 	// to make it available as 'mReadVal8' later on when executing the instruction
 	if (mInstructionInfo.readsMem && !readDevice(mOperandAddress, mReadVal8))
 		return false;
+
+	// Add one cycle if page boundary is crossed fpr the indirect address
+	if (mInstructionInfo.addCycleAtPageBoundary && (adr_i ^ (adr_i+1)) != 0)
+		tick();
 
 	return true;
 }

@@ -42,7 +42,7 @@ string Utility::encodeCPUTime(double t_s) {
     double t_ms = (t_s - t_s_i) * 1000;
 	int t_ms_i = (int) trunc(t_ms);
 	double t_us = (t_ms - t_ms_i) * 1000;
-	int t_us_i = (int)trunc(t_us);
+	int t_us_i = (int)round(t_us);
     stringstream s;
 	s <<
 		right << setw(4) << setfill('0') << t_s_i << " " <<
