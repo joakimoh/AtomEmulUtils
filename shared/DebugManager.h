@@ -164,7 +164,7 @@ private:
 	bool matchFetchAddress(uint16_t fetchAdr);
 
 	DeviceManager* mDeviceManager = nullptr;
-	Device* mMicrocontroller = nullptr;
+	P6502* mMicrocontroller = nullptr;
 
 	void printInstrLogData(ostream& sout, InstrLogData instrLogData);
 	bool string2debugLevel(string debugLevelS, DebugLevel &debugLevel);
@@ -225,7 +225,7 @@ public:
 	bool matchPort(DevicePort* port);
 
 	bool setDeviceManager(DeviceManager * deviceManager);
-	bool setMicrocontroller(Device* microcontrollerDevice);
+	bool setMicrocontroller(P6502* microcontrollerDevice);
 
 	bool quickTracing() { return !mExtensiveLog; }
 

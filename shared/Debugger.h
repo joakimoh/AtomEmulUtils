@@ -12,14 +12,15 @@ class Device;
 class DebugManager;
 class Engine;
 class GUI;
+class P6502;
 
 class Debugger {
 
 private:
 
-	DebugManager* mDM = nullptr;
 	DeviceManager *mDevices = nullptr;
 	Engine* mEngine = nullptr;
+	P6502* mCPU = nullptr;
 	string mOutDir;
 	GUI* mGUI = nullptr;
 
@@ -27,11 +28,6 @@ private:
 	uint8_t mReadData = 0xff;
 	uint8_t mWrittenData = 0xff;
 	uint16_t  mOperandAdr = 0xffff;
-
-	bool mTracingEnabled = false;
-	int mPretraceLen = 10;
-	bool mExtensiveTracing = false;
-	bool mRecurringTracing = false;
 
 	bool readString(istream& sin, string& s);
 	bool readOptString(istream& sin, string& s);
@@ -64,7 +60,7 @@ private:
 public:
 
 
-	Debugger(GUI *gui, Engine *engine, DeviceManager *devices, DebugManager *debugManager, string outDir);
+	Debugger(P6502 *cpu, GUI *gui, Engine *engine, DeviceManager *devices, string outDir);
 
 	void run();
 
@@ -80,9 +76,6 @@ public:
 	bool waitingEnabled();
 
 	void help();
-
-	bool levelCmd(istream& sin);
-	bool bufferCmd(istream& sin, bool recurring);
 	
 	bool disToFileCmd(istream& sin);
 	bool disToScreenCmd(istream& sin);
@@ -95,6 +88,8 @@ public:
 	bool dumpDevCmd(istream& sin);
 	bool dumpUcCmd(istream& sin);
 	bool listDevicesCmd(istream& sin);
+
+	bool memLogCmd(istream& sin);
 
 	bool haltCmd(istream& sin);
 	bool stepCmd(istream &sin, bool stepOver, ostream& sout);

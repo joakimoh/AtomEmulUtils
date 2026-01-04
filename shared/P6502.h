@@ -217,6 +217,8 @@ private:
 	int mExecutedCycles = 0;
 	bool mExecSuccess = true;
 
+	int mMemLogAdr = -1;
+
 public:
 
 	bool readDevice(uint16_t adr, uint8_t& data);
@@ -261,6 +263,7 @@ public:
 
 	bool getInstrLogData(InstrLogData& instr_log_data);
 	bool printInstrLogData(ostream& sout, InstrLogData& instr_log_data);
+	void setMemLogging(int memLogAdr) { mMemLogAdr = memLogAdr; }
 
 };
 

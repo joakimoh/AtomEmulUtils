@@ -8,13 +8,14 @@
 #include <sstream>
 #include <filesystem>
 #include "Engine.h"
+#include "P6502.h"
 
 using namespace std;
 
-Debugger::Debugger(GUI *gui, Engine *engine, DeviceManager  *devices, DebugManager *debugManager, string outDir) :
-	mDM(debugManager),mDevices(devices), mEngine(engine), mOutDir(outDir),mGUI(gui)
+Debugger::Debugger(P6502* cpu, GUI *gui, Engine *engine, DeviceManager  *devices, string outDir) :
+	mDevices(devices), mEngine(engine), mOutDir(outDir),mGUI(gui), mCPU(cpu)
 {
-	if (gui == nullptr || engine == nullptr || devices == nullptr || debugManager == nullptr)
+	if (gui == nullptr || engine == nullptr || devices == nullptr)
 		throw runtime_error("some arguments are null pointers");
 }
 
@@ -95,93 +96,7 @@ bool Debugger::readChar(istream& sin, char& c)
 }
 
 
-bool Debugger::levelCmd(istream& sin)
-{
-	string sub_cmd, level;
 
-	if (!readString(sin, sub_cmd))
-		return false;
-
-	if (sub_cmd == "set") {
-	
-		if (!readString(sin, level))
-			return false;
-
-		if (!mDM->setDebugLevel(level)) {
-			cout << "Invalid parameter '" << level << "'!\n";
-			return false;
-		}
-	}
-	else if (sub_cmd == "clr") {
-
-		if (!readString(sin, level))
-			return false;
-		;
-		if (!mDM->clearDebugLevel(level)) {
-			cout << "Invalid parameter '" << level << "'!\n";
-			return false;
-		}
-	}
-	else if (sub_cmd == "off") {
-		mDM->clearDebugLevel();
-	}
-	else {
-		cout << "Invalid sub command to dbg - a valid command is one of 'set' and 'clr'!\n";
-		return true;
-	}
-
-	return true;
-}
-
-bool Debugger::bufferCmd(istream& sin, bool recurring)
-{
-	string sub_cmd;
-
-	if (!readString(sin, sub_cmd))
-		return false;
-
-	mRecurringTracing = recurring;
-
-	if (sub_cmd == "set") {
-
-		if (!readPosInt(sin, mPretraceLen))
-			return false;
-
-		mExtensiveTracing = false;
-
-		if (!mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, recurring)) {
-			return false;
-		}
-
-		mTracingEnabled = true;
-	}
-	else if (sub_cmd == "xset") {
-
-		if (!readPosInt(sin, mPretraceLen))
-			return false;
-
-		mExtensiveTracing = true;
-
-		if (!mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, recurring)) {
-			return false;
-		}
-
-		mTracingEnabled = true;
-	}
-	else if (sub_cmd == "off") {
-
-		mDM->disableBuffering();
-
-		mTracingEnabled = false;
-	}
-
-	else {
-		cout << "Invalid sub command to buf - valid sub command is one of set, xset and off!\n";
-		return false;
-	}
-
-	return true;
-}
 
 double Debugger::getDeviceTime(Device* dev)
 {
@@ -440,17 +355,6 @@ bool Debugger::stepCmd(istream &sin, bool stepOver, ostream& sout)
 		return false;
 	}
 
-	// Enable tracing if step > 1 (and ni skipping over of an JSR instruction) to see the instructions being executed
-	if (n > 1 && !stepOver)
-		mTracingEnabled = true;
-	else
-		mTracingEnabled = false;
-
-	// Turn on tracing if previously enabled
-	if (mTracingEnabled) {
-		mPretraceLen = n;
-		mDM->enableTracing();
-	}
 
 	// Wait for stepping to complete
 	markStartOfWaiting();
@@ -465,9 +369,6 @@ bool Debugger::stepCmd(istream &sin, bool stepOver, ostream& sout)
 
 bool Debugger::contCmd(istream &sin)
 {
-	// Turn on tracing if previously enabled
-	if (mTracingEnabled)
-		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, false);
 
 	// Wait for breakpoint or an (via GUI debugger menu) explicit user request to stop waiting
 	markStartOfWaiting();
@@ -487,16 +388,12 @@ bool Debugger::breakCmd(istream& sin)
 	if (!readHexInt(sin, a))
 		return false;
 
-	// Turn on tracing if previously enabled
-	if (mTracingEnabled)
-		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, mRecurringTracing);
-
 	// Indicate to the engine that the debugger will start waiting
 	markStartOfWaiting();
 
 	if (sub_cmd == "x") {
 		mAccessMode = Engine::ENG_X_BRK_WAIT;
-		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
+		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false);
 	}
 	else if (sub_cmd == "r") {
 		mAccessMode = Engine::ENG_R_BRK_WAIT;
@@ -505,7 +402,7 @@ bool Debugger::breakCmd(istream& sin)
 			mReadData = d;
 			mAccessMode = Engine::ENG_R_V_BRK_WAIT;
 		}
-		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
+		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false);
 	}
 	else if (sub_cmd == "w") {
 		mAccessMode = Engine::ENG_W_BRK_WAIT;
@@ -514,7 +411,7 @@ bool Debugger::breakCmd(istream& sin)
 			mWrittenData = d;
 			mAccessMode = Engine::ENG_W_V_BRK_WAIT;
 		}
-		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
+		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false);
 	}
 	else if (sub_cmd == "rw") {
 		mAccessMode = Engine::ENG_RW_BRK_WAIT;
@@ -523,7 +420,7 @@ bool Debugger::breakCmd(istream& sin)
 			mWrittenData = d;
 			mAccessMode = Engine::ENG_RW_V_BRK_WAIT;
 		}
-		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, mRecurringTracing);
+		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false);
 	}
 	else {
 		cout << "Illegal sub command - valid sub command to break is one of x,r,w and rw!\n";
@@ -542,6 +439,28 @@ bool Debugger::haltCmd(istream& sin)
 	return true;
 }
 
+bool Debugger::memLogCmd(istream& sin)
+{
+	string sub_cmd;
+	if (!readString(sin, sub_cmd))
+		return false;
+
+	if (sub_cmd == "clr") {
+		mCPU->setMemLogging(-1);
+		return true;
+	}
+
+	if (sub_cmd != "set")
+		return false;
+
+	int a;
+	if (!readHexInt(sin, a))
+		return false;
+
+	mCPU->setMemLogging(a);
+	return true;
+}
+
 void Debugger::help()
 {
 	cout << "Commands are:\n";
@@ -551,11 +470,6 @@ void Debugger::help()
 	cout << "swrite <hex start address> \"<string>\":              write ASCII string to memory\n";
 	cout << "devices:                                            lists the devices\n";
 	cout << "state <name of device>:                             get a device's state\n";
-	cout << "dbg set|clr <flags>:                                set or clear any of the debug flags ewdupirkvstxacASC\n";
-	cout << "dbg off:                                            clear all debug flags\n";
-	cout << "(c)buf set <tracing window size>:                   set the size of the tracing window - (quick) instruction tracing only (cbuf <=> recurring)\n";
-	cout << "(c)buf xset <tracing window size>:                  set the size of the tracing window - (slow) extended tracing (cbuf <=> recurring)\n";
-	cout << "buf off:                                            disable tracing\n";
 	cout << "uc:                                                 get the microcontroller's state\n";
 	cout << "step [<no of instructions>]:                        execute the specifed no of instructions (default is 1) and then stop (instruction tracing only)\n";
 	cout << "xstep <no of instructions>:                         execute the specifed no of instructions (default is 1) and then stop (extended tracing)\n";
@@ -565,6 +479,7 @@ void Debugger::help()
 	cout << "break r|w|rw <hex address>:                         continue execution until the specified address is accessed in the way specified\n";
 	cout << "cbreak:                                             clear any previously set breakpoint\n";
 	cout << "halt:                                               stop execution\n";
+	cout << "mlog (set <adr> | clr):                             add logging of a specific memory address to instruction log\n";
 	cout << "exit:                                               exit the debugger\n";
 }
 
@@ -598,12 +513,6 @@ void Debugger::run()
 				success = readMemToScreenCmd(sin);
 			else if (cmd == "fread")
 				success = readMemToFileCmd(sin);
-			else if (cmd == "dbg")
-				success = levelCmd(sin);
-			else if (cmd == "buf")
-				success = bufferCmd(sin, false);
-			else if (cmd == "cbuf")
-				success = bufferCmd(sin, true);
 			else if (cmd == "dis")
 				success = disToScreenCmd(sin);
 			else if (cmd == "fdis")
@@ -632,6 +541,8 @@ void Debugger::run()
 				success = clrBreakpointCmd(sin);
 			else if (cmd == "exit")
 				success = exit();
+			else if (cmd == "mlog")
+				success = memLogCmd(sin);
 			else if (cmd != "")
 				cout << "Unknown command '" << cmd << "'!\n";
 

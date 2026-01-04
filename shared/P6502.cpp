@@ -2798,6 +2798,12 @@ bool P6502::getInstrLogData(InstrLogData& instrLogData) {
 
 	instrLogData.cycles = mExecutedCycles;
 
+	if (mMemLogAdr > 0 && mDeviceManager != NULL) {
+		uint8_t data;
+		mDeviceManager->dumpDeviceMemory(mMemLogAdr, data);
+		instrLogData.memContent = (int)data;
+	}
+
 	return true;
 }
 
@@ -2835,6 +2841,10 @@ bool P6502::printInstrLogData(ostream& sout, InstrLogData& instrLogData)
 		sout << " *IRQ";
 	if (instrLogData.activeNMI)
 		sout << " *NMI";
+
+	if (instrLogData.memContent != -1)
+		sout << " Mem[0x" << hex << mMemLogAdr << "]=0x" << instrLogData.memContent;
+
 
 	return true;
 }

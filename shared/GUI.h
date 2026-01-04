@@ -156,13 +156,14 @@ private:
 
 	Engine *mEngine = nullptr;
 	string mOutDir;
+	P6502* mCPU = nullptr;
 
 	VideoSettings mVideoSettings;
 	VideoDisplayUnit* mVDU = nullptr;
 
 public:
 
-    GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, Display* display, DeviceManager * devices, VideoDisplayUnit* vdu, double *emulationSpeed, DebugManager *dm, string outDir);
+    GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, Display* display, DeviceManager * devices, VideoDisplayUnit* vdu, P6502 *cpu, double *emulationSpeed, DebugManager *dm, string outDir);
     ~GUI();
 
 	bool itemSelected(ALLEGRO_EVENT  *event);

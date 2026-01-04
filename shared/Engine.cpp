@@ -122,7 +122,7 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
         mState = initialState;
 
     // Create GUI with menu and callbacks
-    mGUI = new GUI(this, mQueue, mDisplay, mDeviceManager, mVDU , &mSpeedFactor, mDM, mOutDir);
+    mGUI = new GUI(this, mQueue, mDisplay, mDeviceManager, mVDU , mMicroprocessor , &mSpeedFactor, mDM, mOutDir);
 
     // Get debugger instance
     mDebugger = mGUI->getDebugger();

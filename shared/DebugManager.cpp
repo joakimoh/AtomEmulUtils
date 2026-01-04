@@ -461,12 +461,6 @@ void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 		return;
 	}
 
-	if (mMemLogAdr > 0 && mDeviceManager != NULL) {
-		uint8_t data;
-		mDeviceManager->dumpDeviceMemory(mMemLogAdr, data);
-		instrLogData.memContent = (int)data;
-	}
-
 	// Buffer the instruction data (instead of outputting it directly) when buffering is ongoing
 	if (mTracingState == PREBUF_TRACING) {
 		// Update circular buffer
@@ -486,9 +480,10 @@ void DebugManager::log(Device* dev, DebugLevel level, InstrLogData instrLogData)
 
 }
 
-bool DebugManager::setMicrocontroller(Device* microcontrollerDevice)
+bool DebugManager::setMicrocontroller(P6502* microcontrollerDevice)
 {
 	mMicrocontroller = microcontrollerDevice;
+	mMicrocontroller->setMemLogging(mMemLogAdr);
 	return true;
 }
 
@@ -527,42 +522,7 @@ bool DebugManager::setDeviceManager(DeviceManager * deviceManager)
 
 void DebugManager::printInstrLogData(ostream &sout, InstrLogData instrLogData)
 {
-	string instr_s = mCodec.decode(instrLogData.opcodePC, instrLogData.opcode, instrLogData.operand);
-	Codec6502::InstructionInfo instr = instrLogData.instr;
-
-	string t_s = Utility::encodeCPUTime(instrLogData.logTime);
-
-	sout << t_s << " [" << instrLogData.cycles << "] " << setfill(' ') << setw(30) << left << instr_s << right <<
-		" " <<  hex << setfill('0') <<
-		"A:" << setw(2) << (int)instrLogData.A <<
-		" X:" << setw(2) << (int)instrLogData.X <<
-		" Y:" << setw(2) << (int)instrLogData.Y <<
-		" SP:" << setw(2) << (int)instrLogData.SP <<
-		" NV--DIZC:" << setw(8) << bitset<8>(instrLogData.SR & 0xdf) <<
-		setw(4) <<
-		" PC:" << setw(2) << instrLogData.PC;
-	if (instr.readsMem || instr.writesMem)
-		sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << instrLogData.accessAdr;
-	if (instr.readsMem)
-		sout << " READ 0x" << setw(2) << (int)instrLogData.readVal;
-	if (instr.writesMem)
-		sout << " WROTE 0x" << setw(2) << (int)instrLogData.writtenVal;
-
-	sout << " ";
-
-	uint16_t stack_adr = (0x100 + instrLogData.SP + 1) & 0x1ff;
-	sout << "Mem[" << hex << setw(3) << setfill('0') << stack_adr << "]=" << setw(2) << setfill('0') << hex << instrLogData.stack;
-
-	if (instrLogData.execFailure)
-		sout << " EXEC FAILURE";
-	if (instrLogData.activeIRQ)
-		sout << " *IRQ";
-	if (instrLogData.activeNMI)
-		sout << " *NMI";
-	if (instrLogData.memContent != -1)
-		sout << " Mem[0x" << hex << mMemLogAdr << "]=0x" << instrLogData.memContent;
-
-
+	mMicrocontroller->printInstrLogData(sout, instrLogData);
 	sout << "\n";
 
 }
