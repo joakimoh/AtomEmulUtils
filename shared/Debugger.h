@@ -11,15 +11,17 @@ class DeviceManager;
 class Device;
 class DebugManager;
 class Engine;
+class GUI;
 
 class Debugger {
 
 private:
 
-	DebugManager* mDM = NULL;
-	DeviceManager *mDevices = NULL;
-	Engine* mEngine = NULL;
+	DebugManager* mDM = nullptr;
+	DeviceManager *mDevices = nullptr;
+	Engine* mEngine = nullptr;
 	string mOutDir;
+	GUI* mGUI = nullptr;
 
 	int mAccessMode = -1;
 	uint8_t mReadData = 0xff;
@@ -46,11 +48,36 @@ private:
 
 	double getDeviceTime(Device* dev);
 
+	bool mQuit = false;
+
+	enum DebuggerState { DBG_WAIT_TO_RUN, DBG_RUNNING, DBG_COMPLETED };
+
+	bool mDebuggerWaiting = false;
+
+	DebuggerState mState = DBG_WAIT_TO_RUN;
+
+	bool mWaitingEnabled = true;
+
+	void markStartOfWaiting();
+	void markEndOfWaiting();
+
 public:
 
-	Debugger(Engine *engine, DeviceManager *devices, DebugManager *debugManager, string outDir);
+
+	Debugger(GUI *gui, Engine *engine, DeviceManager *devices, DebugManager *debugManager, string outDir);
 
 	void run();
+
+	bool stopWaiting();
+
+	bool exit();
+
+
+	bool running();
+
+	bool waiting();
+
+	bool waitingEnabled();
 
 	void help();
 
@@ -74,8 +101,7 @@ public:
 	bool contCmd(istream &sin);
 
 	bool breakCmd(istream& sin);
-
-	bool exitCmd(istream& sin);
+	bool clrBreakpointCmd(istream& sin);
 
 };
 

@@ -22,6 +22,9 @@ GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, Display* display, DeviceMan
     mVDU(vdu)
 {
 
+    if (engine == nullptr || display == nullptr || devices == nullptr || speed == nullptr || dm == nullptr)
+        throw runtime_error("some arguments are null pointers");
+
     mVideoSettings = display->getVideoSettings();
     mAllegroDisplay = display->getDisplay();
     // 
@@ -80,6 +83,11 @@ GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, Display* display, DeviceMan
         al_set_menu_item_flags(mMenu, RATE_60_ID, ALLEGRO_MENU_ITEM_CHECKED);
     else
         throw runtime_error("Unsupported field rate " + to_string(mVideoSettings.getFieldRate()));
+
+    mDebugger = new Debugger(this, mEngine, mDevices, mDM, mOutDir);
+
+    if (mDebugger == nullptr)
+        throw runtime_error("failed to create debugger");
 }
 
 GUI::~GUI()
@@ -89,9 +97,23 @@ GUI::~GUI()
         al_destroy_menu(mMenu);
 
     if (mDebugger != nullptr) {
-        mDebugThread.join();
+        mDebugger->exit();
+        if (mDebugger->running())
+            mDebugThread.join();
         delete mDebugger;
     }
+}
+
+bool GUI::startDebugger()
+{
+    // Stop any previous thread from running
+    if (mDebugThread.joinable()) {
+        mDebugger->stopWaiting();
+        mDebugThread.join();
+    }
+
+    mDebugThread = thread(&Debugger::run, mDebugger);
+    return true;
 }
 
 bool GUI::itemSelected(ALLEGRO_EVENT* event)
@@ -105,22 +127,13 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         mQuit = true;
         break;
 
-    case ENTER_DBG_ID:
-    {
-        al_set_menu_item_flags(mMenu, ENTER_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
-        al_set_menu_item_flags(mMenu, EXIT_DBG_ID, 0);
-        mDebugger = new Debugger(mEngine, mDevices, mDM, mOutDir);
-        mDebugThread = thread(&Debugger::run, mDebugger);
+    case STOP_WAIT_DBG_ID:
+        mDebugger->stopWaiting();
         break;
-    }
 
-    case EXIT_DBG_ID:
+    case START_DBG_ID:
     {
-        al_set_menu_item_flags(mMenu, ENTER_DBG_ID, 0);
-        al_set_menu_item_flags(mMenu, EXIT_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
-        mDebugThread.join();
-        delete mDebugger;
-        mDebugger = NULL;
+        startDebugger();
         break;
     }
 
@@ -602,6 +615,26 @@ void GUI::setScreenRefreshRate(double rate)
         else {
             fps = 60;
             al_set_menu_item_flags(mMenu, RATE_60_ID, ALLEGRO_MENU_ITEM_CHECKED);
+        }
+    }
+}
+
+void GUI::updateDebuggerOptions()
+{
+    if (mDebugger != nullptr) {
+        if (mDebugger->running()) {
+            if (mDebugger->waiting()) {
+                al_set_menu_item_flags(mMenu, START_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
+                al_set_menu_item_flags(mMenu, STOP_WAIT_DBG_ID, 0);
+            }
+            else {
+                al_set_menu_item_flags(mMenu, START_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
+                al_set_menu_item_flags(mMenu, STOP_WAIT_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
+            }
+        }
+        else { // debugger is NOT running
+            al_set_menu_item_flags(mMenu, START_DBG_ID, 0);
+            al_set_menu_item_flags(mMenu, STOP_WAIT_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
         }
     }
 }

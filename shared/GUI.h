@@ -16,6 +16,7 @@
 #include <cstdint>
 
 class Display;
+class Debugger;
 
 
 using namespace std;
@@ -28,8 +29,8 @@ enum {
     FILE_EXIT_ID,
 
     DBG_ID,
-    ENTER_DBG_ID,
-    EXIT_DBG_ID,
+    START_DBG_ID,
+	STOP_WAIT_DBG_ID,
 
     MMC_ID,
     MMC_EJECT_ID,
@@ -132,8 +133,8 @@ private:
 			ALLEGRO_END_OF_MENU,
 
 		ALLEGRO_START_OF_MENU("&Debugger", DBG_ID),
-			{ "Enter",              ENTER_DBG_ID,           0,                                                      NULL },
-			{ "Exit",               EXIT_DBG_ID,            ALLEGRO_MENU_ITEM_DISABLED,                             NULL },
+			{ "Start",              START_DBG_ID,           ALLEGRO_MENU_ITEM_DISABLED,                             NULL },
+			{ "Stop waiting",       STOP_WAIT_DBG_ID,       ALLEGRO_MENU_ITEM_DISABLED,                             NULL },
 			ALLEGRO_END_OF_MENU,
 
 		  ALLEGRO_END_OF_MENU
@@ -173,6 +174,13 @@ public:
 	void setScreenRefreshRate(double rate);
 
 	bool quit() { return mQuit; }
+
+	Debugger* getDebugger() { return mDebugger; }
+
+	bool startDebugger();
+
+	void updateDebuggerOptions();
+
 };
 
 

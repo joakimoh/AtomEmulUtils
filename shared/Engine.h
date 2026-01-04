@@ -15,11 +15,13 @@
 #include <mutex>
 #include <semaphore>
 #include <thread>
+#include <string>
 
 class SoundDevice;
 class Debugmanager;
 class ConnectionManager;
 class KeyboardDevice;
+class Debugger;
 
 using namespace std;
 
@@ -50,7 +52,7 @@ public:
 								(x==ENG_RW_BRK_WAIT?"Wait on read or write to address":\
 									(x==ENG_RW_V_BRK_WAIT?"Wait on read or written value":\
 										(x==ENG_BRK_DET?"Breakpoint triggered":(x==ENG_STEP_OVER?"Step over":\
-											(x==ENG_WAIT_ON_RET?"Wait on return from subroutine":(x==ENG_TBD:"TBD":"???")))\
+											(x==ENG_WAIT_ON_RET?"Wait on return from subroutine":(x==ENG_TBD?"TBD":"???")))\
 										)\
 									)\
 								)\
@@ -88,7 +90,8 @@ private:
 	ConnectionManager *mConnectionManager = NULL;
 
 
-	GUI *mGUI = NULL;
+	GUI *mGUI = nullptr;
+	Debugger* mDebugger = nullptr;
 
 
 	RunState mState = ENG_RUN;
@@ -158,6 +161,11 @@ public:
 
 	bool setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAdr, bool repetition);
 
+	bool clrBreakPoint();
+
+	bool isRunning() { return mState != ENG_HALT && mState != ENG_BRK_DET; }
+
+	string getState() { return _ENGINE_STATE(mState); }
 };
 
 

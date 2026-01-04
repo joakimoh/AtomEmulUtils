@@ -74,8 +74,14 @@ bool Display::init(VideoFormat videoFormat)
 
 void Display::updateWindowTitle()
 {
+    Resolution res = mVideoSettings.getTotalResolution();
     al_set_window_title(
         mDisplay,
-        (M_WINDOW_TITLE + " SPEED " + to_string((int)round(100*mMeasuredSpeed)) + "% FPS " + to_string((int)round(mMeasuredFrameRate))).c_str()
+        (
+            M_WINDOW_TITLE +
+            " SPEED " + to_string((int)round(100 * mMeasuredSpeed)) +
+            "% FPS " + to_string((int)round(mMeasuredFrameRate)) +
+            " " + mVideoSettings.getFormat() + " " + to_string(res.width) + "x" + to_string(res.height)
+        ).c_str()   
     );
 }

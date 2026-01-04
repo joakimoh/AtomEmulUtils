@@ -1,9 +1,5 @@
-RAM	0000	0400				// Block Zero RAM
-VDU6847	0800	0100 8000			// VDU CRT Controller 6847
-RAM	2800	5800				// Program RAM - 22K
-RAM	8000	1800				// Graphics RAM - 6K
-PIA8255	b000	0004 				// PIA 8255
-VIA6522	b800	0010 				// VIA 6522
-ROM	c000	1000 Atom_basic.rom		// BASIC ROM
-ROM	d000	1000 Atom_FloatingPoint.rom	// Floating-point ROM
-ROM	f000	1000 ADC_test.rom		// Test ROM
+CLOCK 1.0																// CPU Clock in MHz
+ADD	CPU_6502	CPU														// CPU
+ADD	SRAM		STACK	0100	0200	0								// Stack space
+ADD	SRAM		DATA	4000	0100	0								// Program data (256 bytes)
+ADD	ROM			PGM		f000	1000	0			ADC_test.rom		// Program (starts at f000;RESET vector points there)

@@ -1,7 +1,10 @@
 #ifndef VIDEO_SETTINGS_H
 #define VIDEO_SETTINGS_H
+#include <string>
 
-enum VideoFormat { PAL_FMT, NTSC_FMT };
+using namespace std;
+
+enum VideoFormat { PAL_FMT, NTSC_FMT, NO_FMT };
 typedef struct struct_Resolution { int width; int height; } Resolution;
 
 class VideoSettings {
@@ -17,6 +20,8 @@ private:
 
 	bool mHwAcc = true;
 
+	VideoFormat mFmt = PAL_FMT;
+
 public:
 
 	VideoSettings(VideoFormat fmt, bool hwAcc);
@@ -31,6 +36,8 @@ public:
 	Resolution getBlanking() { return mBlanking; }
 
 	Resolution getVideoResolution() { return mVideoPixels; }
+
+	string getFormat() { return (mFmt == PAL_FMT ? "PAL" : (mFmt == NTSC_FMT? "NTSC" : "Headless")); }
 
 	bool hwAccelerationEnabled() { return mHwAcc; }
 

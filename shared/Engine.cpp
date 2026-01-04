@@ -15,6 +15,7 @@
 #include "Display.h"
 #include <chrono>
 #include "KeyboardDevice.h"
+#include "Debugger.h"
 using namespace std::chrono;
 
 
@@ -70,6 +71,9 @@ bool Engine::allegroInit()
 Engine::Engine(string mapFileName, Program& program, Program& data, double emulationSpeed, VideoFormat videoFormat, bool enableHWAcc,
     DebugManager *debugManager, string outDir, RunState initialState) : mDM(debugManager), mOutDir(outDir)
 {
+    if (debugManager == nullptr)
+        throw runtime_error("debug manager undefined");
+
     if (!allegroInit()) {
         cout << "Failed to initialise allegro5!\n";
         throw runtime_error("Failed to initialise allegro!\n");
@@ -106,8 +110,10 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
         throw runtime_error("Failed to initialise debug manager with microconroller info!\n");
     }
     // If headless emulation (i.e. no VDU), then as a default have the microprocessor halted
-    if (mVDU == NULL)
+    if (mVDU == NULL) {
         mState = ENG_HALT;
+        mDisplay->init(NO_FMT);
+    }
     // Else have it running
     else
         mState = ENG_RUN;
@@ -117,6 +123,13 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
 
     // Create GUI with menu and callbacks
     mGUI = new GUI(this, mQueue, mDisplay, mDeviceManager, mVDU , &mSpeedFactor, mDM, mOutDir);
+
+    // Get debugger instance
+    mDebugger = mGUI->getDebugger();
+
+    // If headless emulation (i.e. no VDU), then start with the debugger being active
+    if (mVDU == NULL)
+        mGUI->startDebugger();
 
     // Setup emulation timer
     mEmulationTimer = al_create_timer(1.0 / mLowEmulationRate / mSpeedFactor);
@@ -130,7 +143,8 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
     // Create mutex for debug purpose
     mutex mExecMutex;
 
-   
+    // Update GUI debugger options based on the initial debugger state
+    mGUI->updateDebuggerOptions();
 
 }
 
@@ -190,10 +204,10 @@ bool Engine::run()
     int r = (int)mLowEmulationRate;
     auto start  = high_resolution_clock::now();
     uint64_t pCycleCount = 0;
-    
 
     while (!mQuit)
     {
+
         auto start_slow_cycle = high_resolution_clock::now();
 
         if (mState != ENG_HALT && mState  != ENG_BRK_DET) {
@@ -238,7 +252,8 @@ bool Engine::run()
                     }
 
                     // Check whether a breakpoint has been reached or not and take action if it has been reached
-                    checkForBreakPoint();
+                    if (mBreakPoint)
+                        checkForBreakPoint();
                 }
 
                 // Release execution mutex
@@ -410,7 +425,7 @@ void Engine::checkForUserInput()
             mKeyPressed = true;
         }
 
-        // Halt executionif user presses <CTRL-H>
+        // Halt execution if user presses <CTRL-H>
         else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_H)) {
             mState = ENG_HALT;
             mKeyPressed = true;
@@ -461,21 +476,10 @@ bool Engine::cont()
     if (mBreakPoint)
         return setBreakPointAndWait();
 
-    // Otherwise just continue execution (and wait for the user pressing <CTRL-H> to stop it
-
-    mExecMutex.lock();
+    // No breakpoint defined => just change to 'run' state
     mState = ENG_RUN;
-    mExecMutex.unlock();
-    bool wait = true;
-    while (wait) {
-        mExecMutex.lock();
-        wait = (mState != ENG_HALT);
-        mExecMutex.unlock();
-    }
 
-    stringstream sout;
-    mMicroprocessor->outputState(sout);
-    cout << sout.str();
+    // Otherwise just continue execution (and wait for the user either pressing <CTRL-H> or selecting 'halt on the menu to stop it)
     return true;
 }
 
@@ -501,9 +505,11 @@ bool Engine::step(int n, bool step_over)
     mExecMutex.unlock();
     while (wait) {
         mExecMutex.lock();
-        wait = (mState != ENG_HALT);
+        wait = (mState != ENG_HALT) && mDebugger->waitingEnabled();
         mExecMutex.unlock();
     }
+  
+ 
 
     stringstream sout;
     mMicroprocessor->outputState(sout);
@@ -529,8 +535,7 @@ bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t& readData
 
 bool Engine::setBreakPointAndWait()
 {   
-    bool triggered = false;
-    bool stopped = false;
+ 
     mExecMutex.lock();
     switch (mBreakPointMode) {
     case ENG_X_BRK_WAIT:
@@ -558,14 +563,18 @@ bool Engine::setBreakPointAndWait()
         mExecMutex.unlock();
         return false;
     }
-    
     RunState p_state = mState;
     mExecMutex.unlock();
-    while (!stopped) {
+
+    bool triggered = false;
+    bool stopped_exec = false;
+    bool cont_waiting = true;
+    while (cont_waiting) {
         mExecMutex.lock();
-        stopped = (mState == ENG_HALT || mState == ENG_BRK_DET);
+        stopped_exec = (mState == ENG_HALT || mState == ENG_BRK_DET);
+        cont_waiting = !stopped_exec && mDebugger->waitingEnabled();
         triggered = (mState == ENG_BRK_DET);
-        if (stopped) {
+        if (stopped_exec) {
             if (mRecurringTracing) {
                 mState = p_state;
                 triggered = false;
@@ -576,14 +585,16 @@ bool Engine::setBreakPointAndWait()
             mDM->outputBufferWindow(cout);
         }
         mExecMutex.unlock();
-    } 
-
-    stringstream sout;
-    mMicroprocessor->outputState(sout);
-    cout << sout.str();
+    }
 
     if (triggered)
         mBreakPoint = false;
 
+    return true;
+}
+
+bool Engine::clrBreakPoint()
+{
+    mBreakPoint = false;
     return true;
 }

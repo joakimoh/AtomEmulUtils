@@ -5,11 +5,12 @@
 
 using namespace std;
 
-VideoSettings::VideoSettings(VideoFormat fmt, bool hwAcc): mHwAcc(hwAcc)
+VideoSettings::VideoSettings(VideoFormat fmt, bool hwAcc): mHwAcc(hwAcc), mFmt(fmt)
 {
 	int screen_scan_lines;
 	int total_hz_pixels;
-	switch (fmt) {
+	switch (mFmt) {
+	case NO_FMT:
 	case PAL_FMT:
 		screen_scan_lines = 625;
 		mFieldrate = 50;

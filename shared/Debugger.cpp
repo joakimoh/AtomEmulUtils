@@ -11,10 +11,11 @@
 
 using namespace std;
 
-Debugger::Debugger(Engine *engine, DeviceManager  *devices, DebugManager *debugManager, string outDir) :
-	mDM(debugManager),mDevices(devices), mEngine(engine), mOutDir(outDir)
+Debugger::Debugger(GUI *gui, Engine *engine, DeviceManager  *devices, DebugManager *debugManager, string outDir) :
+	mDM(debugManager),mDevices(devices), mEngine(engine), mOutDir(outDir),mGUI(gui)
 {
-
+	if (gui == nullptr || engine == nullptr || devices == nullptr || debugManager == nullptr)
+		throw runtime_error("some arguments are null pointers");
 }
 
 bool Debugger::readOptString(istream& sin, string& s)
@@ -446,11 +447,13 @@ bool Debugger::stepCmd(istream &sin, bool stepOver)
 		mDM->enableTracing();
 	}
 
+	// Wait for stepping to complete
+	markStartOfWaiting();
 	mEngine->step(n, stepOver);
+	markEndOfWaiting();
 
 	return true;
 }
-
 
 bool Debugger::contCmd(istream &sin)
 {
@@ -458,12 +461,11 @@ bool Debugger::contCmd(istream &sin)
 	if (mTracingEnabled)
 		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, false);
 
+	// Wait for breakpoint or an (via GUI debugger menu) explicit user request to stop waiting
+	markStartOfWaiting();
 	mEngine->cont();
-	return true;
-}
+	markEndOfWaiting();
 
-bool Debugger::exitCmd(istream &sin)
-{
 	return true;
 }
 
@@ -481,6 +483,8 @@ bool Debugger::breakCmd(istream& sin)
 	if (mTracingEnabled)
 		mDM->enableBuffering(mPretraceLen, 1, mExtensiveTracing, mRecurringTracing);
 
+	// Indicate to the engine that the debugger will start waiting
+	markStartOfWaiting();
 
 	if (sub_cmd == "x") {
 		mAccessMode = Engine::ENG_X_BRK_WAIT;
@@ -518,6 +522,8 @@ bool Debugger::breakCmd(istream& sin)
 		return false;
 	}
 
+	markEndOfWaiting();
+
 	return true;
 }
 
@@ -549,15 +555,26 @@ void Debugger::help()
 	cout << "cont:                                               continue execution (if previusly stopped)\n";
 	cout << "break x <hex address>:                              continue execution until the program counter reaches the specified address\n";
 	cout << "break r|w|rw <hex address>:                         continue execution until the specified address is accessed in the way specified\n";
+	cout << "cbreak:                                             clear any previously set breakpoint\n";
 	cout << "halt:                                               stop execution\n";
 	cout << "exit:                                               exit the debugger\n";
 }
 
 void Debugger::run()
 {
-	while (true) {
+	mState = DBG_RUNNING;
+	mQuit = false;
 
-		cout << "> ";
+	mGUI->updateDebuggerOptions();
+
+	while (!mQuit) {
+
+		mWaitingEnabled = true;
+
+		if (mEngine->isRunning())
+			cout << "\n(running)> ";
+		else
+			cout << "\n(halted)> ";
 
 		string cmd_line;
 		getline(cin, cmd_line);
@@ -603,8 +620,10 @@ void Debugger::run()
 				success = haltCmd(sin);
 			else if (cmd == "break")
 				success = breakCmd(sin);
+			else if (cmd == "cbreak")
+				success = clrBreakpointCmd(sin);
 			else if (cmd == "exit")
-				success = exitCmd(sin);
+				success = exit();
 			else if (cmd != "")
 				cout << "Unknown command '" << cmd << "'!\n";
 
@@ -612,4 +631,57 @@ void Debugger::run()
 				cout << "Invalid parameters for the command!\n";
 		}
 	}
+
+	mState = DBG_COMPLETED;
+	mGUI->updateDebuggerOptions();
+}
+
+bool Debugger::exit()
+{
+	mQuit = true;
+	mDebuggerWaiting = false;
+
+	// Make sure the engine is back into 'run' state (and not e.g. halted) before shutting down the debugger
+	mEngine->clrBreakPoint();
+	mEngine->cont();
+
+	return true;
+}
+
+bool Debugger::running()
+{
+	return mState == DBG_RUNNING;
+}
+
+bool Debugger::waiting()
+{
+	return mDebuggerWaiting;
+}
+
+bool Debugger::waitingEnabled()
+{
+	return mWaitingEnabled;
+}
+
+bool Debugger::stopWaiting()
+{
+	mWaitingEnabled = false;
+	return true;
+}
+
+void Debugger::markStartOfWaiting()
+{
+	mDebuggerWaiting = true;
+	mGUI->updateDebuggerOptions();
+}
+
+void Debugger::markEndOfWaiting()
+{
+	mDebuggerWaiting = false;
+	mGUI->updateDebuggerOptions();
+}
+
+bool Debugger::clrBreakpointCmd(istream& sin)
+{
+	return mEngine->clrBreakPoint();
 }
