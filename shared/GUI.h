@@ -173,7 +173,9 @@ public:
 
 	void setScreenRefreshRate(double rate);
 
-	bool quit() { return mQuit; }
+	bool running() { return mQuit; }
+
+	void quit() { mQuit = true; }
 
 	Debugger* getDebugger() { return mDebugger; }
 

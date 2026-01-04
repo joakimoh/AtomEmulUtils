@@ -125,6 +125,7 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
 
     case FILE_EXIT_ID:
         mQuit = true;
+        mDebugger->stopWaiting();
         break;
 
     case STOP_WAIT_DBG_ID:

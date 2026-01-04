@@ -277,7 +277,7 @@ bool Engine::run()
             cycles_per_second = 0;
         }
         
-        mQuit = mGUI->quit(); 
+        mQuit = mGUI->running(); 
 
         bool cont = true && !mQuit;
         // There could be more than one event in the queue - make sure to empty it before waiting for the next timer event
@@ -291,6 +291,8 @@ bool Engine::run()
             }
             else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
                 mQuit = true;
+                mDebugger->exit();
+                mGUI->quit();
                 al_flush_event_queue(mQueue);
             }
             else if (event.type == ALLEGRO_EVENT_TIMER) {
@@ -307,6 +309,9 @@ bool Engine::run()
         checkForUserInput();
 
     }
+
+    // Stop any potentially still running debugger thread
+    mDebugger->exit();
 
     return true;
 }

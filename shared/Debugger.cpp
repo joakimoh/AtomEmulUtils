@@ -426,12 +426,17 @@ bool Debugger::stepCmd(istream &sin, bool stepOver, ostream& sout)
 {
 	int n = 1;
 
+	if (mEngine->isRunning()) {
+		sout << "microprocessor is still running - halt it before trying to step through instructions!\n";
+		return true;
+	}
+
 	// Check for optional number and - if present - use it to set n
 	if (!readOptPosInt(sin, n))
 		n = 1;
 
 	if (stepOver && n != 1) {
-		cout << "skip command doesn't take any parameter!\n";
+		sout << "skip command doesn't take any parameter!\n";
 		return false;
 	}
 
@@ -642,7 +647,9 @@ void Debugger::run()
 bool Debugger::exit()
 {
 	mQuit = true;
-	mDebuggerWaiting = false;
+
+	// Stop any potentially ongoing waiting (for breakpoint)
+	stopWaiting();
 
 	// Make sure the engine is back into 'run' state (and not e.g. halted) before shutting down the debugger
 	mEngine->clrBreakPoint();
