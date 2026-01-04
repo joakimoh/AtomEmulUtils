@@ -463,10 +463,10 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 
 	// Fetch the instruction operands and execute the instruction
 	uint8_t oI_flag = I_flag;
-	bool exec_success = true;
+	mExecSuccess = true;
 
 	if (!executeInstr()) {
-		exec_success = false;
+		mExecSuccess = false;
 		DBG_LOG(this, DBG_ERROR, "Invalid instruction 0x" + Utility::int2HexStr(mOpcode, 2) + " at address 0x" + Utility::int2HexStr(mOpcodePC, 4) + "!\n");
 	}
 
@@ -475,7 +475,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		mRAccAdr = mOperandAddress;
 	if (mInstructionInfo.writesMem)
 		mWAccAdr = mOperandAddress;
-	success = success && exec_success;
+	success = success && mExecSuccess;
 
 	DBG_LOG_COND(false && I_flag != oI_flag, this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[mInstructionInfo.instruction] + " at address 0x" + Utility::int2HexStr(mOpcodePC,4) + "\n");
 
@@ -488,46 +488,20 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	endCycle = mCycleCount;
 
 	// Calculate the no of cycles for the executed instruction
-	int cycles = endCycle - start_cycle;
+	mExecutedCycles = endCycle - start_cycle;
 
 	if (DBG_TRACING()) {
 
 		if (mDM->quickTracing()) {
-
 			InstrLogData instr_log_data;
-			instr_log_data.logTime = getCycleCount() / (mCPUClock * 1e6);
-			instr_log_data.instr = mInstructionInfo;
-			instr_log_data.A = mAcc;
-			instr_log_data.X = mRegisterX;
-			instr_log_data.Y = mRegisterY;
-			instr_log_data.SP = mStackPointer;
-			instr_log_data.SR = mStatusRegister;
-			instr_log_data.opcodePC = mOpcodePC;
-			instr_log_data.PC = mProgramCounter;
-			instr_log_data.opcode = mOpcode;
-			instr_log_data.operand = mOperand16;
-			instr_log_data.accessAdr = mOperandAddress;
-			instr_log_data.activeIRQ = (!mIRQ && mIrqTransition);
-			instr_log_data.activeNMI = (!mNMI && mNmiTransition);
-			instr_log_data.execFailure = !exec_success;
-			instr_log_data.readVal = mReadVal8;
-			instr_log_data.writtenVal = mWrittenVal;
-			uint16_t a = (0x100 + mStackPointer + 1) & 0x1ff;
-			uint8_t l, h;
-			readProgramMem(a, l);
-			readProgramMem(a + 1, h);
-			uint16_t w = (h << 8) | l;
-			instr_log_data.stack = w;
-
-			instr_log_data.cycles = cycles;
-
+			getInstrLogData(instr_log_data);
 			DBG_LOG(this, DBG_6502, instr_log_data);
 		}
 		else {
 
 			string instr_s = mCodec.decode(mOpcodePC, mOpcode, mOperand16);
 			stringstream sout;
-			sout << "[" << cycles << "] ";
+			sout << "[" << mExecutedCycles << "] ";
 			sout << setfill(' ') << setw(30) << left << instr_s << right <<
 				" " << getState();
 			if (mInstructionInfo.readsMem || mInstructionInfo.writesMem)
@@ -537,7 +511,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			if (mInstructionInfo.writesMem)
 				sout << " WROTE 0x" << setw(2) << (int)mWrittenVal;
 			sout << " " << stack2Str();
-			if (!exec_success)
+			if (!mExecSuccess)
 				sout << " EXEC FAILURE";
 			if (!mIRQ && mIrqTransition)
 				sout << " *IRQ";
@@ -2793,6 +2767,74 @@ bool P6502::outputState(ostream& sout)
 	sout << "Executed instruction:    " << setfill(' ') << setw(30) << left << x_instr_s << "\n";
 	sout << "Resulting State:         " << getState() << "\n";
 	sout << "Next instruction:        " << setfill(' ') << setw(30) << left << n_instr_s << "\n";
+
+	return true;
+}
+
+bool P6502::getInstrLogData(InstrLogData& instrLogData) {
+	instrLogData.logTime = getCycleCount() / (mCPUClock * 1e6);
+	instrLogData.instr = mInstructionInfo;
+	instrLogData.A = mAcc;
+	instrLogData.X = mRegisterX;
+	instrLogData.Y = mRegisterY;
+	instrLogData.SP = mStackPointer;
+	instrLogData.SR = mStatusRegister;
+	instrLogData.opcodePC = mOpcodePC;
+	instrLogData.PC = mProgramCounter;
+	instrLogData.opcode = mOpcode;
+	instrLogData.operand = mOperand16;
+	instrLogData.accessAdr = mOperandAddress;
+	instrLogData.activeIRQ = (!mIRQ && mIrqTransition);
+	instrLogData.activeNMI = (!mNMI && mNmiTransition);
+	instrLogData.execFailure = !mExecSuccess;
+	instrLogData.readVal = mReadVal8;
+	instrLogData.writtenVal = mWrittenVal;
+	uint16_t a = (0x100 + mStackPointer + 1) & 0x1ff;
+	uint8_t l, h;
+	readProgramMem(a, l);
+	readProgramMem(a + 1, h);
+	uint16_t w = (h << 8) | l;
+	instrLogData.stack = w;
+
+	instrLogData.cycles = mExecutedCycles;
+
+	return true;
+}
+
+bool P6502::printInstrLogData(ostream& sout, InstrLogData& instrLogData)
+{
+	string instr_s = mCodec.decode(instrLogData.opcodePC, instrLogData.opcode, instrLogData.operand);
+	Codec6502::InstructionInfo instr = instrLogData.instr;
+
+	string t_s = Utility::encodeCPUTime(instrLogData.logTime);
+
+	sout << t_s << " [" << instrLogData.cycles << "] " << setfill(' ') << setw(30) << left << instr_s << right <<
+		" " << hex << setfill('0') <<
+		"A:" << setw(2) << (int)instrLogData.A <<
+		" X:" << setw(2) << (int)instrLogData.X <<
+		" Y:" << setw(2) << (int)instrLogData.Y <<
+		" SP:" << setw(2) << (int)instrLogData.SP <<
+		" NV--DIZC:" << setw(8) << bitset<8>(instrLogData.SR & 0xdf) <<
+		setw(4) <<
+		" PC:" << setw(2) << instrLogData.PC;
+	if (instr.readsMem || instr.writesMem)
+		sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << instrLogData.accessAdr;
+	if (instr.readsMem)
+		sout << " READ 0x" << setw(2) << (int)instrLogData.readVal;
+	if (instr.writesMem)
+		sout << " WROTE 0x" << setw(2) << (int)instrLogData.writtenVal;
+
+	sout << " ";
+
+	uint16_t stack_adr = (0x100 + instrLogData.SP + 1) & 0x1ff;
+	sout << "Mem[" << hex << setw(3) << setfill('0') << stack_adr << "]=" << setw(2) << setfill('0') << hex << instrLogData.stack;
+
+	if (instrLogData.execFailure)
+		sout << " EXEC FAILURE";
+	if (instrLogData.activeIRQ)
+		sout << " *IRQ";
+	if (instrLogData.activeNMI)
+		sout << " *NMI";
 
 	return true;
 }

@@ -8,6 +8,7 @@
 #include "DebugManager.h"
 #include <cstdint>
 #include <cmath>
+#include <fstream>
 
 using namespace std;
 
@@ -213,6 +214,9 @@ private:
 
 	DeviceManager* mDeviceManager = NULL;
 
+	int mExecutedCycles = 0;
+	bool mExecSuccess = true;
+
 public:
 
 	bool readDevice(uint16_t adr, uint8_t& data);
@@ -251,6 +255,12 @@ public:
 	int writtenAdr(uint8_t& data) { data = mWrittenVal;  return (int)mWAccAdr; }
 	int operandAddress() { return (int)mOperandAddress; }
 
+	Codec6502::InstructionInfo getInstrInfo() {
+		return mInstructionInfo;
+	}
+
+	bool getInstrLogData(InstrLogData& instr_log_data);
+	bool printInstrLogData(ostream& sout, InstrLogData& instr_log_data);
 
 };
 

@@ -561,6 +561,8 @@ void DebugManager::printInstrLogData(ostream &sout, InstrLogData instrLogData)
 		sout << " *NMI";
 	if (instrLogData.memContent != -1)
 		sout << " Mem[0x" << hex << mMemLogAdr << "]=0x" << instrLogData.memContent;
+
+
 	sout << "\n";
 
 }

@@ -166,7 +166,7 @@ private:
 	DeviceManager* mDeviceManager = nullptr;
 	Device* mMicrocontroller = nullptr;
 
-	void printInstrLogData(ostream &sout, InstrLogData instrLogData);
+	void printInstrLogData(ostream& sout, InstrLogData instrLogData);
 	bool string2debugLevel(string debugLevelS, DebugLevel &debugLevel);
 	static string levels2str(DebugLevel debugLevel);
 

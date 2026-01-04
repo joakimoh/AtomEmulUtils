@@ -16,6 +16,7 @@
 #include <semaphore>
 #include <thread>
 #include <string>
+#include <fstream>
 
 class SoundDevice;
 class Debugmanager;
@@ -144,6 +145,10 @@ private:
 
 	bool setBreakPointAndWait();
 
+	void logInstr();
+
+	vector<InstrLogData> mInstrLogBuffer;
+
 public:
 
 	Engine(string mapFileName, Program &program, Program &data, double emulationSpeed, VideoFormat videoFormat, bool enableHWAcc,
@@ -166,6 +171,8 @@ public:
 	bool isRunning() { return mState != ENG_HALT && mState != ENG_BRK_DET; }
 
 	string getState() { return _ENGINE_STATE(mState); }
+
+	void printInstrLog(ostream& sout);
 };
 
 

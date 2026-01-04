@@ -252,8 +252,7 @@ bool Engine::run()
                     }
 
                     // Check whether a breakpoint has been reached or not and take action if it has been reached
-                    if (mBreakPoint)
-                        checkForBreakPoint();
+                    checkForBreakPoint();
                 }
 
                 // Release execution mutex
@@ -347,6 +346,7 @@ void Engine::checkForBreakPoint()
     }
 
     if (mState == ENG_STEP) {
+        logInstr();
         if (mSteps == 1)
             mState = ENG_HALT;
         else
@@ -508,12 +508,7 @@ bool Engine::step(int n, bool step_over)
         wait = (mState != ENG_HALT) && mDebugger->waitingEnabled();
         mExecMutex.unlock();
     }
-  
- 
 
-    stringstream sout;
-    mMicroprocessor->outputState(sout);
-    cout << sout.str();
 
     return true;
 }
@@ -597,4 +592,21 @@ bool Engine::clrBreakPoint()
 {
     mBreakPoint = false;
     return true;
+}
+
+void Engine::logInstr()
+{
+    InstrLogData instr_log_data;
+    mMicroprocessor->getInstrLogData(instr_log_data);
+    mInstrLogBuffer.push_back(instr_log_data);
+}
+
+void Engine::printInstrLog(ostream& sout)
+{
+    for (int i = 0; i < mInstrLogBuffer.size(); i++) {
+        mMicroprocessor->printInstrLogData(sout, mInstrLogBuffer[i]);
+        cout << "\n";
+    }
+    sout << "\n";
+    mInstrLogBuffer.clear();
 }

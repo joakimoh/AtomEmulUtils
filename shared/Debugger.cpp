@@ -422,7 +422,7 @@ bool Debugger::readMemCmd(istream  &sin, ostream &sout)
 	return true;
 }
 
-bool Debugger::stepCmd(istream &sin, bool stepOver)
+bool Debugger::stepCmd(istream &sin, bool stepOver, ostream& sout)
 {
 	int n = 1;
 
@@ -451,6 +451,9 @@ bool Debugger::stepCmd(istream &sin, bool stepOver)
 	markStartOfWaiting();
 	mEngine->step(n, stepOver);
 	markEndOfWaiting();
+
+	if (!stepOver)
+		mEngine->printInstrLog(sout);
 
 	return true;
 }
@@ -611,9 +614,9 @@ void Debugger::run()
 			else if (cmd == "devices")
 				success = listDevicesCmd(sin);
 			else if (cmd == "step")
-				success = stepCmd(sin, false);
+				success = stepCmd(sin, false, cout);
 			else if (cmd == "skip")
-				success = stepCmd(sin, true);
+				success = stepCmd(sin, true, cout);
 			else if (cmd == "cont")
 				success = contCmd(sin);
 			else if (cmd == "halt")

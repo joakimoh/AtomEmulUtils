@@ -98,7 +98,7 @@ GUI::~GUI()
 
     if (mDebugger != nullptr) {
         mDebugger->exit();
-        if (mDebugger->running())
+        if (mDebugThread.joinable())
             mDebugThread.join();
         delete mDebugger;
     }
