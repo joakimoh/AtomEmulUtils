@@ -1,4 +1,5 @@
 #include "Display.h"
+#include <cmath>
 
 
 
@@ -75,13 +76,30 @@ bool Display::init(VideoFormat videoFormat)
 void Display::updateWindowTitle()
 {
     Resolution res = mVideoSettings.getTotalResolution();
-    al_set_window_title(
-        mDisplay,
-        (
-            M_WINDOW_TITLE +
-            " SPEED " + to_string((int)round(100 * mMeasuredSpeed)) +
-            "% FPS " + to_string((int)round(mMeasuredFrameRate)) +
-            " " + mVideoSettings.getFormat() + " " + to_string(res.width) + "x" + to_string(res.height)
-        ).c_str()   
-    );
+    if (mVideoSettings.format() == VideoFormat::NO_FMT)
+        al_set_window_title(
+            mDisplay,
+            (
+                M_WINDOW_TITLE +
+                " CLOCK " + to_string(round(mCPUClock * 10) / 10) + " Mhz" +
+                " SPEED " + to_string((int)round(100 * mMeasuredSpeed)) +
+                " " + mVideoSettings.getFormat() + " " + to_string(res.width) + "x" + to_string(res.height)
+                ).c_str()
+        );
+    else
+        al_set_window_title(
+            mDisplay,
+            (
+                M_WINDOW_TITLE +
+                " CLOCK " + to_string(round(mCPUClock*10)/10) + " Mhz" +
+                " SPEED " + to_string((int)round(100 * mMeasuredSpeed)) +
+                "% FPS " + to_string((int)round(mMeasuredFrameRate)) +
+                " " + mVideoSettings.getFormat() + " " + to_string(res.width) + "x" + to_string(res.height)
+            ).c_str()   
+        );
+}
+
+void Display::setClock(double cpuClock)
+{
+    mCPUClock = cpuClock;
 }

@@ -65,6 +65,8 @@ class Display {
 	double mMeasuredSpeed = 100;
 	double mMeasuredFrameRate = 1;
 	const string M_WINDOW_TITLE = "6502 System Emulator";
+
+	double mCPUClock = 1.0;
 	
 
 public:
@@ -83,6 +85,8 @@ public:
 	void updateMeasuredSpeed(double speed) { mMeasuredSpeed = speed; }
 	void updateMeasuredFrameRate(double rate) { mMeasuredFrameRate = rate; }
 	void updateWindowTitle();
+
+	void setClock(double cpuClock);
 };
 
 #endif

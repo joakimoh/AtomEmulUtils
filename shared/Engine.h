@@ -161,6 +161,8 @@ public:
 
 	bool cont();
 
+	bool reset();
+
 	bool step(int n, bool stepOver);
 	bool step(int n);
 

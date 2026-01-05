@@ -39,6 +39,8 @@ public:
 
 	string getFormat() { return (mFmt == PAL_FMT ? "PAL" : (mFmt == NTSC_FMT? "NTSC" : "Headless")); }
 
+	VideoFormat format() { return mFmt; }
+
 	bool hwAccelerationEnabled() { return mHwAcc; }
 
 	int getFieldRate() {

@@ -26,11 +26,13 @@ enum {
     FILE_ID = 1,
     LOAD_INTO_RAM,
     SAVE_FROM_RAM,
+	FILE_RESET_ID,
     FILE_EXIT_ID,
 
     DBG_ID,
     START_DBG_ID,
 	STOP_WAIT_DBG_ID,
+	RESET_DBG_ID,
 
     MMC_ID,
     MMC_EJECT_ID,
@@ -80,12 +82,14 @@ private:
 	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
 #define MY_ALLEGRO_MENU_SEPARATOR {NULL, (uint16_t)-1,0, NULL}
 
-	ALLEGRO_MENU_INFO mMainMenu[47] = {
+	ALLEGRO_MENU_INFO mMainMenu[49] = {
 
 		ALLEGRO_START_OF_MENU("&File", FILE_ID),
 			{ "&Load data into RAM",   LOAD_INTO_RAM,  0,  NULL },
 		MY_ALLEGRO_MENU_SEPARATOR,
 			{ "&Save memory data to file",   SAVE_FROM_RAM,  0,  NULL },
+		MY_ALLEGRO_MENU_SEPARATOR,
+			{ "Reset",                 FILE_RESET_ID,   0,  NULL },
 		MY_ALLEGRO_MENU_SEPARATOR,
 			{ "E&xit",                 FILE_EXIT_ID,   0,  NULL },
 		ALLEGRO_END_OF_MENU,

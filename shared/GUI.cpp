@@ -123,6 +123,10 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
 
     switch (event->user.data1) {
 
+    case FILE_RESET_ID:
+        mEngine->reset();
+        break;
+
     case FILE_EXIT_ID:
         mQuit = true;
         mDebugger->stopWaiting();

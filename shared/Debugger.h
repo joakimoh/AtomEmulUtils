@@ -57,26 +57,8 @@ private:
 	void markStartOfWaiting();
 	void markEndOfWaiting();
 
-public:
-
-
-	Debugger(P6502 *cpu, GUI *gui, Engine *engine, DeviceManager *devices, string outDir);
-
-	void run();
-
-	bool stopWaiting();
-
-	bool exit();
-
-
-	bool running();
-
-	bool waiting();
-
-	bool waitingEnabled();
-
 	void help();
-	
+
 	bool disToFileCmd(istream& sin);
 	bool disToScreenCmd(istream& sin);
 
@@ -92,11 +74,33 @@ public:
 	bool memLogCmd(istream& sin);
 
 	bool haltCmd(istream& sin);
-	bool stepCmd(istream &sin, bool stepOver, ostream& sout);
-	bool contCmd(istream &sin);
-
+	bool stepCmd(istream& sin, bool stepOver, ostream& sout);
+	bool contCmd(istream& sin);
 	bool breakCmd(istream& sin);
 	bool clrBreakpointCmd(istream& sin);
+
+	bool resetCmd(istream& sin);
+
+	bool setRegCmd(istream& sin);
+
+public:
+
+
+	Debugger(P6502 *cpu, GUI *gui, Engine *engine, DeviceManager *devices, string outDir);
+
+	void run();
+
+	bool stopWaiting();
+
+	bool exit();
+
+	bool running();
+
+	bool waiting();
+
+	bool waitingEnabled();
+
+
 
 };
 

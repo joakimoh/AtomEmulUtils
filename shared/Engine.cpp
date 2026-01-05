@@ -97,6 +97,9 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
         mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices, mKeyboardDevice,
         mSpeedFactor, mLowEmulationRate, mHighEmulationRate
     );
+
+    mDisplay->setClock(mCPUClock);
+
     if (!mDM->setDeviceManager(mDeviceManager)) {
         cout << "Failed to initialise debug manager with device info!\n";
         throw runtime_error("Failed to initialise debug manager with device info!\n");
@@ -614,4 +617,9 @@ void Engine::printInstrLog(ostream& sout)
     }
     sout << "\n";
     mInstrLogBuffer.clear();
+}
+
+bool Engine::reset()
+{
+    return mMicroprocessor->reset();
 }

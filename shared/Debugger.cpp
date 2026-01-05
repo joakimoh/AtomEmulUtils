@@ -229,7 +229,12 @@ bool Debugger::disCmd(istream& sin, ostream& sout)
 		return false;
 
 	if (!readHexInt(sin,a2))
-		a2 = a1 + 16;
+		a2 = min(0xffff, a1 + 16);
+
+	if (a1 > a2 || a1 < 0 || a2 < 0 || a1 > 0xffff || a2 > 0xffff) {
+		cout << "Only 16-bit address can be specified and the second address parameter cannot be smaller than the first one!\n";
+		return true;
+	}
 
 	vector<uint8_t> bytes;
 	uint16_t pc = a1;
@@ -378,6 +383,44 @@ bool Debugger::contCmd(istream &sin)
 	return true;
 }
 
+bool Debugger::resetCmd(istream& sin)
+{
+	return mCPU->reset();
+}
+
+bool Debugger::setRegCmd(istream& sin)
+{
+	if (mEngine->isRunning()) {
+		cout << "The micoprocessor is running - it needs to be halted before changing any register value!\n";
+		return true;
+	}
+
+	string reg;
+	if (!readString(sin, reg))
+		return false;
+
+	int val;
+	if (!readHexInt(sin, val))
+		return false;
+
+	if (reg == "A" && val >= 0 && val <= 255)
+		mCPU->setAcc((uint8_t)val);
+	else if (reg == "X" && val >= 0 && val <= 255)
+		mCPU->setRegX((uint8_t)val);
+	else if (reg == "Y" && val >= 0 && val <= 255)
+		mCPU->setRegY((uint8_t)val);
+	else if (reg == "SP" && val >= 0 && val <= 255)
+		mCPU->setSP((uint8_t)val);
+	else if (reg == "SR" && val >= 0 && val <= 255)
+		mCPU->setSR((uint8_t)val);
+	else if (reg == "PC" && val >= 0 && val <= 65535)
+		mCPU->setPC((uint16_t)val);
+	else
+		return false;
+
+	return true;
+}
+
 bool Debugger::breakCmd(istream& sin)
 {
 	string sub_cmd;
@@ -480,6 +523,8 @@ void Debugger::help()
 	cout << "cbreak:                                             clear any previously set breakpoint\n";
 	cout << "halt:                                               stop execution\n";
 	cout << "mlog (set <adr> | clr):                             add logging of a specific memory address to instruction log\n";
+	cout << "regset (A|X|Y|SP|SR|PC) <hex val>:                  set a register value\n";
+	cout << "reset:                                              reset the microprocessor\n";
 	cout << "exit:                                               exit the debugger\n";
 }
 
@@ -509,6 +554,10 @@ void Debugger::run()
 			bool success = true;
 			if (cmd == "help")
 				help();
+			else if (cmd == "regset")
+				success = setRegCmd(sin);
+			else if (cmd == "reset")
+				success = resetCmd(sin);
 			else if (cmd == "read")
 				success = readMemToScreenCmd(sin);
 			else if (cmd == "fread")

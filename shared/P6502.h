@@ -219,6 +219,9 @@ private:
 
 	int mMemLogAdr = -1;
 
+	bool serveNMI();
+	bool serveIRQ();
+
 public:
 
 	bool readDevice(uint16_t adr, uint8_t& data);
@@ -234,10 +237,6 @@ public:
 
 	// Device power on
 	bool power() { return reset(); }
-
-	bool serveNMI();
-	bool serveIRQ();
-
 
 	// Advance until clock cycle stopcycle has been reached
 	bool advanceUntil(uint64_t stopCycle);
@@ -264,6 +263,13 @@ public:
 	bool getInstrLogData(InstrLogData& instr_log_data);
 	bool printInstrLogData(ostream& sout, InstrLogData& instr_log_data);
 	void setMemLogging(int memLogAdr) { mMemLogAdr = memLogAdr; }
+
+	bool setAcc(uint8_t val) { mAcc = val; return true; }
+	bool setRegX(uint8_t val) { mRegisterX = val; return true;}
+	bool setRegY(uint8_t val) { mRegisterY = val; return true; }
+	bool setSP(uint8_t val) { mStackPointer = val; return true; }
+	bool setSR(uint8_t val) { mStatusRegister = val; return true;}
+	bool setPC(uint16_t val) { mProgramCounter = val; return true;}
 
 };
 
