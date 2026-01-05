@@ -278,6 +278,9 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 
 				// update arbitrated value	
 				aval &= src_ref.dstVal | ~src_ref.dstMask; // arbitrate with each source port's value
+
+				if (aval == 0x0)
+					break;
 #ifdef DBG_ON
 				if (DBG_MATCH_PORT(dstPort.port))
 					DBG_LOG(this, DBG_PORT, "SOURCE PORT " + src_ref.srcPort->dev->name + ":" + src_ref.srcPort->name + " = 0x" +

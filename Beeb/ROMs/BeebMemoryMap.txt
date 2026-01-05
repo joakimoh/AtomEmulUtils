@@ -137,16 +137,16 @@ CONNECT		ACIA:IRQ			CPU:IRQ
 //	Device scheduling
 //
 SCHED	KB			HIGH_RATE
-SCHED	CRTC		NONE
-TRIGGER	CRTC		CALL	VDU							// Trigger the CRTC explictly by VDU function calls
-SCHED	TCG			NONE
-TRIGGER	TCG			CALL	VDU							// Trigger the TCG explictly by VDU function calls
-TRIGGER ACIA		CALL	SerialULA					// Trigger the ACIA explictly by Serial ULA function calls
-SCHED	ACIA		INSTR_RATE
+SCHED	CRTC		NONE								// Trigger the CRTC only on VDU function calls.
+TRIGGER	CRTC		CALL	VDU							// 
+SCHED	TCG			NONE								// Trigger the TCG only on VDU function calls.
+TRIGGER	TCG			CALL	VDU							// 
+TRIGGER ACIA		CALL	SerialULA					// Trigger the ACIA on Serial ULA function calls
+SCHED	ACIA		INSTR_RATE							// as well as on instruction basis.
 SCHED	SerialULA	INSTR_RATE
-SCHED	VIAL		NONE
+SCHED	VIAL		NONE								// The VIA latch is driven only by changes in the I/O pins
 SCHED	SOUND		HIGH_RATE
-SCHED	MMFS_CARD	NONE
+SCHED	MMFS_CARD	NONE								// The SC Card is driven only by changes in the I/O pins
 
 //
 // Initialisation of external ports
