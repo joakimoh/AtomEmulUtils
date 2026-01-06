@@ -32,6 +32,8 @@ class TT5050 : public Device {
 private:
 
 	void createInterpolatedSymbols();
+	void createSixels12(uint8_t separated_graphics, uint8_t char_data, uint8_t raster_line, vector <uint8_t>& screenData12);
+	void stretchTo16Pixels();
 
 	const int RASTER_LINES = 20;
 
@@ -169,9 +171,14 @@ public:
 		{{0x00, 0x1f,   0x1f,   0x1f,   0x1f,   0x1f,   0x1f,   0x1f,   0x00,   0x00},	 0x7f}	 // BLOCK
 	};
 
-	uint8_t mSymbolRasterBits[96][10][6];
-	uint8_t mInterpolatedSymbolRasterBits[96][20][12];
+	// 10x6 Raster symbols created from mSymbols above
+	typedef struct SymbolRasterBits_struct { uint8_t data[96][10][6]; } SymbolRasterBits;
+	SymbolRasterBits* pSymbolRasterBits = nullptr;
 
+	// 20x12 interpolated raster symbols created from SymbolRasterBits
+	typedef struct InterpolatedSymbolRasterBits_struct { uint8_t data[96][20][12];  } InterpolatedSymbolRasterBits;
+	InterpolatedSymbolRasterBits* pInterpolatedSymbolRasterBits = nullptr;
+	
 	typedef struct struct_stretch12 {
 		int srcLeftPixel;
 		int srcRightPixel;
@@ -181,7 +188,10 @@ public:
 
 	Stretch12 mStretchMatrix[16];
 
-
+	// 20x16 stretched raster symbols created from InterpolatedSymbolRasterBits
+	typedef struct StretchedSymbolRasterBits_struct { uint8_t data[96+2*64][20][16]; } StretchedSymbolRasterBits;
+	StretchedSymbolRasterBits* pStretchedSymbolRasterBits = nullptr;
+	
 
 	int mCharRasterLine = 0;
 
@@ -232,12 +242,16 @@ public:
 	bool mHiddenText = false;
 	bool mHeldGraphics = false;			// If true, control codes are displayed as a copy of the most recently displayed graphics symbol (and not  as spacesin the current background colour
 	uint8_t mLastGraphicsSymbolIndex = 0x0; // symbol without any pixels (just background colour as the result)
+
+
 public:
 
 	ALLEGRO_COLOR green, black;
 
 	TT5050(string name, uint16_t adr, double clockSpeed, uint16_t videoMemAdr, DebugManager  *debugManager,
 		ConnectionManager* connectionManager);
+
+	~TT5050();
 
 	// Device power on
 	bool power() { return reset(); }

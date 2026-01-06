@@ -19,11 +19,29 @@ TT5050::TT5050(
 	registerPort("GLR",		IN_PORT, 0x1, GLR,		&mGLR); // General Line Reset
 
 	createInterpolatedSymbols();
+	stretchTo16Pixels();
 
+}
+
+TT5050::~TT5050()
+{
+	if (pSymbolRasterBits != nullptr)
+		delete pSymbolRasterBits;
+
+	if (pInterpolatedSymbolRasterBits != nullptr)
+		delete pInterpolatedSymbolRasterBits;
+
+	if (pStretchedSymbolRasterBits != nullptr)
+		delete pStretchedSymbolRasterBits;
 }
 
 void TT5050::createInterpolatedSymbols()
 {
+	pSymbolRasterBits = new SymbolRasterBits();
+	auto& mSymbolRasterBits = pSymbolRasterBits->data;
+
+	pInterpolatedSymbolRasterBits = new InterpolatedSymbolRasterBits();
+	auto& mInterpolatedSymbolRasterBits = pInterpolatedSymbolRasterBits->data;
 
 	// Make temp symbol table with bit resolution
 	for (int symbol = 0; symbol < mSymbols.size(); symbol++) {
@@ -141,6 +159,98 @@ void TT5050::createInterpolatedSymbols()
 		}
 	}
 }
+void TT5050::createSixels12(uint8_t separated_graphics, uint8_t char_data, uint8_t raster_line, vector <uint8_t>& screenData12)
+{
+	//
+	// Create one raster line made up of a graphical symbol that is made up of two "big" pixels (sixels) occupying 2 x 6 actual pixels
+	//
+	uint8_t left_sixel, right_sixel;
+
+	if (raster_line < 6) { // 6 raster lines for top sixels
+		if (separated_graphics && (raster_line == 0 || raster_line == 5)) {
+			left_sixel = right_sixel = 0;
+		}
+		else {
+			left_sixel = (char_data >> 0) & 0x1;
+			right_sixel = (char_data >> 1) & 0x1;
+		}
+	}
+	else if (raster_line < 14) { // 8 raster lines for middle sixels
+		if (separated_graphics && (raster_line == 6 || raster_line == 13)) {
+			left_sixel = right_sixel = 0;
+		}
+		else {
+			left_sixel = (char_data >> 2) & 0x1;
+			right_sixel = (char_data >> 3) & 0x1;
+		}
+	}
+	else { // 6 raster lines for bottom sixels
+		if (separated_graphics && (raster_line == 14 || raster_line == 19)) {
+			left_sixel = right_sixel = 0;
+		}
+		else {
+			left_sixel = (char_data >> 4) & 0x1;
+			right_sixel = (char_data >> 6) & 0x1;
+		}
+	}
+	if (separated_graphics) {
+		screenData12[0] = 0;
+		for (int p = 1; p < 5; p++)
+			screenData12[p] = left_sixel;
+		screenData12[6] = screenData12[7] = 0;
+		for (int p = 1; p < 5; p++)
+			screenData12[p + 6] = right_sixel;
+		screenData12[11] = 0;
+	}
+	else {
+		for (int p = 0; p < 6; p++)
+			screenData12[p] = left_sixel;
+		for (int p = 0; p < 6; p++)
+			screenData12[p + 6] = right_sixel;
+	}
+
+}
+
+void TT5050::stretchTo16Pixels()
+{
+	vector <uint8_t> screenData12(12);
+	pStretchedSymbolRasterBits = new StretchedSymbolRasterBits();
+	auto& mStretchedSymbolRasterBits = pStretchedSymbolRasterBits->data;
+	auto& mInterpolatedSymbolRasterBits = pInterpolatedSymbolRasterBits->data;
+	//
+	// Stretch 12-pixel wide sixel/character raster line into 16 pixels
+	// Also scale the pixel values from the initial range 0:1 to the range 0:255
+	//
+	for (int symbol_index = 0; symbol_index < 224; symbol_index++) {
+		for (int raster_line = 0; raster_line < 20; raster_line++) {
+			vector <uint8_t> screenData12(12, 0);
+			if (symbol_index >= 96) {
+				int sixel_symbol_index = (symbol_index - 96) % 64;
+				uint8_t separated_graphics = (symbol_index - 96) / 64;
+				uint8_t char_data = (sixel_symbol_index < 0x20 ? sixel_symbol_index + 0x20 : sixel_symbol_index + 0x40);
+				createSixels12(separated_graphics, char_data, raster_line, screenData12);
+			}
+			for (int p = 0; p < 12; p++) {
+				for (int i = 0; i < 16; i++) {
+					uint8_t v1, v2;
+					if (symbol_index < 96) {
+						v1 = mInterpolatedSymbolRasterBits[symbol_index][raster_line][mStretchMatrix[i].srcLeftPixel];
+						v2 = mInterpolatedSymbolRasterBits[symbol_index][raster_line][mStretchMatrix[i].srcRightPixel];
+					}
+					else {
+						v1 = screenData12[mStretchMatrix[i].srcLeftPixel];
+						v2 = screenData12[mStretchMatrix[i].srcRightPixel];
+					}
+					int val = v1 * mStretchMatrix[i].leftFactor + v2 * mStretchMatrix[i].rightFactor;
+					if (val > 0)
+						mStretchedSymbolRasterBits[symbol_index][raster_line][i] = val;
+					else
+						mStretchedSymbolRasterBits[symbol_index][raster_line][i] = 0;
+				}
+			}
+		}
+	}
+}
 
 // Advance until clock cycle stopcycle has been reached
 bool TT5050::advanceUntil(uint64_t stopCycle)
@@ -157,14 +267,13 @@ bool TT5050::advanceUntil(uint64_t stopCycle)
 // 
 // pageData:			Data read from the page memory
 // screenData:			One character column of a scan line made up of one of the following:
-//						- 12 x 20 pixel symbol interpolated from an 6 x 10 symbolic, or
-//						- 2 x 3 graphics encoded as 12 x 20 pixels
+//						- 16 x 20 pixel symbol interpolated from an 6 x 10 symbolic, or
+//						- 2 x 3 sixels symbol encoded as 16 x 20 pixels
 // 
 // Returns true if data was enabled (LOSE active) and the TCG was properly initialised; otherwise false is returned	
 //
 bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 {
-	vector <uint8_t> screenData12(12);
 
 	// Advance time 1 us
 	mCycleCount += max(1, (int) round(mCPUClock / 1.0));
@@ -179,32 +288,136 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 			switch (char_data) {
 			case TT_NULL:
 				break;
-			case TT_ALPHA_RED:				mAlpaNumericColour = mColours[TT_RED];				mHiddenText = false;				mGraphicSymbols = false;				break;			case TT_ALPHA_GREEN:				mAlpaNumericColour = mColours[TT_GREEN];				mHiddenText = false;				mGraphicSymbols = false;				break;			case TT_ALPHA_YELLOW:				mAlpaNumericColour = mColours[TT_YELLOW];				mHiddenText = false;				mGraphicSymbols = false;				break;			case TT_ALPHA_BLUE:
+			case TT_ALPHA_RED:
+				mAlpaNumericColour = mColours[TT_RED];
+				mHiddenText = false;
+				mGraphicSymbols = false;
+				break;
+			case TT_ALPHA_GREEN:
+				mAlpaNumericColour = mColours[TT_GREEN];
+				mHiddenText = false;
+				mGraphicSymbols = false;
+				break;
+			case TT_ALPHA_YELLOW:
+				mAlpaNumericColour = mColours[TT_YELLOW];
+				mHiddenText = false;
+				mGraphicSymbols = false;
+				break;
+			case TT_ALPHA_BLUE:
 				mAlpaNumericColour = mColours[TT_BLUE];
 				mHiddenText = false;
 				mGraphicSymbols = false;
 				break;
-			case TT_ALPHA_MAGENTA:				mAlpaNumericColour = mColours[TT_MAGENTA];				mHiddenText = false;				mGraphicSymbols = false;				break;			case TT_ALPHA_CYAN:				mAlpaNumericColour = mColours[TT_CYAN];				mHiddenText = false;				mGraphicSymbols = false;				break;			case TT_ALPHA_WHITE:
+			case TT_ALPHA_MAGENTA:
+				mAlpaNumericColour = mColours[TT_MAGENTA];
+				mHiddenText = false;
+				mGraphicSymbols = false;
+				break;
+			case TT_ALPHA_CYAN:
+				mAlpaNumericColour = mColours[TT_CYAN];
+				mHiddenText = false;
+				mGraphicSymbols = false;
+				break;
+			case TT_ALPHA_WHITE:
 				mAlpaNumericColour = mColours[TT_WHITE];
 				mHiddenText = false;
 				mGraphicSymbols = false;
 				break;
-			case TT_FLASH:				/*				// Flash characters with 0.75 Hz (3:1 on/off ratio).				// The foreground and background colours are interchanged when flashing.				*/				mFlash = true;				break;			case TT_STEADY:
+			case TT_FLASH:
+				/*
+				// Flash characters with 0.75 Hz (3:1 on/off ratio).
+				// The foreground and background colours are interchanged when flashing.
+				*/
+				mFlash = true;
+				break;
+			case TT_STEADY:
 				mFlash = false;
 				break;
 				// These codes are not used
 			case TT_END_BOX:
 			case TT_START_BOX:
 				break;
-			case TT_NORMAL_HEIGHT:				mDoubleHeight = false;				break;			case TT_DOUBLE_HEIGHT:				/*				// Double-height characters are split onto rows where the first row				// contains the upper half of the double-height character and the second				// row contains the lower half ot the same double-height character.				// The first row of a pair of double-height characters can mix single				// and double-height characters whereas the second row cannt (if mixed				// the single-height ones will become invisible).				*/				mDoubleHeight = true;				mDoubleHeightLine = true;				break;
+			case TT_NORMAL_HEIGHT:
+				mDoubleHeight = false;
+				break;
+			case TT_DOUBLE_HEIGHT:
+				/*
+				// Double-height characters are split onto rows where the first row
+				// contains the upper half of the double-height character and the second
+				// row contains the lower half ot the same double-height character.
+				// The first row of a pair of double-height characters can mix single
+				// and double-height characters whereas the second row cannt (if mixed
+				// the single-height ones will become invisible).
+				*/
+				mDoubleHeight = true;
+				mDoubleHeightLine = true;
+				break;
 				// These codes are not used
-			case TT_S0:			case TT_S1:
-			case TT_DLE:				break;
-			case TT_GRAPHICS_RED:				mGraphicsColour = mColours[TT_RED];				mHiddenText = false;				mGraphicSymbols = true;				break;			case TT_GRAPHICS_GREEN:				mGraphicsColour = mColours[TT_GREEN];				mHiddenText = false;				mGraphicSymbols = true;				break;			case TT_GRAPHICS_YELLOW:				mGraphicsColour = mColours[TT_YELLOW];				mHiddenText = false;				mGraphicSymbols = true;				break;			case TT_GRAPHICS_BLUE:				mGraphicsColour = mColours[TT_BLUE];				mHiddenText = false;				mGraphicSymbols = true;				break;
-			case TT_GRAPHICS_MAGENTA:				mGraphicsColour = mColours[TT_MAGENTA];				mHiddenText = false;				mGraphicSymbols = true;				break;			case TT_GRAPHICS_CYAN:				mGraphicsColour = mColours[TT_CYAN];				mHiddenText = false;				mGraphicSymbols = true;				break;			case TT_GRAPHICS_WHITE:				mGraphicsColour = mColours[TT_WHITE];				mHiddenText = false;				mGraphicSymbols = true;				break;
-			case TT_CONCEAL:				/*				// Subsequent text in the row will be hidden (displayed as spaces in the current background colour) until				// the next text colour or graphics colour control code is encountered.				*/				mHiddenText = true;				break;			case TT_CONTIGUOUS_GRAPHICS:				mSeparatedGraphics = false;				break;			case TT_SEPARATED_GRAPHICS:				mSeparatedGraphics = true;				break;
-			case TT_ESC:				break;			case TT_BLACK_BACKGROUND:				mBackgroundColour = mColours[TT_BLACK];				break;			case TT_NEW_BACKGROUND:				mBackgroundColour = mAlpaNumericColour;				break;
-			case TT_HOLD_GRAPHICS:				// In the held graphics mode, control codes are displayed as a copy of the most recently displayed graphics symbol.				mHeldGraphics = true;				break;			case TT_RELEASE_GRAPHICS:
+			case TT_S0:
+			case TT_S1:
+			case TT_DLE:
+				break;
+			case TT_GRAPHICS_RED:
+				mGraphicsColour = mColours[TT_RED];
+				mHiddenText = false;
+				mGraphicSymbols = true;
+				break;
+			case TT_GRAPHICS_GREEN:
+				mGraphicsColour = mColours[TT_GREEN];
+				mHiddenText = false;
+				mGraphicSymbols = true;
+				break;
+			case TT_GRAPHICS_YELLOW:
+				mGraphicsColour = mColours[TT_YELLOW];
+				mHiddenText = false;
+				mGraphicSymbols = true;
+				break;
+			case TT_GRAPHICS_BLUE:
+				mGraphicsColour = mColours[TT_BLUE];
+				mHiddenText = false;
+				mGraphicSymbols = true;
+				break;
+			case TT_GRAPHICS_MAGENTA:
+				mGraphicsColour = mColours[TT_MAGENTA];
+				mHiddenText = false;
+				mGraphicSymbols = true;
+				break;
+			case TT_GRAPHICS_CYAN:
+				mGraphicsColour = mColours[TT_CYAN];
+				mHiddenText = false;
+				mGraphicSymbols = true;
+				break;
+			case TT_GRAPHICS_WHITE:
+				mGraphicsColour = mColours[TT_WHITE];
+				mHiddenText = false;
+				mGraphicSymbols = true;
+				break;
+			case TT_CONCEAL:
+				/*
+				// Subsequent text in the row will be hidden (displayed as spaces in the current background colour) until
+				// the next text colour or graphics colour control code is encountered.
+				*/
+				mHiddenText = true;
+				break;
+			case TT_CONTIGUOUS_GRAPHICS:
+				mSeparatedGraphics = false;
+				break;
+			case TT_SEPARATED_GRAPHICS:
+				mSeparatedGraphics = true;
+				break;
+			case TT_ESC:
+				break;
+			case TT_BLACK_BACKGROUND:
+				mBackgroundColour = mColours[TT_BLACK];
+				break;
+			case TT_NEW_BACKGROUND:
+				mBackgroundColour = mAlpaNumericColour;
+				break;
+			case TT_HOLD_GRAPHICS:
+				// In the held graphics mode, control codes are displayed as a copy of the most recently displayed graphics symbol.
+				mHeldGraphics = true;
+				break;
+			case TT_RELEASE_GRAPHICS:
 				mHeldGraphics = false;
 				break;
 			default:
@@ -257,67 +470,24 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 		}
 
 
-
+		int raster_line = mCharRasterLine;
 		if (draw_sixels) {
+			
+			// Sixels symbol
 
-			//
-			// Create one raster line made up of a graphical symbol that is made up of two "big" pixels (sixels) occupying 2 x 6 actual pixels
-			//
-
-			uint8_t left_sixel, right_sixel;
-
-			if (mCharRasterLine < 6) { // 6 raster lines for top sixels
-				if (mSeparatedGraphics && (mCharRasterLine == 0 || mCharRasterLine == 5)) {
-					left_sixel = right_sixel = 0;
-				}
-				else {
-					left_sixel = (char_data >> 0) & 0x1;
-					right_sixel = (char_data >> 1) & 0x1;
-				}
-			}
-			else if (mCharRasterLine < 14) { // 8 raster lines for middle sixels
-				if (mSeparatedGraphics && (mCharRasterLine == 6 || mCharRasterLine == 13)) {
-					left_sixel = right_sixel = 0;
-				}
-				else {
-					left_sixel = (char_data >> 2) & 0x1;
-					right_sixel = (char_data >> 3) & 0x1;
-				}
-			}
-			else { // 6 raster lines for bottom sixels
-				if (mSeparatedGraphics && (mCharRasterLine == 14 || mCharRasterLine == 19)) {
-					left_sixel = right_sixel = 0;
-				}
-				else {
-					left_sixel = (char_data >> 4) & 0x1;
-					right_sixel = (char_data >> 6) & 0x1;
-				}
-			}
-			if (mSeparatedGraphics) {
-				screenData12[0] = 0;
-				for (int p = 1; p < 5; p++)
-					screenData12[p] = left_sixel;
-				screenData12[6] = screenData12[7] = 0;
-				for (int p = 1; p < 5; p++)
-					screenData12[p + 6] = right_sixel;
-				screenData12[11] = 0;
-			}
-			else {
-				for (int p = 0; p < 6; p++)
-					screenData12[p] = left_sixel;
-				for (int p = 0; p < 6; p++)
-					screenData12[p + 6] = right_sixel;
-			}
+			// Calculate symbol index
+			int sixels_symbol_index = (char_data < 0x40 ? char_data - 0x20: char_data - 0x40); // should give an index in the range [0,63]
+			symbol_index = 96+(mSeparatedGraphics?sixels_symbol_index+64: sixels_symbol_index); // should give an index in the range [96,223]
 		}
 
 		else {
+			
+			// Character symbol
 
 			//
-			// Create one raster line of a symbol
+			// Check for double height
 			//
 
-			// Create 12 pixels of the correct colour
-			int raster_line = mCharRasterLine;
 			if (mDoubleHeight) {
 				if (!mSecondDoubleHeightRow )
 					raster_line = mCharRasterLine / 2;
@@ -329,36 +499,33 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 			if (mSecondDoubleHeightRow && !mDoubleHeight)
 				symbol_index = 0; // space <=> invisible character
 
-			for (int p = 0; p < 12; p++)
-				screenData12[p] = mInterpolatedSymbolRasterBits[symbol_index][raster_line][p];
-
 		}
-
-		//
-		// Stretch 12-pixel wide sixel/character raster line into 16 pixels
-		// Also scale the BGR values from the initial range 0:1 to the range 0:255
-		//
-		TTColour pixel_colour;
+	
+		// Generate one 16-pixels wide colour raster line for the selected symbol
+		auto& mStretchedSymbolRasterBits = pStretchedSymbolRasterBits->data;
+		uint8_t (&pixels16)[16] = mStretchedSymbolRasterBits[symbol_index][raster_line];
 		for (int i = 0; i < 16; i++) {
-				uint8_t val = screenData12[mStretchMatrix[i].srcLeftPixel] * mStretchMatrix[i].leftFactor +
-					screenData12[mStretchMatrix[i].srcRightPixel] * mStretchMatrix[i].rightFactor;			
-				if (val > 0) {
-					pixel_colour.B = val * foreground_colour.B;
-					pixel_colour.G = val * foreground_colour.G;
-					pixel_colour.R = val * foreground_colour.R;
-				}
-				else {
-					pixel_colour.B = 255 * background_colour.B;
-					pixel_colour.G = 255 * background_colour.G;
-					pixel_colour.R = 255 * background_colour.R;
-				}
-				screenData[i] = pixel_colour;
+			uint8_t val = pixels16[i];
+			TTColour pixel_colour;
+			if (val > 0) {
+				pixel_colour.B = val * foreground_colour.B;
+				pixel_colour.G = val * foreground_colour.G;
+				pixel_colour.R = val * foreground_colour.R;
 			}
+			else {
+				pixel_colour.B = 255 * background_colour.B;
+				pixel_colour.G = 255 * background_colour.G;
+				pixel_colour.R = 255 * background_colour.R;
+			}
+			screenData[i] = pixel_colour;
+		}
 
 	}
 
 	return mLOSE;
 }
+
+
 
 // Process a port update directly (and not just next time the advanceUntil() method is called)
 void  TT5050::processPortUpdate(int index)

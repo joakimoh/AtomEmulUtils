@@ -17,7 +17,7 @@ GAP					OS			fc00	0300							// Gap in OS ROM space between		fc00 - ff00
 // SHEILA	fe00 -	feff
 //
 ADD	CRTC6845		CRTC		fe00	0008	1						// H6845SP CRTC
-ADD	TT5050			TCG				1									// Teletext Character Generator			
+ADD	TT5050			TCG							1						// Teletext Character Generator			
 ADD	ACIA6850		ACIA		fe08	0008	1			1.0			// ACIA 6850
 ADD	BeebSerULA		SerialULA	fe10	0010	1						// Beeb Serial ULA
 ADD	BeebVideoULA	VDU			fe20	0010	1						// Beeb Video ULA
@@ -26,12 +26,12 @@ ADD	VIA6522			SYS_VIA		fe40	0020	1			1.0			// IC3	fe40 -	fe4f; 1 Mhz Clock
 ADD	VIA6522			USER_VIA	fe60	0020	1			1.0			// IC69	fe60 -	fe6f; 1 MHz Clock
 ADD	ADC7002			ADC			fec0	0003	1						// ADC Converter
 
-ADD	BEEBKB			KB		00											// startup options (DIP switches)
+ADD	BEEBKB			KB			00										// startup options (DIP switches)
 ADD	CPU_6502		CPU													// Microprocessor 6502
 ADD	TAPREC			TAPREC												// Standard Tape Recorder
 ADD	TI4689			SOUND
 ADD	BEEBVIALATCH	VIAL												// System VIA Latch with 8 outputs, each updated by writing to Port B bits 3:0
-ADD SD_CARD			MMFS_CARD							MMC.img			// FAT32 SD Card image
+ADD SD_CARD			MMFS_CARD								MMC.img		// FAT32 SD Card image
 
 //
 //	Device connections
@@ -44,12 +44,12 @@ ADD SD_CARD			MMFS_CARD							MMC.img			// FAT32 SD Card image
 //
 
 // ADC 7002 Connections - ADC is connected to the System VIA
-CONNECT:P	ADC:EOC			SYS_VIA:CB;0	// ADC EOC output => SYS_VIA CB1 input
+CONNECT:P	ADC:EOC				SYS_VIA:CB;0	// ADC EOC output => SYS_VIA CB1 input
 
 // Sound chip connections
-CONNECT:P 	SYS_VIA:PB;3;0	VIAL:CTRL	// PB3:0 => CTRL
-CONNECT:P	VIAL:Q;0		SOUND:WE	// Q0 => WE
-CONNECT:P	SYS_VIA:PA		SOUND:D		// PA7:0 => D
+CONNECT:P 	SYS_VIA:PB;3;0		VIAL:CTRL	// PB3:0 => CTRL
+CONNECT:P	VIAL:Q;0			SOUND:WE	// Q0 => WE
+CONNECT:P	SYS_VIA:PA			SOUND:D		// PA7:0 => D
 
 // Video Display Unit connections
 CONNECT:I	CRTC:RA;0			TCG:CRS
@@ -109,29 +109,29 @@ INIT		MMFS_CARD:SEL			0					// Select hard-wired to be active
 
 
 // VIA IRQ
-CONNECT 	SYS_VIA:IRQ			CPU:IRQ			// VIA generates 100 Hz timer interrupts and more
-CONNECT		USER_VIA:IRQ		CPU:IRQ			// User-define usage (i.e.not used by the BBC MOS)
+CONNECT 	SYS_VIA:IRQ				CPU:IRQ			// VIA generates 100 Hz timer interrupts and more
+CONNECT		USER_VIA:IRQ			CPU:IRQ			// User-define usage (i.e.not used by the BBC MOS)
 
 // Keyboard connections
-CONNECT:P	VIAL:Q;3			KB:ENA			// Connect System VIA Latch Q3 (value set by writing to System VIA Port B) to KB ENA
-CONNECT:P 	SYS_VIA:PA;3;0		KB:COL_SEL		// PA3:0 => COL_SEL
-CONNECT:P 	SYS_VIA:PA;6;4		KB:ROW_SEL		// PA6:4 => ROW_SEL
-CONNECT 	KB:ROW				SYS_VIA:PA;7	// ROW => PA7
-CONNECT 	KB:PRESSED			SYS_VIA:CA;1	// PRESSED = CA2
-CONNECT 	KB:BREAK			CPU:RESET		// Connect BREAK key to uC RESET input
-CONNECT 	KB:BREAK			SYS_VIA:RESET
-CONNECT 	KB:BREAK			USER_VIA:RESET
+CONNECT:P	VIAL:Q;3				KB:ENA			// Connect System VIA Latch Q3 (value set by writing to System VIA Port B) to KB ENA
+CONNECT:P 	SYS_VIA:PA;3;0			KB:COL_SEL		// PA3:0 => COL_SEL
+CONNECT:P 	SYS_VIA:PA;6;4			KB:ROW_SEL		// PA6:4 => ROW_SEL
+CONNECT 	KB:ROW					SYS_VIA:PA;7	// ROW => PA7
+CONNECT 	KB:PRESSED				SYS_VIA:CA;1	// PRESSED = CA2
+CONNECT 	KB:BREAK				CPU:RESET		// Connect BREAK key to uC RESET input
+CONNECT 	KB:BREAK				SYS_VIA:RESET
+CONNECT 	KB:BREAK				USER_VIA:RESET
 
 
 // CUTS <=> Tape Recorder Connections
-CONNECT 	TAPREC:CAS_IN		SerialULA:CAS_IN	// Connect Serial ULA (CUTS) and tape recorder - CAS IN
-CONNECT 	SerialULA:CAS_OUT	TAPREC:CAS_OUT		// Connect Serial ULA (CUTS) and tape recorder - CAS OUT
-CONNECT:P	ACIA:TxD			SerialULA:TxD		// Connect the ACIA Tx data to the Serial ULA with direct processing on update
-CONNECT:P	ACIA:RTS			SerialULA:RTSI		// Connect the ACIA RTS to the Serial ULA with direct processing on update
-CONNECT		SerialULA:RxD		ACIA:RxD			// Connect the Serial ULA Rx data to the ACIA
-CONNECT:P	SerialULA:CTSO		ACIA:CTS			// Connect the Serial ULA CTS to the ACIA with direct processing on update
-CONNECT:P	SerialULA:DCD		ACIA:DCD			// Connect the Serial ULA DCD to the ACIA with direct processing on update
-CONNECT		ACIA:IRQ			CPU:IRQ
+CONNECT 	TAPREC:CAS_IN			SerialULA:CAS_IN	// Connect Serial ULA (CUTS) and tape recorder - CAS IN
+CONNECT 	SerialULA:CAS_OUT		TAPREC:CAS_OUT		// Connect Serial ULA (CUTS) and tape recorder - CAS OUT
+CONNECT:P	ACIA:TxD				SerialULA:TxD		// Connect the ACIA Tx data to the Serial ULA with direct processing on update
+CONNECT:P	ACIA:RTS				SerialULA:RTSI		// Connect the ACIA RTS to the Serial ULA with direct processing on update
+CONNECT		SerialULA:RxD			ACIA:RxD			// Connect the Serial ULA Rx data to the ACIA
+CONNECT:P	SerialULA:CTSO			ACIA:CTS			// Connect the Serial ULA CTS to the ACIA with direct processing on update
+CONNECT:P	SerialULA:DCD			ACIA:DCD			// Connect the Serial ULA DCD to the ACIA with direct processing on update
+CONNECT		ACIA:IRQ				CPU:IRQ
 
 //
 //	Device scheduling

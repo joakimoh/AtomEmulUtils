@@ -170,8 +170,9 @@ private:
 	bool executeInstr();
 
 	// Information about all possible instructions (including unofficial undocumented ones and illegal ones)
-	InstructionData mInstrData[256];
-
+	typedef struct InstrDataTable_struct { InstructionData data[256]; } InstrDataTable;
+	InstrDataTable *pInstrData = nullptr;
+;
 	// Initialise the instruction data above
 	void initInstrTable();
 

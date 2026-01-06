@@ -13,6 +13,8 @@
 
 void P6502::initInstrTable()
 {
+	pInstrData = new InstrDataTable();
+	auto& mInstrData = pInstrData->data;
 	for (int opcode = 0; opcode < 256; opcode++) {
 
 		mInstrData[opcode].info = mCodec.getInstrInfo((uint8_t)opcode);
@@ -298,7 +300,8 @@ P6502::P6502(string name, double clockSpeed, DebugManager  *debugManager, Connec
 
 P6502::~P6502()
 {
-
+	if (pInstrData != nullptr)
+		delete pInstrData;
 }
 
 bool P6502::serveNMI()
@@ -459,6 +462,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to read instruction!\n");
 	}
+	auto& mInstrData = pInstrData->data;
 	mInstructionInfo = mInstrData[mOpcode].info;
 
 	// Fetch the instruction operands and execute the instruction
@@ -531,6 +535,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 
 bool P6502::executeInstr()
 {
+	auto& mInstrData = pInstrData->data;
 	return (this->*mInstrData[mOpcode].addrHdlr)() && (this->*mInstrData[mOpcode].execHdlr)();
 }
 
