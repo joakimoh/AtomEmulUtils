@@ -85,7 +85,7 @@ public:
 	int						localIndex = -1;		// local device index for the I/O port
 	int						globalIndex = -1;		// unique global index for the port
 	PortDirection			dir = IO_PORT;			// I/O direction
-	uint8_t					ioDirMask = 0xff;			// I/O direction for the bits of a bidirectional port:a set bit indicates OUT, a cleared bit IN
+	uint8_t					ioDirMask = 0xff;		// I/O direction for the bits of a bidirectional port:a set bit indicates OUT, a cleared bit IN
 	uint8_t					mask = 0x1;				// mask to select only the implemented bits
 	uint8_t	*				valOut = NULL;			// pointer to variable holding an output port's value (or a bidirectional port's output value)
 	uint8_t *				valIn = NULL;			// pointer to variabel holding an input port's value (or a bidirectional port's input value)

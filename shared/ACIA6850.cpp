@@ -525,6 +525,7 @@ bool ACIA6850::outputState(ostream& sout)
 	sout << "\tTx DIV clock rate =      " << mTxDivClkRate << "\n";
 	sout << "\tRx Clock rate =          " << mRxClkRate << "\n";
 	sout << "\tTx Clock rate =          " << mRxClkRate << "\n";
+	sout << "IRQ = " << (int)mIRQ << "\n";
 
 	return true;
 }

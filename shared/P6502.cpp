@@ -2772,6 +2772,9 @@ bool P6502::outputState(ostream& sout)
 	sout << "Executed instruction:    " << setfill(' ') << setw(30) << left << x_instr_s << "\n";
 	sout << "Resulting State:         " << getState() << "\n";
 	sout << "Next instruction:        " << setfill(' ') << setw(30) << left << n_instr_s << "\n";
+	sout << "IRQ = " << (int)mIRQ << "\n";
+	sout << "RESET = " << (int)mRESET << "\n";
+	sout << "NMI = " << (int)mNMI << "\n";
 
 	return true;
 }

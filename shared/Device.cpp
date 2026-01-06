@@ -183,7 +183,7 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 	port_val = val;
 
 	// No need to progate value if the source port is unchanged unless an update is enforced
-	if (!changed)// && !port.conToBiDirP)
+	if (!changed)
 		return true;
 
 #ifdef DBG_ON
@@ -198,7 +198,7 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 
 		InputReference& input = port.inputs[i];
 
-		if (updateDstPortValue(&port, input, val)) { // update destination port on change or always for a bidirectional port
+		if (updateDstPortValue(&port, input, val)) { // update destination port on change
 
 			// Call direct processing on the receiving device - if specified by configuration
 			if (input.process)
@@ -212,7 +212,7 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 }
 
 //
-// Update a destinaton port based on a source port value
+// Update a destination port based on a source port value
 //
 // Returns true if there was a change; otherwise false
 //
@@ -244,16 +244,16 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 	vector <OutputReference>& dst_port_sources = dstPort.port->portSources;
 	int dst_port_sources_sz = dst_port_sources.size();
 
-	// Update the destination ports' recollection of the source port's value - needed in arbitration below
+	// Always update the destination port's recollection of the source port's value
 	if (dstPort.port->arbitration) {
 		int i = 0;
-		for (; i < dst_port_sources_sz && dst_port_sources[i].srcPort != srcPort; i++);
-		if (i < dst_port_sources_sz)
-			dst_port_sources[i].dstVal = nval;
+		for (; i < dstPort.port->portSources.size() && dstPort.port->portSources[i].srcPort != srcPort; i++);
+		if (i < dstPort.port->portSources.size())
+			dstPort.port->portSources[i].dstVal = nval;
 	}
 
-	// Update destination port on change or always for a bidirectional port
-	if (pval != nval || dstPort.port->dir == IO_PORT) {
+	// Update destination port on change
+	if (pval != nval) {
 
 		// Reset the change of port direction flag for a bidirectional port (well also for a "pure" output port even if it is N/A)
 		dstPort.port->portDirChanged = false;
@@ -271,7 +271,7 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 					Utility::int2HexStr(pval,2));
 #endif
 			
-
+			bool src_port_updated = false;
 			for (int i = 0; i < dst_port_sources_sz; i++) {
 
 				OutputReference &src_ref = dst_port_sources[i];
@@ -279,7 +279,7 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 				// update arbitrated value	
 				aval &= src_ref.dstVal | ~src_ref.dstMask; // arbitrate with each source port's value
 
-				if (aval == 0x0)
+				if (aval == 0x0 && src_port_updated)
 					break;
 #ifdef DBG_ON
 				if (DBG_MATCH_PORT(dstPort.port))

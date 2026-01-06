@@ -1372,6 +1372,7 @@ bool VIA6522::outputState(ostream& sout)
 	sout << "Shift Register = 0x" << Utility::int2HexStr(mShiftRegister, 2) << "\n";
 	sout << "T1 Counter = 0x" << Utility::int2HexStr(mTimer1Counter & 0xffff, 4) << "\n";
 	sout << "T2 Counter = 0x" << Utility::int2HexStr(mTimer2Counter & 0xffff, 4) << "\n";
+	sout << "IRQ = " << (int)mIRQ << "\n";
 
 	return true;
 }
