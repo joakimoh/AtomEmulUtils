@@ -8,6 +8,7 @@
 using namespace std;
 
 class DeviceManager;
+class ConnectionManager;
 class Device;
 class DebugManager;
 class Engine;
@@ -18,7 +19,8 @@ class Debugger {
 
 private:
 
-	DeviceManager *mDevices = nullptr;
+	DeviceManager *mDM = nullptr;
+	ConnectionManager* mCM = nullptr;
 	Engine* mEngine = nullptr;
 	P6502* mCPU = nullptr;
 	string mOutDir;
@@ -32,8 +34,6 @@ private:
 	bool readString(istream& sin, string& s);
 	bool readOptString(istream& sin, string& s);
 	bool readHexInt(istream& sin, int& i);
-	bool readOptHexInt(istream& sin, int& i);
-	bool readOptPosInt(istream& sin, int& i);
 	bool readPosInt(istream& sin, int& i);
 	bool readChar(istream& sin, char& c);
 
@@ -82,11 +82,12 @@ private:
 	bool resetCmd(istream& sin);
 
 	bool setRegCmd(istream& sin);
+	bool setPinCmd(istream& sin);
 
 public:
 
 
-	Debugger(P6502 *cpu, GUI *gui, Engine *engine, DeviceManager *devices, string outDir);
+	Debugger(P6502 *cpu, GUI *gui, Engine *engine, DeviceManager *deviceManager, ConnectionManager *connectionManager, string outDir);
 
 	void run();
 

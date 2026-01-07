@@ -9,13 +9,15 @@
 #include <filesystem>
 #include "Engine.h"
 #include "P6502.h"
+#include "ConnectionManager.h"
+#include "Device.h"
 
 using namespace std;
 
-Debugger::Debugger(P6502* cpu, GUI *gui, Engine *engine, DeviceManager  *devices, string outDir) :
-	mDevices(devices), mEngine(engine), mOutDir(outDir),mGUI(gui), mCPU(cpu)
+Debugger::Debugger(P6502* cpu, GUI *gui, Engine *engine, DeviceManager* deviceManager, ConnectionManager* connectionManager, string outDir) :
+	mDM(deviceManager), mEngine(engine), mOutDir(outDir),mGUI(gui), mCPU(cpu), mCM(connectionManager)
 {
-	if (gui == nullptr || engine == nullptr || devices == nullptr)
+	if (gui == nullptr || engine == nullptr || connectionManager == nullptr || deviceManager == nullptr)
 		throw runtime_error("some arguments are null pointers");
 }
 
@@ -40,18 +42,6 @@ bool Debugger::readString(istream& sin, string &s)
 }
 
 
-
-bool Debugger::readOptHexInt(istream& sin, int& i)
-{
-	if (sin.eof())
-		return false;
-
-	i = -1;
-	sin >> hex >> i;
-
-	return i > 0;
-}
-
 bool Debugger::readHexInt(istream& sin, int& i)
 {
 	if (sin.eof())
@@ -60,18 +50,7 @@ bool Debugger::readHexInt(istream& sin, int& i)
 	i = -1;
 	sin >> hex >> i;
 
-	return i > 0;
-}
-
-bool Debugger::readOptPosInt(istream& sin, int& i)
-{
-	if (sin.eof())
-		return false;
-
-	i = -1;
-	sin >> dec >> i;
-
-	return i > 0;
+	return i >= 0;
 }
 
 bool Debugger::readPosInt(istream& sin, int& i)
@@ -82,7 +61,7 @@ bool Debugger::readPosInt(istream& sin, int& i)
 	i = -1;
 	sin >> dec >> i;
 
-	return i > 0;
+	return i >= 0;
 }
 
 bool Debugger::readChar(istream& sin, char& c)
@@ -103,7 +82,7 @@ double Debugger::getDeviceTime(Device* dev)
 	double t_s;
 	if (dev == NULL || !dev->getTimeSec(t_s)) {
 		Device* uc = NULL;
-		if (!mDevices->getUc(uc)) {
+		if (!mDM->getUc(uc)) {
 			return 0.0;
 		}
 		uc->getTimeSec(t_s);
@@ -118,7 +97,7 @@ bool Debugger::dumpDevCmd(istream& sin)
 		return false;
 
 	Device* dev = NULL;
-	if (!mDevices->getDevice(dev_name, dev)) {
+	if (!mDM->getDevice(dev_name, dev)) {
 		cout << "Non-existing device '" << dev_name << "!\n";
 		return false;
 	}
@@ -133,7 +112,7 @@ bool Debugger::dumpUcCmd(istream& sin)
 {
 	Device* dev = NULL;
 	
-	if (!mDevices->getUc(dev)) {
+	if (!mDM->getUc(dev)) {
 		return false;
 	}
 	double t_s = getDeviceTime(dev);
@@ -146,7 +125,7 @@ bool Debugger::dumpUcCmd(istream& sin)
 bool Debugger::listDevicesCmd(istream& sin)
 {
 	vector<Device*> devices;
-	mDevices->getPeripherals(devices);
+	mDM->getPeripherals(devices);
 	for (int i = 0; i < devices.size();i++) {
 		cout << left << setw(20) << devices[i]->name << ": " << setw(25) << _DEVICE_ID(devices[i]->devType) << "\n";
 	}
@@ -167,7 +146,7 @@ bool Debugger::writeMemCmd(istream& sin)
 		if (!readHexInt(sin, data))
 			return false;
 
-		if (!mDevices->writeMemoryMappedDevice(a++, data)) {
+		if (!mDM->writeMemoryMappedDevice(a++, data)) {
 			cout << "Failed to write to memory-mapped device at address 0x" << hex << a << "!\n";
 			return false;
 		}
@@ -194,7 +173,7 @@ bool Debugger::writeMemStrCmd(istream & sin)
 
 	int n = 0;
 	while (readChar(sin, c) && c != '"') {
-		if (!mDevices->writeMemoryMappedDevice(a++, (uint8_t)c)) {
+		if (!mDM->writeMemoryMappedDevice(a++, (uint8_t)c)) {
 			cout << "Failed to write to memory-mapped device at address 0x" << hex << a << "!\n";
 			return false;
 		}
@@ -243,7 +222,7 @@ bool Debugger::disCmd(istream& sin, ostream& sout)
 	int i = 0;
 	for (int a = a1; a <= a2; a++) {
 		string s;
-		if (!mDevices->dumpDeviceMemory(a, data)) {
+		if (!mDM->dumpDeviceMemory(a, data)) {
 			sout << "Illegal address 0x" << hex << a1 << "\n";
 			break;
 		}
@@ -309,7 +288,7 @@ bool Debugger::readMemCmd(istream  &sin, ostream &sout)
 	if (!readHexInt(sin, a1))
 		return false;
 
-	if (!readOptHexInt(sin, a2))
+	if (!readHexInt(sin, a2))
 		a2 = a1;
 
 	uint8_t bytes[16] = { 0 };
@@ -319,7 +298,7 @@ bool Debugger::readMemCmd(istream  &sin, ostream &sout)
 		int ofs = (a - a1) % 16;
 		if (ofs == 0)
 			r_sz = ((a2 - a) < 16 ? a2 - a + 1 : 16);
-		if (!mDevices->dumpDeviceMemory(a, data)) {
+		if (!mDM->dumpDeviceMemory(a, data)) {
 			sout << "Illegal address 0x" << hex << a1 << "\n";
 			break;
 		}
@@ -352,7 +331,7 @@ bool Debugger::stepCmd(istream &sin, bool stepOver, ostream& sout)
 	}
 
 	// Check for optional number and - if present - use it to set n
-	if (!readOptPosInt(sin, n))
+	if (!readPosInt(sin, n))
 		n = 1;
 
 	if (stepOver && n != 1) {
@@ -417,6 +396,48 @@ bool Debugger::setRegCmd(istream& sin)
 		mCPU->setPC((uint16_t)val);
 	else
 		return false;
+
+	return true;
+}
+
+bool Debugger::setPinCmd(istream& sin)
+{
+	if (mEngine->isRunning()) {
+		cout << "The micoprocessor is running - it needs to be halted before changing any port value!\n";
+		return true;
+	}
+
+	string port_s;
+	if (!readString(sin, port_s))
+		return false;
+
+	PortSelection port_sel;
+	if (!mCM->extractPort(port_s, port_sel)) {
+		cout << "Port doesn't exist!\n";
+		return false;
+	}
+
+	DevicePort* dev_port = port_sel.port;
+	Device* dev = dev_port->dev;
+	BitsSelection bits = port_sel.bits;
+
+	uint8_t mask = bits.mask; // change mask
+	int low_bit = bits.lowBit; // first set bit in change mask
+	uint8_t& port_in_val = *(dev_port->valIn);
+	uint8_t& port_out_val = *(dev_port->valOut);
+
+	int val;
+	if (!readHexInt(sin, val) || val < 0 || (val << low_bit) > mask) {
+		cout << "no value compatible with the select port range was provided!\n";
+		cout << "mask = " << hex << (int)mask << ", low bit = " << low_bit << " => shifted val = 0x" << (int)(val << low_bit) << "\n";
+		return true;
+	}
+
+	// Assign new port value
+	uint8_t keep_mask = ~mask;
+	uint8_t shifted_val = val << low_bit;
+	port_in_val = (port_in_val & keep_mask) | (shifted_val & mask);
+	
 
 	return true;
 }
@@ -523,7 +544,8 @@ void Debugger::help()
 	cout << "cbreak:                                             clear any previously set breakpoint\n";
 	cout << "halt:                                               stop execution\n";
 	cout << "mlog (set <adr> | clr):                             add logging of a specific memory address to instruction log\n";
-	cout << "regset (A|X|Y|SP|SR|PC) <hex val>:                  set a register value\n";
+	cout << "rset (A|X|Y|SP|SR|PC) <hex val>:                    set a register value\n";
+	cout << "pset <dev name>:<port name>[<qualifier>] <hex val>: set a device's input port's value. <qualifier> ::= <bit no> | [<high bit no>;<low bit no>\n";
 	cout << "reset:                                              reset the microprocessor\n";
 	cout << "exit:                                               exit the debugger\n";
 }
@@ -554,8 +576,10 @@ void Debugger::run()
 			bool success = true;
 			if (cmd == "help")
 				help();
-			else if (cmd == "regset")
+			else if (cmd == "rset")
 				success = setRegCmd(sin);
+			else if (cmd == "pset")
+				success = setPinCmd(sin);
 			else if (cmd == "reset")
 				success = resetCmd(sin);
 			else if (cmd == "read")

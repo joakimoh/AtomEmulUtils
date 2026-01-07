@@ -17,7 +17,10 @@
 
 class Display;
 class Debugger;
-
+class ConnectionManager;
+class Display;
+class Engine;
+class VideoDisplayUnit;
 
 using namespace std;
 
@@ -69,9 +72,7 @@ enum {
     HELP_ABOUT_ID
 };
 
-class Display;
-class Engine;
-class VideoDisplayUnit;
+
 
 class GUI {
 
@@ -154,6 +155,7 @@ private:
 
     SDCard *mMMC = nullptr;
     DebugManager* mDM = nullptr;
+	ConnectionManager *mCM = nullptr;
     Debugger *mDebugger = nullptr;
 
     thread mDebugThread;
@@ -167,7 +169,8 @@ private:
 
 public:
 
-    GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, Display* display, DeviceManager * devices, VideoDisplayUnit* vdu, P6502 *cpu, double *emulationSpeed, DebugManager *dm, string outDir);
+    GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, Display* display, DeviceManager * devices, VideoDisplayUnit* vdu, P6502 *cpu, double *emulationSpeed, 
+		DebugManager *dm, ConnectionManager* cm, string outDir);
     ~GUI();
 
 	bool itemSelected(ALLEGRO_EVENT  *event);

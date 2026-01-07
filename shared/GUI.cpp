@@ -17,12 +17,12 @@
 using namespace std;
 
 GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, Display* display, DeviceManager * devices, VideoDisplayUnit *vdu, P6502 *cpu,
-    double *speed, DebugManager* dm, string outDir):
+    double *speed, DebugManager* dm, ConnectionManager *cm, string outDir):
     mDevices(devices), mDisplay(display), mEmulationSpeed(speed), mDM(dm), mEngine(engine), mOutDir(outDir), mQueue(queue),
-    mVDU(vdu), mCPU(cpu)
+    mVDU(vdu), mCPU(cpu), mCM(cm)
 {
 
-    if (engine == nullptr || display == nullptr || devices == nullptr || speed == nullptr || dm == nullptr)
+    if (engine == nullptr || cm == nullptr || display == nullptr || devices == nullptr || speed == nullptr || dm == nullptr)
         throw runtime_error("some arguments are null pointers");
 
     mVideoSettings = display->getVideoSettings();
@@ -84,7 +84,7 @@ GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, Display* display, DeviceMan
     else
         throw runtime_error("Unsupported field rate " + to_string(mVideoSettings.getFieldRate()));
 
-    mDebugger = new Debugger(mCPU, this, mEngine, mDevices, mOutDir);
+    mDebugger = new Debugger(mCPU, this, mEngine, mDevices, mCM, mOutDir);
 
     if (mDebugger == nullptr)
         throw runtime_error("failed to create debugger");
