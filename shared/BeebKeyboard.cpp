@@ -17,7 +17,7 @@
 // 
 // 
 // Connector pins	Direction		Name	Connected to					Active level				Description
-// PL4				IN				ENA	PB2:0 as BCD 3;PB3 has val		Low (load), High (count)	Enables column scanning counter
+// PL4				IN				ENA		PB2:0 as BCD 3;PB3 has val		Low (load), High (count)	Enables column scanning counter
 //																										Counts upwards from COL_SEL
 // PL5:7			IN				ROW_SEL	PA4:6							BCD							Selected keyboard row (0-7)
 // PL8:11			IN				COL_SEL	PA0:3							BCD							Selected keyboard column (0-9)
@@ -52,11 +52,18 @@ void BeebKeyboard::processPortUpdate(int index)
 		// Need to process changes to column/row directly so that the PRESSED and ROW outputs (connected to the System VIA)
 		// will make the System VIA update its flag and A registers before the processor checks it immedialtely with a BIT instruction
 		// 
-		// There are two sequences in the MOS related to this:
-		// 1) Checking for any key in a column being pressed (PRESSED output fed to VIA CA2 input):
+		// There are two sequences in the MOS related to this as part of a keyboard scan routine (at f0d1) that is executed after a
+		// keyboard interrupt and with interrupts disabled. The keyboard routine scans column by column until a key is pressed and then
+		// loops through all rows until the pressed key is identified. The sequences are:
+		// 1) Checking for any key in a column being pressed (PRESSED output fed to VIA CA2 input when a column has been
+		//    selected using the COL_SEL input controlled by the VIA PA0:3 output). The column is written into the VIA register(STX ...) and then
+		//    the interrupt status flag related to the CA2 input is checked (BIT...)
 		//		Instruction "STX .systemVIARegisterANoHandshake " at address f0fa followed by "BIT .systemVIAInterruptFlagRegister"
-		// 2) Checking for a specific key for a selected row and column (ROW otuput fed to VIA input PA7):
+		// 2) Checking for a specific key for a selected row and column (ROW output fed to the VIA PA7 input when a certain row has been
+		//    selected using the ROW_SEL input controlled by the VIA PA4:6 output). The row is written into the VIA register (STA ...) and then
+		//    the row status is checked (BIT ...)
 		//		Instruction "STA .systemVIARegisterANoHandshake" at address f108 followed by " BIT .systemVIARegisterANoHandshake"
+		//
 
 		bool column_key_pressed = false;
 		bool selected_key_pressed = false;
@@ -69,6 +76,7 @@ void BeebKeyboard::processPortUpdate(int index)
 				Key& key = mKeyboardMatrix[row][mCOL_SEL];
 				if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
 					column_key_pressed = true;
+					//cout << "Key " << key.keyName << " pressed - any row for column " << (int) mCOL_SEL << "!\n";
 					DBG_LOG(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!");
 					break;
 				}
@@ -80,6 +88,7 @@ void BeebKeyboard::processPortUpdate(int index)
 			vector<Key>& key_vec = mKeyboardMatrix[mROW_SEL];
 			Key& key = key_vec[mCOL_SEL];
 			if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode) || (mROW_SEL == 0 && linkSet(mCOL_SEL))) {
+				//cout << "Key " << key.keyName << " pressed - for selected row " << (int)mROW_SEL << " and column " << (int)mCOL_SEL << "!\n";
 				selected_key_pressed = true;
 			}
 		}
@@ -94,6 +103,12 @@ void BeebKeyboard::processPortUpdate(int index)
 			updatePort(ROW, 0x1);
 		else
 			updatePort(ROW, 0x0);
+	}
+
+	else if (index == ENA) {
+
+		al_get_keyboard_state(&mKeyboardState);
+		autoScan();
 	}
 
 }
@@ -115,10 +130,20 @@ bool BeebKeyboard::advanceUntil(uint64_t stopCycle)
 		updatePort(BREAK, 0x1);
 	}
 
-	uint8_t oROW = mROW;
+	autoScan();
+	
+	return true;
+}
+
+//
+// Auto scan keyboard
+// 
+// Iterates over all columns and sets the PRESSED output if any key was pressed.
+//
+bool BeebKeyboard::autoScan()
+{
 	bool column_key_pressed = false;
 
-	
 	// Auto scanning of keyboard - keys in all columns are checked
 	if (mENA) {
 		for (int row = 1; row <= 7; row++) {
@@ -127,8 +152,8 @@ bool BeebKeyboard::advanceUntil(uint64_t stopCycle)
 				if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
 					column_key_pressed = true;
 					DBG_LOG(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!");
-//					if (key.keyName == "B")
-//						mDM->setDebugLevel(DBG_INTERRUPTS | DBG_KEYBOARD | DBG_IO_PERIPHERAL | DBG_PORT | DBG_6502);
+					//					if (key.keyName == "B")
+					//						mDM->setDebugLevel(DBG_INTERRUPTS | DBG_KEYBOARD | DBG_IO_PERIPHERAL | DBG_PORT | DBG_6502);
 					break;
 				}
 			}
@@ -143,17 +168,16 @@ bool BeebKeyboard::advanceUntil(uint64_t stopCycle)
 		updatePort(PRESSED, 0x0);
 
 
-	if (DBG_LEVEL_DEV(this,DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mENA != pENA || mPRESSED != old_pressed)) {
-		DBG_LOG(this, DBG_KEYBOARD, "ENA = " + to_string(mENA) + ",COL_SEL = " + to_string(mCOL_SEL) + 
+	if (DBG_LEVEL_DEV(this, DBG_KEYBOARD) && (mCOL_SEL != pCOL_SEL || mROW_SEL != pROW_SEL || mENA != pENA || mPRESSED != old_pressed)) {
+		DBG_LOG(this, DBG_KEYBOARD, "ENA = " + to_string(mENA) + ",COL_SEL = " + to_string(mCOL_SEL) +
 			", ROW_SEL = " + to_string(mROW_SEL) + ", PRESSED = " + to_string(mPRESSED) + ", ROW = " + to_string(mROW));
 	}
 
-	oROW = mROW;
 	pCOL_SEL = mCOL_SEL;
 	pROW_SEL = mROW_SEL;
 	pENA = mENA;
 
-	return true;
+	return column_key_pressed;
 }
 
 // Outputs the internal state of the device

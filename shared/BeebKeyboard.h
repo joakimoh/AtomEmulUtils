@@ -159,6 +159,13 @@ private:
 
 	uint8_t mColCounter = 0;
 
+	//
+	// Auto scan keyboard
+	// 
+	// Iterates over all columns and sets the PRESSED output if any key was pressed.
+	//
+	bool autoScan();
+
 public:
 
 	BeebKeyboard(string name, double cpuClock, uint8_t startupOptions, DebugManager  *debugManager, ConnectionManager* connectionManager);

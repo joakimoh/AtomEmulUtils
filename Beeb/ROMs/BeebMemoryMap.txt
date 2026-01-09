@@ -136,7 +136,7 @@ CONNECT		ACIA:IRQ				CPU:IRQ
 //
 //	Device scheduling
 //
-SCHED	KB			HIGH_RATE
+SCHED	KB			LOW_RATE
 SCHED	CRTC		NONE								// Trigger the CRTC only on VDU function calls.
 TRIGGER	CRTC		CALL	VDU							// 
 SCHED	TCG			NONE								// Trigger the TCG only on VDU function calls.

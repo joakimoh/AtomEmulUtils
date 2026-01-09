@@ -76,6 +76,8 @@ bool Display::init(VideoFormat videoFormat)
 void Display::updateWindowTitle()
 {
     Resolution res = mVideoSettings.getTotalResolution();
+    int clock_int = (int)trunc(mCPUClock);
+    int clock_fra = (int)trunc((mCPUClock - clock_int)*10);
     if (mVideoSettings.format() == VideoFormat::NO_FMT)
         al_set_window_title(
             mDisplay,
@@ -91,7 +93,7 @@ void Display::updateWindowTitle()
             mDisplay,
             (
                 M_WINDOW_TITLE +
-                " CLOCK " + to_string(round(mCPUClock*10)/10) + " Mhz" +
+                " CLOCK " + to_string(clock_int) + "." + to_string(clock_fra) + " Mhz" +
                 " SPEED " + to_string((int)round(100 * mMeasuredSpeed)) +
                 "% FPS " + to_string((int)round(mMeasuredFrameRate)) +
                 " " + mVideoSettings.getFormat() + " " + to_string(res.width) + "x" + to_string(res.height)
