@@ -91,8 +91,11 @@ BeebVideoULA::BeebVideoULA(
 	registerPort("VS",			IN_PORT,	0x1,	VS,			&mVS);
 
 	// Initialise previously read Teletext Character Generator (TGC) data (to a dummy one)
-	mTgcData.resize(16);
-	for (int i = 0; i < 16; mTgcData[i++] = { 0, 0, 0 });
+	mTgcData0.resize(16);
+	for (int i = 0; i < 16; mTgcData0[i++] = { 0, 0, 0 });
+	mTgcData1.resize(16);
+	for (int i = 0; i < 16; mTgcData1[i++] = { 0, 0, 0 });
+
 
 	// Create display bitmap and clear it
 	Resolution vis_res = mVideoSettings.getVisibleResolution();
@@ -164,7 +167,7 @@ bool BeebVideoULA::addHalfLine(uint64_t &endCycle)
 				mCycleCount = mCycleCountLineRef + (int)round(mLineRenderedPixels * mCPUClock / (mPixelRate * 2));
 			}
 			mAddHalfLine = false;
-			mCycleCountLineRef = 0;
+			mCycleCountLineRef = mCycleCount;
 			mLineRenderedPixels = 0;
 			mCharPos = 0;
 	
@@ -251,7 +254,7 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	else
 		bitmap_data_p = NULL;
 
-	unsigned int bitmap_offset = mVisibleScanLine * mLockedDisplayBitMap->pitch + mVisibleCharPos * mPixelsPerCharacter * mPixelW;
+	//unsigned int bitmap_offset = mVisibleScanLine * mLockedDisplayBitMap->pitch + mVisibleCharPos * mPixelsPerCharacter * mPixelW;
 
 
 	// Advance CRTC & TGC one character (visible or not) and get character data (only used for visible char though)
@@ -291,13 +294,14 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	}
 
 	// For teletext-enabled modes, decode video memory data as videotext data
-	vector<TT5050::TTColour> tgc_data(16);
-	memcpy((char*)&tgc_data[0], (char*)&mTgcData[0], 16 * sizeof(tgc_data[0]));
+	vector<TT5050::TTColour>* tmpTgcData = mNewTgcData;
+	mNewTgcData = mOldTgcData;
+	mOldTgcData = tmpTgcData;
 	bool valid_TGC_data = false;
 	if (mTeletextEnabled)
 		// Feed video memory data to the CRTC. Result will be collected the next character column due to
 		// delay within the TCG
-		valid_TGC_data = mTGC->getScreenData(screen_data, mTgcData);
+		valid_TGC_data = mTGC->getScreenData(screen_data, *mNewTgcData);
 
 	// Get cursor configuration
 	//
@@ -379,10 +383,10 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 						
 			}
 			else {				
-				if (big_pixel < tgc_data.size()) {
-					Rs = tgc_data[big_pixel].R;
-					Gs = tgc_data[big_pixel].G;
-					Bs = tgc_data[big_pixel].B;
+				if (big_pixel < mOldTgcData->size()) {
+					Rs = (*mOldTgcData)[big_pixel].R;
+					Gs = (*mOldTgcData)[big_pixel].G;
+					Bs = (*mOldTgcData)[big_pixel].B;
 				}
 				else {
 					Rs = Gs = Bs = 0;
@@ -719,7 +723,7 @@ void BeebVideoULA::processPortUpdate(int index)
 	}
 	else if (index == HS) {
 		if (mHS == 1) {
-			mCycleCountLineRef = 0;
+			mCycleCountLineRef = mCycleCount;
 			mLineRenderedPixels = 0;			
 			mCharPos = 0;
 			mVisibleCharPos = -mHzVisibleCharOffset;
@@ -733,7 +737,7 @@ void BeebVideoULA::processPortUpdate(int index)
 	else if (index == VS ) {
 		if (mVS == 1) {
 			mScanLine = 0;
-			if (!mTeletextEnabled) // odd/even field is determined by RA0 for teletext modes so don't changed it here!
+			if (!mTeletextEnabled) // odd/even field is determined by RA0 for teletext modes so don't change it here!
 				mOddField = 1 - mOddField;
 			if (!mOddField)
 				mScanLine = 1;

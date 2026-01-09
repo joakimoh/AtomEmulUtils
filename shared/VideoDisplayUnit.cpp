@@ -67,7 +67,7 @@ void VideoDisplayUnit::refreshEvent()
 		int refresh_time_ms = chrono::duration_cast<std::chrono::milliseconds>(mRefreshTimePoint - prev_refresh_time_point_ms).count();
 		double measured_field_rate = mAccRefreshCount * 1000.0 / refresh_time_ms;
 		mDisplay->updateMeasuredFrameRate(measured_field_rate);
-		mAccRefreshCount = 0;		
+		mAccRefreshCount = 0;				
 	}
 	
 }
