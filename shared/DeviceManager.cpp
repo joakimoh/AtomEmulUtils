@@ -85,7 +85,6 @@ DeviceManager::DeviceManager(
 	KeyboardDevice*& keyboardDevice, double speed, double& baseSchedulingRate, double& subSchedulingRate
 ) : mDM(debugManager), mCM(mCM), mDisplay(display)
 {
-	vector<VideoDisplayUnit*> vdus;
 
 	cpuClock = 1.0; // Default 1 Mhz CPU clock
 
@@ -312,7 +311,6 @@ DeviceManager::DeviceManager(
 					if (!mDisplay->initialised()) mDisplay->init();
 					mainVDU = new VDU6847(dev_name, dev_adr, mDisplay, cpuClock, wait_states, video_mem_adr, mDM, mCM, this);
 					mDevices.push_back(mainVDU);
-					vdus.push_back(mainVDU);
 				}
 
 				else if (dev_type == "CRTC6845") {
@@ -321,9 +319,8 @@ DeviceManager::DeviceManager(
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					if (!mDisplay->initialised()) mDisplay->init();
-					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, mDisplay, cpuClock, wait_states, mDM, mCM, this);
+					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, cpuClock, wait_states, mDM, mCM, this);
 					mDevices.push_back(crtc);
-					vdus.push_back(crtc);
 				}
 
 				else if (dev_type == "TT5050") {
@@ -341,7 +338,6 @@ DeviceManager::DeviceManager(
 					if (!mDisplay->initialised()) mDisplay->init();
 					mainVDU = new BeebVideoULA(dev_name, dev_adr, mDisplay, cpuClock, wait_states, mDM, mCM, this);
 					mDevices.push_back(mainVDU);
-					vdus.push_back(mainVDU);
 				}
 
 				//
@@ -571,41 +567,39 @@ DeviceManager::DeviceManager(
 		throw runtime_error("No microprocessor device specifed");
 	}
 
-	// Update the video data unit(s) with graphics memory data
-	{
-		for (int v = 0; v < vdus.size(); v++) {
+	// Update the video data unit with graphics memory data
+	if (mainVDU != nullptr) {
 
-			VideoDisplayUnit* vdu = vdus[v];
 
-			// Get RAM address that matches the VDU's video memory address
-			// Get RAM device that matches the program load address
-			RAM* ram = NULL;
-			uint16_t video_mem_start_adr = vdu->getVideoMemAdr();
-			if (DBG_LEVEL(DBG_VERBOSE))
-				cout << "Video Memory starts at address 0x" << hex << video_mem_start_adr << "\n";
-			for (int i = 0; i < mDevices.size(); i++) {
-				Device* dev = mDevices[i];
-				if (dev->category == PERIPHERAL || dev->category == MEMORY_DEVICE) {
-					MemoryMappedDevice* mem_dev = (MemoryMappedDevice*)dev;
-					if (mem_dev->selected(video_mem_start_adr) && mem_dev->devType == RAM_DEV) {
-						ram = (RAM*)mem_dev;
-						break;
-					}
+		// Get RAM address that matches the VDU's video memory address
+		// Get RAM device that matches the program load address
+		RAM* ram = NULL;
+		uint16_t video_mem_start_adr = mainVDU->getVideoMemAdr();
+		if (DBG_LEVEL(DBG_VERBOSE))
+			cout << "Video Memory starts at address 0x" << hex << video_mem_start_adr << "\n";
+		for (int i = 0; i < mDevices.size(); i++) {
+			Device* dev = mDevices[i];
+			if (dev->category == PERIPHERAL || dev->category == MEMORY_DEVICE) {
+				MemoryMappedDevice* mem_dev = (MemoryMappedDevice*)dev;
+				if (mem_dev->selected(video_mem_start_adr) && mem_dev->devType == RAM_DEV) {
+					ram = (RAM*)mem_dev;
+					break;
 				}
 			}
-
-			if (ram == NULL || !ram->selected(video_mem_start_adr + 6 * 1024 - 1)) {
-				cout << "couldn't find a RAM device large enough to become video memory\n";
-				throw runtime_error("couldn't find a RAM device large enough to become video memory");
-			}
-			if (DBG_LEVEL(DBG_VERBOSE))
-				cout << "Found RAM that matches video memory range\n";
-			vdu->setVideoRam(ram);
-			if (DBG_LEVEL(DBG_VERBOSE))
-				cout << "Video RAM set for '" << vdu->name << "' (" << _DEVICE_ID(vdu->devType) << ")\n";
-
 		}
+
+		if (ram == NULL || !ram->selected(video_mem_start_adr + 6 * 1024 - 1)) {
+			cout << "couldn't find a RAM device large enough to become video memory\n";
+			throw runtime_error("couldn't find a RAM device large enough to become video memory");
+		}
+		if (DBG_LEVEL(DBG_VERBOSE))
+			cout << "Found RAM that matches video memory range\n";
+		mainVDU->setVideoRam(ram);
+		if (DBG_LEVEL(DBG_VERBOSE))
+			cout << "Video RAM set for '" << mainVDU->name << "' (" << _DEVICE_ID(mainVDU->devType) << ")\n";
+
 	}
+
 
 	// Create a memory map based on all registered memory-mapped devices
 	createMemoryMap();

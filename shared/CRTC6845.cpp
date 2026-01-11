@@ -32,10 +32,11 @@
 // R16, R17   Light pen position				-     -     -     -     -     -     -     -
 //
 CRTC6845::CRTC6845(
-	string name, uint16_t adr, Display* display, double cpuClock, uint8_t waitStates, DebugManager  *debugManager,
+	string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugManager  *debugManager,
 	ConnectionManager* connectionManager, DeviceManager *deviceManager
-) : VideoDisplayUnit(name, CRTC6845_DEV, display, cpuClock, waitStates, adr, 0x2, 0x0 /* dummy adr as not used by the 6845 */, debugManager,
-	connectionManager, deviceManager)
+//) : VideoDisplayUnit(name, CRTC6845_DEV, display, cpuClock, waitStates, adr, 0x2, 0x0 /* dummy adr as not used by the 6845 */, debugManager,
+//	connectionManager, deviceManager)
+): MemoryMappedDevice(name, CRTC6845_DEV, VDU_DEVICE, cpuClock, waitStates, adr, 0x2, debugManager, connectionManager, deviceManager)
 {
 
 	registerPort("CLK",			IN_PORT,  0x3,	CLK,		&mCLK);
@@ -290,7 +291,7 @@ bool CRTC6845::advanceUntil(uint64_t stopCycle)
 bool CRTC6845::read(uint16_t adr, uint8_t& data)
 {
 	// Call parent class to trigger scheduling of other devices when applicable
-	if (!VideoDisplayUnit::triggerBeforeRead(adr, data))
+	if (!MemoryMappedDevice::triggerBeforeRead(adr, data))
 		return false;
 
 	int16_t a = adr - mStartOfSpace;
@@ -350,7 +351,7 @@ bool CRTC6845::write(uint16_t adr, uint8_t data)
 
 
 	// Call parent c]lass to trigger scheduling of other devices when applicable
-	return VideoDisplayUnit::triggerAfterWrite(adr, data);
+	return MemoryMappedDevice::triggerAfterWrite(adr, data);
 }
 
 //

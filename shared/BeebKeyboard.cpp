@@ -107,8 +107,8 @@ void BeebKeyboard::processPortUpdate(int index)
 
 	else if (index == ENA) {
 
-		al_get_keyboard_state(&mKeyboardState);
-		autoScan();
+		//al_get_keyboard_state(&mKeyboardState);
+		//autoScan();
 	}
 
 }

@@ -2,13 +2,13 @@
 #define CRTC_6845_H
 
 #include <cstdint>
-#include "VideoDisplayUnit.h"
+#include "MemoryMappedDevice.h"
 #include "RAM.h"
 #include <cmath>
 #include <vector>
 
 
-class CRTC6845 : public VideoDisplayUnit {
+class CRTC6845 : public MemoryMappedDevice {
 
 	//
 	// This emulates the Hitachi HD6845SP used in e.g. the BBC Micro.
@@ -152,6 +152,10 @@ public:
 
 	int mInitialised = false;
 
+
+	int mField = 0;
+	int mScanLine = 0;
+
 public:
 
 	void updateSettings(uint8_t reg);
@@ -159,7 +163,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	CRTC6845(string name, uint16_t adr, Display *display, double cpuclock, uint8_t waitStates,
+	CRTC6845(string name, uint16_t adr, double cpuclock, uint8_t waitStates,
 		DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~CRTC6845() {}
 
@@ -178,9 +182,6 @@ public:
 	bool advanceUntil(uint64_t stopCycle);
 	bool advanceChar();
 	bool updateOutputs();
-
-	// Advance line is not applicable
-	bool advanceLine(uint64_t& endCycle) { return true; }
 
 	// Called by other device to get next memory address to fetch char/graphics data from
 	bool getMemFetchAdr(uint16_t& adr);
