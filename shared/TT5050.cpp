@@ -9,7 +9,7 @@ using namespace std;
 
 TT5050::TT5050(
 	string name, uint16_t adr, double cpuClock, uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager
-) : Device(name, TT_5050_DEV, OTHER_DEVICE, cpuClock, debugManager, connectionManager)
+) : Device(name, TT_5050_DEV, VDU_DEVICE, cpuClock, debugManager, connectionManager)
 {
 	DBG_LOG(this,DBG_VERBOSE, "Teletext Character Generator SA5050 '" + name + "' added");
 

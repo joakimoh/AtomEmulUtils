@@ -8,12 +8,12 @@
 //
 // This is an emulation of a BBC Micro Keyboard
 // 
-// The emulation uses the interface tke Keyboard exposes against the VIA 6522 circuit (and the RESET line).
+// The emulation uses the interface tke Keyboard exposes towards the VIA 6522 circuit (and the RESET line).
 // 
 // The Keyboard has two modes of operation:
 // 
 // 1) No scan - Key at a certain row and column is explictly selected and the ROW output will give its value (LOW if pressed)
-// 2) Auto scan - the columns are scanned repeatedly and the PRESSED output will go high if any key is pressed (except for the row ones)
+// 2) Auto scan - the columns are scanned repeatedly and the PRESSED output will go high if any key is pressed (except for the keys and switches on row one)
 // 
 // 
 // Connector pins	Direction		Name	Connected to					Active level				Description
