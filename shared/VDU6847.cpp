@@ -86,7 +86,9 @@ VDU6847::VDU6847(string name, uint16_t adr, Display* display, double cpuClock, u
 	registerPort("INT/EXT", IN_PORT, 0x01, VDU_PORT_INT_EXT, &mIntExt);
 	registerPort("INV", IN_PORT, 0x01, VDU_PORT_INV, &mInv);
 	registerPort("FS", OUT_PORT, 0x01, VDU_PORT_FS, &mFS);
-	registerPort("Din", OUT_PORT, 0xff, VDU_PORT_DIN, &mDin);
+	registerPort("Din", OUT_PORT, 0xff, VDU_PORT_DIN, &mDin);	// A trick to make read graphics data visible as a port
+																// (can e.g., be used to for the Acorn Atom to - by configuration -
+																// connect b7 of read data to the INV input).
 
 
 	// Set the size of the VDU register vector
@@ -358,12 +360,9 @@ bool VDU6847::advanceChar(uint64_t& endCycle)
 						// Windows seems to prefer to use ALLEGRO_PIXEL_FORMAT_ARGB_8888 (0x9)
 						// The bitmap pointer has been advanced 8 pixels (one character) when completed.
 						for (int x = 0; x < 8; x++) { // <=> mPixelsPerByte = 8
-							for (int w = 0; w < mBasePixelW; w++) {
-								if (symbol_mask & 0x80)
-									*mBitmapDataP++ = 0xff00ff00; // opaque green ARGB 8888
-								else
-									*mBitmapDataP++ = 0xff000000; // opaque black ARGB 8888								
-							}
+							unsigned int pix_col = (symbol_mask & 0x80 ? 0xff00ff00 : 0xff000000);
+							for (int w = 0; w < mBasePixelW; w++)				
+								*mBitmapDataP++ = pix_col;				
 							symbol_mask = symbol_mask << 1;
 						}
 					}
