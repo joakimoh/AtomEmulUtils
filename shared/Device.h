@@ -138,7 +138,7 @@ protected:
 
 	uint64_t mCycleCount = 0;
 	
-	vector<DevicePort*> mPorts; // the device's input ports that can be connected to by other devices
+	vector<DevicePort*> mPorts; // the device's ports that can be connected to by other devices
 
 	ConnectionManager* mConnectionManager;
 
@@ -211,6 +211,9 @@ public:
 	// Force an update of a device's all ports to secure that all connected devices have the correct port value
 	// Should be made after all device's have been connected. No triggering of connected devices are made.
 	bool updatePorts();
+
+	// Get a reference to the device's list of ports
+	bool getPorts(vector<DevicePort*>* &ports) { return ports = &mPorts; }
 
 	// Get local port index for a named I/O (used by connection manager at initialisation)
 	bool getPortIndex(string name, DevicePort * &port);

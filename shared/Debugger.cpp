@@ -400,7 +400,7 @@ bool Debugger::setRegCmd(istream& sin)
 	return true;
 }
 
-bool Debugger::setPinCmd(istream& sin)
+bool Debugger::setPortCmd(istream& sin)
 {
 	if (mEngine->isRunning()) {
 		cout << "The micoprocessor is running - it needs to be halted before changing any port value!\n";
@@ -439,6 +439,53 @@ bool Debugger::setPinCmd(istream& sin)
 	port_in_val = (port_in_val & keep_mask) | (shifted_val & mask);
 	
 
+	return true;
+}
+
+
+bool Debugger::listPortsCmd(istream& sin)
+{
+	string dev_name;
+	if (!readString(sin, dev_name))
+		return false;
+
+	Device* dev = NULL;
+	if (!mDM->getDevice(dev_name, dev)) {
+		cout << "Non-existing device '" << dev_name << "!\n";
+		return true;
+	}
+	vector<DevicePort*>* ports = nullptr;
+	if (!dev->getPorts(ports) || ports == nullptr) {
+		cout << "Failed to get port info for device " << dev->name << "!\n";
+		return true;
+	}
+	for (int i = 0; i < ports->size(); i++) {
+		DevicePort* p = (*ports)[i];
+		uint8_t *in_val = p->valIn;
+		uint8_t *out_val = p->valOut;
+		int sz = 0;
+		for (int mask = p->mask; mask != 0; sz++) mask = mask >> 1;
+		uint8_t sz_mask = ((1 << sz) - 1);
+		uint8_t io_mask = (p->ioDirMask) & sz_mask;
+		uint8_t val;
+		uint8_t cur_dir;
+		if (p->dir == IN_PORT) {
+			cur_dir = 0;
+			val = *in_val;
+		}
+		else if (p->dir == OUT_PORT) {
+			cur_dir = sz_mask;
+			val = *out_val;
+		}
+		else { //p->dir == IO_PORT
+			cur_dir = io_mask;
+			val = (io_mask & (*out_val)) | (~io_mask & (*in_val) & 0xff);
+		}
+		string dir = (p->dir == IN_PORT ? "IN" : (p->dir == OUT_PORT ? "OUT" : "INOUT"));
+		string cur_dir_s = Utility::mask2DirStr(cur_dir, sz);
+		string val_s = Utility::int2BinStr(val, sz);
+		cout << setw(10) <<  p->name << setw(7) << dir << setw(9) << cur_dir_s << " " << sz << setw(sz+1) << val_s << "\n";
+	}
 	return true;
 }
 
@@ -576,10 +623,12 @@ void Debugger::run()
 			bool success = true;
 			if (cmd == "help")
 				help();
+			else if (cmd == "ports")
+				success = listPortsCmd(sin);
 			else if (cmd == "rset")
 				success = setRegCmd(sin);
 			else if (cmd == "pset")
-				success = setPinCmd(sin);
+				success = setPortCmd(sin);
 			else if (cmd == "reset")
 				success = resetCmd(sin);
 			else if (cmd == "read")

@@ -334,23 +334,25 @@ bool PIA8255::write(uint16_t adr, uint8_t data)
 
 		uint8_t BSR_mode = 1 - ((data >> 7) & 0x1);
 
-		// Conservatively assume that an update of the CR results in a change in the direction of any of the ports A, B & C
-		uint8_t port_A_dir_mask = (port_A_input ? 0x00 : 0xff);
-		uint8_t port_B_dir_mask = (port_B_input ? 0x00 : 0xff);
-		uint8_t port_C_lower_dir_mask = (port_C_lower_input ? 0x00 : 0x0f);
-		uint8_t port_C_upper_dir_mask = (port_C_upper_input ? 0x00 : 0xf0);
-		uint8_t port_C_dir_mask = port_C_lower_dir_mask | port_C_upper_dir_mask;
-		registerPortDirChange(PIA_PORT_A, port_A_dir_mask);
-		registerPortDirChange(PIA_PORT_B, port_B_dir_mask);
-		registerPortDirChange(PIA_PORT_C, port_C_dir_mask);
-
-
-
-
 		if (!BSR_mode)
 		// Basic I/O (Mode 0), Strobed I/O (Mode 1) or Bi-directional bus (Mode 2)
 		{
 			mCR = data;
+
+			port_A_input = (mCR >> 4) & 0x1;
+			port_B_input = (mCR >> 1) & 0x1;
+			port_C_lower_input = mCR & 0x1;
+			port_C_upper_input = (mCR >> 3) & 0x1;
+
+			// Conservatively assume that an update of the CR results in a change in the direction of any of the ports A, B & C
+			uint8_t port_A_dir_mask = (port_A_input ? 0x00 : 0xff);
+			uint8_t port_B_dir_mask = (port_B_input ? 0x00 : 0xff);
+			uint8_t port_C_lower_dir_mask = (port_C_lower_input ? 0x00 : 0x0f);
+			uint8_t port_C_upper_dir_mask = (port_C_upper_input ? 0x00 : 0xf0);
+			uint8_t port_C_dir_mask = port_C_lower_dir_mask | port_C_upper_dir_mask;
+			registerPortDirChange(PIA_PORT_A, port_A_dir_mask);
+			registerPortDirChange(PIA_PORT_B, port_B_dir_mask);
+			registerPortDirChange(PIA_PORT_C, port_C_dir_mask);
 
 			uint8_t new_group_A_mode = (data >> 5) & 0x3;
 			uint8_t new_group_B_mode = (data >> 2) & 0x1;
@@ -429,7 +431,7 @@ bool PIA8255::outputState(ostream& sout)
 
 	if (!BSR_mode) {
 		sout << "\tI/O Mode\n";
-		sout << "\tPort A " << (mCR & 0x10 ? "IN" : "OUT") << "; mode is " << (mCR & 0x40 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2")) << " " << "\n";
+		sout << "\tPort A " << (mCR & 0x10 ? "IN" : "OUT") << "; mode is " << ((mCR & 0x40) == 0x00 ? "M0" : ((mCR & 0x60) == 0x40 ? "M1" : "M2")) << " " << "\n";
 		sout << "\tPort B " << (mCR & 0x02 ? "IN" : "OUT") << "; mode is " << (mCR & 0x04 ? "M1" : "M0") << " " << "\n";
 		sout << "\tPort C upper " << (mCR & 0x08 ? "IN" : "OUT") << "\n";
 		sout << "\tPort C lower " << (mCR & 0x01 ? "IN" : "OUT") << "\n";

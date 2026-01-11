@@ -9,6 +9,7 @@ using namespace std;
 class Utility {
 
 public:
+	static string mask2DirStr(int v, int n);
 	static string int2HexStr(int v, int n);
 	static string int2BinStr(int v, int n);
 	static string encodeCPUTime(double t_s);

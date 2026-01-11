@@ -82,7 +82,8 @@ private:
 	bool resetCmd(istream& sin);
 
 	bool setRegCmd(istream& sin);
-	bool setPinCmd(istream& sin);
+	bool setPortCmd(istream& sin);
+	bool listPortsCmd(istream& sin);
 
 public:
 

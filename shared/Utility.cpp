@@ -6,6 +6,17 @@
 
 using namespace std;
 
+string Utility::mask2DirStr(int v, int n)
+{
+	stringstream sout;
+	for (int i = 0; i < n; i++) {
+		if ((v >> (n-i-1)) & 0x1)
+			sout << "O";
+		else
+			sout << "I";
+	}
+	return sout.str();
+}
 string Utility::mask2Str(uint8_t mask)
 {
 	int msb = 7;
