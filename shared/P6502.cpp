@@ -659,8 +659,11 @@ bool P6502::ASLExecHdlr()
 //
 bool P6502::BCCExecHdlr()
 {
-	if (!C_flag)
-		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
+	if (!C_flag) {
+		addBranchTakenCycles();
+		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
+	}
+	
 
 	return true;
 }
@@ -677,8 +680,10 @@ bool P6502::BCCExecHdlr()
 //
 bool P6502::BCSExecHdlr()
 {
-	if (C_flag)
-		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
+	if (C_flag) {
+		addBranchTakenCycles();
+		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
+	}
 
 	return true;
 }
@@ -695,8 +700,10 @@ bool P6502::BCSExecHdlr()
 //
 bool P6502::BEQExecHdlr()	
 {
-	if (Z_flag)
-		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
+	if (Z_flag) {
+		addBranchTakenCycles();
+		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
+	}
 
 	return true;
 }
@@ -739,8 +746,10 @@ bool P6502::BITExecHdlr()
 //
 bool P6502::BMIExecHdlr()
 {
-	if (N_flag)
-		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
+	if (N_flag) {
+		addBranchTakenCycles();
+		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
+	}
 
 	return true;
 }
@@ -757,8 +766,10 @@ bool P6502::BMIExecHdlr()
 //
 bool P6502::BNEExecHdlr()
 {
-	if (!Z_flag)
-		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
+	if (!Z_flag) {
+		addBranchTakenCycles();
+		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
+	}
 
 	return true;
 }
@@ -775,8 +786,10 @@ bool P6502::BNEExecHdlr()
 //
 bool P6502::BPLExecHdlr()
 {
-	if (!N_flag)
-		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
+	if (!N_flag) {
+		addBranchTakenCycles();
+		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
+	}
 
 	return true;
 }
@@ -833,8 +846,10 @@ bool P6502::BRKExecHdlr()
 //
 bool P6502::BVCExecHdlr()
 {
-	if (!V_flag)
-		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
+	if (!V_flag) {
+		addBranchTakenCycles();
+		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
+	}
 
 	return true;
 }
@@ -851,8 +866,10 @@ bool P6502::BVCExecHdlr()
 //
 bool P6502::BVSExecHdlr()
 {
-	if (V_flag)
-		mProgramCounter = (mOpcodePC+2 + mOperand16) & 0xffff;
+	if (V_flag) {
+		addBranchTakenCycles();
+		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
+	}
 
 	return true;
 }
@@ -2172,14 +2189,18 @@ bool P6502::relativeAdrHdlr()
 	// Save the calculated address for use when executing the specific instruction later on
 	mOperandAddress = (mOperand16 + mProgramCounter) & 0xffff;
 
+	return true;
+
+}
+
+bool P6502::addBranchTakenCycles()
+{
 	// Add two cycles if branch to other page; otherwise just one cycle
 	if (mInstructionInfo.addCycleAtPageBoundary && pageBoundaryCrossed(mProgramCounter, mOperandAddress))
 		tick(2);
 	else
 		tick();
-
 	return true;
-
 }
 
 //

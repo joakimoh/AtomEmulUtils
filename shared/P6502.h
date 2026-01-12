@@ -92,6 +92,16 @@ private:
 	bool postIndYAdrHdlr();
 	bool undefinedAdrHdlr();
 
+	//
+	// Handling of variable cycles for branch instructions.
+	// 
+	// Variable cycles for other instructions are handled by the AdrHdlr above.
+	// 
+	// For the branch instruction the extra cycles shall only be added if
+	// the branch is taken which is not known before the instruction is executed.
+	//
+	bool addBranchTakenCycles();
+
 
 
 	// Instruction handlers (independent of the addressing mode)
