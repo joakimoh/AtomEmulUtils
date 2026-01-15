@@ -78,7 +78,7 @@ typedef struct LogPort_struct {
 
 typedef struct InstrLogData_struct {
 	double logTime = 0;
-	Codec6502::InstructionInfo instr;
+	Codec6502::InstructionInfo *instr = nullptr;
 	uint8_t A = 0x0;
 	uint8_t X = 0x0;
 	uint8_t Y = 0x0;

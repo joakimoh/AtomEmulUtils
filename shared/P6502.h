@@ -72,8 +72,17 @@ private:
 		bool (P6502::*addrHdlr)();
 		bool (P6502::*execHdlr)();
 	} InstructionData;
+	InstructionData* pInstructionData = nullptr;
+	Codec6502::InstructionInfo *pInstructionInfo = nullptr;
 
-	Codec6502::InstructionInfo mInstructionInfo;
+
+	// Information about all possible instructions (including unofficial undocumented ones and illegal ones)
+	typedef struct InstrDataTable_struct { InstructionData data[256]; } InstrDataTable;
+	InstrDataTable* pInstrDataTbl = nullptr;
+	
+	
+	// Initialise the instruction data above
+	void initInstrTable();
 
 	
 	// Addressing Modes (independent of the instruction)
@@ -179,12 +188,6 @@ private:
 	// Execute an instruction which opcode has been fetched already 
 	bool executeInstr();
 
-	// Information about all possible instructions (including unofficial undocumented ones and illegal ones)
-	typedef struct InstrDataTable_struct { InstructionData data[256]; } InstrDataTable;
-	InstrDataTable *pInstrData = nullptr;
-;
-	// Initialise the instruction data above
-	void initInstrTable();
 
 
 	string getState();
@@ -268,7 +271,7 @@ public:
 	int operandAddress() { return (int)mOperandAddress; }
 
 	Codec6502::InstructionInfo getInstrInfo() {
-		return mInstructionInfo;
+		return *pInstructionInfo;
 	}
 
 	bool getInstrLogData(InstrLogData& instr_log_data);

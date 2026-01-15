@@ -13,8 +13,8 @@
 
 void P6502::initInstrTable()
 {
-	pInstrData = new InstrDataTable();
-	auto& mInstrData = pInstrData->data;
+	pInstrDataTbl = new InstrDataTable();
+	auto& mInstrData = pInstrDataTbl->data;
 	for (int opcode = 0; opcode < 256; opcode++) {
 
 		mInstrData[opcode].info = mCodec.getInstrInfo((uint8_t)opcode);
@@ -300,8 +300,8 @@ P6502::P6502(string name, double clockSpeed, DebugManager  *debugManager, Connec
 
 P6502::~P6502()
 {
-	if (pInstrData != nullptr)
-		delete pInstrData;
+	if (pInstrDataTbl != nullptr)
+		delete pInstrDataTbl;
 }
 
 bool P6502::serveNMI()
@@ -462,8 +462,9 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to read instruction!\n");
 	}
-	auto& mInstrData = pInstrData->data;
-	mInstructionInfo = mInstrData[mOpcode].info;
+
+	pInstructionData = &(pInstrDataTbl->data[mOpcode]); // Execution info
+	pInstructionInfo = &(pInstructionData->info); // Opcode info only
 
 	// Fetch the instruction operands and execute the instruction
 	uint8_t oI_flag = I_flag;
@@ -475,18 +476,18 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	}
 
 	mRAccAdr = mWAccAdr = -1;
-	if (mInstructionInfo.readsMem)
+	if (pInstructionInfo->readsMem)
 		mRAccAdr = mOperandAddress;
-	if (mInstructionInfo.writesMem)
+	if (pInstructionInfo->writesMem)
 		mWAccAdr = mOperandAddress;
 	success = success && mExecSuccess;
 
-	DBG_LOG_COND(false && I_flag != oI_flag, this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[mInstructionInfo.instruction] + " at address 0x" + Utility::int2HexStr(mOpcodePC,4) + "\n");
+	DBG_LOG_COND(false && I_flag != oI_flag, this, DBG_INTERRUPTS, "I disable flag " + string(I_flag?"set":"cleared") + " by instruction " + mCodec.instr2str[pInstructionInfo->instruction] + " at address 0x" + Utility::int2HexStr(mOpcodePC,4) + "\n");
 
 	// Increase time by the no of clock cycles specified for the instruction and mode.
 	// This excludes extra cycle at page boundary as this is instead accounted for
 	// in the methods for evaluating the operand part of the instruction.
-	tick(mInstructionInfo.cycles);
+	tick(pInstructionInfo->cycles);
 
 	// Return time reached
 	endCycle = mCycleCount;
@@ -508,11 +509,11 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 			sout << "[" << mExecutedCycles << "] ";
 			sout << setfill(' ') << setw(30) << left << instr_s << right <<
 				" " << getState();
-			if (mInstructionInfo.readsMem || mInstructionInfo.writesMem)
+			if (pInstructionInfo->readsMem || pInstructionInfo->writesMem)
 				sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << mOperandAddress;
-			if (mInstructionInfo.readsMem)
+			if (pInstructionInfo->readsMem)
 				sout << " READ 0x" << setw(2) << (int)mReadVal8;
-			if (mInstructionInfo.writesMem)
+			if (pInstructionInfo->writesMem)
 				sout << " WROTE 0x" << setw(2) << (int)mWrittenVal;
 			sout << " " << stack2Str();
 			if (!mExecSuccess)
@@ -535,8 +536,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 
 bool P6502::executeInstr()
 {
-	auto& mInstrData = pInstrData->data;
-	return (this->*mInstrData[mOpcode].addrHdlr)() && (this->*mInstrData[mOpcode].execHdlr)();
+	return (this->*(pInstructionData->addrHdlr))() && (this->*(pInstructionData->execHdlr))();
 }
 
 //
@@ -631,7 +631,7 @@ bool P6502::ASLExecHdlr()
 	mStatusRegister &= ~C_set_mask;
 	mStatusRegister |= ((mReadVal8 & 0x80) != 0 ? C_set_mask : 0);
 	uint8_t val_8_u = (mReadVal8 << 1) & 0xfe;
-	if (mInstructionInfo.writesMem) {
+	if (pInstructionInfo->writesMem) {
 		if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
 			return false;
 		}
@@ -663,7 +663,6 @@ bool P6502::BCCExecHdlr()
 		addBranchTakenCycles();
 		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
 	}
-	
 
 	return true;
 }
@@ -1238,7 +1237,7 @@ bool P6502::LSRExecHdlr()
 	mStatusRegister &= ~C_set_mask;
 	mStatusRegister |= ((mReadVal8 & 0x1) != 0 ? C_set_mask : 0);
 	uint8_t val_8_u = (mReadVal8 >> 1) & 0x7f;
-	if (mInstructionInfo.writesMem) {
+	if (pInstructionInfo->writesMem) {
 		if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
 			return false;
 		}
@@ -1377,7 +1376,7 @@ bool P6502::ROLExecHdlr()
 	uint8_t val_8_u = ((mReadVal8 << 1) & 0xfe) | C_flag;
 	mStatusRegister &= ~C_set_mask;
 	mStatusRegister |= ((mReadVal8 & 0x80)!=0? C_set_mask : 0);	
-	if (mInstructionInfo.writesMem) {
+	if (pInstructionInfo->writesMem) {
 		if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
 			return false;
 		}
@@ -1408,7 +1407,7 @@ bool P6502::RORExecHdlr()
 	uint8_t val_8_u = ((mReadVal8 >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
 	mStatusRegister &= ~C_set_mask;
 	mStatusRegister |= ((mReadVal8 & 0x1) ? C_set_mask : 0);		
-	if (mInstructionInfo.writesMem) {
+	if (pInstructionInfo->writesMem) {
 		if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
 			return false;
 		}
@@ -2091,7 +2090,7 @@ bool P6502::SREExecHdlr()
 	mStatusRegister &= ~C_set_mask;
 	mStatusRegister |= ((mReadVal8 & 0x1) != 0 ? C_set_mask : 0);
 	uint8_t val_8_u = (mReadVal8 >> 1) & 0x7f;
-	if (mInstructionInfo.writesMem) {
+	if (pInstructionInfo->writesMem) {
 		if (!writeDevice(mOperandAddress, mReadVal8)) { // dummy write always made by NMOS 6502
 			return false;
 		}
@@ -2196,7 +2195,7 @@ bool P6502::relativeAdrHdlr()
 bool P6502::addBranchTakenCycles()
 {
 	// Add two cycles if branch to other page; otherwise just one cycle
-	if (mInstructionInfo.addCycleAtPageBoundary && pageBoundaryCrossed(mProgramCounter, mOperandAddress))
+	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mProgramCounter, mOperandAddress))
 		tick(2);
 	else
 		tick();
@@ -2248,7 +2247,7 @@ bool P6502::zeroPageAdrHdlr()
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal8' later on when executing the instruction
-	if (mInstructionInfo.readsMem && !readZP(zp_a, mReadVal8))
+	if (pInstructionInfo->readsMem && !readZP(zp_a, mReadVal8))
 		return false;
 
 	return true;
@@ -2278,7 +2277,7 @@ bool P6502::zeroPageXAdrHdlr()
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal8' later on when executing the instruction
-	if (mInstructionInfo.readsMem && !readZP(mOperandAddress, mReadVal8))
+	if (pInstructionInfo->readsMem && !readZP(mOperandAddress, mReadVal8))
 		return false;
 	return true;
 }
@@ -2307,7 +2306,7 @@ bool P6502::zeroPageYAdrHdlr()
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal8' later on when executing the instruction
-	if (mInstructionInfo.readsMem && !readZP(mOperandAddress, mReadVal8))
+	if (pInstructionInfo->readsMem && !readZP(mOperandAddress, mReadVal8))
 		return false;
 
 
@@ -2337,7 +2336,7 @@ bool P6502::absoluteAdrHdlr()
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal8' later on when executing the instruction
-	if (mInstructionInfo.readsMem && !readDevice(mOperandAddress, mReadVal8))
+	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal8))
 		return false;
 
 	return true;
@@ -2368,11 +2367,11 @@ bool P6502::absoluteXAdrHdlr()
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal8' later on when executing the instruction
-	if (mInstructionInfo.readsMem && !readDevice(mOperandAddress, mReadVal8))
+	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal8))
 		return false;
 
 	// Add one cycle if page boundary crossed
-	if (mInstructionInfo.addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16))
+	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16))
 		tick();
 
 	return true;
@@ -2404,11 +2403,11 @@ bool P6502::absoluteYAdrHdlr()
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal8' later on when executing the instruction
-	if (mInstructionInfo.readsMem && !readDevice(mOperandAddress, mReadVal8))
+	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal8))
 		return false;
 
 	// Add one cycle if page boundary crossed
-	if (mInstructionInfo.addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16))
+	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16))
 		tick();
 
 	return true;
@@ -2446,11 +2445,11 @@ bool P6502::indirectAdrHdlr()
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal8' later on when executing the instruction
-	if (mInstructionInfo.readsMem && !readDevice(mOperandAddress, mReadVal8))
+	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal8))
 		return false;
 
 	// Add one cycle if page boundary is crossed fpr the indirect address
-	if (mInstructionInfo.addCycleAtPageBoundary && (adr_i ^ (adr_i+1)) != 0)
+	if (pInstructionInfo->addCycleAtPageBoundary && (adr_i ^ (adr_i+1)) != 0)
 		tick();
 
 	return true;
@@ -2488,7 +2487,7 @@ bool P6502::preIndXAdrHdlr()
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal8' later on when executing the instruction
-	if (mInstructionInfo.readsMem && !readDevice(mOperandAddress, mReadVal8))
+	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal8))
 		return false;
 
 	return true;
@@ -2526,11 +2525,11 @@ bool P6502::postIndYAdrHdlr()
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal8' later on when executing the instruction
-	if (mInstructionInfo.readsMem && !readDevice(mOperandAddress, mReadVal8))
+	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal8))
 		return false;
 
 	// Add one cycle if page boundary crossed
-	if (mInstructionInfo.addCycleAtPageBoundary && pageBoundaryCrossed(mem_a, mOperandAddress))
+	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mem_a, mOperandAddress))
 		tick();
 
 	return true;
@@ -2802,7 +2801,7 @@ bool P6502::outputState(ostream& sout)
 
 bool P6502::getInstrLogData(InstrLogData& instrLogData) {
 	instrLogData.logTime = getCycleCount() / (mCPUClock * 1e6);
-	instrLogData.instr = mInstructionInfo;
+	instrLogData.instr = pInstructionInfo;
 	instrLogData.A = mAcc;
 	instrLogData.X = mRegisterX;
 	instrLogData.Y = mRegisterY;
@@ -2839,7 +2838,7 @@ bool P6502::getInstrLogData(InstrLogData& instrLogData) {
 bool P6502::printInstrLogData(ostream& sout, InstrLogData& instrLogData)
 {
 	string instr_s = mCodec.decode(instrLogData.opcodePC, instrLogData.opcode, instrLogData.operand);
-	Codec6502::InstructionInfo instr = instrLogData.instr;
+	Codec6502::InstructionInfo instr = *instrLogData.instr;
 
 	string t_s = Utility::encodeCPUTime(instrLogData.logTime);
 
