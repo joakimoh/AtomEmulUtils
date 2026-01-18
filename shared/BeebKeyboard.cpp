@@ -112,8 +112,8 @@ bool BeebKeyboard::advanceUntil(uint64_t stopCycle)
 	// Don't update keyboard state too often as it creates a lot of load...
 	int next_refresh_cycle = mCycleCount + mKeyboardRefreshCycles;
 	mCycleCount = stopCycle;
-	if (stopCycle > next_refresh_cycle)
-		return true;
+	//if (stopCycle > next_refresh_cycle)
+	//	return true;
 
 	al_get_keyboard_state(&mKeyboardState);
 
