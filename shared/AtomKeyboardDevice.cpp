@@ -181,5 +181,4 @@ void AtomKeyboardDevice::setEmulationSpeed(double speed)
 	// Make sure Keyboard refresh rate always is 60 Hz (or less)
 	mKeyboardRefreshCycles = max(1, (int)round(mCPUClock * 1e6 * mEmulationSpeed / 60));
 
-	cout << "mKeyboardRefreshCycles = " << mKeyboardRefreshCycles << "\n";
 }

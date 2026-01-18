@@ -85,6 +85,10 @@ private:
 	bool setPortCmd(istream& sin);
 	bool listPortsCmd(istream& sin);
 
+	bool logWindCmd(istream& sin);
+
+	bool mLogWinEnabled = false;
+
 public:
 
 

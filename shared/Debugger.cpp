@@ -504,7 +504,7 @@ bool Debugger::breakCmd(istream& sin)
 
 	if (sub_cmd == "x") {
 		mAccessMode = Engine::ENG_X_BRK_WAIT;
-		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false);
+		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false, mLogWinEnabled);
 	}
 	else if (sub_cmd == "r") {
 		mAccessMode = Engine::ENG_R_BRK_WAIT;
@@ -513,7 +513,7 @@ bool Debugger::breakCmd(istream& sin)
 			mReadData = d;
 			mAccessMode = Engine::ENG_R_V_BRK_WAIT;
 		}
-		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false);
+		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false, mLogWinEnabled);
 	}
 	else if (sub_cmd == "w") {
 		mAccessMode = Engine::ENG_W_BRK_WAIT;
@@ -522,7 +522,7 @@ bool Debugger::breakCmd(istream& sin)
 			mWrittenData = d;
 			mAccessMode = Engine::ENG_W_V_BRK_WAIT;
 		}
-		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false);
+		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false, mLogWinEnabled);
 	}
 	else if (sub_cmd == "rw") {
 		mAccessMode = Engine::ENG_RW_BRK_WAIT;
@@ -531,12 +531,14 @@ bool Debugger::breakCmd(istream& sin)
 			mWrittenData = d;
 			mAccessMode = Engine::ENG_RW_V_BRK_WAIT;
 		}
-		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false);
+		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false, mLogWinEnabled);
 	}
 	else {
 		cout << "Illegal sub command - valid sub command to break is one of x,r,w and rw!\n";
 		return false;
 	}
+
+	mEngine->printInstrWindow(cout);
 
 	markEndOfWaiting();
 
@@ -572,6 +574,32 @@ bool Debugger::memLogCmd(istream& sin)
 	return true;
 }
 
+bool Debugger::logWindCmd(istream& sin)
+{
+	string sub_cmd;
+	if (!readString(sin, sub_cmd))
+		return false;
+
+	if (sub_cmd == "clr") {
+		mEngine->disableLogWindow();
+		mLogWinEnabled = false;
+		return true;
+	}
+
+	if (sub_cmd != "set")
+		return false;
+
+	int sz;
+	if (!readPosInt(sin, sz))
+		return false;
+
+	if (!mEngine->enableLogWindow(sz))
+		return false;
+
+	mLogWinEnabled = true;
+	return true;
+}
+
 void Debugger::help()
 {
 	cout << "Commands are:\n";
@@ -594,6 +622,7 @@ void Debugger::help()
 	cout << "rset (A|X|Y|SP|SR|PC) <hex val>:                    set a register value\n";
 	cout << "pset <dev name>:<port name>[<qualifier>] <hex val>: set a device's input port's value. <qualifier> ::= <bit no> | [<high bit no>;<low bit no>\n";
 	cout << "reset:                                              reset the microprocessor\n";
+	cout << "twin (set <sz> | clr):                              enable trace window of a certain size or disable it\n";
 	cout << "exit:                                               exit the debugger\n";
 }
 
@@ -623,6 +652,8 @@ void Debugger::run()
 			bool success = true;
 			if (cmd == "help")
 				help();
+			else if (cmd == "twin")
+				success = logWindCmd(sin);
 			else if (cmd == "ports")
 				success = listPortsCmd(sin);
 			else if (cmd == "rset")

@@ -34,13 +34,22 @@ private:
 public:
 	// Debugger state
 	enum RunState {
-		ENG_RUN, ENG_HALT, ENG_STEP, ENG_STEP_OVER, ENG_X_BRK_WAIT,
-		ENG_R_BRK_WAIT, ENG_R_V_BRK_WAIT,
-		ENG_W_BRK_WAIT, ENG_W_V_BRK_WAIT,
-		ENG_RW_BRK_WAIT, ENG_RW_V_BRK_WAIT,
-		ENG_BRK_DET, ENG_WAIT_ON_RET,
-		ENG_TBD // Only used intially to indicate that the user hasn't specified an initial mode
+		ENG_RUN =			0x00,
+		ENG_HALT =			0x01,
+		ENG_STEP =			0x10,
+		ENG_STEP_OVER =		0x11,
+		ENG_X_BRK_WAIT =	0x20,
+		ENG_R_BRK_WAIT =	0x21,
+		ENG_R_V_BRK_WAIT =	0x22,
+		ENG_W_BRK_WAIT =	0x23,
+		ENG_W_V_BRK_WAIT =	0x24,
+		ENG_RW_BRK_WAIT =	0x25,
+		ENG_RW_V_BRK_WAIT =	0x26,
+		ENG_BRK_DET =		0x30,
+		ENG_WAIT_ON_RET =	0x40,
+		ENG_TBD =			0x80 // Only used intially to indicate that the user hasn't specified an initial mode
 	};
+#define _BRK_WAIT(x) ((x & 0x20) != 0)
 #define _ENGINE_STATE(x) (\
 	x==ENG_RUN?"Run":\
 	(x==ENG_HALT?"Halt":\
@@ -148,7 +157,20 @@ private:
 
 	void logInstr();
 
+	int mBufWindowReadIndex = 0;
+	int mBufWindowWriteIndex = 0;
+	int mBufferInstrSize = 0;
+	int mBufWinSz = 10;
+	bool mBreakWindowEnabled = false;
+	void updateLogWindow();
+	void clrLogWindow();
+
+	
+
+
 	vector<InstrLogData> mInstrLogBuffer;
+#define ENGINE_BUF_WINDOW_SZ	100
+	vector<InstrLogData> mInstrBufferWindow = vector<InstrLogData>(ENGINE_BUF_WINDOW_SZ);
 
 public:
 
@@ -167,7 +189,7 @@ public:
 	bool step(int n, bool stepOver);
 	bool step(int n);
 
-	bool setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAdr, bool repetition);
+	bool setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAdr, bool repetition, bool enableTrace);
 
 	bool clrBreakPoint();
 
@@ -176,6 +198,11 @@ public:
 	string getState() { return _ENGINE_STATE(mState); }
 
 	void printInstrLog(ostream& sout);
+
+	void printInstrWindow(ostream& sout);
+
+	bool enableLogWindow(int sz);
+	void disableLogWindow();
 };
 
 

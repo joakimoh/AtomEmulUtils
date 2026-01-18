@@ -228,7 +228,7 @@ bool Engine::run()
                 // Acquire execution mutex
                 mExecMutex.lock();
 
-                if (mState != ENG_HALT) {
+                if (mState != ENG_HALT && mState != ENG_BRK_DET) {
 
                     // Remember the return address for a potential JSR instruction
                     mCPURetAdr = mMicroprocessor->getPC() + 3;
@@ -327,8 +327,10 @@ void Engine::checkForBreakPoint()
     uint8_t read_data, written_data;
     bool read_adr_triggered = mMicroprocessor->readAdr(read_data) == mBreakAdr;
     bool written_adr_triggered = mMicroprocessor->writtenAdr(written_data) == mBreakAdr;
-    uint16_t opcode_adr_triggered = mMicroprocessor->getPC() == mBreakAdr;
+    bool opcode_adr_triggered = mMicroprocessor->getPC() == mBreakAdr;
     bool was_JSR = mMicroprocessor->getOpcode() == P6502_JSR_OPCODE;
+    if (_BRK_WAIT(mState) && mBreakWindowEnabled)
+        updateLogWindow();
     if (
         mState == ENG_X_BRK_WAIT && opcode_adr_triggered
         ) {
@@ -519,8 +521,9 @@ bool Engine::step(int n, bool step_over)
     return true;
 }
 
-bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t& readData, uint8_t& writtenData, uint16_t& operandAddress, bool repetition)
+bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t& readData, uint8_t& writtenData, uint16_t& operandAddress, bool repetition, bool enableTrace)
 {
+    mBreakWindowEnabled = enableTrace;
     mBreakPoint = true;
     mBreakPointMode = mode;
     mBreakAdr = (int)adr;
@@ -600,11 +603,62 @@ bool Engine::clrBreakPoint()
     return true;
 }
 
+bool Engine::enableLogWindow(int sz)
+{
+    if (sz > 0 && sz < ENGINE_BUF_WINDOW_SZ) {
+        clrLogWindow();
+        mInstrLogBuffer.resize(sz);
+        mBufWinSz = sz;
+        mBreakWindowEnabled = true;
+        return true;
+    }
+    return false;
+}
+
+void Engine::disableLogWindow()
+{
+    clrLogWindow();
+    mBreakWindowEnabled = false;
+}
+
+void Engine::clrLogWindow()
+{
+    mBufferInstrSize = 0;
+    mBufWindowReadIndex = 0;
+    mBufWindowReadIndex = mBufWindowWriteIndex = mBufferInstrSize = 0;
+}
+
+void Engine::updateLogWindow()
+{
+    // Get instruction
+    InstrLogData instr_log_data;
+    mMicroprocessor->getInstrLogData(instr_log_data);
+
+    // Update circular buffer
+    mInstrBufferWindow[mBufWindowWriteIndex] = instr_log_data;
+    if (mBufWindowWriteIndex == mBufWindowReadIndex)
+        mBufWindowReadIndex = (mBufWindowReadIndex + 1) % mBufWinSz;
+    mBufWindowWriteIndex = (mBufWindowWriteIndex + 1) % mBufWinSz;
+    if (mBufferInstrSize < mBufWinSz)
+        mBufferInstrSize++;
+}
+
 void Engine::logInstr()
 {
     InstrLogData instr_log_data;
     mMicroprocessor->getInstrLogData(instr_log_data);
     mInstrLogBuffer.push_back(instr_log_data);
+}
+
+void Engine::printInstrWindow(ostream& sout)
+{
+    int read_pos = mBufWindowReadIndex;
+    for (int i = 0; i < mBufferInstrSize; i++) {
+        mMicroprocessor->printInstrLogData(sout, mInstrBufferWindow[read_pos]);
+        read_pos = (read_pos + 1) % mBufWinSz;
+        cout << "\n";
+    }
+    clrLogWindow();
 }
 
 void Engine::printInstrLog(ostream& sout)
