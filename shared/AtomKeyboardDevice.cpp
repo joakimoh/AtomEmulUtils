@@ -8,6 +8,61 @@
 using namespace std;
 
 
+
+//
+// Emulates an Acorn Atom Keyboard (that in the Atom is connected to the PIA 8255).
+// 
+// It emulates IC26 (7445) and the keyboard matrix with the pull ups to 5V
+// and the (at keypress) pull downs to 0V.
+// 
+// CIRCUIT REFERENCE (Acorn Atom)
+// 
+// The BCD-to-Decimal Decoder is controlled by the PIA's PA0:3 pins
+// and will select a row. The selected row will be LOW and all other
+// rows will be HIGH.
+// 
+// A Column is HIGH unless driven LOW by the related PIA's output pin
+// 
+// The PIA connected to the Keyboard in the Atom is located at addresses
+// 0xb000 to 0xb003. The ROW is selected by the PIA by writing to Port A at address 0xb000,
+// bits b3:b0 and the value of the columms - COL_L + COL_H are read by
+// reading from PIA port B, bits b0:b7 at address 0xb001. The REPEAT key is read by
+// reading from PIA port C at address 0xb002, bit b7. The BREAK key should be connected to
+// the RESET input pins of devices (including the PIA).
+// 
+// |		             IC25 PIA 8255 (not part of emulation)               |
+// |                                                                         |
+// |   PA0:3      PB0   PB1   PB2   PB3   PB4   PB5   PB6   PB7   PC6  RESET |
+// |_________________________________________________________________________|
+//      |          |     |     |     |     |     |     |     |     |     |
+//    "ROW"       .........."COL_L"...........................     "COL_H"     <= Keyboard Interface
+// _____|_____     |     |     |     |     |     |     |     |     |     |
+// |          |    |     |     |     |     |     |     |     |     |     |
+// |        0 +----+----"3"---"-"---"G"---"Q"--"ESC    |     |     |     |
+// |          |    |     |     |     |     |     |     |     |     |     |
+// |        1 +----+----"2"---","---"F"---"P"---"Z"    |     |     |     |
+// |          |    |     |     |     |     |     |     |     |     |     |
+// |        2 +---"HZ"--"1"---";"---"E"---"O"---"Y"    |     |     |     |
+// |   IC26   |    |     |     |     |     |     |     |     |     |     |
+// |        3 +---"VT"--"0"---":"---"D"---"N"---"X"    |     |     |     |
+// |          |    |     |     |     |     |     |     |     |     |     |
+// |  7445  4 +--"LOCK"-"DEL"-"9"---"C"---"M"---"W"    |     |     |    BRK
+// |          |    |     |     |     |     |     |     |     |     |   / |
+// |   BCD  5 +--"UP"--"COPY"-"8"---"B"---"L"---"V"    |     |     |  0V |
+// |    to    |    |     |     |     |     |     |     |     |     |     |
+// |   Dec  6 +---"]"--"RET"--"7"---"A"---"K"---"U"    |     |     |     |
+// |          |    |     |     |     |     |     |     |     |    RPT
+// |        7 +---"\"----+----"6"---"@"---"J"---"T"    |     |   / |     |
+// |          |    |     |     |     |     |     |     |     |  0V |     |
+// |        8 +---"["----+----"5"---"/"---"I"---"S"    |     |     |     |    
+// |          |    |     |     |     |     |     |     |     |     |     |
+// |        9 +---" "----+----"4"---"."---"H"---"R"    |     |     |     |
+// |          |   /|    /|    /|    /|    /|    /|    CTRL   |     |     |
+// |__________| 0V |  0V |  0V |  0V |  0V |  0V |   / |   SHIFT   |     |
+//                 |     |     |     |     |     |  0V |   / |     |     |
+//                 |     |     |     |     |     |     |  0V |     |     |
+//                5V    5V    5V    5V    5V    5V    5V    5V    5V    5V
+
 AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager) :
 	KeyboardDevice(name, ATOM_KB_DEV, cpuClock, debugManager, connectionManager)
 {
@@ -39,13 +94,21 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugManage
 	}
 
 	al_get_keyboard_state(&mKeyboardState);
+
+	// Make sure Keyboard refresh rate always is 60 Hz (or less)
+	mKeyboardRefreshCycles = max(1, (int)round(cpuClock * 1e6 * mEmulationSpeed / 60));
 }
 
 
 bool AtomKeyboardDevice::advanceUntil(uint64_t stopCycle)
 {
 	mCnt += stopCycle - mCycleCount;
+
+	// Don't update keyboard state too often as it creates a lot of load...
+	int next_refresh_cycle = mCycleCount + mKeyboardRefreshCycles;
 	mCycleCount = stopCycle;
+	if (stopCycle > next_refresh_cycle)
+		return true;
 
 	al_get_keyboard_state(&mKeyboardState);
 
@@ -93,6 +156,14 @@ bool AtomKeyboardDevice::advanceUntil(uint64_t stopCycle)
 	return true;
 }
 
+// Handle input port changes directly on change
+void AtomKeyboardDevice::processPortUpdate(int index)
+{
+	if (index == KB_ROW) {
+		advanceUntil(mCycleCount);
+	}
+}
+
 // Outputs the internal state of the device
 bool AtomKeyboardDevice::outputState(ostream& sout)
 {
@@ -100,4 +171,15 @@ bool AtomKeyboardDevice::outputState(ostream& sout)
 	sout << "COL_H = " << (int)KB_COL_H << "\n";
 
 	return true;
+}
+
+// Set emulation speed
+void AtomKeyboardDevice::setEmulationSpeed(double speed)
+{
+	KeyboardDevice::setEmulationSpeed(speed);
+
+	// Make sure Keyboard refresh rate always is 60 Hz (or less)
+	mKeyboardRefreshCycles = max(1, (int)round(mCPUClock * 1e6 * mEmulationSpeed / 60));
+
+	cout << "mKeyboardRefreshCycles = " << mKeyboardRefreshCycles << "\n";
 }

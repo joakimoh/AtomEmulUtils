@@ -93,7 +93,7 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
         mapFileName,
         mCPUClock,            // CPU Clock frequency in MHz
         mDisplay,
-        mDM, program, data, mConnectionManager, mMicroprocessor, mVDU, mSoundDevice,
+        mDM, program, data, mConnectionManager, mMicroprocessor, mVDU, mSoundDevice, mDevices,
         mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices, mKeyboardDevice,
         mSpeedFactor, mLowEmulationRate, mHighEmulationRate
     );
@@ -385,13 +385,11 @@ void Engine::checkForSpeedChange()
         mTimerRateInt = (int)round(mTimerRate);
         al_set_timer_speed(mEmulationTimer, 1.0 / mTimerRate);
         al_start_timer(mEmulationTimer);
-        if (mSoundDevice != NULL)
-            mSoundDevice->setEmulationSpeed(mSpeedFactor);
-        if (mVDU != NULL) {
-            mVDU->setEmulationSpeed(mSpeedFactor);
+        for (int i = 0; i < mDevices.size(); i++)
+            mDevices[i]->setEmulationSpeed(mSpeedFactor);
+        if (mVDU != NULL)
             mGUI->setScreenRefreshRate(mVDU->getRefreshRate());
-        }
-        
+       
     }
     pSpeedFactor = mSpeedFactor;
 }

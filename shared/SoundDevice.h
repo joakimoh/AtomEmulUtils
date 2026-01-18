@@ -20,7 +20,6 @@ protected:
 	double mHighEmulationRate = mBaseHighEmulationRate;
 	int mSampleRate = 32000;			// sample rate for real-time emulation
 	int mBaseSampleRate = 32000;
-	double mEmulationSpeed = 1.0;
 
 
 
@@ -31,8 +30,8 @@ public:
 		DebugManager  *debugManager, ConnectionManager* connectionManager
 	);
 
-	virtual void setEmulationSpeed(double baseEmulationRate, double subEmulationRate, double speed);
-	virtual void setEmulationSpeed(double speed);
+	virtual void setInitialEmulationSpeed(double baseEmulationRate, double subEmulationRate, double speed);
+	virtual void setEmulationSpeed(double speed) override;
 
 };
 

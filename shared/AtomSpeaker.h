@@ -37,7 +37,7 @@ public:
 
 	bool advanceUntil(uint64_t stopCycle);
 
-	void setEmulationSpeed(double speed);
+	void setEmulationSpeed(double speed) override;
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

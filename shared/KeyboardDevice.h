@@ -20,6 +20,9 @@ public:
 
 	KeyboardDevice(string name, DeviceId typ, double cpuClock, DebugManager* debugManager, ConnectionManager* connectionManager);
 
+	// Set emulation speed
+	void setEmulationSpeed(double speed) override;
+
 };
 
 #endif

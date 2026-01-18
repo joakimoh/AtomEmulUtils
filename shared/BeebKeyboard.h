@@ -4,9 +4,64 @@
 #include <vector>
 #include <map>
 #include "Device.h"
+#include "ClockedDevice.h"
 #include <allegro5/allegro5.h>
 #include "DebugManager.h"
 #include "KeyboardDevice.h"
+
+//
+// 
+// Emulates a BBC Nicro Keyboard.
+// 
+// The emulation uses the interface tke Keyboard exposes towards the VIA 6522 circuit (and the RESET line).
+// 
+// SCHEDULING
+// 
+// The Keyboard device can be schedulated at low rate (typically 50 Hz)
+// using the SCHED directive
+// 
+// 
+// PORTS
+// 
+// The Keyboard presents a port interface consisting of five input ports (ENA, ROW_SEL and COL_SEL) and
+// three output ports (BREAK, ROW and PRESSED).
+//
+// 
+// PORT CONNECTIONS
+// 
+// The COL_SEL and ROW_SEL input ports shall be connected to using the directive "CONNECT:P"
+// to ensure that the device is triggered immediately on changes to the these ports. The ENA input
+// can be connected with just "CONNECT" as changes to it don't require immediate action. The ROW and PRESSED
+// outputs shall be connceted to a device that can read these ports (typically a VIA 6522) whereas
+// the BREAK output usually is connected to the RESET input pin of all devices that can be reset
+// (including the microprocessor).
+// 
+// 
+// FUNCTIONAL DESCRIPTION
+// 
+// The Keyboard has two modes of operation:
+// 
+// 1) No scan - Key at a certain row and column is explictly selected and the ROW output will give its value (LOW if pressed)
+// 2) Auto scan - the columns are scanned repeatedly and the PRESSED output will go high if any key is pressed
+//    (except for the keys and switches on row one)
+// 
+//
+// 
+// KEYBOARD MATRIX
+//      
+//      COLUMN
+// ROW  0          1          2          3          4          5          6          7          8          9
+// ===  ========= =========== ========== ========== ========== ========== ========== ========== ========== ===========
+// 7	ESC        F1         F2         F3         F5         F6         F8         F9         \|         RIGHT ARROW
+// 6    TAB        Z         SPACE       V          B          M          <,         >.         ?/         COPY
+// 5    SHIFT LOCK S          C          G          H          N          L          +;         }]         DELETE
+// 4    CAPS LOCK  A          X          F          Y          J          K          @          #:         RETURN
+// 3    1          2          D          R          6          U          O          P          {[         UP ARROW
+// 2    F0         W          E          T          7          1          9          0          -£         DOWN ARROW
+// 1    Q          3          4          5          F4         8          F7         =-         ~^         LEFT ARROW
+// 0    SHIFT      CTRL       Link 1     Link 2     Link 3     Link 4     Link 5     Link 6     Link 7     Link 8     
+//
+
 
 
 typedef struct Key_struct {
@@ -14,9 +69,11 @@ typedef struct Key_struct {
 	string	keyName; // e.g, "COPY", "ESC" and "A"
 }  Key;
 
-class BeebKeyboard : public KeyboardDevice {
+class BeebKeyboard : public KeyboardDevice, ClockedDevice {
 
 private:
+
+	int mKeyboardRefreshCycles = 1;
 
 	vector<vector<Key>> mKeyboardMatrix = {
 		{
@@ -141,20 +198,7 @@ private:
 		(0 << 2) ||	// Link 6 Screen mode				7			b2		+4							+0
 		(0 << 1) || // Link 7 Screen mode				8			b1		+2							+0
 		(0 << 0);	// Link 8 Screen mode				9			b0		+1							+0
-/*
-	uint8_t mSWlink[8] = {
-		//									column		bit		LOW (OFF)					HIGH (ON)
-		0,	// Link 1 Default filing system		2		b7		DFS							NFS
-		0,	// Link 2 Not used					3		b6
-		0,	// Link 3 Disc drive timings		4		b5
-		0,	// Link 4 Disc drive timings		5		b4
-		0,	// Link 5 Boot						6		b3		SHIFT - BREAK to boot		BREAK to boot
-		1,	// Link 6 Screen mode				7		b2		+4							+0
-		1,	// Link 7 Screen mode				8		b1		+2							+0
-		1	// Link 8 Screen mode				9		b0		+1							+0
-	};
-*/
-	//inline bool linkSet(uint8_t col) { return col >= 2 && col <= 9 && mSWlink[col-2] != 0; }
+
 	inline bool linkSet(uint8_t col) { return col >= 2 && col <= 9 && (mSW & (1 << (7-(col -2)))) != 0;}
 
 	uint8_t mColCounter = 0;
@@ -166,9 +210,16 @@ private:
 	//
 	bool autoScan();
 
+	// Scans the next column
+	bool scanNextColumn();
+
+
+	// Scan a whole column and set the PRESSED output if any key was pressed in the column
+	bool scanColumn(int col);
+
 public:
 
-	BeebKeyboard(string name, double cpuClock, uint8_t startupOptions, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	BeebKeyboard(string name, double cpuClock, double deviceClock, uint8_t startupOptions, DebugManager  *debugManager, ConnectionManager* connectionManager);
 
 	// Device power on
 	bool power() { mCycleCount = 0; return true; }
@@ -180,6 +231,9 @@ public:
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;
+
+	// Set emulation speed
+	void setEmulationSpeed(double speed) override;
 
 };
 

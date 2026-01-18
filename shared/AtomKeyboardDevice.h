@@ -3,10 +3,65 @@
 
 #include <vector>
 #include <map>
+#include "ClockedDevice.h"
 #include "Device.h"
 #include <allegro5/allegro5.h>
 #include "DebugManager.h"
 #include "KeyboardDevice.h"
+
+//
+// 
+// Emulates an Acorn Atom Keyboard.
+// 
+// 
+// SCHEDULING
+// 
+// The Keyboard device can be schedulated at low rate (typically 60 Hz)
+// using the SCHED directive
+// 
+// 
+// PORTS
+// 
+// The Keyboard presents a port interface consisting of one
+// input port (ROW) and two output ports (COL_L & COL_H).
+// 
+// 
+// PORT CONNECTIONS
+// 
+// The ROW input port shall be connected to using the directive "CONNECT:P"
+// to ensure that the device is triggered immediately on changes to the ROW
+// input port. The COL_L and COL_H output ports shall be connected to a device
+// that can read these ports (typically a PIA 8255).
+// 
+// 
+// FUNCTIONAL DESCRIPTION
+// 
+// To detect a key, the ROW input shall first select a row in the keyboard matrix.
+// Then the key columns in which a key is being pressed can be determined
+// by reading the COL_L and COL_H outputs. A cleared bit means that a key
+// in the associated column is being pressed, a set bit that no key in the associated
+// column is being pressed.
+// 
+// KEYBOARD MATRIX
+// 
+//		COLUMN
+//      COL_L                                           COL_H
+//      b0    b1    b2    b3    b4    b5    b6    b7    b0   b1
+//      ============================================    ==========
+// ROW  0     1     2     3     4     5     6     7     8     9
+// 0	NC    3     -     G     Q    ESC  CTRL  SHIFT REPEAT BREAK
+// 1    NC    2     ,     F     P     Z
+// 2    HZ    1     ;     E     O     Y
+// 3    VT    0     :     D     N     X
+// 4   LOCK  DEL    9     C     M     W
+// 5    UP   COPY   8     B     L     V
+// 6    ]    RET    7     A     K     U
+// 7    \    NC     6     @     J     T
+// 8    [    NC     5     /     I     S
+// 9  SPACE  NC     4     .     H     R
+// 
+// 
+
 
 
 typedef struct AtomKey_struct {
@@ -134,6 +189,8 @@ private:
 	double mKBCnt = 0;
 	int mCnt = 0;
 
+	int mKeyboardRefreshCycles = 1;
+
 public:
 
 	AtomKeyboardDevice(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager);
@@ -145,8 +202,14 @@ public:
 	//  Advance until clock cycle stopcycle has been reached
 	bool advanceUntil(uint64_t stopCycle);
 
+	// Handle input port changes directly on change
+	void processPortUpdate(int index) override;
+
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;
+
+	// Set emulation speed
+	void setEmulationSpeed(double speed) override;
 
 };
 

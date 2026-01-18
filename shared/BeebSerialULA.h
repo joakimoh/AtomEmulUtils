@@ -13,8 +13,6 @@ class BeebSerialULA : public MemoryMappedDevice {
 
 private:
 
-	double mClock = 1.0;
-
 	long mTapeStartCount = -1;
 	long mTapeCount = 0;
 	bool mLowToneDetected = false;

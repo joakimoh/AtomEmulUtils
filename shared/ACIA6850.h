@@ -4,17 +4,16 @@
 #include <cstdint>
 #include <string>
 #include "MemoryMappedDevice.h"
+#include "ClockedDevice.h"
 
 using namespace std;
 
 
-class ACIA6850 : public MemoryMappedDevice {
+class ACIA6850 : public MemoryMappedDevice, ClockedDevice {
 
 public:
 	bool mDataStart = false; // for debugging only
 private:
-
-	double mClock = 1.0;
 
 	bool mPowerOn = true;
 

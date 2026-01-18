@@ -4,7 +4,8 @@
 
 ACIA6850::ACIA6850(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugManager  *debugManager,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager) :
-	MemoryMappedDevice(name, ACIA6850_DEV, PERIPHERAL, cpuClock, waitStates, adr, 0x08, debugManager, connectionManager, deviceManager), mClock(clock)
+	MemoryMappedDevice(name, ACIA6850_DEV, PERIPHERAL, cpuClock, waitStates, adr, 0x08, debugManager, connectionManager, deviceManager),
+	ClockedDevice(cpuClock, clock)
 {	registerPort("RxD",		IN_PORT,	0x1,	RxD,	&mRxD); 	registerPort("CTS",		IN_PORT,	0x1,	CTS,	&mCTS); 	registerPort("DCD",		IN_PORT,	0x1,	DCD,	&mDCD);	registerPort("TxD",		OUT_PORT,	0x1,	TxD,	&mTxD);	registerPort("RTS",		OUT_PORT,	0x1,	RTS,	&mRTS);	registerPort("IRQ",		OUT_PORT,	0x1,	IRQ,	&mIRQ);
 }
 

@@ -1,6 +1,10 @@
 CLOCK	2.0	// CPU clock in MHz
 VIDEO	PAL	// Video Format
 
+// Emulation rates
+EMU_LOW_RATE	50		// PAL Field Rate
+EMU_HIGH_RATE	31250	// From the duration of a 1/2 scan line for PAL (32us)
+
 //	Device			Name		Addr	Size	Wait		Misc		Comment
 //												States		
 //												[CPU Cycles]
@@ -113,7 +117,7 @@ CONNECT 	SYS_VIA:IRQ				CPU:IRQ			// VIA generates 100 Hz timer interrupts and m
 CONNECT		USER_VIA:IRQ			CPU:IRQ			// User-define usage (i.e.not used by the BBC MOS)
 
 // Keyboard connections
-CONNECT:P	VIAL:Q;3				KB:ENA			// Connect System VIA Latch Q3 (value set by writing to System VIA Port B) to KB ENA
+CONNECT		VIAL:Q;3				KB:ENA			// Connect System VIA Latch Q3 (value set by writing to System VIA Port B) to KB ENA
 CONNECT:P 	SYS_VIA:PA;3;0			KB:COL_SEL		// PA3:0 => COL_SEL
 CONNECT:P 	SYS_VIA:PA;6;4			KB:ROW_SEL		// PA6:4 => ROW_SEL
 CONNECT 	KB:ROW					SYS_VIA:PA;7	// ROW => PA7
@@ -155,6 +159,4 @@ INIT	KB:SW			0									// Keyboard switches; set to start with Mode 7 (value 0)
 INIT	VDU:INV			1									// Inverted screen for non-teletext modes OFF (value 1) or ON (value 0)
 INIT	SYS_VIA:PB;5;4	3									// Set System VIA PB5:PB4 High (as they should be when not connected to a game pad)
 
-// Emulation rates
-EMU_LOW_RATE	50		// PAL Field Rate
-EMU_HIGH_RATE	31250	// From the duration of a 1/2 scan line for PAL (32us)
+

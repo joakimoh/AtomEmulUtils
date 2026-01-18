@@ -99,7 +99,7 @@ public:
 		DebugManager* debugManager, ConnectionManager* connectionManager);
 	~TI4689();
 
-	void setEmulationSpeed(double speed);
+	void setEmulationSpeed(double speed) override;
 
 	// Advance until clock cycle stopcycle has been reached
 	bool advanceUntil(uint64_t stopCycle);

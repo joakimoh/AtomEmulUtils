@@ -4,16 +4,15 @@
 #include <cstdint>
 #include <string>
 #include "MemoryMappedDevice.h"
+#include "ClockedDevice.h"
 #include <cmath>
 
 using namespace std;
 
 
-class VIA6522 : public MemoryMappedDevice {
+class VIA6522 : public MemoryMappedDevice, ClockedDevice {
 
 private:
-
-	int mCPUCyclesPerPhi2Cycle = 1;
 
 	// Ports that can be connected to other devices
 	uint8_t mIRQ = 0x1;
@@ -158,8 +157,6 @@ private:
 
 	uint8_t pPCR = mPCR;
 	uint8_t pACR = mACR;
-
-	double mClock = 1.0;
 
 	void updateIRQ();
 	void clearIFR(uint8_t mask);

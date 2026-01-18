@@ -80,7 +80,7 @@ string DeviceManager::getFileName(string& path, stringstream& sin)
 
 DeviceManager::DeviceManager(
 	string memMapFile, double& cpuClock, Display* display, DebugManager* debugManager,
-	Program program, Program data, ConnectionManager* mCM, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device,
+	Program program, Program data, ConnectionManager* mCM, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device, vector<Device*>& allDevices,
 	vector<Device*>& baseRateScheduledDevices, vector<Device*>& subRateScheduledDevices, vector<Device*>& instructionRateScheduledDevices,
 	KeyboardDevice*& keyboardDevice, double speed, double& baseSchedulingRate, double& subSchedulingRate
 ) : mDM(debugManager), mCM(mCM), mDisplay(display)
@@ -146,7 +146,7 @@ DeviceManager::DeviceManager(
 				else if (dev_type == "BEEBKB") {
 
 					uint8_t startup_options = getHexVal(sin) & 0xff;
-					BeebKeyboard* kb = new BeebKeyboard(dev_name, cpuClock, startup_options, mDM, mCM);
+					BeebKeyboard* kb = new BeebKeyboard(dev_name, cpuClock, 1.0, startup_options, mDM, mCM);
 					mDevices.push_back(kb);
 					keyboardDevice = kb;
 
@@ -508,9 +508,13 @@ DeviceManager::DeviceManager(
 			}
 			else if (cmd == "EMU_LOW_RATE") {
 				sin >> baseSchedulingRate;
+				if (mDevices.size() > 0)
+					throw runtime_error("EMU_LOW_RATE statement must come before adding any devices!");
 			}
 			else if (cmd == "EMU_HIGH_RATE") {
 				sin >> subSchedulingRate;
+				if (mDevices.size() > 0)
+					throw runtime_error("EMU_HIGH_RATE statement must come before adding any devices!");
 			}
 			else if (cmd == "VIDEO") {
 				string video_fmt_s;
@@ -608,6 +612,7 @@ DeviceManager::DeviceManager(
 	// Also power on (reset) each device and propagate its ports' values to connected devices
 	for (int i = 0; i < mDevices.size(); i++) {
 		Device* d = mDevices[i];
+		allDevices.push_back(d);
 		d->power();
 		d->updatePorts();
 		if (d->category == MICROROCESSOR_DEVICE || d->category == MEMORY_DEVICE) {
@@ -643,9 +648,6 @@ DeviceManager::DeviceManager(
 
 	if (DBG_LEVEL(DBG_VERBOSE))
 		mCM->printRouting();
-
-	if (sound_device != NULL)
-		sound_device->setEmulationSpeed(baseSchedulingRate, subSchedulingRate, speed);
 
 	if (mDM->debugLevelIs(DBG_VERBOSE))
 		printMemoryMap();

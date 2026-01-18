@@ -13,3 +13,9 @@ KeyboardDevice::KeyboardDevice(string name, DeviceId typ, double cpuClock, Debug
 {
 	al_get_keyboard_state(&mKeyboardState);
 }
+
+// Set emulation speed
+void KeyboardDevice::setEmulationSpeed(double speed)
+{
+	Device::setEmulationSpeed(speed);
+}

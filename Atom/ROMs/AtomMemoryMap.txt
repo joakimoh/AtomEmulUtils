@@ -1,6 +1,10 @@
 CLOCK 1.0	// CPU Clock in MHz
 VIDEO	NTSC	// Video Format
 
+// Emulation rates
+EMU_LOW_RATE		60		// NTSC Field Rate
+EMU_HIGH_RATE		31250	// From the duration of a 1/2 scan line for NTSC (32us)
+
 //
 //	Device instances
 //
@@ -61,7 +65,7 @@ CONNECT:P	PIA:PortA;7;5	VDU:GM
 // ATOMKB <=> PIA Connections
 CONNECT ATOMKB:COL_L	PIA:PortB	// non-modifiers keys + SHIFT + CTRL
 CONNECT ATOMKB:COL_H;0	PIA:PortC;6	// REPEAT key
-CONNECT PIA:PortA;3;0	ATOMKB:ROW
+CONNECT:P PIA:PortA;3;0	ATOMKB:ROW
 
 // ATOMKB BREAK key <=> device RESET Connections
 CONNECT ATOMKB:COL_H;1	UC:RESET	// BREAK key => RESET of microcontroller
@@ -94,11 +98,6 @@ CONNECT	PIA:PortC;2		SPEAKER:OUT
 //
 // SCHEDULING IS ONE OF LOW_RATE, HIGH_RATE, INSTR_RATE, NONE
 //
-TRIGGER	ATOMKB	MEM	PIA		READ	b001	// Acorn Atom polls keyboard by reading from PIA Port B
-TRIGGER ATOMKB	MEM	KERNEL	READ	fffc	// Trigger keyboard when uC in RESET (for BREAK key release)
-SCHED	ATOMKB	HIGH_RATE
+SCHED	ATOMKB	LOW_RATE
 SCHED	SPEAKER	HIGH_RATE
 
-// Emulation rates
-EMU_LOW_RATE		60		// NTSC Field Rate
-EMU_HIGH_RATE		31250	// From the duration of a 1/2 scan line for NTSC (32us)

@@ -8,15 +8,9 @@
 //
 // This is an emulation of a BBC Micro Keyboard
 // 
-// The emulation uses the interface tke Keyboard exposes towards the VIA 6522 circuit (and the RESET line).
+// CIRCUIT REFERENCE (BBC Micro)
 // 
-// The Keyboard has two modes of operation:
-// 
-// 1) No scan - Key at a certain row and column is explictly selected and the ROW output will give its value (LOW if pressed)
-// 2) Auto scan - the columns are scanned repeatedly and the PRESSED output will go high if any key is pressed (except for the keys and switches on row one)
-// 
-// 
-// Connector pins	Direction		Name	Connected to					Active level				Description
+// Connector pins	Direction		Port	VIA Connections					Active level				Description
 // PL4				IN				ENA		PB2:0 as BCD 3;PB3 has val		Low (load), High (count)	Enables column scanning counter
 //																										Counts upwards from COL_SEL
 // PL5:7			IN				ROW_SEL	PA4:6							BCD							Selected keyboard row (0-7)
@@ -26,9 +20,9 @@
 // PL14				OUT				PRESSED	CA2								High						Indicates if any key is pressed (auto scanning mode)
 // PL16				IN				LED1	PB2:0 as BDC 7;PB3 has val		Low							SHIFT Lock LED
 // PL17				IN				LED2	PB2:0 as BDC 6;PB3 has val		Low							CAPS Lock LED
-//
-BeebKeyboard::BeebKeyboard(string name, double cpuClock, uint8_t startupOptions, DebugManager  *debugManager, ConnectionManager* connectionManager):
-	KeyboardDevice(name, BEEB_KEYBOARD_DEV, cpuClock, debugManager, connectionManager)
+// 
+BeebKeyboard::BeebKeyboard(string name, double cpuClock, double deviceClock, uint8_t startupOptions, DebugManager  *debugManager, ConnectionManager* connectionManager):
+	KeyboardDevice(name, BEEB_KEYBOARD_DEV, cpuClock, debugManager, connectionManager), ClockedDevice(cpuClock, deviceClock)
 {
 	// Specify ports that can be connected to other devices	
 	registerPort("SW",			IN_PORT,	0xf, SW,		&mSW);
@@ -38,6 +32,10 @@ BeebKeyboard::BeebKeyboard(string name, double cpuClock, uint8_t startupOptions,
 	registerPort("ROW",			OUT_PORT,	0x1, ROW,		&mROW);
 	registerPort("BREAK",		OUT_PORT,	0x1, BREAK,		&mBREAK);
 	registerPort("PRESSED",		OUT_PORT,	0x1, PRESSED,	&mPRESSED);
+
+	// Make sure Keyboard refresh rate always is 50 Hz (or less)
+	mKeyboardRefreshCycles = max(1, (int) round(cpuClock * 1e6 * mEmulationSpeed/ 50));
+
 }
 
 
@@ -105,18 +103,17 @@ void BeebKeyboard::processPortUpdate(int index)
 			updatePort(ROW, 0x0);
 	}
 
-	else if (index == ENA) {
-
-		//al_get_keyboard_state(&mKeyboardState);
-		//autoScan();
-	}
-
 }
 
 //  Advance until clock cycle stopcycle has been reached
 bool BeebKeyboard::advanceUntil(uint64_t stopCycle)
 {
+
+	// Don't update keyboard state too often as it creates a lot of load...
+	int next_refresh_cycle = mCycleCount + mKeyboardRefreshCycles;
 	mCycleCount = stopCycle;
+	if (stopCycle > next_refresh_cycle)
+		return true;
 
 	al_get_keyboard_state(&mKeyboardState);
 
@@ -129,9 +126,47 @@ bool BeebKeyboard::advanceUntil(uint64_t stopCycle)
 		DBG_LOG_COND(mBREAK == 0, this, DBG_RESET, "BREAK key released\n");
 		updatePort(BREAK, 0x1);
 	}
+	
 
 	autoScan();
 	
+	return true;
+}
+
+
+
+// Scans the next column
+bool BeebKeyboard::scanNextColumn()
+{
+	if (mENA && mCycleCount % mCpuCyclesPerDeviceCycle == 0) {
+		mCOL_SEL = (mCOL_SEL + 1) % 10;
+		return scanColumn(mCOL_SEL);
+	}
+	return false;
+}
+
+// Scan a whole column and set the PRESSED output if any key was pressed in the column
+bool BeebKeyboard::scanColumn(int col)
+{
+	bool column_key_pressed = false;
+
+	for (int row = 1; row <= 7; row++) {
+		Key& key = mKeyboardMatrix[row][col];
+		if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
+			column_key_pressed = true;
+			DBG_LOG(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!");
+			break;
+		}
+	}
+
+	return column_key_pressed;
+}
+
+// Outputs the internal state of the device
+bool BeebKeyboard::outputState(ostream& sout)
+{
+	sout << "PRESSED =    " << (int) mPRESSED << "\n";
+	sout << "BREAK =      " << (int) mBREAK << "\n";
 	return true;
 }
 
@@ -146,16 +181,10 @@ bool BeebKeyboard::autoScan()
 
 	// Auto scanning of keyboard - keys in all columns are checked
 	if (mENA) {
-		for (int row = 1; row <= 7; row++) {
-			for (int col = 0; col <= 9; col++) {
-				Key& key = mKeyboardMatrix[row][col];
-				if (key.keyCode != -1 && al_key_down(&mKeyboardState, key.keyCode)) {
-					column_key_pressed = true;
-					DBG_LOG(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!");
-					//					if (key.keyName == "B")
-					//						mDM->setDebugLevel(DBG_INTERRUPTS | DBG_KEYBOARD | DBG_IO_PERIPHERAL | DBG_PORT | DBG_6502);
-					break;
-				}
+		for (int col = 0; col <= 9; col++) {
+			if (scanColumn(col)) {
+				column_key_pressed = true;
+				break;
 			}
 		}
 	}
@@ -180,10 +209,11 @@ bool BeebKeyboard::autoScan()
 	return column_key_pressed;
 }
 
-// Outputs the internal state of the device
-bool BeebKeyboard::outputState(ostream& sout)
+// Set emulation speed
+void BeebKeyboard::setEmulationSpeed(double speed)
 {
-	sout << "PRESSED =    " << (int) mPRESSED << "\n";
-	sout << "BREAK =      " << (int) mBREAK << "\n";
-	return true;
+	KeyboardDevice::setEmulationSpeed(speed);
+
+	// Make sure Keyboard refresh rate always is 50 Hz (or less)
+	mKeyboardRefreshCycles = max(1, (int)round(mCPUClock * 1e6 * mEmulationSpeed / 50));
 }

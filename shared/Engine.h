@@ -79,6 +79,7 @@ private:
 	VideoDisplayUnit* mVDU = NULL;
 	SoundDevice* mSoundDevice = NULL;
 	vector<Device*> mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices;
+	vector<Device*> mDevices;
 	P6502* mMicroprocessor = NULL;
 	double mCPUClock = 1.0;
 

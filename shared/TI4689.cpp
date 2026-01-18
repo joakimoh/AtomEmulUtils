@@ -34,7 +34,7 @@ void TI4689::setEmulationSpeed(double speed)
 	mSamplesPerFragment = (int)round(1.0 * mSampleRate / mLowEmulationRate); // one emulation base cycle of audio
 	mCpuCyclesPerSample = (int)round(1e6 * mCPUClock / mBaseSampleRate);
 	mNFragments = 4;
-	
+
 
 	if (DBG_LEVEL_DEV(this,DBG_VERBOSE)) {
 		DBG_LOG(this, DBG_VERBOSE, "CPU Clock:                    " + to_string(mCPUClock) + " MHz");

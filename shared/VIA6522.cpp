@@ -14,7 +14,8 @@ using namespace std;
 
 VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugManager  *debugManager, ConnectionManager* connectionManager,
 	DeviceManager *deviceManager) :
-	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL, cpuClock, waitStates, adr, 0x10, debugManager, connectionManager, deviceManager), mClock(clock)
+	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL, cpuClock, waitStates, adr, 0x10, debugManager, connectionManager, deviceManager),
+	ClockedDevice(cpuClock, clock)
 {
 
 	// Specify ports that can be connected to other devices
@@ -24,8 +25,6 @@ VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8
 	registerPort("PB", IO_PORT, 0xff, PB, &mPBIn, &mPBOut);
 	registerPort("CA", IO_PORT, 0x03, CA, &mCAIn, &mCAOut);
 	registerPort("CB", IO_PORT, 0x03, CB, &mCBIn, &mCBOut);
-
-	mCPUCyclesPerPhi2Cycle = max(1, (int)round(mCPUClock / mClock));
 
 	DBG_LOG(this, DBG_VERBOSE, "VIA 6522 at address 0x" + Utility::int2HexStr(mStartOfSpace,4) +
 		" to 0x" + Utility::int2HexStr(mStartOfSpace + mAddressSpace.getEndOfSpace(),4) + " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)\n");
@@ -451,7 +450,7 @@ bool VIA6522::advanceUntil(uint64_t stopCycle)
 
 	while (mCycleCount < stopCycle) {
 
-		if (mCycleCount % mCPUCyclesPerPhi2Cycle == 0) {
+		if (mCycleCount % mCpuCyclesPerDeviceCycle == 0) {
 
 			// Update port aliases
 			CA1_In = mCAIn & 0x1;
@@ -501,7 +500,7 @@ bool VIA6522::advanceUntil(uint64_t stopCycle)
 			updateIRQ();
 
 			// Advance one phi2 cycle		
-			mCycleCount += mCPUCyclesPerPhi2Cycle;
+			mCycleCount += mCpuCyclesPerDeviceCycle;
 
 		}
 		else
@@ -559,7 +558,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		return false;
 
 	// Advance VIA one cycle to check for transitions before read operation
-	advanceUntil(mCycleCount + mCPUCyclesPerPhi2Cycle);
+	advanceUntil(mCycleCount + mCpuCyclesPerDeviceCycle);
 
 	uint16_t a = (adr - mStartOfSpace) & 0xf;
 	switch (a) {

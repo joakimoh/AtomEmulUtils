@@ -58,7 +58,7 @@ public:
 	DeviceManager(
 		string memMapFile, double& cpuClock, Display* display, DebugManager* debugManager,
 		Program program, Program data, ConnectionManager* connectionManager, P6502*& microprocessor, VideoDisplayUnit*& vdu,
-		SoundDevice * &sound_device,
+		SoundDevice * &sound_device, vector<Device*>& allDevices,
 		vector<Device*>& baseRateScheduledDevices, vector<Device*>& subRateScheduledDevices, vector<Device*>& instructionRateScheduledDevices,
 		KeyboardDevice * &keyboardDevice, double speed,
 		double &baseSchedulingRate, double&subSchedulingRate
