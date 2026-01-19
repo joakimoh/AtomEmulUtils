@@ -32,24 +32,30 @@ private:
 	KeyboardDevice *mKeyboardDevice = NULL;
 
 public:
-	// Debugger state
+
 	enum RunState {
-		ENG_RUN =			0x00,
-		ENG_HALT =			0x01,
-		ENG_STEP =			0x10,
-		ENG_STEP_OVER =		0x11,
-		ENG_X_BRK_WAIT =	0x20,
-		ENG_R_BRK_WAIT =	0x21,
-		ENG_R_V_BRK_WAIT =	0x22,
-		ENG_W_BRK_WAIT =	0x23,
-		ENG_W_V_BRK_WAIT =	0x24,
-		ENG_RW_BRK_WAIT =	0x25,
-		ENG_RW_V_BRK_WAIT =	0x26,
-		ENG_BRK_DET =		0x30,
-		ENG_WAIT_ON_RET =	0x40,
-		ENG_TBD =			0x80 // Only used intially to indicate that the user hasn't specified an initial mode
+		ENG_TBD =			0x000,		// 0000 0000 0000	Only used intially to indicate that the user hasn't specified an initial mode
+		ENG_HALT =			0x010,		// 0000 0001 0000
+		ENG_BRK_DET =		0x300,		// 0011 0000 0000
+		ENG_RUN =			0x800,		// 1000 0000 0000
+		ENG_STEP =			0x900,		// 1001 0000 0000
+		ENG_STEP_OVER =		0x910,		// 1001 0001 0000
+		ENG_X_BRK_WAIT =	0xa00,		// 1010 0000 0000
+		ENG_R_BRK_WAIT =	0xa10,		// 1010 0001 0000
+		ENG_R_V_BRK_WAIT =	0xa51,		// 1010 0101 0001
+		ENG_W_BRK_WAIT =	0xa20,		// 1010 0010 0000
+		ENG_W_V_BRK_WAIT =	0xa61,		// 1010 0110 0001
+		ENG_RW_BRK_WAIT =	0xa30,		// 1010 0011 0000
+		ENG_RW_V_BRK_WAIT =	0xa71,		// 1010 0111 0001
+		ENG_WAIT_ON_RET =	0xc00		// 1100 0000 0000
 	};
-#define _BRK_WAIT(x) ((x & 0x20) != 0)
+#define _BRK_ANY_WAIT(x)	( x & 0x200          )	// xx1x xxxx xxxx
+#define	_BRK_R_WAIT(x)		((x & 0x250) == 0x210)	// xx1x x0x1 xxxx
+#define _BRK_W_WAIT(x)		((x & 0x260) == 0x220)	// xx1x x01x xxxx
+#define	_BRK_R_VAL_WAIT(x)	((x & 0x250) == 0x250)	// xx1x x1x1 xxxx
+#define _BRK_W_VAL_WAIT(x)	((x & 0x260) == 0x260)	// xxx1 x11x xxxx
+#define _CPU_RUNNING(x)		( x & 0x800          )	// 1xxx xxxx xxxx
+
 #define _ENGINE_STATE(x) (\
 	x==ENG_RUN?"Run":\
 	(x==ENG_HALT?"Halt":\

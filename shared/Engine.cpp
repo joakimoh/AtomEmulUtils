@@ -16,6 +16,7 @@
 #include <chrono>
 #include "KeyboardDevice.h"
 #include "Debugger.h"
+#include "Utility.h"
 using namespace std::chrono;
 
 
@@ -213,7 +214,7 @@ bool Engine::run()
 
         auto start_slow_cycle = high_resolution_clock::now();
 
-        if (mState != ENG_HALT && mState  != ENG_BRK_DET) {
+        if (_CPU_RUNNING(mState)) {
 
             checkForSpeedChange();
 
@@ -228,7 +229,7 @@ bool Engine::run()
                 // Acquire execution mutex
                 mExecMutex.lock();
 
-                if (mState != ENG_HALT && mState != ENG_BRK_DET) {
+                if (_CPU_RUNNING(mState)) {
 
                     // Remember the return address for a potential JSR instruction
                     mCPURetAdr = mMicroprocessor->getPC() + 3;
@@ -329,26 +330,20 @@ void Engine::checkForBreakPoint()
     bool written_adr_triggered = mMicroprocessor->writtenAdr(written_data) == mBreakAdr;
     bool opcode_adr_triggered = mMicroprocessor->getPC() == mBreakAdr;
     bool was_JSR = mMicroprocessor->getOpcode() == P6502_JSR_OPCODE;
-    if (_BRK_WAIT(mState) && mBreakWindowEnabled)
+
+    if (_BRK_ANY_WAIT(mState) && mBreakWindowEnabled)
         updateLogWindow();
-    if (
-        mState == ENG_X_BRK_WAIT && opcode_adr_triggered
-        ) {
+
+    if (mState == ENG_X_BRK_WAIT && opcode_adr_triggered) {
         mState = ENG_BRK_DET;
         mReadData = 0x0;
         mWrittenData = 0x0;
         mOperandAddress = 0x0;
     }
     else if (
-        read_adr_triggered && (
-            mState == ENG_R_BRK_WAIT || mState == ENG_RW_BRK_WAIT ||
-            (mState == ENG_R_V_BRK_WAIT || mState == ENG_RW_V_BRK_WAIT) && read_data == mReadData
-            ) ||
-        written_adr_triggered && (
-            mState == ENG_W_BRK_WAIT || mState == ENG_RW_BRK_WAIT ||
-            (mState == ENG_W_V_BRK_WAIT || mState == ENG_RW_V_BRK_WAIT) && written_data == mWrittenData
-            )
-        ) {
+        read_adr_triggered      && (_BRK_R_WAIT(mState) || _BRK_R_VAL_WAIT(mState) && read_data == mReadData        ) ||
+        written_adr_triggered   && (_BRK_W_WAIT(mState) || _BRK_W_VAL_WAIT(mState) && written_data == mWrittenData  )
+    ) {
         mState = ENG_BRK_DET;
         mReadData = read_data;
         mWrittenData = written_data;
@@ -527,6 +522,8 @@ bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t& readData
     mBreakPoint = true;
     mBreakPointMode = mode;
     mBreakAdr = (int)adr;
+    mWrittenData = writtenData;
+    mReadData = readData;
     mRecurringTracing = repetition;
     if (setBreakPointAndWait()) {
         readData = mReadData;
@@ -607,7 +604,7 @@ bool Engine::enableLogWindow(int sz)
 {
     if (sz > 0 && sz < ENGINE_BUF_WINDOW_SZ) {
         clrLogWindow();
-        mInstrLogBuffer.resize(sz);
+        mInstrBufferWindow.resize(sz);
         mBufWinSz = sz;
         mBreakWindowEnabled = true;
         return true;
@@ -623,8 +620,6 @@ void Engine::disableLogWindow()
 
 void Engine::clrLogWindow()
 {
-    mBufferInstrSize = 0;
-    mBufWindowReadIndex = 0;
     mBufWindowReadIndex = mBufWindowWriteIndex = mBufferInstrSize = 0;
 }
 
@@ -636,7 +631,7 @@ void Engine::updateLogWindow()
 
     // Update circular buffer
     mInstrBufferWindow[mBufWindowWriteIndex] = instr_log_data;
-    if (mBufWindowWriteIndex == mBufWindowReadIndex)
+    if (/*mBufWindowWriteIndex == mBufWindowReadIndex &&*/ mBufferInstrSize == mBufWinSz)
         mBufWindowReadIndex = (mBufWindowReadIndex + 1) % mBufWinSz;
     mBufWindowWriteIndex = (mBufWindowWriteIndex + 1) % mBufWinSz;
     if (mBufferInstrSize < mBufWinSz)
@@ -652,20 +647,29 @@ void Engine::logInstr()
 
 void Engine::printInstrWindow(ostream& sout)
 {
-    int read_pos = mBufWindowReadIndex;
-    for (int i = 0; i < mBufferInstrSize; i++) {
-        mMicroprocessor->printInstrLogData(sout, mInstrBufferWindow[read_pos]);
-        read_pos = (read_pos + 1) % mBufWinSz;
-        cout << "\n";
+    if (mBufferInstrSize > 0) {
+        int read_pos = mBufWindowReadIndex;
+        for (int i = 0; i < mBufferInstrSize; i++) {
+            mMicroprocessor->printInstrLogData(sout, mInstrBufferWindow[read_pos]);
+            read_pos = (read_pos + 1) % mBufWinSz;
+            sout << "\n";
+        }
+        clrLogWindow();
     }
-    clrLogWindow();
+    else {
+        // Always print the last executed instruction even if no window was defined
+        InstrLogData instr_log_data;
+        mMicroprocessor->getInstrLogData(instr_log_data);
+        mMicroprocessor->printInstrLogData(sout, instr_log_data);
+        sout << "\n";
+    }
 }
 
 void Engine::printInstrLog(ostream& sout)
 {
     for (int i = 0; i < mInstrLogBuffer.size(); i++) {
         mMicroprocessor->printInstrLogData(sout, mInstrLogBuffer[i]);
-        cout << "\n";
+        sout << "\n";
     }
     sout << "\n";
     mInstrLogBuffer.clear();

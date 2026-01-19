@@ -11,6 +11,7 @@
 #include "P6502.h"
 #include "ConnectionManager.h"
 #include "Device.h"
+#include "Codec6502.h"
 
 using namespace std;
 
@@ -19,6 +20,13 @@ Debugger::Debugger(P6502* cpu, GUI *gui, Engine *engine, DeviceManager* deviceMa
 {
 	if (gui == nullptr || engine == nullptr || connectionManager == nullptr || deviceManager == nullptr)
 		throw runtime_error("some arguments are null pointers");
+
+	mCodec = new Codec6502();
+}
+
+Debugger::~Debugger()
+{
+	delete mCodec;
 }
 
 bool Debugger::readOptString(istream& sin, string& s)
@@ -201,7 +209,6 @@ bool Debugger::disToScreenCmd(istream& sin)
 
 bool Debugger::disCmd(istream& sin, ostream& sout)
 {
-	Codec6502 mCodec;
 	int a1, a2;
 
 	if (!readHexInt(sin, a1))
@@ -215,32 +222,7 @@ bool Debugger::disCmd(istream& sin, ostream& sout)
 		return true;
 	}
 
-	vector<uint8_t> bytes;
-	uint16_t pc = a1;
-	uint8_t data;
-
-	int i = 0;
-	for (int a = a1; a <= a2; a++) {
-		string s;
-		if (!mDM->dumpDeviceMemory(a, data)) {
-			sout << "Illegal address 0x" << hex << a1 << "\n";
-			break;
-		}
-		bytes.push_back(data);
-
-		// Test if there is enough bytes to decode a complete instruction
-		if (bytes.size() >= 2) {
-			int old_pc = pc;
-			if (mCodec.decodeInstrFromBytes(pc, bytes, s, true)) {
-				int consumed_bytes = pc - old_pc;
-				bytes.erase(bytes.begin(), bytes.begin() + consumed_bytes);
-				sout << s << "\n";
-				i++;
-			}
-		}
-	}
-	
-	return true;
+	return printInstructions(a1, a2, false, true, sout);
 }
 
 bool Debugger::openOutFile(istream& sin, ofstream * &sout)
@@ -348,6 +330,45 @@ bool Debugger::stepCmd(istream &sin, bool stepOver, ostream& sout)
 	if (!stepOver)
 		mEngine->printInstrLog(sout);
 
+	return printNextInstr(sout);
+}
+
+bool Debugger::printNextInstr(ostream& sout)
+{
+	uint16_t PC = mCPU->getPC();
+	sout << "NEXT INSTRUCTION ";
+	return printInstructions(PC, PC + 3, true, false, sout);
+}
+
+bool Debugger::printInstructions(uint16_t startAdr, uint16_t endAdr, bool printFirstOnly, bool ASCII, ostream& sout)
+{
+	vector<uint8_t> bytes;
+	uint16_t pc = startAdr;
+	uint8_t data;
+
+	int i = 0;
+	for (int a = startAdr; a <= endAdr; a++) {
+		string s;
+		if (!mDM->dumpDeviceMemory(a, data)) {
+			sout << "Next instruction is at an illegal address (0x" << hex << pc << ")\n";
+			return false;
+		}
+		bytes.push_back(data);
+
+		// Test if there is enough bytes to decode a complete instruction
+		if (bytes.size() >= 2) {
+			int old_pc = pc;
+			if (mCodec->decodeInstrFromBytes(pc, bytes, s, ASCII)) {
+				int consumed_bytes = pc - old_pc;
+				bytes.erase(bytes.begin(), bytes.begin() + consumed_bytes);
+				sout << s << "\n";
+				i++;
+				if (printFirstOnly)
+					break;
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -364,7 +385,7 @@ bool Debugger::contCmd(istream &sin)
 
 bool Debugger::resetCmd(istream& sin)
 {
-	return mCPU->reset();
+	return mCPU->reset() && printNextInstr(cout);
 }
 
 bool Debugger::setRegCmd(istream& sin)
@@ -539,6 +560,7 @@ bool Debugger::breakCmd(istream& sin)
 	}
 
 	mEngine->printInstrWindow(cout);
+	printNextInstr(cout);
 
 	markEndOfWaiting();
 
@@ -548,6 +570,7 @@ bool Debugger::breakCmd(istream& sin)
 bool Debugger::haltCmd(istream& sin)
 {
 	mEngine->halt();
+	printNextInstr(cout);
 
 	return true;
 }

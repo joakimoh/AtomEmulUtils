@@ -14,6 +14,7 @@ class DebugManager;
 class Engine;
 class GUI;
 class P6502;
+class Codec6502;
 
 class Debugger {
 
@@ -89,10 +90,16 @@ private:
 
 	bool mLogWinEnabled = false;
 
+	Codec6502 *mCodec = nullptr;
+
+	bool printInstructions(uint16_t startAdr, uint16_t endAdr, bool printFirstOnly, bool ASCII, ostream& sout);
+	bool printNextInstr(ostream& sout);
+
 public:
 
 
 	Debugger(P6502 *cpu, GUI *gui, Engine *engine, DeviceManager *deviceManager, ConnectionManager *connectionManager, string outDir);
+	~Debugger();
 
 	void run();
 
