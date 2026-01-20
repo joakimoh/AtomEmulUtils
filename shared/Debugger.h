@@ -77,8 +77,7 @@ private:
 	bool haltCmd(istream& sin);
 	bool stepCmd(istream& sin, bool stepOver, ostream& sout);
 	bool contCmd(istream& sin);
-	bool breakCmd(istream& sin);
-	bool clrBreakpointCmd(istream& sin);
+	bool breakCmd(istream& sin, bool repetition);
 
 	bool resetCmd(istream& sin);
 

@@ -473,11 +473,11 @@ bool Engine::halt()
     return true;
 }
 
-bool Engine::cont()
+bool Engine::cont(ostream& sout)
 {
     // If a breakpoint still is defined, wait for it to be triggered
     if (mBreakPoint)
-        return setBreakPointAndWait();
+        return setBreakPointAndWait(sout);
 
     // No breakpoint defined => just change to 'run' state
     mState = ENG_RUN;
@@ -512,11 +512,13 @@ bool Engine::step(int n, bool step_over)
         mExecMutex.unlock();
     }
 
+    if (!mDebugger->waitingEnabled())
+        mState = ENG_RUN;
 
     return true;
 }
 
-bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t& readData, uint8_t& writtenData, uint16_t& operandAddress, bool repetition, bool enableTrace)
+bool Engine::setBreakPointAndWait(ostream& sout, RunState mode, uint16_t adr, uint8_t& readData, uint8_t& writtenData, uint16_t& operandAddress, bool repetition, bool enableTrace)
 {
     mBreakWindowEnabled = enableTrace;
     mBreakPoint = true;
@@ -525,7 +527,7 @@ bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t& readData
     mWrittenData = writtenData;
     mReadData = readData;
     mRecurringTracing = repetition;
-    if (setBreakPointAndWait()) {
+    if (setBreakPointAndWait(sout)) {
         readData = mReadData;
         writtenData = mWrittenData;
         operandAddress = mOperandAddress;
@@ -534,7 +536,7 @@ bool Engine::setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t& readData
     return false;
 }
 
-bool Engine::setBreakPointAndWait()
+bool Engine::setBreakPointAndWait(ostream& sout)
 {   
  
     mExecMutex.lock();
@@ -578,8 +580,10 @@ bool Engine::setBreakPointAndWait()
         if (stopped_exec) {
             if (mRecurringTracing) {
                 mState = p_state;
+                cont_waiting = true;
                 triggered = false;
-                cout << "-----------------------------------------------------------------------------------------------------------------------------------\n";
+                printInstrWindow(sout);
+                sout << "-----------------------------------------------------------------------------------------------------------------------------------\n";
             }
             else
                 mState = ENG_HALT;
@@ -590,6 +594,9 @@ bool Engine::setBreakPointAndWait()
 
     if (triggered)
         mBreakPoint = false;
+
+    if (!mDebugger->waitingEnabled())
+        mState = ENG_RUN;
 
     return true;
 }

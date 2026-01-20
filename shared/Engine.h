@@ -159,7 +159,7 @@ private:
 	// Check for change in emulation speed
 	void checkForSpeedChange();
 
-	bool setBreakPointAndWait();
+	bool setBreakPointAndWait(ostream& sout);
 
 	void logInstr();
 
@@ -188,18 +188,18 @@ public:
 
 	bool halt();
 
-	bool cont();
+	bool cont(ostream& sout);
 
 	bool reset();
 
 	bool step(int n, bool stepOver);
 	bool step(int n);
 
-	bool setBreakPointAndWait(RunState mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAdr, bool repetition, bool enableTrace);
+	bool setBreakPointAndWait(ostream& sout, RunState mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAdr, bool repetition, bool enableTrace);
 
 	bool clrBreakPoint();
 
-	bool isRunning() { return mState != ENG_HALT && mState != ENG_BRK_DET; }
+	bool isRunning() { return _CPU_RUNNING(mState); }
 
 	string getState() { return _ENGINE_STATE(mState); }
 

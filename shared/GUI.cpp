@@ -628,16 +628,20 @@ void GUI::updateDebuggerOptions()
 {
     if (mDebugger != nullptr) {
         if (mDebugger->running()) {
+            cout << "RUNNING\n";
             if (mDebugger->waiting()) {
+                cout << "WAITING\n";
                 al_set_menu_item_flags(mMenu, START_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
                 al_set_menu_item_flags(mMenu, STOP_WAIT_DBG_ID, 0);
             }
             else {
+                cout << "NOT WAITING\n";
                 al_set_menu_item_flags(mMenu, START_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
                 al_set_menu_item_flags(mMenu, STOP_WAIT_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
             }
         }
         else { // debugger is NOT running
+            cout << "NOT RUNNING\n";
             al_set_menu_item_flags(mMenu, START_DBG_ID, 0);
             al_set_menu_item_flags(mMenu, STOP_WAIT_DBG_ID, ALLEGRO_MENU_ITEM_DISABLED);
         }

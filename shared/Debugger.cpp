@@ -377,7 +377,7 @@ bool Debugger::contCmd(istream &sin)
 
 	// Wait for breakpoint or an (via GUI debugger menu) explicit user request to stop waiting
 	markStartOfWaiting();
-	mEngine->cont();
+	mEngine->cont(cout);
 	markEndOfWaiting();
 
 	return true;
@@ -510,11 +510,16 @@ bool Debugger::listPortsCmd(istream& sin)
 	return true;
 }
 
-bool Debugger::breakCmd(istream& sin)
+bool Debugger::breakCmd(istream& sin, bool repetition)
 {
 	string sub_cmd;
 	if (!readString(sin, sub_cmd))
 		return false;
+
+	if (sub_cmd == "clr") {
+		mEngine->clrBreakPoint();
+		return true;
+	}
 
 	int a;
 	if (!readHexInt(sin, a))
@@ -523,9 +528,10 @@ bool Debugger::breakCmd(istream& sin)
 	// Indicate to the engine that the debugger will start waiting
 	markStartOfWaiting();
 
+
 	if (sub_cmd == "x") {
 		mAccessMode = Engine::ENG_X_BRK_WAIT;
-		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false, mLogWinEnabled);
+		mEngine->setBreakPointAndWait(cout, Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, repetition, mLogWinEnabled);
 	}
 	else if (sub_cmd == "r") {
 		mAccessMode = Engine::ENG_R_BRK_WAIT;
@@ -534,7 +540,7 @@ bool Debugger::breakCmd(istream& sin)
 			mReadData = d;
 			mAccessMode = Engine::ENG_R_V_BRK_WAIT;
 		}
-		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false, mLogWinEnabled);
+		mEngine->setBreakPointAndWait(cout, Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, repetition, mLogWinEnabled);
 	}
 	else if (sub_cmd == "w") {
 		mAccessMode = Engine::ENG_W_BRK_WAIT;
@@ -543,7 +549,7 @@ bool Debugger::breakCmd(istream& sin)
 			mWrittenData = d;
 			mAccessMode = Engine::ENG_W_V_BRK_WAIT;
 		}
-		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false, mLogWinEnabled);
+		mEngine->setBreakPointAndWait(cout, Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, repetition, mLogWinEnabled);
 	}
 	else if (sub_cmd == "rw") {
 		mAccessMode = Engine::ENG_RW_BRK_WAIT;
@@ -552,10 +558,10 @@ bool Debugger::breakCmd(istream& sin)
 			mWrittenData = d;
 			mAccessMode = Engine::ENG_RW_V_BRK_WAIT;
 		}
-		mEngine->setBreakPointAndWait(Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false, mLogWinEnabled);
+		mEngine->setBreakPointAndWait(cout, Engine::RunState(mAccessMode), a, mReadData, mWrittenData, mOperandAdr, false, mLogWinEnabled);
 	}
 	else {
-		cout << "Illegal sub command - valid sub command to break is one of x,r,w and rw!\n";
+		cout << "Illegal sub command - valid sub command to break is one of clr,x,r,w and rw!\n";
 		return false;
 	}
 
@@ -634,12 +640,11 @@ void Debugger::help()
 	cout << "state <name of device>:                             get a device's state\n";
 	cout << "uc:                                                 get the microcontroller's state\n";
 	cout << "step [<no of instructions>]:                        execute the specifed no of instructions (default is 1) and then stop (instruction tracing only)\n";
-	cout << "xstep <no of instructions>:                         execute the specifed no of instructions (default is 1) and then stop (extended tracing)\n";
 	cout << "skip:                                               as 'step 1' but will step over a JSR instruction\n";
 	cout << "cont:                                               continue execution (if previusly stopped)\n";
 	cout << "break x <hex address>:                              continue execution until the program counter reaches the specified address\n";
 	cout << "break r|w|rw <hex address>:                         continue execution until the specified address is accessed in the way specified\n";
-	cout << "cbreak:                                             clear any previously set breakpoint\n";
+	cout << "break clr:                                          clear any previously set breakpoint\n";
 	cout << "halt:                                               stop execution\n";
 	cout << "mlog (set <adr> | clr):                             add logging of a specific memory address to instruction log\n";
 	cout << "rset (A|X|Y|SP|SR|PC) <hex val>:                    set a register value\n";
@@ -712,9 +717,9 @@ void Debugger::run()
 			else if (cmd == "halt")
 				success = haltCmd(sin);
 			else if (cmd == "break")
-				success = breakCmd(sin);
+				success = breakCmd(sin, false);
 			else if (cmd == "cbreak")
-				success = clrBreakpointCmd(sin);
+				success = breakCmd(sin, true);
 			else if (cmd == "exit")
 				success = exit();
 			else if (cmd == "mlog")
@@ -740,7 +745,7 @@ bool Debugger::exit()
 
 	// Make sure the engine is back into 'run' state (and not e.g. halted) before shutting down the debugger
 	mEngine->clrBreakPoint();
-	mEngine->cont();
+	mEngine->cont(cout);
 
 	return true;
 }
@@ -776,9 +781,4 @@ void Debugger::markEndOfWaiting()
 {
 	mDebuggerWaiting = false;
 	mGUI->updateDebuggerOptions();
-}
-
-bool Debugger::clrBreakpointCmd(istream& sin)
-{
-	return mEngine->clrBreakPoint();
 }
