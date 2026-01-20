@@ -91,10 +91,12 @@ BeebVideoULA::BeebVideoULA(
 	registerPort("VS",			IN_PORT,	0x1,	VS,			&mVS);
 
 	// Initialise previously read Teletext Character Generator (TGC) data (to a dummy one)
+	/*
 	mTgcData0.resize(16);
-	for (int i = 0; i < 16; mTgcData0[i++] = { 0, 0, 0 });
+	for (int i = 0; i < 16; mTgcData0[i++] = 0);
 	mTgcData1.resize(16);
-	for (int i = 0; i < 16; mTgcData1[i++] = { 0, 0, 0 });
+	for (int i = 0; i < 16; mTgcData1[i++] = 0);
+	*/
 
 
 	// Create display bitmap and clear it
@@ -294,14 +296,15 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	}
 
 	// For teletext-enabled modes, decode video memory data as videotext data
-	vector<TT5050::TTColour>* tmpTgcData = mNewTgcData;
+
+	TT5050::ScreenDataType* tmpTgcData = mNewTgcData;
 	mNewTgcData = mOldTgcData;
 	mOldTgcData = tmpTgcData;
 	bool valid_TGC_data = false;
 	if (mTeletextEnabled)
 		// Feed video memory data to the CRTC. Result will be collected the next character column due to
 		// delay within the TCG
-		valid_TGC_data = mTGC->getScreenData(screen_data, *mNewTgcData);
+		valid_TGC_data = mTGC->getScreenData(screen_data, mNewTgcData, mBgColour, mFgColour);
 
 	// Get cursor configuration
 	//
@@ -383,10 +386,18 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 						
 			}
 			else {				
-				if (big_pixel < mOldTgcData->size()) {
-					Rs = (*mOldTgcData)[big_pixel].R;
-					Gs = (*mOldTgcData)[big_pixel].G;
-					Bs = (*mOldTgcData)[big_pixel].B;
+				if (big_pixel < 16 && mOldTgcData != nullptr) {
+					uint8_t pixel_scaling = (*mOldTgcData)[big_pixel];
+					if (pixel_scaling > 0) {
+						Rs = pixel_scaling * mFgColour.R;
+						Gs = pixel_scaling * mFgColour.G;
+						Bs = pixel_scaling * mFgColour.B;
+					}
+					else {
+						Rs = 255 * mBgColour.R;
+						Gs = 255 * mBgColour.G;
+						Bs = 255 * mBgColour.B;
+					}
 				}
 				else {
 					Rs = Gs = Bs = 0;

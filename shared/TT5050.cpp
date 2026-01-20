@@ -272,7 +272,7 @@ bool TT5050::advanceUntil(uint64_t stopCycle)
 // 
 // Returns true if data was enabled (LOSE active) and the TCG was properly initialised; otherwise false is returned	
 //
-bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
+bool TT5050::getScreenData(uint8_t pageData, ScreenDataType* &screenData, TTColour& bgColour, TTColour& fgColour)
 {
 
 	// Advance time 1 us
@@ -429,16 +429,16 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 
 		uint8_t symbol_index = 0x0;
 
-		TTColour background_colour = mBackgroundColour;
-		TTColour foreground_colour = mColours[(int)TT_BLACK];
+		bgColour = mBackgroundColour;
+		fgColour = mColours[(int)TT_BLACK];
 
 		if (char_data < 0x20) { // invisible control char - decide how to show it
 			if (!mHeldGraphics) { // draw hidden text and control char as space as default
-				foreground_colour = mAlpaNumericColour;
+				fgColour = mAlpaNumericColour;
 				symbol_index = 0; // SPACE symbol
 			}
 			else { // draw control char as last graphics symbol
-				foreground_colour = mGraphicsColour;
+				fgColour = mGraphicsColour;
 				symbol_index = mLastGraphicsSymbolIndex;
 				mGraphicSymbols = true;
 			}
@@ -448,23 +448,23 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 		else {
 
 			if (draw_sixels)
-				foreground_colour = mGraphicsColour;
+				fgColour = mGraphicsColour;
 			else {
 				if (mHiddenText)
 					symbol_index = 0;
 				else
 					symbol_index = char_data - 0x20; // should give an index in the range [0,95]
 				if (mGraphicSymbols)
-					foreground_colour = mGraphicsColour;
+					fgColour = mGraphicsColour;
 				else
-					foreground_colour = mAlpaNumericColour;
+					fgColour = mAlpaNumericColour;
 
 				double hz_0_75 = mCPUClock * 1e6 * 0.75;
 				int flash_75 = (int)round(hz_0_75 * 0.75);
 				int flash_100 = (int)round(hz_0_75);
 				if (mFlash && mCycleCount % flash_100 >= flash_75) {
-					background_colour = mBackgroundColour;
-					foreground_colour = mBackgroundColour;
+					bgColour = mBackgroundColour;
+					fgColour = mBackgroundColour;
 				}
 			}
 		}
@@ -503,22 +503,7 @@ bool TT5050::getScreenData(uint8_t pageData, vector <TTColour>& screenData)
 	
 		// Generate one 16-pixels wide colour raster line for the selected symbol
 		auto& mStretchedSymbolRasterBits = pStretchedSymbolRasterBits->data;
-		uint8_t (&pixels16)[16] = mStretchedSymbolRasterBits[symbol_index][raster_line];
-		for (int i = 0; i < 16; i++) {
-			uint8_t val = pixels16[i];
-			TTColour pixel_colour;
-			if (val > 0) {
-				pixel_colour.B = val * foreground_colour.B;
-				pixel_colour.G = val * foreground_colour.G;
-				pixel_colour.R = val * foreground_colour.R;
-			}
-			else {
-				pixel_colour.B = 255 * background_colour.B;
-				pixel_colour.G = 255 * background_colour.G;
-				pixel_colour.R = 255 * background_colour.R;
-			}
-			screenData[i] = pixel_colour;
-		}
+		screenData = &mStretchedSymbolRasterBits[symbol_index][raster_line];
 
 	}
 

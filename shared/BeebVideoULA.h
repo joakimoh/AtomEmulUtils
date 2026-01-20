@@ -149,9 +149,10 @@ public:
 	CRTC6845* mCRTC = NULL;
 	TT5050* mTGC = NULL;
 
-	vector<TT5050::TTColour> mTgcData0, mTgcData1;
-	vector<TT5050::TTColour>* mNewTgcData = &mTgcData0;
-	vector<TT5050::TTColour>* mOldTgcData = &mTgcData1;
+	TT5050::TTColour mFgColour = { 0 };
+	TT5050::TTColour mBgColour = { 0 };
+	TT5050::ScreenDataType* mOldTgcData = nullptr;
+	TT5050::ScreenDataType* mNewTgcData = nullptr;
 	bool mValidTgcData = false;
 
 	bool readGraphicsMem(uint16_t adr, uint8_t& data);

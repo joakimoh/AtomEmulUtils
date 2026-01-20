@@ -261,7 +261,8 @@ public:
 
 	// Called by the device that needs the RGB pixel data (screenData) that
 	// the TT5050 generates based on page memory data (pageData).
-	bool getScreenData(uint8_t pageData, vector <TTColour>& screenData);
+	typedef uint8_t ScreenDataType[16];
+	bool getScreenData(uint8_t pageData, ScreenDataType* &screenData, TTColour &bgColour, TTColour &fgColour);
 
 	// Process a port update directly (and not just next time the advanceUntil() method is called)
 	void processPortUpdate(int index) override;
