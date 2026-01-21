@@ -46,27 +46,7 @@ void ArgParser::printUsage(const char* name)
 	cout << "\nADVANCED OPTIONS:\n";
 	cout << "-nHA: Turn off Graphics hardware acceleration.\n\n";
 #ifdef DEBUG_ON
-	cout << "-stop <hex address>: stop execution at this address\n\n";
-	cout << "-dump <hex address> <hex size>: dump memory content address to address+size-1 after stopping execution\n\n";
-	cout << "-trace <hex address> <pre trace len> <post trace len>: debug around a certain fetch address\n";
-	cout << "-ctrace <hex address> <pre trace len> <post trace len>: as trace but the debugging will be repeated every time the fetch address is encountered\n";
-	cout << "-ktrace <hex address> <pre trace len> <post trace len>: as trace but the debugging condition only checked for after user presses <CTRL-T>\n";
-	cout << "-xtrace <hex address> <pre trace len> <post trace len>: same as -trace but with more information (and therefore slower)\n";
-	cout << "-kctrace <hex address> <pre trace len> <post trace len>: combinaton of ktrace and ctrace\n";
-	cout << "-xtrace <hex address> <pre trace len> <post trace len>: same as -trace but with more information (and therefore slower)\n";
-	cout << "-xctrace <hex address> <pre trace len> <post trace len>: same as -ctrace but with more information (and therefore slower)\n";
-	cout << "-xktrace <hex address> <pre trace len> <post trace len>: as ktrace but but with more information (and therefore slower)\n";
-	cout << "-xkctrace <hex address> <pre trace len> <post trace len>: as kctrace but but with more information (and therefore slower)\n";
-	cout << "\tor written to. The tracing starts <pre trace len> instructions prior to the trigger and lasts <post trace len>\n";
-	cout << "\tinstructions after the trigger.\n\n";
-	cout << "-log <hex adr>:\n\tStart logging instruction execution after execution reaches the specified address\n";
-	cout << "-clog <hex adr>:\n\tCyclicallly logs the result of the execution of an instruction at the specified address\n";
-	cout << "\t(as -ctrace <hex adr> 0 0 but faster)\n\n";
-	cout << "-ilog <hex adr>:\n\tStart logging instruction execution after an interrupt and when execution reaches the specified address\n";
-	cout << "-mlog <adr>:\n\tmemory concent to add along with the log\n\n";
-	cout << "-port <device name>:<port name> {, <device_name:<port name>\n\tlog updates of specific ports\n";
 	cout << "-dbg <string with one or more of the letters below>: Debugging of different detail.\n";
-	cout << "-dev <dev name>: specify that debugging shall be limited to a certain device instance <dev name>.\n";
 	cout << "\t'e' errors\n";
 	cout << "\t'w' warnings\n";
 	cout << "\t'u' microprocessor execution (can also be enabled at run-time with <CRTL-D>)\n";

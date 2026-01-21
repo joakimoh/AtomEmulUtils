@@ -17,6 +17,7 @@
 #include <thread>
 #include <string>
 #include <fstream>
+#include <array>
 
 class SoundDevice;
 class Debugmanager;
@@ -178,6 +179,14 @@ private:
 #define ENGINE_BUF_WINDOW_SZ	100
 	vector<InstrLogData> mInstrBufferWindow = vector<InstrLogData>(ENGINE_BUF_WINDOW_SZ);
 
+	vector<DevicePort*> mLoggedPorts;
+#define ENGINE_LOGGED_PORTS_MAX 25
+	typedef array<uint8_t, ENGINE_LOGGED_PORTS_MAX> PortValues;
+	vector<PortValues> mPortLogBuffer;
+	vector<PortValues> mPortBufferWindow = vector<PortValues>(ENGINE_BUF_WINDOW_SZ);
+
+	PortValues mTmpLoggedPortValues = { 0 };
+
 public:
 
 	Engine(string mapFileName, Program &program, Program &data, double emulationSpeed, VideoFormat videoFormat, bool enableHWAcc,
@@ -209,6 +218,8 @@ public:
 
 	bool enableLogWindow(int sz);
 	void disableLogWindow();
+
+	bool setLoggedPorts(vector<DevicePort*> loggedPorts);
 };
 
 

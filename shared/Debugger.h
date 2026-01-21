@@ -15,6 +15,7 @@ class Engine;
 class GUI;
 class P6502;
 class Codec6502;
+class PortSelection;
 
 class Debugger {
 
@@ -85,7 +86,10 @@ private:
 	bool setPortCmd(istream& sin);
 	bool listPortsCmd(istream& sin);
 
-	bool logWindCmd(istream& sin);
+	bool logWinCmd(istream& sin);
+
+	bool readPortSel(istream& sin, PortSelection& portSel);
+	bool logPortCmd(istream& sin);
 
 	bool mLogWinEnabled = false;
 

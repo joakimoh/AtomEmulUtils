@@ -26,6 +26,12 @@ VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8
 	registerPort("CA", IO_PORT, 0x03, CA, &mCAIn, &mCAOut);
 	registerPort("CB", IO_PORT, 0x03, CB, &mCBIn, &mCBOut);
 
+	// Register that all bidirectional ports are initially inputs
+	registerPortDirChange(PA, 0);
+	registerPortDirChange(PB, 0);
+	registerPortDirChange(CA, 0);
+	registerPortDirChange(CB, 0);
+
 	DBG_LOG(this, DBG_VERBOSE, "VIA 6522 at address 0x" + Utility::int2HexStr(mStartOfSpace,4) +
 		" to 0x" + Utility::int2HexStr(mStartOfSpace + mAddressSpace.getEndOfSpace(),4) + " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)\n");
 
@@ -1360,9 +1366,9 @@ bool VIA6522::outputState(ostream& sout)
 	sout << "IFR = " << IFR2Str() << "\n";
 	sout << "ACR = " << ACR2Str() << "\n";
 	sout << "PCR = " << PCR2Str() << "\n";
-	sout << "PA = 0x" << Utility::int2HexStr(mPAIn, 2) << " (In) 0x" << Utility::int2HexStr(mPAOut, 2) << " (out) 0b" <<
+	sout << "PA = 0x" << Utility::int2HexStr(mPAIn, 2) << " (In) 0x" << Utility::int2HexStr(mPAOut, 2) << " (out) DDRA 0b" <<
 		Utility::int2BinStr(mDDRA,8) << " (dir mask - '1' <=> Out)\n";
-	sout << "PB = 0x" << Utility::int2HexStr(mPBIn, 2) << " (In) 0x" << Utility::int2HexStr(mPBOut, 2) << " (out) 0b" <<
+	sout << "PB = 0x" << Utility::int2HexStr(mPBIn, 2) << " (In) 0x" << Utility::int2HexStr(mPBOut, 2) << " (out) DDRB 0b" <<
 		Utility::int2BinStr(mDDRB,8) << " (dir mask - '1' <=> Out)\n";
 	sout << "CA1 = 0x" << Utility::int2HexStr(mCAIn & 0x1, 1) << " (In) " << Utility::int2HexStr(mCAOut & 1, 1) << " (out)\n";
 	sout << "CA2 = 0x" << Utility::int2HexStr((mCAIn >> 1) & 0x1, 1) << " (In) " << Utility::int2HexStr((mCAOut >> 1) & 1, 1) << " (out)\n";

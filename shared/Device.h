@@ -215,6 +215,10 @@ public:
 	// Get a reference to the device's list of ports
 	bool getPorts(vector<DevicePort*>* &ports) { return ports = &mPorts; }
 
+	// Get a port's current value
+	static uint8_t getPortVal(DevicePort* port, int &sz, uint8_t &dir);
+	static uint8_t getPortVal(DevicePort* port) { int sz; uint8_t dir; return  getPortVal(port, sz, dir); }
+
 	// Get local port index for a named I/O (used by connection manager at initialisation)
 	bool getPortIndex(string name, DevicePort * &port);
 

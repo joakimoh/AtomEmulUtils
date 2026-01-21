@@ -619,6 +619,17 @@ bool Engine::enableLogWindow(int sz)
     return false;
 }
 
+
+bool Engine::setLoggedPorts(vector<DevicePort*> loggedPorts)
+{
+    // Clear port buffer used in stepping
+    mPortLogBuffer.clear();
+
+    mLoggedPorts = loggedPorts;
+
+    return true;
+}
+
 void Engine::disableLogWindow()
 {
     clrLogWindow();
@@ -650,6 +661,11 @@ void Engine::logInstr()
     InstrLogData instr_log_data;
     mMicroprocessor->getInstrLogData(instr_log_data);
     mInstrLogBuffer.push_back(instr_log_data);
+    if (mLoggedPorts.size() > 0) {
+        for (int i = 0; i < mLoggedPorts.size(); i++)
+            mTmpLoggedPortValues[i] = Device::getPortVal(mLoggedPorts[i]);
+        mPortLogBuffer.push_back(mTmpLoggedPortValues);
+    }
 }
 
 void Engine::printInstrWindow(ostream& sout)
@@ -658,6 +674,13 @@ void Engine::printInstrWindow(ostream& sout)
         int read_pos = mBufWindowReadIndex;
         for (int i = 0; i < mBufferInstrSize; i++) {
             mMicroprocessor->printInstrLogData(sout, mInstrBufferWindow[read_pos]);
+            if (mLoggedPorts.size() > 0) {
+                sout << " ";
+                for (int j = 0; j < mLoggedPorts.size(); j++) {
+                    DevicePort* port = mLoggedPorts[j];
+                    sout << port->dev->name << ":" << port->name << "=" << hex << (int)mPortBufferWindow[read_pos][j] << " ";
+                }
+            }
             read_pos = (read_pos + 1) % mBufWinSz;
             sout << "\n";
         }
@@ -676,10 +699,18 @@ void Engine::printInstrLog(ostream& sout)
 {
     for (int i = 0; i < mInstrLogBuffer.size(); i++) {
         mMicroprocessor->printInstrLogData(sout, mInstrLogBuffer[i]);
+        if (mLoggedPorts.size() > 0) {
+            sout << " ";
+            for (int j = 0; j < mLoggedPorts.size(); j++) {
+                DevicePort* port = mLoggedPorts[j];
+                sout << port->dev->name << ":" << port->name << "=" << hex << (int)mPortLogBuffer[i][j] << " ";
+            }
+        }
         sout << "\n";
     }
     sout << "\n";
     mInstrLogBuffer.clear();
+    mPortLogBuffer.clear();
 }
 
 bool Engine::reset()

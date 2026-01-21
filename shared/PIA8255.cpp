@@ -199,6 +199,11 @@ PIA8255::PIA8255(string name, double cpuclock, uint8_t waitStates, uint16_t adr,
 	registerPort("PortB", IO_PORT, 0xff, PIA_PORT_B, &mPBIn, &mPBOut);
 	registerPort("PortC", IO_PORT, 0xff, PIA_PORT_C, &mPCIn, &mPCOut);
 
+	// Register that all bidirectional ports are initially inputs
+	registerPortDirChange(PIA_PORT_A, 0);
+	registerPortDirChange(PIA_PORT_B, 0);
+	registerPortDirChange(PIA_PORT_C, 0);
+
 	DBG_LOG(
 		this,DBG_VERBOSE, "PIA 8255 at address 0x" + Utility::int2HexStr(mStartOfSpace,4) +
 		" to 0x" + Utility::int2HexStr(mStartOfSpace + mAddressSpace.getEndOfSpace(), 4) + " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)"

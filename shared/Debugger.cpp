@@ -421,6 +421,20 @@ bool Debugger::setRegCmd(istream& sin)
 	return true;
 }
 
+bool Debugger::readPortSel(istream& sin, PortSelection &portSel)
+{
+	string port_s;
+	if (!readString(sin, port_s))
+		return false;
+
+	if (!mCM->extractPort(port_s, portSel)) {
+		cout << "Port doesn't exist!\n";
+		return false;
+	}
+
+	return true;
+}
+
 bool Debugger::setPortCmd(istream& sin)
 {
 	if (mEngine->isRunning()) {
@@ -428,15 +442,9 @@ bool Debugger::setPortCmd(istream& sin)
 		return true;
 	}
 
-	string port_s;
-	if (!readString(sin, port_s))
-		return false;
-
 	PortSelection port_sel;
-	if (!mCM->extractPort(port_s, port_sel)) {
-		cout << "Port doesn't exist!\n";
+	if (!readPortSel(sin, port_sel))
 		return false;
-	}
 
 	DevicePort* dev_port = port_sel.port;
 	Device* dev = dev_port->dev;
@@ -482,30 +490,14 @@ bool Debugger::listPortsCmd(istream& sin)
 	}
 	for (int i = 0; i < ports->size(); i++) {
 		DevicePort* p = (*ports)[i];
-		uint8_t *in_val = p->valIn;
-		uint8_t *out_val = p->valOut;
-		int sz = 0;
-		for (int mask = p->mask; mask != 0; sz++) mask = mask >> 1;
-		uint8_t sz_mask = ((1 << sz) - 1);
-		uint8_t io_mask = (p->ioDirMask) & sz_mask;
-		uint8_t val;
 		uint8_t cur_dir;
-		if (p->dir == IN_PORT) {
-			cur_dir = 0;
-			val = *in_val;
-		}
-		else if (p->dir == OUT_PORT) {
-			cur_dir = sz_mask;
-			val = *out_val;
-		}
-		else { //p->dir == IO_PORT
-			cur_dir = io_mask;
-			val = (io_mask & (*out_val)) | (~io_mask & (*in_val) & 0xff);
-		}
+		int sz;
+		uint8_t val = Device::getPortVal(p, sz, cur_dir);
 		string dir = (p->dir == IN_PORT ? "IN" : (p->dir == OUT_PORT ? "OUT" : "INOUT"));
 		string cur_dir_s = Utility::mask2DirStr(cur_dir, sz);
 		string val_s = Utility::int2BinStr(val, sz);
-		cout << setw(10) <<  p->name << setw(7) << dir << setw(9) << cur_dir_s << " " << sz << setw(sz+1) << val_s << "\n";
+		cout << setfill(' ') << setw(10) << p->name << setw(7) << dir << setw(9) << "DIR " << cur_dir_s << setw(2) << " SZ " <<
+			setw(2) << sz << setw(sz + 1) << " VAL 0b" << val_s << "\n";
 	}
 	return true;
 }
@@ -603,7 +595,7 @@ bool Debugger::memLogCmd(istream& sin)
 	return true;
 }
 
-bool Debugger::logWindCmd(istream& sin)
+bool Debugger::logWinCmd(istream& sin)
 {
 	string sub_cmd;
 	if (!readString(sin, sub_cmd))
@@ -629,6 +621,39 @@ bool Debugger::logWindCmd(istream& sin)
 	return true;
 }
 
+bool Debugger::logPortCmd(istream& sin)
+{
+	string sub_cmd;
+	if (!readString(sin, sub_cmd))
+		return false;
+
+	if (sub_cmd == "clr") {
+		mEngine->disableLogWindow();
+		mLogWinEnabled = false;
+		return true;
+	}
+
+	if (sub_cmd != "set")
+		return false;
+
+	PortSelection port_sel;
+	vector< DevicePort*> logged_ports;
+	while (readPortSel(sin, port_sel)) {
+		DevicePort* dev_port = port_sel.port;
+		logged_ports.push_back(dev_port);
+	}
+
+	if (logged_ports.size() == 0) {
+		cout << "At least one valid device port needs to be selected!\n";
+		return false;
+	}
+
+	if (!mEngine->setLoggedPorts(logged_ports))
+		return false;
+
+	return true;
+}
+
 void Debugger::help()
 {
 	cout << "Commands are:\n";
@@ -651,6 +676,7 @@ void Debugger::help()
 	cout << "pset <dev name>:<port name>[<qualifier>] <hex val>: set a device's input port's value. <qualifier> ::= <bit no> | [<high bit no>;<low bit no>\n";
 	cout << "reset:                                              reset the microprocessor\n";
 	cout << "twin (set <sz> | clr):                              enable trace window of a certain size or disable it\n";
+	cout << "plog (set <port> {,...<port>} | clr):               add logging of specific device ports to the trace\n";
 	cout << "exit:                                               exit the debugger\n";
 }
 
@@ -681,7 +707,7 @@ void Debugger::run()
 			if (cmd == "help")
 				help();
 			else if (cmd == "twin")
-				success = logWindCmd(sin);
+				success = logWinCmd(sin);
 			else if (cmd == "ports")
 				success = listPortsCmd(sin);
 			else if (cmd == "rset")
@@ -720,6 +746,8 @@ void Debugger::run()
 				success = breakCmd(sin, false);
 			else if (cmd == "cbreak")
 				success = breakCmd(sin, true);
+			else if (cmd == "plog")
+				success = logPortCmd(sin);
 			else if (cmd == "exit")
 				success = exit();
 			else if (cmd == "mlog")

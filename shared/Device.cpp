@@ -354,4 +354,28 @@ bool Device::getPortIndex(string name, DevicePort * &port) {
 	return false;
 }
 
+// Get a port's current value
+uint8_t Device::getPortVal(DevicePort* port, int &sz, uint8_t& dir) {
+	uint8_t* in_val = port->valIn;
+	uint8_t* out_val = port->valOut;
+	sz = 0;
+	for (int mask = port->mask; mask != 0; sz++) mask = mask >> 1;
+	uint8_t sz_mask = ((1 << sz) - 1);
+	uint8_t io_mask = (port->ioDirMask) & sz_mask;
+	uint8_t val;
+	if (port->dir == IN_PORT) {
+		dir = 0;
+		val = *in_val;
+	}
+	else if (port->dir == OUT_PORT) {
+		dir = sz_mask;
+		val = *out_val;
+	}
+	else { //port->dir == IO_PORT
+		dir = io_mask;
+		val = (io_mask & (*out_val)) | (~io_mask & (*in_val) & 0xff);
+	}
+	return val;
+}
+
 
