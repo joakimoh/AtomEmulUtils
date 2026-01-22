@@ -612,6 +612,8 @@ bool Engine::enableLogWindow(int sz)
     if (sz > 0 && sz < ENGINE_BUF_WINDOW_SZ) {
         clrLogWindow();
         mInstrBufferWindow.resize(sz);
+        mPortBufferWindow.resize(sz);
+        mSerialisedLogBuffer.resize(sz);
         mBufWinSz = sz;
         mBreakWindowEnabled = true;
         return true;
@@ -626,6 +628,16 @@ bool Engine::setLoggedPorts(vector<DevicePort*> loggedPorts)
     mPortLogBuffer.clear();
 
     mLoggedPorts = loggedPorts;
+
+    return true;
+}
+
+bool Engine::setLoggedDevices(vector<Device*> loggedDevices)
+{
+    // Clear device buffer used in stepping
+    mSerialisedLogBuffer.clear();
+
+    mLoggedDevices = loggedDevices;
 
     return true;
 }
@@ -647,8 +659,25 @@ void Engine::updateLogWindow()
     InstrLogData instr_log_data;
     mMicroprocessor->getInstrLogData(instr_log_data);
 
-    // Update circular buffer
+    // Update circular instruction buffer
     mInstrBufferWindow[mBufWindowWriteIndex] = instr_log_data;
+
+    // Update circular port value buffer
+    if (mLoggedPorts.size() > 0) {
+        for (int i = 0; i < mLoggedPorts.size(); i++)
+            mTmpLoggedPortValues[i] = Device::getPortVal(mLoggedPorts[i]);
+        mPortBufferWindow[mBufWindowWriteIndex] = mTmpLoggedPortValues;
+    }
+
+    // Update circular device state buffer
+    if (mLoggedDevices.size() > 0) {
+        for (int i = 0; i < mLoggedDevices.size(); i++) {
+            SerialisedState mTmpSerialisedState = { 0 };
+            mLoggedDevices[i]->serialiseState(mTmpSerialisedStates[i]);
+        }
+        mPSerialisedBufferWindow[mBufWindowWriteIndex] = mTmpSerialisedStates;
+    }
+
     if (/*mBufWindowWriteIndex == mBufWindowReadIndex &&*/ mBufferInstrSize == mBufWinSz)
         mBufWindowReadIndex = (mBufWindowReadIndex + 1) % mBufWinSz;
     mBufWindowWriteIndex = (mBufWindowWriteIndex + 1) % mBufWinSz;
@@ -661,10 +690,21 @@ void Engine::logInstr()
     InstrLogData instr_log_data;
     mMicroprocessor->getInstrLogData(instr_log_data);
     mInstrLogBuffer.push_back(instr_log_data);
+
+    // Update port value buffer
     if (mLoggedPorts.size() > 0) {
         for (int i = 0; i < mLoggedPorts.size(); i++)
             mTmpLoggedPortValues[i] = Device::getPortVal(mLoggedPorts[i]);
         mPortLogBuffer.push_back(mTmpLoggedPortValues);
+    }
+
+    // Update device state buffer
+    if (mLoggedDevices.size() > 0) {     
+        for (int i = 0; i < mLoggedDevices.size(); i++) {
+           SerialisedState mTmpSerialisedState = { 0 };  
+           mLoggedDevices[i]->serialiseState(mTmpSerialisedStates[i]);
+        }
+        mSerialisedLogBuffer.push_back(mTmpSerialisedStates);     
     }
 }
 
@@ -674,15 +714,23 @@ void Engine::printInstrWindow(ostream& sout)
         int read_pos = mBufWindowReadIndex;
         for (int i = 0; i < mBufferInstrSize; i++) {
             mMicroprocessor->printInstrLogData(sout, mInstrBufferWindow[read_pos]);
+            sout << " ";
             if (mLoggedPorts.size() > 0) {
-                sout << " ";
                 for (int j = 0; j < mLoggedPorts.size(); j++) {
                     DevicePort* port = mLoggedPorts[j];
                     sout << port->dev->name << ":" << port->name << "=" << hex << (int)mPortBufferWindow[read_pos][j] << " ";
                 }
             }
-            read_pos = (read_pos + 1) % mBufWinSz;
             sout << "\n";
+            if (mLoggedDevices.size() > 0) {
+                for (int j = 0; j < mLoggedDevices.size(); j++) {
+                    Device* dev = mLoggedDevices[j];
+                    sout << dev->name << ": ";
+                    dev->outputSerialisedState(mPSerialisedBufferWindow[i][j], sout);
+                    sout << "\n";
+                }
+            }
+            read_pos = (read_pos + 1) % mBufWinSz;
         }
         clrLogWindow();
     }
@@ -705,8 +753,16 @@ void Engine::printInstrLog(ostream& sout)
                 DevicePort* port = mLoggedPorts[j];
                 sout << port->dev->name << ":" << port->name << "=" << hex << (int)mPortLogBuffer[i][j] << " ";
             }
-        }
+        }       
         sout << "\n";
+        if (mLoggedDevices.size() > 0) {
+            for (int j = 0; j < mLoggedDevices.size(); j++) {
+                Device* dev = mLoggedDevices[j];
+                sout << dev->name << ": ";
+                dev->outputSerialisedState(mSerialisedLogBuffer[i][j], sout);
+                sout << "\n";
+            }
+        }
     }
     sout << "\n";
     mInstrLogBuffer.clear();

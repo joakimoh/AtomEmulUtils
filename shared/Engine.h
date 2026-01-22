@@ -187,6 +187,13 @@ private:
 
 	PortValues mTmpLoggedPortValues = { 0 };
 
+	// Logging of device's serialised state
+	vector<Device*> mLoggedDevices;
+	vector<SerialisedStates> mSerialisedLogBuffer;
+	vector<SerialisedStates> mPSerialisedBufferWindow = vector<SerialisedStates>(ENGINE_BUF_WINDOW_SZ);
+	SerialisedStates mTmpSerialisedStates = { 0 };
+
+
 public:
 
 	Engine(string mapFileName, Program &program, Program &data, double emulationSpeed, VideoFormat videoFormat, bool enableHWAcc,
@@ -220,6 +227,7 @@ public:
 	void disableLogWindow();
 
 	bool setLoggedPorts(vector<DevicePort*> loggedPorts);
+	bool setLoggedDevices(vector<Device*> loggedDevices);
 };
 
 

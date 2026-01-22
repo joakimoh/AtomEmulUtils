@@ -66,8 +66,8 @@ bool VIA6522::reset()
 void VIA6522::checkForShift()
 {
 
-	uint8_t shift_mode = ACR_SR_CTRL;
-	uint8_t p_shift_mode = ACR_SR_CTRL_VAL(pACR);
+	uint8_t shift_mode = ACR_SR_CTRL(mACR);
+	uint8_t p_shift_mode = ACR_SR_CTRL(pACR);
 
 	// Generate shift pulse
 
@@ -247,7 +247,7 @@ void VIA6522::checkTimers()
 			mTimer1FirstRun = false;
 			mTimer1Counter = 0;
 			setIFR(IFR_T1_MASK);
-			switch (ACR_T1_CTRL) {
+			switch (ACR_T1_CTRL(mACR)) {
 			case 0x0:	// One-shot Interrupt (One-Shot Mode), PB7 inactive
 				mTimer1Running = false;
 				break;
@@ -270,7 +270,7 @@ void VIA6522::checkTimers()
 
 
 	// Check Timer 2
-	switch (ACR_T2_CTRL) {
+	switch (ACR_T2_CTRL(mACR)) {
 	case 0x0:	// Timed interrupt
 		mTimer2Counter = mTimer2Counter - 1;
 		break;
@@ -437,8 +437,8 @@ bool VIA6522::advanceUntil(uint64_t stopCycle)
 		return true;
 	}
 
-	uint8_t shift_mode = ACR_SR_CTRL;
-	uint8_t p_shift_mode = ACR_SR_CTRL_VAL(pACR);
+	uint8_t shift_mode = ACR_SR_CTRL(mACR);
+	uint8_t p_shift_mode = ACR_SR_CTRL(pACR);
 
 	// reset #shifts if the shift mode was changed
 	if (shift_mode != p_shift_mode) {
@@ -447,10 +447,10 @@ bool VIA6522::advanceUntil(uint64_t stopCycle)
 	}
 
 	// Modes
-	CA1_mode = PCR_CA1_CTRL;
-	CA2_mode = PCR_CA2_CTRL;
-	CB1_mode = PCR_CB1_CTRL;
-	CB2_mode = PCR_CB2_CTRL;
+	CA1_mode = PCR_CA1_CTRL(mPCR);
+	CA2_mode = PCR_CA2_CTRL(mPCR);
+	CB1_mode = PCR_CB1_CTRL(mPCR);
+	CB2_mode = PCR_CB2_CTRL(mPCR);
 
 	shifting_active = false;
 
@@ -479,10 +479,10 @@ bool VIA6522::advanceUntil(uint64_t stopCycle)
 				DBG_LOG(this, DBG_IO_PERIPHERAL, "CA1 (in) = " + to_string(mCAIn & 0x1) + ", CA2 (in) = " + to_string((mCAIn >> 1) & 0x1) + "\n");
 			}
 
-			if (ACR_PA_LATCH && CA1_In) // PA shall be latched on a high CA1
+			if (ACR_PA_LATCH(mACR) && CA1_In) // PA shall be latched on a high CA1
 				mPA_latched = mPAIn;
 
-			if (ACR_PB_LATCH && CB1_In) // PB shall be latched on a high CB1
+			if (ACR_PB_LATCH(mACR) && CB1_In) // PB shall be latched on a high CB1
 				mPB_latched = mPBIn;
 
 
@@ -657,7 +657,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 
 		// Start input shifting on read
 		if (mShifts == 0) {
-			switch (ACR_SR_CTRL) {
+			switch (ACR_SR_CTRL(mACR)) {
 			case 0x0:	// Shift in on positive edge of CB2 - no interrupt flag set
 			case 0x1:	// Shift in on timeout of T2 (lower bits only) and generate shift pulses on CB1 - interrupt flag set
 			case 0x2:	// Shift in under control of phi2 and generate shift pulses on CB1 - interrupt flag set	
@@ -949,7 +949,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		mTimer1XCounterHWrite = false;
 		mTimer1Running = true;
 		mTimer1FirstRun = true;
-		switch (ACR_T1_CTRL) {
+		switch (ACR_T1_CTRL(mACR)) {
 		case 0x0:	// One-shot Interrupt, PB7 inactive
 			break;
 		case 0x1:	// Continuous interrupts, PB7 inactive
@@ -999,7 +999,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		mShiftRegister = data;
 		// Start input shifting on write
 		if (mShifts == 0) {
-			switch (ACR_SR_CTRL) {		
+			switch (ACR_SR_CTRL(mACR)) {
 			case 0x0:	// Shift in on positive edge of CB2 - no interrupt flag set
 			case 0x1:	// Shift in on timeout of T2 (lower bits only) and generate shift pulses on CB1 - interrupt flag set
 			case 0x2:	// Shift in under control of phi2 and generate shift pulses on CB1 - interrupt flag set	
@@ -1009,7 +1009,7 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 			case 0x7:	// Shift out under control of external clock
 				mStartShifting = true;
 				mShifts = 0;
-				DBG_LOG(this, DBG_IO_PERIPHERAL, ": Start shifting by writing to the Shift Register - mode is " + to_string(ACR_SR_CTRL) + "\n");
+				DBG_LOG(this, DBG_IO_PERIPHERAL, ": Start shifting by writing to the Shift Register - mode is " + to_string(ACR_SR_CTRL(mACR)) + "\n");
 				break;
 			default:
 				break;
@@ -1027,14 +1027,14 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	{
 
 		// Check for shift mode changes impacting the direction of port CB
-		uint8_t p_shift_mode = ACR_SR_CTRL;
+		uint8_t p_shift_mode = ACR_SR_CTRL(mACR);
 		uint8_t p_ACR = mACR;
 		mACR = data;
 
 		DBG_LOG_COND(mACR != p_ACR, this, DBG_IO_PERIPHERAL, "\nWrite to ACR:\n" + ACR2Str() + "\n");
 
-		if (ACR_SR_CTRL != p_shift_mode) {
-			switch (ACR_SR_CTRL) {
+		if (ACR_SR_CTRL(mACR) != p_shift_mode) {
+			switch (ACR_SR_CTRL(mACR)) {
 			case 0x0:	// Shift in on positive edge of CB1 - no interrupt flag set
 			case 0x3:	// Shift in under control of external clock (on CB1) -  - interrupt flag set
 				mCB1Dir = 0x0;	// CB1 IN
@@ -1071,10 +1071,10 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 		mPCR = data;
 		uint8_t p_PCR = mPCR;
 
-		int CA1_mode = PCR_CA1_CTRL;
-		int CA2_mode = PCR_CA2_CTRL;
-		int CB1_mode = PCR_CB1_CTRL;
-		int CB2_mode = PCR_CB2_CTRL;
+		int CA1_mode = PCR_CA1_CTRL(mPCR);
+		int CA2_mode = PCR_CA2_CTRL(mPCR);
+		int CB1_mode = PCR_CB1_CTRL(mPCR);
+		int CB2_mode = PCR_CB2_CTRL(mPCR);
 
 		if (mPCR != p_PCR) {
 
@@ -1156,38 +1156,38 @@ bool VIA6522::write(uint16_t adr, uint8_t data)
 	return MemoryMappedDevice::triggerAfterWrite(adr, data);
 }
 
-string VIA6522::IFR2Str()
+string VIA6522::IFR2Str(uint8_t data)
 {
 	stringstream sout;
 	string prefix = "";
-	sout << "0x" << hex << (int)mIFR;
-	if (mIFR != 0)
+	sout << "0x" << hex << (int)data;
+	if (data != 0)
 		sout << " <=> ";
-	if (mIFR & IFR_CA1_MASK) {
+	if (data & IFR_CA1_MASK) {
 		sout << prefix << "CA1";
 		prefix = ", ";
 	}
-	if (mIFR & IFR_CA2_MASK) {
+	if (data & IFR_CA2_MASK) {
 		sout << prefix << "CA2";
 		prefix = ", ";
 	}
-	if (mIFR & IFR_CB1_MASK) {
+	if (data & IFR_CB1_MASK) {
 		sout << prefix << "CB1";
 		prefix = ", ";
 	}
-	if (mIFR & IFR_CB2_MASK) {
+	if (data & IFR_CB2_MASK) {
 		sout << prefix << "CB2";
 		prefix = ", ";
 	}
-	if (mIFR & IFR_SR_MASK) {
+	if (data & IFR_SR_MASK) {
 		sout << prefix << "SR";
 		prefix = ", ";
 	}
-	if (mIFR & IFR_T1_MASK) {
+	if (data & IFR_T1_MASK) {
 		sout << prefix << "T1";
 		prefix = ", ";
 	}
-	if (mIFR & IFR_T2_MASK) {
+	if (data & IFR_T2_MASK) {
 		sout << prefix << "T2";
 		prefix = ", ";
 	}
@@ -1195,38 +1195,40 @@ string VIA6522::IFR2Str()
 	return sout.str();
 }
 
-string VIA6522::IER2Str()
+
+
+string VIA6522::IER2Str(uint8_t data)
 {
 	stringstream sout;
 	string prefix = "";
-	sout << "0x" << hex << (int)mIER;
-	if (mIER != 0)
+	sout << "0x" << hex << (int)data;
+	if (data != 0)
 		sout << " <=> ";
-	if (mIER & IER_CA1_MASK) {
+	if (data & IER_CA1_MASK) {
 		sout << prefix << "CA1";
 		prefix = ", ";
 	}
-	if (mIER & IER_CA2_MASK) {
+	if (data & IER_CA2_MASK) {
 		sout << prefix << "CA2";
 		prefix = ", ";
 	}
-	if (mIER & IER_CB1_MASK) {
+	if (data & IER_CB1_MASK) {
 		sout << prefix << "CB1";
 		prefix = ", ";
 	}
-	if (mIER & IER_CB2_MASK) {
+	if (data & IER_CB2_MASK) {
 		sout << prefix << "CB2";
 		prefix = ", ";
 	}
-	if (mIER & IER_SR_MASK) {
+	if (data & IER_SR_MASK) {
 		sout << prefix << "SR";
 		prefix = ", ";
 	}
-	if (mIER & IER_T1_MASK) {
+	if (data & IER_T1_MASK) {
 		sout << prefix << "T1";
 		prefix = ", ";
 	}
-	if (mIER & IER_T2_MASK) {
+	if (data & IER_T2_MASK) {
 		sout << prefix << "T2";
 		prefix = ", ";
 	}
@@ -1234,27 +1236,27 @@ string VIA6522::IER2Str()
 	return sout.str();
 }
 
-string VIA6522::ACR2Str()
+string VIA6522::ACR2Str(uint8_t data)
 {
 	stringstream sout;
-	sout << "0x" << hex << (int)mACR <<  " <=> ";
-	sout << "PA Latch:" << ACRLE2Str(ACR_PA_LATCH);
-	sout << ", PB Latch:" << ACRLE2Str(ACR_PB_LATCH);
-	sout << ", Shifting:" << ACRSR2Str(ACR_SR_CTRL);
-	sout << ", T2:" << ACRT22Str(ACR_T2_CTRL);
-	sout << ", T1:" << ACRT12Str(ACR_T1_CTRL);
+	sout << "0x" << hex << (int)data <<  " <=> ";
+	sout << "PA Latch:" << ACRLE2Str(ACR_PA_LATCH(data));
+	sout << ", PB Latch:" << ACRLE2Str(ACR_PB_LATCH(data));
+	sout << ", Shifting:" << ACRSR2Str(ACR_SR_CTRL(data));
+	sout << ", T2:" << ACRT22Str(ACR_T2_CTRL(data));
+	sout << ", T1:" << ACRT12Str(ACR_T1_CTRL(data));
 
 	return sout.str();
 }
 
-string VIA6522::PCR2Str()
+string VIA6522::PCR2Str(uint8_t data)
 {
 	stringstream sout;
-	sout << "0x" << hex << (int)mPCR <<  " <=> ";
-	sout << "CA1:" << PCRCx12Str(PCR_CA1_CTRL);
-	sout << ", CA2:" << PCRCx22Str(PCR_CA2_CTRL);
-	sout << ", CB1:" << PCRCx12Str(PCR_CB1_CTRL);
-	sout << ", CB2:" << PCRCx22Str(PCR_CB2_CTRL);
+	sout << "0x" << hex << (int)data <<  " <=> ";
+	sout << "CA1:" << PCRCx12Str(PCR_CA1_CTRL(data));
+	sout << ", CA2:" << PCRCx22Str(PCR_CA2_CTRL(data));
+	sout << ", CB1:" << PCRCx12Str(PCR_CB1_CTRL(data));
+	sout << ", CB2:" << PCRCx22Str(PCR_CB2_CTRL(data));
 
 	return sout.str();
 }
@@ -1378,6 +1380,80 @@ bool VIA6522::outputState(ostream& sout)
 	sout << "T1 Counter = 0x" << Utility::int2HexStr(mTimer1Counter & 0xffff, 4) << "\n";
 	sout << "T2 Counter = 0x" << Utility::int2HexStr(mTimer2Counter & 0xffff, 4) << "\n";
 	sout << "IRQ = " << (int)mIRQ << "\n";
+
+	return true;
+}
+
+// Serialise the device's state into an array that can
+// be added to an execution trace easily.
+bool VIA6522::serialiseState(SerialisedState& serialisedState)
+{
+	int sz;
+	uint8_t dir;
+	serialisedState.at(0) = mIER;
+	serialisedState.at(1) = mIFR;
+	serialisedState.at(2) = mACR;
+	serialisedState.at(3) = mPCR;
+	serialisedState.at(4) = (mPAOut & ~mDDRA) | (mPAIn & mDDRA);
+	serialisedState.at(5) = mDDRA;
+	serialisedState.at(6) = (mPBOut & ~mDDRA) | (mPBIn & mDDRA);
+	serialisedState.at(7) = mDDRB;
+	serialisedState.at(8) = getPortVal(CA, sz, dir);
+	serialisedState.at(9) = dir;
+	serialisedState.at(10) = getPortVal(CB, sz, dir);
+	serialisedState.at(11) = dir;
+	serialisedState.at(12) = mShiftRegister;
+	serialisedState.at(13) = mTimer1Counter & 0xff;
+	serialisedState.at(14) = (mTimer1Counter >> 8) & 0xff;
+	serialisedState.at(15) = mTimer2Counter & 0xff;
+	serialisedState.at(16) = (mTimer2Counter >> 8) & 0xff;
+	serialisedState.at(17) = mIRQ;
+
+	return true;
+}
+
+// Output a single serialised device state
+bool VIA6522::outputSerialisedState(SerialisedState& serialisedState, ostream& sout)
+{
+	/*
+	sout << "IER = " << IER2Str(serialisedState.at(0)) << "\n";
+	sout << "IFR = " << IFR2Str(serialisedState.at(1)) << "\n";
+	sout << "ACR = " << ACR2Str(serialisedState.at(2)) << "\n";
+	sout << "PCR = " << PCR2Str(serialisedState.at(3)) << "\n";
+	sout << "PA = 0x" << Utility::int2HexStr(serialisedState.at(4),8) << "\n";
+	sout << "DDRA = 0x" << Utility::int2HexStr(serialisedState.at(5), 8) << "\n";
+	sout << "PB = 0x" << Utility::int2HexStr(serialisedState.at(6), 8) << "\n";
+	sout << "DDRB = 0x" << Utility::int2HexStr(serialisedState.at(7), 8) << "\n";
+	sout << "CA = 0x" << Utility::int2HexStr(serialisedState.at(8),2) << "\n";
+	sout << "CA DIR = 0x" << Utility::int2HexStr(serialisedState.at(9),2) << "\n";
+	sout << "CB = 0x" << Utility::int2HexStr(serialisedState.at(10), 2) << "\n";
+	sout << "CB DIR = 0x" << Utility::int2HexStr(serialisedState.at(11), 2) << "\n";
+	sout << "Shift Register = 0x" << Utility::int2HexStr(serialisedState.at(12), 2) << "\n";
+	uint16_t T1 = serialisedState.at(13) | (serialisedState.at(14) << 8);
+	sout << "T1 Counter = 0x" << Utility::int2HexStr(T1, 4) << "\n";
+	uint16_t T2 = serialisedState.at(15) | (serialisedState.at(16) << 8);
+	sout << "T2 Counter = 0x" << Utility::int2HexStr(T2, 4) << "\n";
+	sout << "IRQ = " << (int)serialisedState.at(17) << "\n";
+	*/
+	sout << setw(0) << "IER " << hex << setw(2) << setfill('0') << (int)serialisedState.at(0) << " ";
+	sout << setw(0) << "IFR " << hex << setw(2) << setfill('0') << (int)serialisedState.at(1) << " ";
+	sout << setw(0) << "ACR " << hex << setw(2) << setfill('0') << (int)serialisedState.at(2) << " ";
+	sout << setw(0) << "PCR " << hex << setw(2) << setfill('0') << (int)serialisedState.at(3) << " ";
+	sout << setw(0) << "PA " << hex << setw(2) << setfill('0') << (int)serialisedState.at(4) << " ";
+	sout << setw(0) << "DDRA " << hex << setw(2) << setfill('0') << (int)serialisedState.at(5) << " ";
+	sout << setw(0) << "PB " << hex << setw(2) << setfill('0') << (int)serialisedState.at(6) << " ";
+	sout << setw(0) << "DDRB " << hex << setw(2) << setfill('0') << (int)serialisedState.at(7) << " ";
+	sout << setw(0) << "CA " << hex << setw(2) << setfill('0') << (int)serialisedState.at(8) << " ";
+	sout << setw(0) << "DDRCA " << hex << setw(2) << setfill('0') << (int)serialisedState.at(9) << " ";
+	sout << setw(0) << "CB " << hex << setw(2) << setfill('0') << (int)serialisedState.at(10) << " ";
+	sout << setw(0) << "DDRCB " << hex << setw(2) << setfill('0') << (int)serialisedState.at(11) << " ";
+	sout << setw(0) << "SR " << hex << setw(2) << setfill('0') << (int)serialisedState.at(12) << " ";
+	uint16_t T1 = serialisedState.at(13) | (serialisedState.at(14) << 8);
+	uint16_t T2 = serialisedState.at(15) | (serialisedState.at(16) << 8);
+	sout << setw(0) << "T1 " << hex << setw(4) << setfill('0') << T1 << " ";
+	sout << setw(0) << "T2 " << hex << setw(4) << setfill('0') << T2 << " ";
+	sout << setw(0) << "IRQ " << hex << setw(1) << setfill('0') << (int)serialisedState.at(0);
+
 
 	return true;
 }

@@ -23,6 +23,7 @@ class P6502;
 class RAM;
 class DebugManager;
 
+
 enum Scheduling {LOW_RATE, HIGH_RATE, INSTR_RATE, NONE};
 #define _SCHEDULING(x) (x==LOW_RATE?"Low Rate":(x==HIGH_RATE?"High Rate":(x==INSTR_RATE?"Instruction":"None")))
 
@@ -87,6 +88,7 @@ public:
 	PortDirection			dir = IO_PORT;			// I/O direction
 	uint8_t					ioDirMask = 0xff;		// I/O direction for the bits of a bidirectional port:a set bit indicates OUT, a cleared bit IN
 	uint8_t					mask = 0x1;				// mask to select only the implemented bits
+	int						sz = 8;					// no of bits
 	uint8_t	*				valOut = NULL;			// pointer to variable holding an output port's value (or a bidirectional port's output value)
 	uint8_t *				valIn = NULL;			// pointer to variabel holding an input port's value (or a bidirectional port's input value)
 	vector<InputReference>	inputs;					// connected inputs (used only if the port is an output port)
@@ -218,6 +220,8 @@ public:
 	// Get a port's current value
 	static uint8_t getPortVal(DevicePort* port, int &sz, uint8_t &dir);
 	static uint8_t getPortVal(DevicePort* port) { int sz; uint8_t dir; return  getPortVal(port, sz, dir); }
+	uint8_t getPortVal(int index, int& sz, uint8_t& dir);
+	uint8_t getPortVal(int index) { int sz; uint8_t dir; return  getPortVal(index, sz, dir); }
 
 	// Get local port index for a named I/O (used by connection manager at initialisation)
 	bool getPortIndex(string name, DevicePort * &port);
@@ -243,7 +247,14 @@ public:
 	// Called by debugger normally to dump a periphal device's register content
 	virtual bool outputState(ostream& sout) { return true; }
 
-	//
+	// Serialise the device's state into an array that can
+	// be added to an execution trace easily.
+	virtual bool serialiseState(SerialisedState &serialisedState) { return true; }
+
+	// Output a single serialised device state
+	virtual bool outputSerialisedState(SerialisedState& serialisedState, ostream& sout) { return true; }
+
+	// Get current device time
 	bool getTimeSec(double& t) { t = mCycleCount * 1e-6 / mCPUClock; return mKeepsTime; }
 
 	// Tells the device about the current emulation rate, should this be used by the device

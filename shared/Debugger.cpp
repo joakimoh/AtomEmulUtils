@@ -435,6 +435,21 @@ bool Debugger::readPortSel(istream& sin, PortSelection &portSel)
 	return true;
 }
 
+Device* Debugger::readDevice(istream& sin)
+{
+	string dev_s;
+	if (!readString(sin, dev_s))
+		return nullptr;
+
+	Device* dev;
+	if ((dev = mCM->getDevice(dev_s)) == nullptr) {
+		cout << "Port doesn't exist!\n";
+		return nullptr;
+	}
+
+	return dev;
+}
+
 bool Debugger::setPortCmd(istream& sin)
 {
 	if (mEngine->isRunning()) {
@@ -621,7 +636,7 @@ bool Debugger::logWinCmd(istream& sin)
 	return true;
 }
 
-bool Debugger::logPortCmd(istream& sin)
+bool Debugger::logPortsCmd(istream& sin)
 {
 	string sub_cmd;
 	if (!readString(sin, sub_cmd))
@@ -654,6 +669,38 @@ bool Debugger::logPortCmd(istream& sin)
 	return true;
 }
 
+bool Debugger::logDevicesCmd(istream& sin)
+{
+	string sub_cmd;
+	if (!readString(sin, sub_cmd))
+		return false;
+
+	if (sub_cmd == "clr") {
+		mEngine->disableLogWindow();
+		mLogWinEnabled = false;
+		return true;
+	}
+
+	if (sub_cmd != "set")
+		return false;
+
+	PortSelection port_sel;
+	vector< Device*> logged_devices;
+	Device* dev;
+	while ((dev = readDevice(sin)) != nullptr)
+		logged_devices.push_back(dev);
+
+	if (logged_devices.size() == 0) {
+		cout << "At least one valid device needs to be selected!\n";
+		return false;
+	}
+
+	if (!mEngine->setLoggedDevices(logged_devices))
+		return false;
+
+	return true;
+}
+
 void Debugger::help()
 {
 	cout << "Commands are:\n";
@@ -677,6 +724,7 @@ void Debugger::help()
 	cout << "reset:                                              reset the microprocessor\n";
 	cout << "twin (set <sz> | clr):                              enable trace window of a certain size or disable it\n";
 	cout << "plog (set <port> {,...<port>} | clr):               add logging of specific device ports to the trace\n";
+	cout << "dlog (set <device> {,...<device>} | clr):           add logging of specific devices' states to the trace\n";
 	cout << "exit:                                               exit the debugger\n";
 }
 
@@ -747,7 +795,9 @@ void Debugger::run()
 			else if (cmd == "cbreak")
 				success = breakCmd(sin, true);
 			else if (cmd == "plog")
-				success = logPortCmd(sin);
+				success = logPortsCmd(sin);
+			else if (cmd == "dlog")
+				success = logDevicesCmd(sin);
 			else if (cmd == "exit")
 				success = exit();
 			else if (cmd == "mlog")

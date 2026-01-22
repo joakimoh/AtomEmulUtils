@@ -89,7 +89,9 @@ private:
 	bool logWinCmd(istream& sin);
 
 	bool readPortSel(istream& sin, PortSelection& portSel);
-	bool logPortCmd(istream& sin);
+	Device *readDevice(istream& sin);
+	bool logPortsCmd(istream& sin);
+	bool logDevicesCmd(istream& sin);
 
 	bool mLogWinEnabled = false;
 

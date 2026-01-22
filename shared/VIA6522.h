@@ -64,12 +64,11 @@ private:
 #define ACR_SR_CTRL_MASK	(0x7 << 2)
 #define ACR_T2_CTRL_MASK	(0x1 << 5)
 #define ACR_T1_CTRL_MASK	(0x3 << 6)
-#define ACR_PA_LATCH		((mACR >> 0) & 0x1)
-#define ACR_PB_LATCH		((mACR >> 1) & 0x1)
-#define ACR_SR_CTRL			((mACR >> 2) & 0x7)
-#define ACR_SR_CTRL_VAL(x)	((x >> 2) & 0x7)
-#define ACR_T2_CTRL			((mACR >> 5) & 0x1)
-#define ACR_T1_CTRL			((mACR >> 6) & 0x3)
+#define ACR_PA_LATCH(mACR)	((mACR >> 0) & 0x1)
+#define ACR_PB_LATCH(mACR)	((mACR >> 1) & 0x1)
+#define ACR_SR_CTRL(mACR)	((mACR >> 2) & 0x7)
+#define ACR_T2_CTRL(mACR)	((mACR >> 5) & 0x1)
+#define ACR_T1_CTRL(mACR)	((mACR >> 6) & 0x3)
 
 
 // Periperhal Control Register (PCR) Fields
@@ -77,10 +76,10 @@ private:
 #define PCR_CA2_CTRL_MASK	0x0e
 #define PCR_CB1_MASK		0x10
 #define PCR_CB2_CTRL_MASK	0xe0
-#define PCR_CA1_CTRL		((mPCR >> 0) & 0x1)
-#define PCR_CA2_CTRL		((mPCR >> 1) & 0x7)
-#define PCR_CB1_CTRL		((mPCR >> 4) & 0x1)
-#define PCR_CB2_CTRL		((mPCR >> 5) & 0x7)
+#define PCR_CA1_CTRL(mPCR)	((mPCR >> 0) & 0x1)
+#define PCR_CA2_CTRL(mPCR)	((mPCR >> 1) & 0x7)
+#define PCR_CB1_CTRL(mPCR)	((mPCR >> 4) & 0x1)
+#define PCR_CB2_CTRL(mPCR)	((mPCR >> 5) & 0x7)
 
 
 // Interrupt Enable Register (IER) Fields
@@ -92,14 +91,14 @@ private:
 #define IER_T2_MASK			0x20
 #define IER_T1_MASK			0x40
 #define IER_ENA_MASK		0x80
-#define IER_CA2		((mIER >> 0) & 1)
-#define IER_CA1		((mIER >> 1) & 1)
-#define IER_SR		((mIER >> 2) & 1)
-#define IER_CB2		((mIER >> 3) & 1)
-#define IER_CB1		((mIER >> 4) & 1)
-#define IER_T2		((mIER >> 5) & 1)
-#define IER_T1		((mIER >> 6) & 1)
-#define IER_ENA		((mIER >> 7) & 1)
+#define IER_CA2(mIER)		((mIER >> 0) & 1)
+#define IER_CA1(mIER)		((mIER >> 1) & 1)
+#define IER_SR(mIER)		((mIER >> 2) & 1)
+#define IER_CB2(mIER)		((mIER >> 3) & 1)
+#define IER_CB1(mIER)		((mIER >> 4) & 1)
+#define IER_T2(mIER)		((mIER >> 5) & 1)
+#define IER_T1(mIER)		((mIER >> 6) & 1)
+#define IER_ENA(mIER)		((mIER >> 7) & 1)
 
 // Interrupt Flag Register (IFR) Fields
 #define IFR_CA2_MASK		0x01
@@ -110,14 +109,14 @@ private:
 #define IFR_T2_MASK			0x20
 #define IFR_T1_MASK			0x40
 #define IFR_CLR_IRQ_MASK	0x80
-#define IFR_CA2		((mIFR >> 0) & 1)
-#define IFR_CA1		((mIFR >> 1) & 1)
-#define IFR_SR		((mIFR >> 2) & 1)
-#define IFR_CB2		((mIFR >> 3) & 1)
-#define IFR_CB1		((mIFR >> 4) & 1)
-#define IFR_T2		((mIFR >> 5) & 1)
-#define IFR_T1		((mIFR >> 6) & 1)
-#define IFR_CLR_IRQ	((mIFR >> 7) & 1)
+#define IFR_CA2(mIFR)		((mIFR >> 0) & 1)
+#define IFR_CA1(mIFR)		((mIFR >> 1) & 1)
+#define IFR_SR(mIFR)		((mIFR >> 2) & 1)
+#define IFR_CB2(mIFR)		((mIFR >> 3) & 1)
+#define IFR_CB1(mIFR)		((mIFR >> 4) & 1)
+#define IFR_T2(mIFR)		((mIFR >> 5) & 1)
+#define IFR_T1(mIFR)		((mIFR >> 6) & 1)
+#define IFR_CLR_IRQ(mIFR)	((mIFR >> 7) & 1)
 
 // Timers
 	int mTimer1Counter = 0x0;
@@ -162,17 +161,21 @@ private:
 	void clearIFR(uint8_t mask);
 	void setIFR(uint8_t mask);
 
-	string IFR2Str();
-	string IER2Str();
-	string ACR2Str();
-	string PCR2Str();
-	string PCRCx22Str(uint8_t op);
-	string PCRCx12Str(uint8_t op);
-	string ACRT12Str(uint8_t t);
-	string ACRT22Str(uint8_t t);
-	string ACRSR2Str(uint8_t s);
-	string ACRLE2Str(uint8_t l);
-	string ddr2Str(char port, uint8_t ddr);
+	static string IFR2Str(uint8_t data);
+	string IFR2Str() { return IFR2Str(mIFR); }
+	static string IER2Str(uint8_t data);
+	string IER2Str() { return IER2Str(mIER); }
+	static string ACR2Str(uint8_t data);
+	string ACR2Str() { return ACR2Str(mACR); }
+	static string PCR2Str(uint8_t data);
+	string PCR2Str() { return PCR2Str(mACR); }
+	static string PCRCx22Str(uint8_t op);
+	static string PCRCx12Str(uint8_t op);
+	static string ACRT12Str(uint8_t t);
+	static string ACRT22Str(uint8_t t);
+	static string ACRSR2Str(uint8_t s);
+	static string ACRLE2Str(uint8_t l);
+	static string ddr2Str(char port, uint8_t ddr);
 
 	void checkForShift();
 	void checkTimers();
@@ -194,10 +197,10 @@ private:
 	uint8_t PB6_In = (mPBIn >> 6) & 0x1;
 	uint8_t pPB6_In = (pPBIn >> 6) & 0x1;
 
-	uint8_t CA1_mode = PCR_CA1_CTRL;
-	uint8_t CA2_mode = PCR_CA2_CTRL;
-	uint8_t CB1_mode = PCR_CB1_CTRL;
-	uint8_t CB2_mode = PCR_CB2_CTRL;
+	uint8_t CA1_mode = PCR_CA1_CTRL(mPCR);
+	uint8_t CA2_mode = PCR_CA2_CTRL(mPCR);
+	uint8_t CB1_mode = PCR_CB1_CTRL(mPCR);
+	uint8_t CB2_mode = PCR_CB2_CTRL(mPCR);
 
 	bool shifting_active = false;
 
@@ -221,6 +224,13 @@ public:
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;
+
+	// Serialise the device's state into an array that can
+	// be added to an execution trace easily.
+	bool serialiseState(SerialisedState& serialisedState) override;
+
+	// Output a single serialised device state
+	bool outputSerialisedState(SerialisedState& serialisedState, ostream& sout) override;
 
 };
 

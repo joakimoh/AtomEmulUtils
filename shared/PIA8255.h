@@ -48,6 +48,13 @@ public:
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;
 
+	// Serialise the device's state into an array that can
+	// be added to an execution trace easily.
+	bool serialiseState(SerialisedState& serialisedState) override;
+
+	// Output a single serialised device state
+	bool outputSerialisedState(SerialisedState& serialisedState, ostream& sout) override;
+
 };
 
 #endif

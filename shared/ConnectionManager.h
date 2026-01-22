@@ -31,6 +31,7 @@ private:
 
 public:
 
+	Device *getDevice(string name);
 	bool extractPort(string name, PortSelection& port);
 	void printRouting();
 	string printDevicePort(DevicePort* device_port);
@@ -43,9 +44,6 @@ public:
 
 	// Used by a device to make a port available for routing
 	bool addDevicePort(Device* dev, DevicePort* localPort);
-
-	// Based on the device-independent unique index of a device's output, propagate the update to all connected devices
-	//bool receiveUpdate(Device *dev, int index, uint8_t val);
 
 	// Connect one device's output with the input of another device
 	bool connect(string srcName, string dstName, bool invert, bool process);

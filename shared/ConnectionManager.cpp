@@ -51,11 +51,22 @@ bool ConnectionManager::addDevicePort(Device* dev, DevicePort *localPort)
 // CONNECT	PIA:_;6			VDU:A/S
 // CONNECT	PIA:_;6			VUD:INT/EXT
 //
+
+Device *ConnectionManager::getDevice(string name)
+{
+	Device* dev;
+	if (!mDevices->getDevice(name, dev))
+		return nullptr;
+
+	return dev;
+	
+}
+
 bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 {
 	try {
 
-		// Get device 
+		// Get device
 		Tokeniser dev_tok(name, ':');
 		string dev_name;
 		if (!dev_tok.nextToken(dev_name))

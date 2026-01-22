@@ -452,3 +452,34 @@ bool PIA8255::outputState(ostream& sout)
 
 	return true;
 }
+
+// Serialise the device's state into an array that can
+// be added to an execution trace easily.
+bool PIA8255::serialiseState(SerialisedState& serialisedState)
+{
+	int sz;
+	uint8_t dir;
+	serialisedState.at(0) = mCR;
+	serialisedState.at(1) = getPortVal(PIA_PORT_A, sz, dir);
+	serialisedState.at(2) = dir;
+	serialisedState.at(3) = getPortVal(PIA_PORT_B, sz, dir);
+	serialisedState.at(4) = dir;
+	serialisedState.at(5) = getPortVal(PIA_PORT_C, sz, dir);
+	serialisedState.at(6) = dir;
+
+	return true;
+}
+
+// Outputs the internal state of the device
+bool PIA8255::outputSerialisedState(SerialisedState& serialisedState, ostream& sout)
+{
+	sout << setw(0) << "CR " << hex << setw(2) << setfill('0') << (int)serialisedState.at(0) << " ";
+	sout << setw(0) << "PA " << hex << setw(2) << setfill('0') << (int)serialisedState.at(1) << " ";
+	sout << setw(0) << "DDRA " << hex << setw(2) << setfill('0') << (int)serialisedState.at(2) << " ";
+	sout << setw(0) << "PB " << hex << setw(2) << setfill('0') << (int)serialisedState.at(3) << " ";
+	sout << setw(0) << "DDRB " << hex << setw(2) << setfill('0') << (int)serialisedState.at(4) << " ";
+	sout << setw(0) << "PC " << hex << setw(2) << setfill('0') << (int)serialisedState.at(5) << " ";
+	sout << setw(0) << "DDRC " << hex << setw(2) << setfill('0') << (int)serialisedState.at(6) << " ";
+
+	return true;
+}

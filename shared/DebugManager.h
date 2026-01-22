@@ -6,6 +6,7 @@
 #include <iostream>
 #include <sstream>
 #include <cstdint>
+#include <array>
 #include "Codec6502.h"
 
 class P6502;
@@ -70,6 +71,14 @@ typedef int DebugLevel;
 #define DBG_MATCH_PORT(x)			false
 
 #endif
+
+// Logging of devices' serial states
+#define ENGINE_SERIALISED_STATE_MAX 32
+#define ENGINE_SERIALISED_STATES_MAX 32
+typedef array<uint8_t, ENGINE_SERIALISED_STATE_MAX> SerialisedState;
+typedef array<SerialisedState, ENGINE_SERIALISED_STATES_MAX> SerialisedStates;
+
+
 
 typedef struct LogPort_struct {
 	string device;

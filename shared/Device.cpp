@@ -90,6 +90,11 @@ bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &ind
 	else
 		return false;
 
+	// Set no of bits 'sz' based on port mask
+	int sz = 0;
+	for (int msk = device_port->mask; msk != 0; sz++) msk = msk >> 1;
+	device_port->sz = sz;
+
 	device_port->globalIndex = -1;
 	if (DBG_LEVEL_DEV(this, DBG_DEVICE))
 		cout << "DEVICE ADDS PORT " << mConnectionManager->printDevicePort(device_port) << "\n";
@@ -358,9 +363,8 @@ bool Device::getPortIndex(string name, DevicePort * &port) {
 uint8_t Device::getPortVal(DevicePort* port, int &sz, uint8_t& dir) {
 	uint8_t* in_val = port->valIn;
 	uint8_t* out_val = port->valOut;
-	sz = 0;
-	for (int mask = port->mask; mask != 0; sz++) mask = mask >> 1;
-	uint8_t sz_mask = ((1 << sz) - 1);
+	sz = port->sz;
+	uint8_t sz_mask = port->mask;
 	uint8_t io_mask = (port->ioDirMask) & sz_mask;
 	uint8_t val;
 	if (port->dir == IN_PORT) {
@@ -376,6 +380,13 @@ uint8_t Device::getPortVal(DevicePort* port, int &sz, uint8_t& dir) {
 		val = (io_mask & (*out_val)) | (~io_mask & (*in_val) & 0xff);
 	}
 	return val;
+}
+
+// Get a port's current value
+uint8_t Device::getPortVal(int index, int& sz, uint8_t& dir)
+{
+	DevicePort& port = *mPorts[index];
+	return getPortVal(&port, sz, dir);
 }
 
 
