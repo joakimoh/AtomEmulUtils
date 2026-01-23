@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 #include <map>
-#include "DebugManager.h"
+#include "DebugTracing.h"
 #include <allegro5/allegro_primitives.h>
 #include <iostream>
 
@@ -26,7 +26,7 @@ private:
 	int									mDevicePortIndex = 0;
 
 
-	DebugManager* mDM = NULL;
+	DebugTracing* mDM = NULL;
 
 
 public:
@@ -37,7 +37,7 @@ public:
 	string printDevicePort(DevicePort* device_port);
 	string printPortSelection(PortSelection& port_selection);
 
-	ConnectionManager(DebugManager* debugManager);
+	ConnectionManager(DebugTracing* debugTracing);
 	~ConnectionManager();
 
 	void setDeviceManager(DeviceManager* devices);

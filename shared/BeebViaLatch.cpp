@@ -1,8 +1,8 @@
 #include "BeebViaLatch.h"
 #include "Utility.h"
 
-BeebViaLatch::BeebViaLatch(string name, double cpuClock, DebugManager* debugManager, ConnectionManager* connectionManager):
-	Device(name, BEEB_VIA_LATCH, PERIPHERAL, cpuClock, debugManager, connectionManager)
+BeebViaLatch::BeebViaLatch(string name, double cpuClock, DebugTracing* debugTracing, ConnectionManager* connectionManager):
+	Device(name, BEEB_VIA_LATCH, PERIPHERAL, cpuClock, debugTracing, connectionManager)
 {
 	registerPort("CTRL",	IN_PORT,	0x0f, CTRL, &mCTRL);
 	registerPort("Q",		OUT_PORT,	0xff, Q,	&mQ);

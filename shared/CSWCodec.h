@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 #include <cstdint>
-#include "DebugManager.h"
+#include "DebugTracing.h"
 
 using namespace std;
 
@@ -85,7 +85,7 @@ private:
 
 	int mSampleRate;
 
-	DebugManager *mDM = NULL;
+	DebugTracing *mDM = NULL;
 
 	string mTapeFilePath;
 
@@ -98,7 +98,7 @@ private:
 public:
 
 	// Default constructor
-	CSWCodec(int sampleFreq, DebugManager  *debugManager);
+	CSWCodec(int sampleFreq, DebugTracing  *debugTracing);
 
 	// Decode a CSW file as a vector of pulses
 	bool decode(string &fileName, vector<uint8_t> &pulses, uint8_t &firstHalfCycleLevel, int &sampleRate);

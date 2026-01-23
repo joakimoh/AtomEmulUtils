@@ -19,8 +19,8 @@
 // CAS_OUT		Cassette output to the Tape Recorder
 //
 
-AtomCUTSInterface::AtomCUTSInterface(string name, double systemClock, DebugManager  *debugManager, ConnectionManager* connectionManager) :
-	Device(name, ATOM_CUTS_DEV, OTHER_DEVICE, systemClock, debugManager, connectionManager)
+AtomCUTSInterface::AtomCUTSInterface(string name, double systemClock, DebugTracing  *debugTracing, ConnectionManager* connectionManager) :
+	Device(name, ATOM_CUTS_DEV, OTHER_DEVICE, systemClock, debugTracing, connectionManager)
 {
 	registerPort("TAPE_OUT",	IN_PORT,	0x01, TAPE_OUT, &mTAPE_OUT);	// From PIA PC0
 	registerPort("ENA_TONE",	IN_PORT,	0x01, ENA_TONE, &mENA_TONE);	// From PIA PC1
@@ -48,7 +48,7 @@ bool AtomCUTSInterface::advanceUntil(uint64_t stopCycle)
 
 		// Generate TAPE_IN based on CAS_IN
 		
-		if (DBG_LEVEL(DBG_TAPE) && mTAPE_IN != mCAS_IN) {
+		if (DBG_LEVEL_DEV(this,DBG_TAPE) && mTAPE_IN != mCAS_IN) {
 			int prev_half_cycle_time_point = mDebugPrevHalfCycleTimePoint;
 			mDebugPrevHalfCycleTimePoint = mCycleCount;
 			double cycle_len = 2 * (mDebugPrevHalfCycleTimePoint- prev_half_cycle_time_point) / (mCPUClock * 1e6);

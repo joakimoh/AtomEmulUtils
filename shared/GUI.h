@@ -35,6 +35,7 @@ enum {
     DBG_ID,
     START_DBG_ID,
 	STOP_WAIT_DBG_ID,
+	STOP_TRACING_DBG_ID,
 	RESET_DBG_ID,
 
     MMC_ID,
@@ -83,7 +84,7 @@ private:
 	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
 #define MY_ALLEGRO_MENU_SEPARATOR {NULL, (uint16_t)-1,0, NULL}
 
-	ALLEGRO_MENU_INFO mMainMenu[49] = {
+	ALLEGRO_MENU_INFO mMainMenu[50] = {
 
 		ALLEGRO_START_OF_MENU("&File", FILE_ID),
 			{ "&Load data into RAM",   LOAD_INTO_RAM,  0,  NULL },
@@ -140,6 +141,7 @@ private:
 		ALLEGRO_START_OF_MENU("&Debugger", DBG_ID),
 			{ "Start",              START_DBG_ID,           ALLEGRO_MENU_ITEM_DISABLED,                             NULL },
 			{ "Stop waiting",       STOP_WAIT_DBG_ID,       ALLEGRO_MENU_ITEM_DISABLED,                             NULL },
+			{ "Stop tracing",       STOP_TRACING_DBG_ID,       0,                             NULL },
 			ALLEGRO_END_OF_MENU,
 
 		  ALLEGRO_END_OF_MENU
@@ -154,7 +156,7 @@ private:
     double *mEmulationSpeed = nullptr;
 
     SDCard *mMMC = nullptr;
-    DebugManager* mDM = nullptr;
+    DebugTracing* mDT = nullptr;
 	ConnectionManager *mCM = nullptr;
     Debugger *mDebugger = nullptr;
 
@@ -170,7 +172,7 @@ private:
 public:
 
     GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, Display* display, DeviceManager * devices, VideoDisplayUnit* vdu, P6502 *cpu, double *emulationSpeed, 
-		DebugManager *dm, ConnectionManager* cm, string outDir);
+		DebugTracing *dm, ConnectionManager* cm, string outDir);
     ~GUI();
 
 	bool itemSelected(ALLEGRO_EVENT  *event);

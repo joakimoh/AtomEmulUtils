@@ -20,7 +20,7 @@ private:
 
 public:
 
-	MemoryProxyDevice(string name, uint16_t adr, uint16_t sz, MemoryMappedDevice* firstDevice, DebugManager* debugManager,
+	MemoryProxyDevice(string name, uint16_t adr, uint16_t sz, MemoryMappedDevice* firstDevice, DebugTracing* debugTracing,
 		ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
 	~MemoryProxyDevice();

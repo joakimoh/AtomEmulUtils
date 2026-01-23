@@ -283,8 +283,8 @@ void P6502::initInstrTable()
 
 }
 
-P6502::P6502(string name, double clockSpeed, DebugManager  *debugManager, ConnectionManager *connectionManager, DeviceManager* deviceManager):
-	Device(name, P6502_DEV, MICROROCESSOR_DEVICE, clockSpeed, debugManager, connectionManager), mDeviceManager(deviceManager)
+P6502::P6502(string name, double clockSpeed, DebugTracing  *debugTracing, ConnectionManager *connectionManager, DeviceManager* deviceManager):
+	Device(name, P6502_DEV, MICROROCESSOR_DEVICE, clockSpeed, debugTracing, connectionManager), mDeviceManager(deviceManager)
 {
 	cPeriod = (int) round(1000 / clockSpeed);
 
@@ -325,7 +325,7 @@ bool P6502::serveNMI()
 	mProgramCounter = adr_H * 256 + adr_L;
 	mStatusRegister |= I_set_mask;
 
-	if (DBG_TRACING_OR_LEVEL(DBG_INTERRUPTS)) {
+	if (DBG_LEVEL_DEV(this, DBG_INTERRUPTS | DBG_6502)) {
 		DBG_LOG(this, DBG_INTERRUPTS, "Serving NMI at PC = 0x" + Utility::int2HexStr(oProgramCounter,4) + "\n");
 		DBG_LOG_COND(mIRQ == 0, this, DBG_INTERRUPTS, getInterruptStack(mStackPointer + 1, oStackPointer, oProgramCounter, oStatusRegister));
 	}
@@ -361,7 +361,7 @@ bool P6502::serveIRQ()
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
 
-	if (DBG_TRACING_OR_LEVEL(DBG_INTERRUPTS)) {
+	if (DBG_LEVEL_DEV(this, DBG_INTERRUPTS | DBG_6502)) {
 		DBG_LOG(this, DBG_INTERRUPTS, "Serving IRQ at PC = 0x" + Utility::int2HexStr(oProgramCounter,4) + "\n");
 		DBG_LOG_COND(mIRQ == 0, this, DBG_INTERRUPTS, getInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister));
 	}
@@ -410,9 +410,6 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 {
 	bool success = true;
 
-	// Advance debugging
-	DBG_PBUF(mProgramCounter, mRegisterX, mRegisterY, mAcc);
-
 	mResetTransition = mRESET != pRESET;
 	pRESET = mRESET;
 
@@ -422,11 +419,11 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	mNmiTransition = mNMI != pNMI;
 	pNMI = mNMI;
 
-	DBG_COND_TRACING(mResetTransition, this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
+	DBG_LOG_COND(mResetTransition, this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
-	DBG_COND_TRACING(mIrqTransition, this, DBG_INTERRUPTS, "IRQ => " + to_string(mIRQ) + "\n");
+	DBG_LOG_COND(mIrqTransition, this, DBG_INTERRUPTS, "IRQ => " + to_string(mIRQ) + "\n");
 
-	DBG_COND_TRACING(mNmiTransition, this, DBG_INTERRUPTS, "NMI => " + to_string(mNMI) + "\n");
+	DBG_LOG_COND(mNmiTransition, this, DBG_INTERRUPTS, "NMI => " + to_string(mNMI) + "\n");
 
 	// Serve RESET, NMI & IRQ in priority order
 	if (!mRESET) {
@@ -439,19 +436,6 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		serveNMI();
 	else if (!mIRQ)	// IRQ is level-triggered!
 		serveIRQ();
-
-	// Turn on interrupt logging?
-	DBG_ADR_INT_TRIGGER(mProgramCounter, mIRQ == 0 || mNMI == 0);
-
-	// Turn on unconditional logging
-	DBG_ADR_TRIGGER(mProgramCounter);
-
-	// Stop execution?
-	if (DBG_STOP(this, mProgramCounter)) {
-		mCycleCount++;
-		endCycle = mCycleCount;
-		return false;
-	}
 
 	// Save cycle count before fetching and executing the instruction
 	uint64_t start_cycle = mCycleCount;
@@ -495,38 +479,15 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	// Calculate the no of cycles for the executed instruction
 	mExecutedCycles = endCycle - start_cycle;
 
-	if (DBG_TRACING()) {
-
-		if (mDM->quickTracing()) {
-			InstrLogData instr_log_data;
-			getInstrLogData(instr_log_data);
-			DBG_LOG(this, DBG_6502, instr_log_data);
-		}
-		else {
-
-			string instr_s = mCodec.decode(mOpcodePC, mOpcode, mOperand16);
-			stringstream sout;
-			sout << "[" << mExecutedCycles << "] ";
-			sout << setfill(' ') << setw(30) << left << instr_s << right <<
-				" " << getState();
-			if (pInstructionInfo->readsMem || pInstructionInfo->writesMem)
-				sout << " ACCESSED 0x" << hex << setfill('0') << setw(4) << mOperandAddress;
-			if (pInstructionInfo->readsMem)
-				sout << " READ 0x" << setw(2) << (int)mReadVal8;
-			if (pInstructionInfo->writesMem)
-				sout << " WROTE 0x" << setw(2) << (int)mWrittenVal;
-			sout << " " << stack2Str();
-			if (!mExecSuccess)
-				sout << " EXEC FAILURE";
-			if (!mIRQ && mIrqTransition)
-				sout << " *IRQ";
-			if (!mNMI && mNmiTransition)
-				sout << " *NMI";
-			sout << "\n";
-
-			DBG_LOG(this, DBG_6502, sout.str());
-		}
+	// Log executed instruction if enabled
+	if (DBG_LEVEL_DEV(this, DBG_6502)) {
+		InstrLogData instr_log_data;
+		getInstrLogData(instr_log_data);
+		stringstream sout;
+		printInstrLogData(sout, instr_log_data);
+		DBG_LOG(this, DBG_6502, sout.str());
 	}
+
 
 
 	// Always return true even if the instruction execution failed in some way in order

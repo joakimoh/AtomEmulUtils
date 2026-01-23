@@ -35,8 +35,8 @@ using namespace std;
 // Device class
 //
 
-Device::Device(string n, DeviceId typ, DeviceCategory cat, double cpuClock, DebugManager  *debugManager, ConnectionManager *connectionManager) :
-	devType(typ), mConnectionManager(connectionManager), mDM(debugManager), name(n), category(cat), mCPUClock(cpuClock)
+Device::Device(string n, DeviceId typ, DeviceCategory cat, double cpuClock, DebugTracing  *debugTracing, ConnectionManager *connectionManager) :
+	devType(typ), mConnectionManager(connectionManager), mDM(debugTracing), name(n), category(cat), mCPUClock(cpuClock)
 {
 }
 
@@ -119,11 +119,6 @@ bool Device::registerPortDirChange(int index, uint8_t mask)
 	// Get reference to the source port
 	DevicePort& port = *mPorts[index];
 
-	if (DBG_MATCH_PORT(&port) && port.ioDirMask != mask) {	
-		DBG_LOG(this, DBG_PORT, "Port " + this->name + ":" + mPorts[index]->name + " has changed direction from " + Utility::int2BinStr(port.ioDirMask,8) +
-			" to " + Utility::int2BinStr(mask,8));
-	}
-
 	port.portDirChanged = true;
 	port.ioDirMask = mask;
 
@@ -191,13 +186,6 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 	if (!changed)
 		return true;
 
-#ifdef DBG_ON
-	if (DBG_MATCH_PORT(&port) && changed) {
-		DBG_LOG(this, DBG_PORT, "SRC PORT '" + port.dev->name + ":" + port.name + " 0x" + Utility::int2HexStr(port_val,2) + " => 0x" + 
-			Utility::int2HexStr(val,2));
-	}
-#endif
-
 	// Update the destination ports based on the new value
 	for (int i = 0; i < port.inputs.size(); i++) {
 
@@ -241,11 +229,6 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 		nval_or = (src_val << (-shifts)) & dst_sel_mask;
 	nval = ((pval & ~dst_sel_mask) | nval_or) & dst_mask;
 
-	if (DBG_MATCH_PORT(srcPort)) {
-		DBG_LOG(this, DBG_PORT, "Update connected port " + dstPort.port->dev->name + ":" + dstPort.port->name +
-			" with value 0x" + Utility::int2HexStr(nval, 2) + " (0x" + Utility::int2HexStr(pval, 2) + ")");
-	}
-
 	vector <OutputReference>& dst_port_sources = dstPort.port->portSources;
 	int dst_port_sources_sz = dst_port_sources.size();
 
@@ -271,12 +254,6 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 		if (dstPort.port->arbitration) {
 
 			uint8_t aval = dst_mask; // initialise abritrated value with the destination port's mask <=> all bits set (High)
-
-#ifdef DBG_ON
-			if (DBG_MATCH_PORT(dstPort.port))
-				DBG_LOG(this, DBG_PORT, "\nABRITRATION FOR PORT " + dstPort.port->dev->name + ":" + dstPort.port->name + " = 0x" + 
-					Utility::int2HexStr(pval,2));
-#endif
 			
 			bool src_port_updated = false;
 			for (int i = 0; i < dst_port_sources_sz; i++) {
@@ -288,44 +265,14 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 
 				if (aval == 0x0 && src_port_updated)
 					break;
-#ifdef DBG_ON
-				if (DBG_MATCH_PORT(dstPort.port))
-					DBG_LOG(this, DBG_PORT, "SOURCE PORT " + src_ref.srcPort->dev->name + ":" + src_ref.srcPort->name + " = 0x" +
-						Utility::int2HexStr(src_ref.dstVal,2) + " (mask 0x" + Utility::int2HexStr(src_ref.dstMask,2) + ")");
-#endif
 			}
-#ifdef DBG_ON
-			if (DBG_MATCH_PORT(dstPort.port))
-				DBG_LOG(this, DBG_PORT, "ARBITRATED VALUE BECAME 0x" + Utility::int2HexStr(aval,2));
-#endif
 
 			*dst_val_p = aval & dst_mask;
 		}
 		else { // Only one source device connected to the port => arbitration not needed
 			*dst_val_p = nval;
 		}
-#ifdef DBG_ON
-		if (DBG_MATCH_PORT(dstPort.port) && *dst_val_p != pval) {
-			string src_sel, dst_sel;
-			getPortSelection(srcPort, dstPort, src_sel, dst_sel);
-			string shift_s, c_dir;
-			if (dstPort.shifts >= 0)
-				shift_s = "((src >> shifts) & mask)";
-			else
-				shift_s = "((src << shifts) & mask)";
-			cout << "SRC PORT " << this->name << ":" << srcPort->name << " = 0x" << hex << (int)srcVal << " => DST PORT " <<
-				dstPort.port->dev->name << ":" << dstPort.port->name << " = " <<
-				dstPort.port->name << " &  ~mask | " << shift_s << " = 0x" << hex <<
-				(int)pval << " & 0x" << hex << setfill('0') << setw(2) << (int)(uint8_t)(~dst_sel_mask) << " | ((0x" << hex << (int)nval <<
-				(shifts >= 0 ? " >> " : " << ") << setfill(' ') << dec << (shifts >= 0 ? shifts : -shifts) <<
-				") & 0x" << hex << (int)dst_sel_mask << ")" << setfill('0') << setw(2) <<
-				" = 0x" << hex << (int)(*dst_val_p) << dec;
-			if (dstPort.process)
-				cout << "; processing\n";
-			else
-				cout << "\n";
-		}
-#endif
+
 		return true;
 	}
 

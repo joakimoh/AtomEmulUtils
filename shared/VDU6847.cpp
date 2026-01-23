@@ -74,8 +74,8 @@ using namespace std;
 //
 
 VDU6847::VDU6847(string name, uint16_t adr, Display* display, double cpuClock, uint8_t waitStates, 
-	uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager *deviceManager) :
-	VideoDisplayUnit(name, VDU6847_DEV, display, cpuClock, waitStates, adr, 0x100, videoMemAdr, debugManager, connectionManager,
+	uint16_t videoMemAdr, DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager *deviceManager) :
+	VideoDisplayUnit(name, VDU6847_DEV, display, cpuClock, waitStates, adr, 0x100, videoMemAdr, debugTracing, connectionManager,
 		deviceManager), mN60HzCycles((int)round(cpuClock * 1e6 / 60))
 {
 	// Specify ports that can be connectde to other devices

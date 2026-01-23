@@ -43,7 +43,7 @@ protected:
 public:
 
 	VideoDisplayUnit(string name, DeviceId devId, Display *display, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz,
-		uint16_t videoMemAdr, DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager* deviceManager);
+		uint16_t videoMemAdr, DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
 	virtual ~VideoDisplayUnit() {};
 

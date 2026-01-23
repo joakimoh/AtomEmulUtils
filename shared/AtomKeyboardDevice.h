@@ -6,7 +6,7 @@
 #include "ClockedDevice.h"
 #include "Device.h"
 #include <allegro5/allegro5.h>
-#include "DebugManager.h"
+#include "DebugTracing.h"
 #include "KeyboardDevice.h"
 
 //
@@ -193,7 +193,7 @@ private:
 
 public:
 
-	AtomKeyboardDevice(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	AtomKeyboardDevice(string name, double cpuClock, DebugTracing  *debugTracing, ConnectionManager* connectionManager);
 
 	// Reset device
 	bool power() { mCycleCount = 0; return true; }

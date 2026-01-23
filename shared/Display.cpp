@@ -3,8 +3,8 @@
 
 
 
-Display::Display(ALLEGRO_EVENT_QUEUE* queue, VideoFormat& videoFormat, bool EnableHwAcc, double speedFactor, DebugManager *debugManager) :
-    mDM(debugManager), mSpeedFactor(speedFactor), mQueue(queue), mHwAcc(EnableHwAcc), mVideoFmt(videoFormat)
+Display::Display(ALLEGRO_EVENT_QUEUE* queue, VideoFormat& videoFormat, bool EnableHwAcc, double speedFactor, DebugTracing *debugTracing) :
+    mDM(debugTracing), mSpeedFactor(speedFactor), mQueue(queue), mHwAcc(EnableHwAcc), mVideoFmt(videoFormat)
 {
 
 }

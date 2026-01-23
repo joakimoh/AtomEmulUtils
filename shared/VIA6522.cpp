@@ -12,9 +12,9 @@ using namespace std;
 //
 
 
-VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugManager  *debugManager, ConnectionManager* connectionManager,
+VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugTracing  *debugTracing, ConnectionManager* connectionManager,
 	DeviceManager *deviceManager) :
-	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL, cpuClock, waitStates, adr, 0x10, debugManager, connectionManager, deviceManager),
+	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL, cpuClock, waitStates, adr, 0x10, debugTracing, connectionManager, deviceManager),
 	ClockedDevice(cpuClock, clock)
 {
 
@@ -667,7 +667,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 			case 0x7:	// Shift out under control of external clock
 				mStartShifting = true;
 				mShifts = 0;
-				DBG_LOG(this, DBG_IO_PERIPHERAL, ": Start shifting by reading the Shift Register - mode is "+ to_string(ACR_SR_CTRL) + "\n");
+				DBG_LOG(this, DBG_IO_PERIPHERAL, ": Start shifting by reading the Shift Register - mode is "+ to_string(ACR_SR_CTRL(mACR)) + "\n");
 				break;
 			default:
 				break;

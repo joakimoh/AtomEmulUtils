@@ -76,8 +76,8 @@ using namespace std;
 
 BeebVideoULA::BeebVideoULA(
 	string name, uint16_t adr, Display* display, double cpuclock, uint8_t waitStates,
-	DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager* deviceManager
-) : VideoDisplayUnit(name, BEEB_VDU_DEV, display, cpuclock, waitStates, adr, 0x10, 0x0 /* dummy adr */, debugManager, connectionManager,
+	DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager
+) : VideoDisplayUnit(name, BEEB_VDU_DEV, display, cpuclock, waitStates, adr, 0x10, 0x0 /* dummy adr */, debugTracing, connectionManager,
 	deviceManager)
 {
 	//registerPort("SCROLL_CTRL",	IN_PORT,	0x0f, SCROLL_CTRL,	&mSCROLL_CTRL);

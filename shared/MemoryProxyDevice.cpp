@@ -2,13 +2,13 @@
 #include "Device.h"
 #include "ConnectionManager.h"
 
-MemoryProxyDevice::MemoryProxyDevice(string name, uint16_t adr, uint16_t sz, MemoryMappedDevice *firstDevice, DebugManager* debugManager,
+MemoryProxyDevice::MemoryProxyDevice(string name, uint16_t adr, uint16_t sz, MemoryMappedDevice *firstDevice, DebugTracing* debugTracing,
 ConnectionManager* connectionManager, DeviceManager* deviceManager): mSpace(firstDevice->getClaimedAddressSpace()),
 	MemoryMappedDevice(
 		name, PROXY_MEM_MAPPED_DEV, DeviceCategory::OTHER_DEVICE,
 		1.0, // Dummy clock speed
 		0,	// Dummy wait states
-		adr, sz, debugManager, connectionManager, deviceManager)
+		adr, sz, debugTracing, connectionManager, deviceManager)
 {
 	addDevice(firstDevice);
 }

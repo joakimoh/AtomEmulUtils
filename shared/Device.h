@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 #include <map>
-#include "DebugManager.h"
+#include "DebugTracing.h"
 #include <allegro5/allegro_primitives.h>
 #include <iostream>
 #include "VideoSettings.h"
@@ -21,7 +21,7 @@ class MemoryMappedDevice;
 class VideoDisplayUnit;
 class P6502;
 class RAM;
-class DebugManager;
+class DebugTracing;
 
 
 enum Scheduling {LOW_RATE, HIGH_RATE, INSTR_RATE, NONE};
@@ -128,6 +128,8 @@ class Device {
 
 private:
 
+	bool mTracingEnabled = false;
+
 	bool updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal);
 
 	void getPortSelection(DevicePort* srcPort, InputReference& dstPort, string& srcSel, string& dstSel);
@@ -136,7 +138,7 @@ protected:
 
 	bool mPowerOnReset = true;
 
-	DebugManager *mDM = NULL;
+	DebugTracing *mDM = NULL;
 
 	uint64_t mCycleCount = 0;
 	
@@ -171,10 +173,14 @@ public:
 
 	DeviceCategory category;
 
-	Device(string name, DeviceId typ, DeviceCategory cat, double cpuClock, DebugManager *debugManager, ConnectionManager *connectionManager);
+	Device(string name, DeviceId typ, DeviceCategory cat, double cpuClock, DebugTracing *debugTracing, ConnectionManager *connectionManager);
 	virtual ~Device();
 
 	uint64_t getCycleCount() { return mCycleCount; }
+
+	bool tracingEnabled() { return mTracingEnabled; }
+	void enableTracing() { mTracingEnabled = true; }
+	void disableTracing() { mTracingEnabled = false; }
 
 	// Reset device
 	virtual bool reset() {

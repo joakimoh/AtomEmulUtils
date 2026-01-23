@@ -3,14 +3,14 @@
 #include "Device.h"
 #include "Utility.h"
 #include <cmath>
-#include "DebugManager.h"
+#include "DebugTracing.h"
 #include <string>
 
 using namespace std;
 
 BeebSerialULA::BeebSerialULA(
-	string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugManager* debugManager, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
-	MemoryMappedDevice(name, BEEB_SERIAL_ULA_DEV, PERIPHERAL, cpuClock, waitStates, adr, 1, debugManager, connectionManager, deviceManager)
+	string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
+	MemoryMappedDevice(name, BEEB_SERIAL_ULA_DEV, PERIPHERAL, cpuClock, waitStates, adr, 1, debugTracing, connectionManager, deviceManager)
 {
 	registerPort("RxD",		OUT_PORT,	0x1,	RxD,		&mRxD);		// Receive Data					to ACIA
 	registerPort("CTSO",	OUT_PORT,	0x1,	CTSO,		&mCTSO);	// Clear To Send				to ACIA

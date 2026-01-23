@@ -35,7 +35,7 @@ private:
 	bool mStartPlaying = false;
 
 public:
-	TapeRecorder(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	TapeRecorder(string name, double cpuClock, DebugTracing  *debugTracing, ConnectionManager* connectionManager);
 	~TapeRecorder();
 
 	bool advanceUntil(uint64_t stopCycle);

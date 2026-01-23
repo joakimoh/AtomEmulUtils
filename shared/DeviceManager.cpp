@@ -79,11 +79,11 @@ string DeviceManager::getFileName(string& path, stringstream& sin)
 }
 
 DeviceManager::DeviceManager(
-	string memMapFile, double& cpuClock, Display* display, DebugManager* debugManager,
-	Program program, Program data, ConnectionManager* mCM, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device, vector<Device*>& allDevices,
+	string memMapFile, double& cpuClock, Display* display, DebugTracing* debugTracing,
+	ConnectionManager* mCM, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device, vector<Device*>& allDevices,
 	vector<Device*>& baseRateScheduledDevices, vector<Device*>& subRateScheduledDevices, vector<Device*>& instructionRateScheduledDevices,
 	KeyboardDevice*& keyboardDevice, double speed, double& baseSchedulingRate, double& subSchedulingRate
-) : mDM(debugManager), mCM(mCM), mDisplay(display)
+) : mDM(debugTracing), mCM(mCM), mDisplay(display)
 {
 
 	cpuClock = 1.0; // Default 1 Mhz CPU clock
@@ -627,7 +627,7 @@ DeviceManager::DeviceManager(
 		if (DBG_LEVEL(DBG_VERBOSE))
 			cout << d->name << " scheduled on " << _SCHEDULING(d->scheduling) << " basis\n";
 	}
-	if (debugManager->debugLevelIs(DBG_VERBOSE))
+	if (DBG_LEVEL(DBG_VERBOSE))
 		cout << "Each device now powered on (reset) and each of its port's output have been shared with the connected devices...\n";
 
 	if (!getPageMemDevice(microprocessor->mZPMemDev, 0)) {
@@ -640,16 +640,10 @@ DeviceManager::DeviceManager(
 		throw runtime_error("Failed to get page one memory device");
 	}
 
-	if (!loadData(program))
-		throw runtime_error("");
-
-	if (!loadData(data))
-		throw runtime_error("");
-
 	if (DBG_LEVEL(DBG_VERBOSE))
 		mCM->printRouting();
 
-	if (mDM->debugLevelIs(DBG_VERBOSE))
+	if (DBG_LEVEL(DBG_VERBOSE))
 		printMemoryMap();
 
 }
@@ -953,7 +947,7 @@ bool DeviceManager::createMemoryMap()
 			mMemoryTree.insert(segment);
 		}
 	}
-	if (mDM->debugLevelIs(DBG_VERBOSE))
+	if (DBG_LEVEL(DBG_VERBOSE))
 		mMemoryTree.print();
 
 	return true;

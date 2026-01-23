@@ -6,7 +6,7 @@
 #include "Device.h"
 #include "ClockedDevice.h"
 #include <allegro5/allegro5.h>
-#include "DebugManager.h"
+#include "DebugTracing.h"
 #include "KeyboardDevice.h"
 
 //
@@ -219,7 +219,7 @@ private:
 
 public:
 
-	BeebKeyboard(string name, double cpuClock, double deviceClock, uint8_t startupOptions, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	BeebKeyboard(string name, double cpuClock, double deviceClock, uint8_t startupOptions, DebugTracing  *debugTracing, ConnectionManager* connectionManager);
 
 	// Device power on
 	bool power() { mCycleCount = 0; return true; }

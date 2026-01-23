@@ -27,7 +27,7 @@ public:
 
 	SoundDevice(
 		string name, DeviceId devId, double cpuClock, int SampleFreq, double baseEmulationRate, double baseSubEmulationRate,
-		DebugManager  *debugManager, ConnectionManager* connectionManager
+		DebugTracing  *debugTracing, ConnectionManager* connectionManager
 	);
 
 	virtual void setInitialEmulationSpeed(double baseEmulationRate, double subEmulationRate, double speed);

@@ -3,7 +3,7 @@
 #include <string>
 #include <map>
 #include <vector>
-#include "../shared/DebugManager.h"
+#include "../shared/DebugTracing.h"
 #include "../shared/Device.h"
 #include "../shared/VideoSettings.h"
 #include "../shared/Engine.h"
@@ -14,16 +14,11 @@ class ArgParser
 {
 public:
 
-	string mapFileName;
-	Program program, data;
-	
-	DebugManager  debugManager;
-
-	double emulationSpeed = 100; // %
-
 	VideoFormat videoFormat = PAL_FMT;
 
 	bool hwAcc = true;
+	string mapFileName;
+	DebugTracing debugTracing;
 
 	Engine::RunState initialState = Engine::ENG_TBD;
 

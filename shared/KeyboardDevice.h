@@ -5,7 +5,7 @@
 #include <map>
 #include "Device.h"
 #include <allegro5/allegro5.h>
-#include "DebugManager.h"
+#include "DebugTracing.h"
 
 
 
@@ -18,7 +18,7 @@ protected:
 
 public:
 
-	KeyboardDevice(string name, DeviceId typ, double cpuClock, DebugManager* debugManager, ConnectionManager* connectionManager);
+	KeyboardDevice(string name, DeviceId typ, double cpuClock, DebugTracing* debugTracing, ConnectionManager* connectionManager);
 
 	// Set emulation speed
 	void setEmulationSpeed(double speed) override;

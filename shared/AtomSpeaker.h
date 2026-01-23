@@ -31,7 +31,7 @@ public:
 
 	AtomSpeaker(
 		string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate,
-		DebugManager  *debugManager, ConnectionManager* connectionManager
+		DebugTracing  *debugTracing, ConnectionManager* connectionManager
 	);
 	~AtomSpeaker();
 

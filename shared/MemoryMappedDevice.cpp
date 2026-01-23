@@ -1,7 +1,7 @@
 #include "MemoryMappedDevice.h"
 #include <iostream>
 #include <iomanip>
-#include "DebugManager.h"
+#include "DebugTracing.h"
 #include "DeviceManager.h"
 #include "Utility.h"
 #include "AddressSpaceInfo.h"
@@ -10,9 +10,9 @@
 using namespace std;
 
 MemoryMappedDevice::MemoryMappedDevice(
-	string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz, DebugManager  *debugManager,
+	string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager
-): Device(name, typ, cat, cpuClock, debugManager, connectionManager), mWaitStates(waitStates), mDeviceManager(deviceManager), mAddressSpace(adr, sz)
+): Device(name, typ, cat, cpuClock, debugTracing, connectionManager), mWaitStates(waitStates), mDeviceManager(deviceManager), mAddressSpace(adr, sz)
 {
 	mMemoryMapped = true;
 	string s1 = _DEVICE_ID(this->devType) + " at address "s;

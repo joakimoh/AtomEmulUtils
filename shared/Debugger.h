@@ -10,7 +10,7 @@ using namespace std;
 class DeviceManager;
 class ConnectionManager;
 class Device;
-class DebugManager;
+class DebugTracing;
 class Engine;
 class GUI;
 class P6502;
@@ -21,6 +21,7 @@ class Debugger {
 
 private:
 
+	DebugTracing* mDT = nullptr;
 	DeviceManager *mDM = nullptr;
 	ConnectionManager* mCM = nullptr;
 	Engine* mEngine = nullptr;
@@ -60,6 +61,10 @@ private:
 	void markEndOfWaiting();
 
 	void help();
+
+	bool enableTracingCmd(istream& sin);
+	bool disableTracingCmd();
+	bool selectTracedDevices(istream& sin);
 
 	bool disToFileCmd(istream& sin);
 	bool disToScreenCmd(istream& sin);
@@ -103,12 +108,14 @@ private:
 public:
 
 
-	Debugger(P6502 *cpu, GUI *gui, Engine *engine, DeviceManager *deviceManager, ConnectionManager *connectionManager, string outDir);
+	Debugger(P6502 *cpu, GUI *gui, Engine *engine, DeviceManager *deviceManager, ConnectionManager *connectionManager, DebugTracing *debugTracing, string outDir);
 	~Debugger();
 
 	void run();
 
 	bool stopWaiting();
+
+	bool stopTracing();
 
 	bool exit();
 

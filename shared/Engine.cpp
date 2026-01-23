@@ -6,7 +6,7 @@
 #include <vector>
 #include <filesystem>
 #include <cstdint>
-#include "DebugManager.h"
+#include "DebugTracing.h"
 #include "ConnectionManager.h"
 #include "DeviceManager.h"
 #include "VideoDisplayUnit.h"
@@ -69,10 +69,10 @@ bool Engine::allegroInit()
 
 
 
-Engine::Engine(string mapFileName, Program& program, Program& data, double emulationSpeed, VideoFormat videoFormat, bool enableHWAcc,
-    DebugManager *debugManager, string outDir, RunState initialState) : mDM(debugManager), mOutDir(outDir)
+Engine::Engine(string mapFileName, VideoFormat videoFormat, bool enableHWAcc,
+    DebugTracing *debugTracing, string outDir, RunState initialState) : mDT(debugTracing), mOutDir(outDir)
 {
-    if (debugManager == nullptr)
+    if (debugTracing == nullptr)
         throw runtime_error("debug manager undefined");
 
     if (!allegroInit()) {
@@ -81,38 +81,31 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
     }
 
     // Set emulation speed
-    mSpeedFactor = emulationSpeed / 100;
+    mSpeedFactor = 1;
 
     mQueue = al_create_event_queue();
 
     // Create (uninitialised) display
-    mDisplay = new Display(mQueue, videoFormat, enableHWAcc, mSpeedFactor, mDM);
+    mDisplay = new Display(mQueue, videoFormat, enableHWAcc, mSpeedFactor, mDT);
 
     // Set up devices
-    mConnectionManager = new ConnectionManager(mDM);
+    mConnectionManager = new ConnectionManager(mDT);
     mDeviceManager = new DeviceManager(
         mapFileName,
         mCPUClock,            // CPU Clock frequency in MHz
         mDisplay,
-        mDM, program, data, mConnectionManager, mMicroprocessor, mVDU, mSoundDevice, mDevices,
+        mDT, mConnectionManager, mMicroprocessor, mVDU, mSoundDevice, mDevices,
         mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices, mKeyboardDevice,
         mSpeedFactor, mLowEmulationRate, mHighEmulationRate
     );
 
     mDisplay->setClock(mCPUClock);
 
-    if (!mDM->setDeviceManager(mDeviceManager)) {
-        cout << "Failed to initialise debug manager with device info!\n";
-        throw runtime_error("Failed to initialise debug manager with device info!\n");
-    }
     if (mMicroprocessor == NULL) {
         cout << "No microprocessor defined!\n";
         throw runtime_error("No microprocessor defined!");
     }
-    if (!mDM->setMicrocontroller(mMicroprocessor)) {
-        cout << "Failed to initialise debug manager with microconroller info!\n";
-        throw runtime_error("Failed to initialise debug manager with microconroller info!\n");
-    }
+
     // If headless emulation (i.e. no VDU), then as a default have the microprocessor halted
     if (mVDU == NULL) {
         mState = ENG_HALT;
@@ -126,7 +119,7 @@ Engine::Engine(string mapFileName, Program& program, Program& data, double emula
         mState = initialState;
 
     // Create GUI with menu and callbacks
-    mGUI = new GUI(this, mQueue, mDisplay, mDeviceManager, mVDU , mMicroprocessor , &mSpeedFactor, mDM, mConnectionManager, mOutDir);
+    mGUI = new GUI(this, mQueue, mDisplay, mDeviceManager, mVDU , mMicroprocessor , &mSpeedFactor, mDT, mConnectionManager, mOutDir);
 
     // Get debugger instance
     mDebugger = mGUI->getDebugger();
@@ -242,6 +235,16 @@ bool Engine::run()
                         return false;
                     }
 
+                    // Stop any ongoing extensive tracing
+                    if (mTracingCountMax > 0) {
+                        mTracingCount++;
+                        if (mTracingCount >= mTracingCountMax) {
+                            mDebugger->stopTracing();
+                            mTracingCount = 0;
+                            mTracingCountMax = -1;
+                        }
+                    }
+
                     // Advance time for each device scheduled on instruction basis so that it matches the time
                     // of the microprocessor.
                     for (int d = 0; d < mInstrScheduledDevices.size(); d++)
@@ -308,9 +311,6 @@ bool Engine::run()
             cont = al_get_next_event(mQueue, &event);
 
         }
-
-        // Check for
-        checkForUserInput();
 
     }
 
@@ -390,77 +390,6 @@ void Engine::checkForSpeedChange()
     }
     pSpeedFactor = mSpeedFactor;
 }
-
-// Check for user key input
-void Engine::checkForUserInput()
-{
-    ALLEGRO_KEYBOARD_STATE keyboard_state;
-
-    // Get keyboard state
-    al_get_keyboard_state(&keyboard_state);
-
-    if (!mKeyPressed) {
-
-        // Start microprocessor debugging (tracing) if user presses <CTRL-D>
-        if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_D)) {
-            toggleTracing(DBG_6502);
-            mKeyPressed = true;
-
-        }
-
-        // Arm the delayed triggering-based debugging (tracing) if user presses <CTRL-T>
-        // Debugging starts after the user has pressed <CTRl-T> and the specified triggering condition is met
-        else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_T)) {
-            mDM->armTriggering();
-            mKeyPressed = true;
-        }
-
-        // Start/stop video display unit tracing if user presses <CTRL-V>
-        else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_V)) {
-            toggleTracing(DBG_VDU);
-            mKeyPressed = true;
-        }
-
-        // Stop any ongoing continuous debugger tracing if user presses <CTRL-B>
-        else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_B)) {
-            mDM->disableBuffering();
-            mRecurringTracing = false;
-            mKeyPressed = true;
-        }
-
-        // Halt execution if user presses <CTRL-H>
-        else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) && al_key_down(&keyboard_state, ALLEGRO_KEY_H)) {
-            mState = ENG_HALT;
-            mKeyPressed = true;
-        }
-
-    }
-    else {
-        if (!al_key_down(&keyboard_state, ALLEGRO_KEY_LCTRL) &&
-            !al_key_down(&keyboard_state, ALLEGRO_KEY_D) &&
-            !al_key_down(&keyboard_state, ALLEGRO_KEY_T) &&
-            !al_key_down(&keyboard_state, ALLEGRO_KEY_V) &&
-            !al_key_down(&keyboard_state, ALLEGRO_KEY_B)
-            ) {
-            mKeyPressed = false;
-        }
-    }
-}
-
-bool Engine::toggleTracing(DebugLevel level)
-{
-    if (mDM->tracingActive()) {
-        mDM->clearDebugLevel(level);
-        mDM->disableTracing();
-    }
-    else {
-        mDM->setDebugLevel(level);
-        mDM->enableTracing();
-    }
-
-    return true;
-}
-
 
 bool Engine::halt()
 {
@@ -587,7 +516,6 @@ bool Engine::setBreakPointAndWait(ostream& sout)
             }
             else
                 mState = ENG_HALT;
-            mDM->outputBufferWindow(cout);
         }
         mExecMutex.unlock();
     }

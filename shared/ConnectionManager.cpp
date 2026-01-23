@@ -6,7 +6,7 @@
 
 using namespace std;
 
-ConnectionManager::ConnectionManager(DebugManager  *debugManager) : mDM(debugManager)
+ConnectionManager::ConnectionManager(DebugTracing  *debugTracing) : mDM(debugTracing)
 {
 
 }

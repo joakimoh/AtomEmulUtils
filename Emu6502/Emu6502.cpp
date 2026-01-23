@@ -6,7 +6,7 @@
 #include <vector>
 #include <filesystem>
 #include "../shared/Engine.h"
-#include "../shared/DebugManager.h"
+#include "../shared/DebugTracing.h"
 #include "ArgParser.h"
 
 #include <thread>
@@ -24,8 +24,7 @@ int main(int argc, const char* argv[])
     string gen_dir = filesystem::current_path().string();
     
     Engine *engine = new Engine(
-        arg_parser.mapFileName, arg_parser.program, arg_parser.data,
-        arg_parser.emulationSpeed, arg_parser.videoFormat, arg_parser.hwAcc, &arg_parser.debugManager, gen_dir, arg_parser.initialState
+        arg_parser.mapFileName, arg_parser.videoFormat, arg_parser.hwAcc, &arg_parser.debugTracing, gen_dir, arg_parser.initialState
     );
 
     engine->run();

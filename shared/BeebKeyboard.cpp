@@ -2,7 +2,7 @@
 #include <map>
 #include "Device.h"
 #include <allegro5/allegro5.h>
-#include "DebugManager.h"
+#include "DebugTracing.h"
 #include "BeebKeyboard.h"
 
 //
@@ -21,8 +21,8 @@
 // PL16				IN				LED1	PB2:0 as BDC 7;PB3 has val		Low							SHIFT Lock LED
 // PL17				IN				LED2	PB2:0 as BDC 6;PB3 has val		Low							CAPS Lock LED
 // 
-BeebKeyboard::BeebKeyboard(string name, double cpuClock, double deviceClock, uint8_t startupOptions, DebugManager  *debugManager, ConnectionManager* connectionManager):
-	KeyboardDevice(name, BEEB_KEYBOARD_DEV, cpuClock, debugManager, connectionManager), ClockedDevice(cpuClock, deviceClock)
+BeebKeyboard::BeebKeyboard(string name, double cpuClock, double deviceClock, uint8_t startupOptions, DebugTracing  *debugTracing, ConnectionManager* connectionManager):
+	KeyboardDevice(name, BEEB_KEYBOARD_DEV, cpuClock, debugTracing, connectionManager), ClockedDevice(cpuClock, deviceClock)
 {
 	// Specify ports that can be connected to other devices	
 	registerPort("SW",			IN_PORT,	0xf, SW,		&mSW);

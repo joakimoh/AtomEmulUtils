@@ -17,12 +17,12 @@
 using namespace std;
 
 GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, Display* display, DeviceManager * devices, VideoDisplayUnit *vdu, P6502 *cpu,
-    double *speed, DebugManager* dm, ConnectionManager *cm, string outDir):
-    mDevices(devices), mDisplay(display), mEmulationSpeed(speed), mDM(dm), mEngine(engine), mOutDir(outDir), mQueue(queue),
+    double *speed, DebugTracing* dt, ConnectionManager *cm, string outDir):
+    mDevices(devices), mDisplay(display), mEmulationSpeed(speed), mDT(dt), mEngine(engine), mOutDir(outDir), mQueue(queue),
     mVDU(vdu), mCPU(cpu), mCM(cm)
 {
 
-    if (engine == nullptr || cm == nullptr || display == nullptr || devices == nullptr || speed == nullptr || dm == nullptr)
+    if (engine == nullptr || cm == nullptr || display == nullptr || devices == nullptr || speed == nullptr || dt == nullptr)
         throw runtime_error("some arguments are null pointers");
 
     mVideoSettings = display->getVideoSettings();
@@ -84,7 +84,7 @@ GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, Display* display, DeviceMan
     else
         throw runtime_error("Unsupported field rate " + to_string(mVideoSettings.getFieldRate()));
 
-    mDebugger = new Debugger(mCPU, this, mEngine, mDevices, mCM, mOutDir);
+    mDebugger = new Debugger(mCPU, this, mEngine, mDevices, mCM, mDT, mOutDir);
 
     if (mDebugger == nullptr)
         throw runtime_error("failed to create debugger");
@@ -134,6 +134,10 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
 
     case STOP_WAIT_DBG_ID:
         mDebugger->stopWaiting();
+        break;
+
+    case STOP_TRACING_DBG_ID:
+        mDebugger->stopTracing();
         break;
 
     case START_DBG_ID:

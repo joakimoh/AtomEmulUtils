@@ -1,6 +1,6 @@
 #include "Debugger.h"
 #include "DeviceManager.h"
-#include "DebugManager.h"
+#include "DebugTracing.h"
 #include <iostream>
 #include "Utility.h"
 #include "Engine.h"
@@ -15,10 +15,10 @@
 
 using namespace std;
 
-Debugger::Debugger(P6502* cpu, GUI *gui, Engine *engine, DeviceManager* deviceManager, ConnectionManager* connectionManager, string outDir) :
-	mDM(deviceManager), mEngine(engine), mOutDir(outDir),mGUI(gui), mCPU(cpu), mCM(connectionManager)
+Debugger::Debugger(P6502* cpu, GUI *gui, Engine *engine, DeviceManager* deviceManager, ConnectionManager* connectionManager, DebugTracing* debugTracing, string outDir) :
+	mDM(deviceManager), mEngine(engine), mOutDir(outDir),mGUI(gui), mCPU(cpu), mCM(connectionManager), mDT(debugTracing)
 {
-	if (gui == nullptr || engine == nullptr || connectionManager == nullptr || deviceManager == nullptr)
+	if (gui == nullptr || engine == nullptr || connectionManager == nullptr || deviceManager == nullptr || debugTracing == nullptr)
 		throw runtime_error("some arguments are null pointers");
 
 	mCodec = new Codec6502();
@@ -132,10 +132,11 @@ bool Debugger::dumpUcCmd(istream& sin)
 
 bool Debugger::listDevicesCmd(istream& sin)
 {
-	vector<Device*> devices;
-	mDM->getPeripherals(devices);
-	for (int i = 0; i < devices.size();i++) {
-		cout << left << setw(20) << devices[i]->name << ": " << setw(25) << _DEVICE_ID(devices[i]->devType) << "\n";
+	vector<Device*> *devices;
+	devices = mDM->getDevices();
+	for (int i = 0; i < devices->size();i++) {
+		cout << left << setw(20) << (*devices)[i]->name << ": " << setw(25) << _DEVICE_ID((*devices)[i]->devType) <<
+			setw(25) << _DEVICE_CATEGORY((*devices)[i]->category) << "\n";
 	}
 
 	return true;
@@ -684,7 +685,6 @@ bool Debugger::logDevicesCmd(istream& sin)
 	if (sub_cmd != "set")
 		return false;
 
-	PortSelection port_sel;
 	vector< Device*> logged_devices;
 	Device* dev;
 	while ((dev = readDevice(sin)) != nullptr)
@@ -726,6 +726,26 @@ void Debugger::help()
 	cout << "plog (set <port> {,...<port>} | clr):               add logging of specific device ports to the trace\n";
 	cout << "dlog (set <device> {,...<device>} | clr):           add logging of specific devices' states to the trace\n";
 	cout << "exit:                                               exit the debugger\n";
+	cout << "dsel (set <device> {,...<device>} | clr):           select the devices to be part of the extensive tracing\n";
+	cout << "notrace:                                            turn off extensive tracing\n";
+	cout << "trace <string with from letters below> [<n>]:   turn on extensive tracing for the devices selected by the dsel command. Stop after <n> instructions if specified.\n";
+	cout << "\t'e' errors\n";
+	cout << "\t'w' warnings\n";
+	cout << "\t'u' microprocessor execution (can also be enabled at run-time with <CRTL-D>)\n";
+	cout << "\t'p' device port updates\n";
+	cout << "\t'i' interrupts & reset\n";
+	cout << "\t'r' only reset\n";
+	cout << "\t'k' keyboard\n";
+	cout << "\t'v' video display units (can also be enabled at run time with <CTRL-V>)\n";
+	cout << "\t's' serial/parallel I/O peripherals\n";
+	cout << "\t'a' audio\n";
+	cout << "\t'd' device execution in general\n";
+	cout << "\t't' triggering on R/W accesses\n";
+	cout << "\t'c' cassette tape I/O\n";
+	cout << "\t'x' measuring execution time of the different components\n";
+	cout << "\t'S' SPI devices\n";
+	cout << "\t'C' ADC devices\n";
+	cout << "\t'A' all the above\n\n";
 }
 
 void Debugger::run()
@@ -754,6 +774,12 @@ void Debugger::run()
 			bool success = true;
 			if (cmd == "help")
 				help();
+			else if (cmd == "dsel")
+				success = selectTracedDevices(sin);
+			else if (cmd == "trace")
+				success = enableTracingCmd(sin);
+			else if (cmd == "notrace")
+				success = disableTracingCmd();
 			else if (cmd == "twin")
 				success = logWinCmd(sin);
 			else if (cmd == "ports")
@@ -849,6 +875,12 @@ bool Debugger::stopWaiting()
 	return true;
 }
 
+bool Debugger::stopTracing()
+{
+	disableTracingCmd();
+	return true;
+}
+
 void Debugger::markStartOfWaiting()
 {
 	mDebuggerWaiting = true;
@@ -859,4 +891,66 @@ void Debugger::markEndOfWaiting()
 {
 	mDebuggerWaiting = false;
 	mGUI->updateDebuggerOptions();
+}
+
+bool Debugger::enableTracingCmd(istream& sin)
+{
+	string levels;
+	if (!readString(sin, levels))
+		return false;
+	
+	if (!mDT->setDebugLevel(levels)) {
+		return false;
+	}
+
+	int n_instr;
+	if (!readPosInt(sin, n_instr))
+		return true;
+
+	if (n_instr <= 0)
+		return false;
+
+	mEngine->limitTracing(n_instr);
+
+	return true;
+}
+
+bool Debugger::disableTracingCmd()
+{
+	mDT->clearDebugLevel();
+	return true;
+}
+
+
+bool Debugger::selectTracedDevices(istream& sin)
+{
+	string sub_cmd;
+	if (!readString(sin, sub_cmd))
+		return false;
+
+	if (sub_cmd == "clr") {
+		vector<Device*>* devices = mDM->getDevices();
+		if (devices == nullptr)
+			return false;
+		for (int i = 0; i < devices->size(); i++)
+			(*devices)[i]->disableTracing();
+		return true;
+	}
+
+	if (sub_cmd != "set")
+		return false;
+
+	Device* dev;
+	int n = 0;
+	while ((dev = readDevice(sin)) != nullptr && ++n) {
+		dev->enableTracing();
+	}
+
+	if (n == 0) {
+		cout << "At least one valid device needs to be selected!\n";
+		return false;
+	}
+
+	return true;
+
 }

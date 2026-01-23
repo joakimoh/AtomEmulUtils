@@ -39,7 +39,6 @@ ArgParser::ArgParser(int argc, const char* argv[])
 	srcFileName = argv[1];
 
 	int Accumulator = 2;
-	bool genFiles = false;
 	while (Accumulator < argc) {
 		if (strcmp(argv[Accumulator], "-o") == 0) {
 			dstFileName = argv[Accumulator + 1];

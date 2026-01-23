@@ -173,7 +173,7 @@ public:
 	ALLEGRO_COLOR green, black;
 
 	BeebVideoULA(string name, uint16_t adr, Display *display, double cpuclock, uint8_t waitStates, 
-		DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager* deviceManager);
+		DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~BeebVideoULA();
 
 	bool read(uint16_t adr, uint8_t& data);

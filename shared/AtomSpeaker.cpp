@@ -9,9 +9,9 @@
 
 AtomSpeaker::AtomSpeaker(
 	string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate,
-	DebugManager  *debugManager, ConnectionManager* connectionManager
+	DebugTracing  *debugTracing, ConnectionManager* connectionManager
 ) :
-	SoundDevice(name, ATOM_SPEAKER_DEV, cpuClock, sampleFreq, emulationRate, subEmulationRate, debugManager, connectionManager)
+	SoundDevice(name, ATOM_SPEAKER_DEV, cpuClock, sampleFreq, emulationRate, subEmulationRate, debugTracing, connectionManager)
 {
 	registerPort("OUT", IN_PORT, 0x01, OUT, &mOUT);	// From PIA PC2
 

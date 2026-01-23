@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 #include <map>
-#include "DebugManager.h"
+#include "DebugTracing.h"
 #include <allegro5/allegro_primitives.h>
 #include <iostream>
 #include "VideoSettings.h"
@@ -36,7 +36,7 @@ private:
 	vector<MemoryMappedDevice*> mMemoryMappedDevices;
 	vector<MemoryMappedDevice*> mNonOverlappingMemoryMappedDevices;
 	vector<MemoryProxyDevice*> mMemoryProxyDevices;
-	DebugManager* mDM = NULL;
+	DebugTracing* mDM = NULL;
 	ConnectionManager* mCM = NULL;
 	Device *mMicroprocessor = NULL;
 
@@ -56,8 +56,8 @@ private:
 public:
 
 	DeviceManager(
-		string memMapFile, double& cpuClock, Display* display, DebugManager* debugManager,
-		Program program, Program data, ConnectionManager* connectionManager, P6502*& microprocessor, VideoDisplayUnit*& vdu,
+		string memMapFile, double& cpuClock, Display* display, DebugTracing* debugTracing,
+		ConnectionManager* connectionManager, P6502*& microprocessor, VideoDisplayUnit*& vdu,
 		SoundDevice * &sound_device, vector<Device*>& allDevices,
 		vector<Device*>& baseRateScheduledDevices, vector<Device*>& subRateScheduledDevices, vector<Device*>& instructionRateScheduledDevices,
 		KeyboardDevice * &keyboardDevice, double speed,
@@ -66,6 +66,7 @@ public:
 
 	~DeviceManager();
 
+	vector<Device*> *getDevices() { return &mDevices;}
 	bool getPeripherals(vector<Device*>& devices);
 	bool getOtherDevices(vector<Device*>& devices);
 	bool getMemoryMappedDevices(vector<MemoryMappedDevice*>& devices);

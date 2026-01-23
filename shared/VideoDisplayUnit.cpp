@@ -4,10 +4,10 @@
 
 VideoDisplayUnit::VideoDisplayUnit(
 	string name, DeviceId devId, Display *display, double cpuClock, uint8_t waitStates, 
-	uint16_t adr, uint16_t sz, uint16_t videoMemAdr, DebugManager  *debugManager,
+	uint16_t adr, uint16_t sz, uint16_t videoMemAdr, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager
 ) :
-	MemoryMappedDevice(name, devId, VDU_DEVICE, cpuClock, waitStates, adr, sz, debugManager, connectionManager, deviceManager),
+	MemoryMappedDevice(name, devId, VDU_DEVICE, cpuClock, waitStates, adr, sz, debugTracing, connectionManager, deviceManager),
 	mVideoMemAdr(videoMemAdr), mDisplay(display)
 {
 	mDisplayBitmap = display->getDisplayBitmap();

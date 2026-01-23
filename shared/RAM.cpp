@@ -3,9 +3,9 @@
 #include <iostream>
 #include <filesystem>
 
-RAM::RAM(string name, double clockSpeed, uint8_t waitStates, bool DRAM, uint16_t adr, uint16_t sz, DebugManager  *debugManager,
+RAM::RAM(string name, double clockSpeed, uint8_t waitStates, bool DRAM, uint16_t adr, uint16_t sz, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager) :
-	MemoryMappedDevice(name, RAM_DEV, MEMORY_DEVICE, clockSpeed, waitStates, adr, sz, debugManager, connectionManager, deviceManager)
+	MemoryMappedDevice(name, RAM_DEV, MEMORY_DEVICE, clockSpeed, waitStates, adr, sz, debugTracing, connectionManager, deviceManager)
 {
 
 	registerPort("CS", IN_PORT, 0x1, CS, &mCS);

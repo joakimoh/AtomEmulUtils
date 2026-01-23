@@ -3,9 +3,9 @@
 
 SoundDevice::SoundDevice(
 	string name, DeviceId devId, double cpuClock, int SampleFreq, double baseEmulationRate, double baseSubEmulationRate,
-	DebugManager* debugManager, ConnectionManager* connectionManager
+	DebugTracing* debugTracing, ConnectionManager* connectionManager
 ) :
-	Device(name, devId, SOUND_DEVICE, cpuClock, debugManager, connectionManager), mBaseSampleRate(SampleFreq)
+	Device(name, devId, SOUND_DEVICE, cpuClock, debugTracing, connectionManager), mBaseSampleRate(SampleFreq)
 {
 	setInitialEmulationSpeed(baseEmulationRate, baseSubEmulationRate, mEmulationSpeed);
 }

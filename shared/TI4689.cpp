@@ -9,9 +9,9 @@
 
 
 TI4689::TI4689(string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate,
-	DebugManager* debugManager, ConnectionManager* connectionManager) :
+	DebugTracing* debugTracing, ConnectionManager* connectionManager) :
 
-	SoundDevice(name, TI4689_DEV, cpuClock, sampleFreq, emulationRate, subEmulationRate, debugManager, connectionManager)
+	SoundDevice(name, TI4689_DEV, cpuClock, sampleFreq, emulationRate, subEmulationRate, debugTracing, connectionManager)
 {
 	registerPort("CLK", IN_PORT, 0x1, CLK,	&mCLK);
 	registerPort("D",	IN_PORT, 0xff, D,	&mD);

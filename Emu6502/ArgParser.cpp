@@ -23,12 +23,14 @@ void  ArgParser::printInfo()
 	cout << "\t- Static RAM\n";
 	cout << "\t- Dynamic RAM\n";
 	cout << "\t- ROM\n";
+	cout << "\t- NEC PD7002 ADC\n";
 	cout << "\t- MC6850 Asynchronous Communications Interface Adapter (ACIA)\n";
 	cout << "\t- SY6522 Versatile Interface Adapter (VIA)\n";
 	cout << "\t- 8255 Programmable Peripheral Interface (PIA)\n";
 	cout << "\t- HD6845 CRTC Controller\n";
 	cout << "\t- MC6847 Video Display Generator\n";
 	cout << "\t- SAA5050 Teletext Character Generator\n";
+	cout << "\t- SD Card with SPI interface\n";
 	cout << "\t- Standard Tape Recorder: Emulates the tape recorder you connect to the computer\n";
 	cout << "\t- Custom Acorn Atom hardware: Cassette Interface, Keyboard amd Speaker\n";
 	cout << "\t- Custom BBC Micro hardware: Serial ULA, Keyboard, ROM Selection and Video ULA\n";
@@ -37,34 +39,13 @@ void  ArgParser::printInfo()
 
 void ArgParser::printUsage(const char* name)
 {
-	cout << "Usage:\t" << name << " -map <memory map file> [-fmt <video format>] [-pgm <program> <hex adr>] [-speed <emulation speed>] [-v] <advanced options>\n\n";
+	cout << "Usage:\t" << name << " -map <memory map file> [-fmt <video format>] [-v] -nHA -halt\n\n";
 	cout << "<video format>:\nEither 'PAL' or 'NTSC'. If not specified, PAL is assumed\n\n";
-	cout << "<emulation speed>:\nEmulation speed in %. If not specified, 100% (real time) is assumed\n\n";
 	cout << "<memory map file>:\n\tFile which defines devices and their memory mapping.\n\n";
-	cout << "<program> <hex adr>:\n\tBinary file with (program) data to be loaded into RAM at address <hex adr>.\n\n";
 	cout << "-v:\n\tVerbose output\n\n";
-	cout << "\nADVANCED OPTIONS:\n";
-	cout << "-nHA: Turn off Graphics hardware acceleration.\n\n";
-#ifdef DEBUG_ON
-	cout << "-dbg <string with one or more of the letters below>: Debugging of different detail.\n";
-	cout << "\t'e' errors\n";
-	cout << "\t'w' warnings\n";
-	cout << "\t'u' microprocessor execution (can also be enabled at run-time with <CRTL-D>)\n";
-	cout << "\t'p' device port updates\n";
-	cout << "\t'i' interrupts & reset\n";
-	cout << "\t'r' only reset\n";
-	cout << "\t'k' keyboard\n";
-	cout << "\t'v' video display units (can also be enabled at run time with <CTRL-V>)\n";
-	cout << "\t's' serial/parallel I/O peripherals\n";
-	cout << "\t'a' audio\n";
-	cout << "\t'd' device execution in general\n";
-	cout << "\t't' triggering on R/W accesses\n";
-	cout << "\t'c' cassette tape I/O\n";
-	cout << "\t'x' measuring execution time of the different components\n";
-	cout << "\t'S' SPI devices\n";
-	cout << "\t'C' ADC devices\n";
-	cout << "\t'A' all the above\n\n";
-#endif
+	cout << "-nHA:\n\tTurn off Graphics hardware acceleration.\n\n";
+	cout << "-halt:\n\tHave the microprocessor halted initially.\n\n";
+
 }
 
 ArgParser::ArgParser(int argc, const char* argv[])
@@ -77,29 +58,14 @@ ArgParser::ArgParser(int argc, const char* argv[])
 	}
 
 	int a = 1;
-	bool genFiles = false;
 	while (a < argc) {
-		if (strcmp(argv[a], "-speed") == 0) {
-			emulationSpeed = stod(argv[a + 1]);
-			a++;
-		}
-		else if (strcmp(argv[a], "-halt") == 0) {
+		if (strcmp(argv[a], "-halt") == 0) {
 			initialState = Engine::ENG_HALT;
-		}
-		else if (strcmp(argv[a], "-run") == 0) {
-			initialState = Engine::ENG_RUN;
-		}
-		else if (strcmp(argv[a], "-dev") == 0) {
-			debugManager.setLogDevice(argv[a + 1]);
-			a++;
 		}
 		else if (strcmp(argv[a], "-nHA") == 0) {
 			hwAcc = false;
 		}
-		else if (strcmp(argv[a], "-log") == 0) {
-			debugManager.enableLogging(stoi(argv[a + 1], 0, 16));
-			a++;
-		}
+
 		else if (strcmp(argv[a], "-fmt") == 0) {
 			a++;
 			if (a >= argc) {
@@ -114,127 +80,12 @@ ArgParser::ArgParser(int argc, const char* argv[])
 				return;
 			}
 		}
-		else if (strcmp(argv[a], "-mlog") == 0) {
-			debugManager.setMemLogAdr(stoi(argv[a + 1], 0, 16));
-			a++;
-		}
-		else if (strcmp(argv[a], "-clog") == 0) {
-			debugManager.enableCyclicLogging(stoi(argv[a + 1], 0, 16));
-			a++;
-		}
-		else if (strcmp(argv[a], "-ilog") == 0) {
-			debugManager.enableInterruptLogging(stoi(argv[a + 1], 0, 16));
-			a++;
-		}
-		else if (strcmp(argv[a], "-stop") == 0) {
-			debugManager.enableExecStop(stoi(argv[a + 1], 0, 16));
-			a++;
-		}
-		else if (
-			strcmp(argv[a], "-trace") == 0 ||
-			strcmp(argv[a], "-ctrace") == 0 ||
-			strcmp(argv[a], "-ktrace") == 0 ||
-			strcmp(argv[a], "-kctrace") == 0 ||
-			strcmp(argv[a], "-xtrace") == 0 ||
-			strcmp(argv[a], "-xctrace") == 0 ||
-			strcmp(argv[a], "-xktrace") == 0 ||
-			strcmp(argv[a], "-xkctrace") == 0
-
-		) {
-			uint16_t adr = stoi(argv[a + 1], 0, 16);
-			bool recurring = strcmp(argv[a], "-ctrace") == 0 || strcmp(argv[a], "-kctrace") == 0 ||
-				strcmp(argv[a], "-xctrace") == 0 || strcmp(argv[a], "-xkctrace") == 0;
-			bool quick_trace = strcmp(argv[a], "-trace") == 0 || strcmp(argv[a], "-ctrace") == 0 || strcmp(argv[a], "-ktrace") == 0 ||
-				strcmp(argv[a], "-kctrace") == 0;
-			bool kb_triggered_start = strcmp(argv[a], "-ktrace") == 0 || strcmp(argv[a], "-kctrace") == 0 ||
-				strcmp(argv[a], "-kctrace") == 0 || strcmp(argv[a], "-xktrace") == 0;
-			a++;
-			if (a >= argc) {
-				printUsage(argv[0]);
-				return;
-			}
-			int pre_trace_len = stoi(argv[a + 1]);
-			a++;
-			if (a >= argc) {
-				printUsage(argv[0]);
-				return;
-			}
-			int post_trace_len = stoi(argv[a + 1]); 
-			if (!debugManager.enableTracing(adr, pre_trace_len, post_trace_len, recurring, !quick_trace, kb_triggered_start)) {
-				cout << "Quick tracing only allows microcontroller debugging!\n\n";
-				printUsage(argv[0]);
-				return;
-			}
-			a++;
-		}
-		else if(strcmp(argv[a], "-dump") == 0) {
-			uint16_t adr = stoi(argv[a + 1], 0, 16);
-			a++;
-			if (a >= argc) {
-				printUsage(argv[0]);
-				return;
-			}
-			int sz = stoi(argv[a + 1], 0, 16);
-			debugManager.enableMemDump(adr, sz);
-			a++;
-		}
-		else if (strcmp(argv[a], "-pgm") == 0) {
-			program.fileName = argv[a + 1];
-			a++;
-			if (a >= argc) {
-				printUsage(argv[0]);
-				return;
-			}
-			program.loadAdr = stoi(argv[a + 1], 0, 16);
-			a++;
-		}
-		else if (strcmp(argv[a], "-data") == 0) {
-			data.fileName = argv[a + 1];
-			a++;
-			if (a >= argc) {
-				printUsage(argv[0]);
-				return;
-			}
-			data.loadAdr = stoi(argv[a + 1], 0, 16);
-			a++;
-		}
 		else if (strcmp(argv[a], "-map") == 0) {
 			mapFileName = argv[a + 1];
 			a++;
 		}
 		else if (strcmp(argv[a], "-v") == 0) {
-			debugManager.setDebugLevel(DBG_VERBOSE);
-		}
-		else if (strcmp(argv[a], "-dbg") == 0) {
-			a++;
-			if (a >= argc) {
-				printUsage(argv[0]);
-				return;
-			}
-			if (!debugManager.setDebugLevel(argv[a])) {
-				cout << "Unknown parameter to -dbg '" << argv[a] << "'!\n";
-				printUsage(argv[0]);
-				return;
-			}
-
-		}
-		else if (strcmp(argv[a], "-port") == 0) {
-			a++;
-			if (a >= argc) {
-				printUsage(argv[0]);
-				return;
-			}
-			Tokeniser dev_tok(argv[a], ',');
-			string device_port_s;
-			while (dev_tok.nextToken(device_port_s)) {
-				Tokeniser port_tok(device_port_s, ':');
-				string device, port;
-				if (!port_tok.nextToken(device) || !port_tok.nextToken(port)) {
-					printUsage(argv[0]);
-					return;
-				}
-				debugManager.setDebugPort(device, port);
-			}
+			debugTracing.setDebugLevel(DBG_VERBOSE);
 		}
 		else {
 			cout << "Unknown option " << argv[a] << "\n";
@@ -248,10 +99,6 @@ ArgParser::ArgParser(int argc, const char* argv[])
 		printUsage(argv[0]);
 		return;
 	}
-
-	// If no conditional tracing was selected, but still a debug level was defined, then enable unconditional tracing
-	if (!debugManager.tracingEnabled() && debugManager.getDebugLevel() != DBG_NONE)
-		debugManager.enableTracing();
 
 	mParseSuccess = true;
 }

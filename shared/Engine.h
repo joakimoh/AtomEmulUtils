@@ -3,7 +3,7 @@
 
 
 #include <iostream>
-#include "../shared/DebugManager.h"
+#include "../shared/DebugTracing.h"
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_primitives.h>
@@ -86,6 +86,8 @@ private:
 
 	Display* mDisplay = NULL;
 
+	int mTracingCount = 0;
+	int mTracingCountMax = -1;
 
 	uint64_t mCycleCount = 0;
 	bool mQuit = false;
@@ -102,7 +104,7 @@ private:
 	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
 	ALLEGRO_TIMER* mEmulationTimer = NULL;
 
-	DebugManager *mDM = NULL;
+	DebugTracing *mDT = NULL;
 	bool mRecurringTracing = false;
 
 	ConnectionManager *mConnectionManager = NULL;
@@ -149,11 +151,6 @@ private:
 
 	bool allegroInit();
 
-	bool toggleTracing(DebugLevel level);
-
-	// Check for user key input
-	void checkForUserInput();
-
 	// Check for triggering of a breakpoint
 	void checkForBreakPoint();
 
@@ -193,12 +190,19 @@ private:
 	vector<SerialisedStates> mPSerialisedBufferWindow = vector<SerialisedStates>(ENGINE_BUF_WINDOW_SZ);
 	SerialisedStates mTmpSerialisedStates = { 0 };
 
-
 public:
 
-	Engine(string mapFileName, Program &program, Program &data, double emulationSpeed, VideoFormat videoFormat, bool enableHWAcc,
-		DebugManager *debugManager, string outDir, RunState initialState);
+	Engine(string mapFileName, VideoFormat videoFormat, bool enableHWAcc,
+		DebugTracing *debugTracing, string outDir, RunState initialState);
 	~Engine();
+
+	bool limitTracing(int n) {
+		if (mDebugger != nullptr) {
+			mTracingCountMax = n;
+			return true;
+		}
+		else return false;
+	}
 
 	bool run();
 

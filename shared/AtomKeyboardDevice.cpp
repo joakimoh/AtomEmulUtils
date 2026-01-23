@@ -63,8 +63,8 @@ using namespace std;
 //                 |     |     |     |     |     |     |  0V |     |     |
 //                5V    5V    5V    5V    5V    5V    5V    5V    5V    5V
 
-AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager) :
-	KeyboardDevice(name, ATOM_KB_DEV, cpuClock, debugManager, connectionManager)
+AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugTracing  *debugTracing, ConnectionManager* connectionManager) :
+	KeyboardDevice(name, ATOM_KB_DEV, cpuClock, debugTracing, connectionManager)
 {
 	// Specify ports that can be connected to other devices	
 	registerPort("ROW", IN_PORT, 0x0f, KB_ROW, &mSelectedRow);

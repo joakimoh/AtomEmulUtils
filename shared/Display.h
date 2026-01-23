@@ -5,7 +5,7 @@
 #include "allegro5/allegro_native_dialog.h"
 #include "VideoSettings.h"
 #include "GUI.h"
-#include "DebugManager.h"
+#include "DebugTracing.h"
 
 class Display {
 
@@ -52,7 +52,7 @@ class Display {
 
 	ALLEGRO_EVENT_QUEUE* mQueue = nullptr;
 
-	DebugManager  *mDM = NULL;
+	DebugTracing  *mDM = NULL;
 
 	double mSpeedFactor = 1;
 
@@ -70,7 +70,7 @@ class Display {
 	
 
 public:
-	Display(ALLEGRO_EVENT_QUEUE* queue, VideoFormat& videoFormat, bool EnableHwAcc, double speedFactor, DebugManager* debugManager);
+	Display(ALLEGRO_EVENT_QUEUE* queue, VideoFormat& videoFormat, bool EnableHwAcc, double speedFactor, DebugTracing* debugTracing);
 	~Display();
 
 	VideoSettings getVideoSettings() { return mVideoSettings; }

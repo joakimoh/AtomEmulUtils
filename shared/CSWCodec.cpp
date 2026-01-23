@@ -11,7 +11,7 @@
 using namespace std;
 
 
-CSWCodec::CSWCodec(int sampleFreq, DebugManager  *debugManager): mDM(debugManager),mSampleRate(sampleFreq)
+CSWCodec::CSWCodec(int sampleFreq, DebugTracing  *debugTracing): mDM(debugTracing),mSampleRate(sampleFreq)
 {
 
 }

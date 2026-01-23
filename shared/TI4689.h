@@ -96,7 +96,7 @@ private:
 public:
 
 	TI4689(string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate,
-		DebugManager* debugManager, ConnectionManager* connectionManager);
+		DebugTracing* debugTracing, ConnectionManager* connectionManager);
 	~TI4689();
 
 	void setEmulationSpeed(double speed) override;

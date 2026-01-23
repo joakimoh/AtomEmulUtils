@@ -5,7 +5,7 @@
 #include "Device.h"
 #include <vector>
 #include <mutex>
-#include "DebugManager.h"
+#include "DebugTracing.h"
 #include <cstdint>
 #include <cmath>
 #include <fstream>
@@ -243,7 +243,7 @@ public:
 	MemoryMappedDevice* mZPMemDev = NULL;
 	MemoryMappedDevice* mStackMemDev = NULL;
 
-	P6502(string name, double clockSpeed, DebugManager  *debugManager, ConnectionManager* connectionManager, DeviceManager *deviceManager);
+	P6502(string name, double clockSpeed, DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager *deviceManager);
 	~P6502();
 
 	// Reset device

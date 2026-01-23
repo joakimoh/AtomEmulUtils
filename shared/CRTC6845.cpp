@@ -32,11 +32,11 @@
 // R16, R17   Light pen position				-     -     -     -     -     -     -     -
 //
 CRTC6845::CRTC6845(
-	string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugManager  *debugManager,
+	string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager *deviceManager
-//) : VideoDisplayUnit(name, CRTC6845_DEV, display, cpuClock, waitStates, adr, 0x2, 0x0 /* dummy adr as not used by the 6845 */, debugManager,
+//) : VideoDisplayUnit(name, CRTC6845_DEV, display, cpuClock, waitStates, adr, 0x2, 0x0 /* dummy adr as not used by the 6845 */, debugTracing,
 //	connectionManager, deviceManager)
-): MemoryMappedDevice(name, CRTC6845_DEV, VDU_DEVICE, cpuClock, waitStates, adr, 0x2, debugManager, connectionManager, deviceManager)
+): MemoryMappedDevice(name, CRTC6845_DEV, VDU_DEVICE, cpuClock, waitStates, adr, 0x2, debugTracing, connectionManager, deviceManager)
 {
 
 	registerPort("CLK",			IN_PORT,  0x3,	CLK,		&mCLK);
@@ -125,8 +125,8 @@ bool CRTC6845::advanceChar()
 
 		// A new character row
 
-		DBG_LOG_COND(
-			false, this,DBG_VDU, "CRTC SCAN LINE = "  + to_string(mScanLine) +
+		DBG_LOG(
+			this, DBG_VDU, "CRTC SCAN LINE = "  + to_string(mScanLine) +
 			", RASTER LINE = " + to_string(mRA) + ", CHAR ROW = "  + to_string(mCharRow) +
 			" (" + to_string(mActiveRows_R6) + ")"
 		);
@@ -250,7 +250,7 @@ bool CRTC6845::updateOutputs()
 		(cursor_disp_mode == 0x3 && mField % 32 < 16)
 		) && mRA >= cursor_first_line && mRA <= cursor_last_line && mDISPTMG;
 	if (cursor_on && mStartAdr_R12_R13 + mCharRow * mActiveRowChars_R1 + mCharCol + mCharSkew_R8 == mCursorLocation_R14_R15 + mCursSkew_R8) {
-		DBG_LOG_COND(false, this, DBG_VDU,
+		DBG_LOG(this, DBG_VDU,
 			"Cursor active for CRTC scan line " + to_string(mScanLine) + ", raster line " +
 			to_string(mRA) + ", char row " + to_string(mCharRow) + ", char col " + to_string(mCharCol) +
 			", start address 0x" + Utility::int2HexStr(mStartAdr_R12_R13, 2) +

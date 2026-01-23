@@ -7,8 +7,8 @@
 
 namespace fs = std::filesystem;
 
-SDCard::SDCard(string name, double cpuClock, string cardImageFile, DebugManager* debugManager, ConnectionManager* connectionManager):
-	Device(name, SD_CARD, OTHER_DEVICE, cpuClock, debugManager, connectionManager)
+SDCard::SDCard(string name, double cpuClock, string cardImageFile, DebugTracing* debugTracing, ConnectionManager* connectionManager):
+	Device(name, SD_CARD, OTHER_DEVICE, cpuClock, debugTracing, connectionManager)
 {
 	registerPort("CLK",		IN_PORT,	0x1,	CLK,	&mCLK);		// Clock
 	registerPort("MOSI",	IN_PORT,	0x1,	MOSI,	&mMOSI);	// Data In
@@ -317,7 +317,7 @@ bool SDCard::generateTxBits()
 
 		if (mSentBits == response_bits) {
 #ifdef DBG_ON
-			if (DBG_LEVEL(DBG_SPI)) {
+			if (DBG_LEVEL_DEV(this, DBG_SPI)) {
 				if (mSPITxMode != SPI_Tx_DATA_WAIT)
 					DBG_LOG(this, DBG_SPI, "Response of type R" + to_string(mResponseType) + " (response 0x" + bytes2str(mSlaveResponse) +
 						") [" + to_string(response_bits) + " bits] sent\n");
@@ -393,7 +393,7 @@ void SDCard::initResponse(vector <uint8_t>& request)
 	mReceivedBytes = 0;
 
 #ifdef DBG_ON
-	if (DBG_LEVEL(DBG_SPI)) {
+	if (DBG_LEVEL_DEV(this,DBG_SPI)) {
 		DBG_LOG(this, DBG_SPI, "Command CMD" + to_string(cmd) + " (request 0x" + bytes2str(request) + ") " + cmd_info.mnemonic + " with expected CRC byte 0x" +
 			Utility::int2HexStr(req_crc_byte,2) +
 			" received - will send a response of type R" + to_string(mResponseType) + " (response 0x" + bytes2str(mSlaveResponse) + ")" +

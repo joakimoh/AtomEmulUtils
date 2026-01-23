@@ -4,8 +4,8 @@
 #include <iostream>
 #include <iomanip>
 
-TapeRecorder::TapeRecorder(string name, double cpuClock, DebugManager  *debugManager, ConnectionManager* connectionManager) :
-	Device(name, TAPE_RECORDER_DEV, OTHER_DEVICE, cpuClock, debugManager, connectionManager)
+TapeRecorder::TapeRecorder(string name, double cpuClock, DebugTracing  *debugTracing, ConnectionManager* connectionManager) :
+	Device(name, TAPE_RECORDER_DEV, OTHER_DEVICE, cpuClock, debugTracing, connectionManager)
 {
 	registerPort("CAS_IN", OUT_PORT, 0x01, CAS_IN, &mCAS_IN);
 	registerPort("CAS_OUT", IN_PORT, 0x01, CAS_OUT, &mCAS_OUT);

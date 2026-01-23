@@ -26,7 +26,7 @@ private:
 
 public:
 
-	AtomCUTSInterface(string name, double systemClock, DebugManager  *debugManager, ConnectionManager* connectionManager);
+	AtomCUTSInterface(string name, double systemClock, DebugTracing  *debugTracing, ConnectionManager* connectionManager);
 
 	bool advanceUntil(uint64_t stopCycle);
 

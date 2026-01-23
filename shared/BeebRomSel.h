@@ -35,7 +35,7 @@ private:
 public:
 
 
-	BeebROMSel(string name, double cpuClock, uint8_t waitStates, uint16_t adr, DebugManager  *debugManager, ConnectionManager * connectionManager, DeviceManager* deviceManager);
+	BeebROMSel(string name, double cpuClock, uint8_t waitStates, uint16_t adr, DebugTracing  *debugTracing, ConnectionManager * connectionManager, DeviceManager* deviceManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool dump(uint16_t adr, uint8_t& data) override;

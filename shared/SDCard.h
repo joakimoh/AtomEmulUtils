@@ -255,7 +255,7 @@ private:
 public:
 
 
-	SDCard(string name, double cpuClock, string cardImageFile, DebugManager* debugManager, ConnectionManager* connectionManager);
+	SDCard(string name, double cpuClock, string cardImageFile, DebugTracing* debugTracing, ConnectionManager* connectionManager);
 
 	~SDCard();
 
