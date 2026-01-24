@@ -82,7 +82,7 @@ DeviceManager::DeviceManager(
 	string memMapFile, double& cpuClock, Display* display, DebugTracing* debugTracing,
 	ConnectionManager* mCM, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device, vector<Device*>& allDevices,
 	vector<Device*>& baseRateScheduledDevices, vector<Device*>& subRateScheduledDevices, vector<Device*>& instructionRateScheduledDevices,
-	KeyboardDevice*& keyboardDevice, double speed, double& baseSchedulingRate, double& subSchedulingRate
+	KeyboardDevice*& keyboardDevice, double speed, double& baseSchedulingRate, double& highSchedulingRate
 ) : mDM(debugTracing), mCM(mCM), mDisplay(display)
 {
 
@@ -158,9 +158,9 @@ DeviceManager::DeviceManager(
 
 				else if (dev_type == "ATOMSP") {
 
-					checkAudioSampleRate();
+					mAudioSampleRate = highSchedulingRate;
 					AtomSpeaker* sp = new AtomSpeaker(
-						dev_name, cpuClock, mAudioSampleRate, baseSchedulingRate, subSchedulingRate, mDM, mCM
+						dev_name, cpuClock, mAudioSampleRate, baseSchedulingRate, highSchedulingRate, mDM, mCM
 					);
 					mDevices.push_back(sp);
 					sound_device = sp;
@@ -169,9 +169,9 @@ DeviceManager::DeviceManager(
 
 				else if (dev_type == "TI4689") {
 
-					checkAudioSampleRate();
+					mAudioSampleRate = highSchedulingRate;
 					TI4689* sd = new TI4689(
-						dev_name, cpuClock, mAudioSampleRate, baseSchedulingRate, subSchedulingRate, mDM, mCM
+						dev_name, cpuClock, mAudioSampleRate, baseSchedulingRate, highSchedulingRate, mDM, mCM
 					);
 					mDevices.push_back(sd);
 					sound_device = sd;
@@ -516,7 +516,7 @@ DeviceManager::DeviceManager(
 					throw runtime_error("EMU_LOW_RATE statement must come before adding any devices!");
 			}
 			else if (cmd == "EMU_HIGH_RATE") {
-				sin >> subSchedulingRate;
+				sin >> highSchedulingRate;
 				if (mDevices.size() > 0)
 					throw runtime_error("EMU_HIGH_RATE statement must come before adding any devices!");
 			}
@@ -974,14 +974,4 @@ void DeviceManager::printMemoryMap()
 	}
 	cout << "\n";
 
-}
-
-void DeviceManager::checkAudioSampleRate()
-{
-	if (!mDisplay->initialised() || mAudioSampleRate == 0) {
-		if (!mDisplay->initialised()) mDisplay->init();
-		VideoSettings video_settings = mDisplay->getVideoSettings();
-		Resolution res = video_settings.getTotalResolution();
-		mAudioSampleRate = (int)round(res.height * video_settings.getFieldRate());
-	}
 }

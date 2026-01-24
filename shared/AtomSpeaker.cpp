@@ -4,23 +4,21 @@
 //
 // Model of the Speaker Interface implemented by the Acorn Atom
 //
+// The Sample Frequency (sampleFreq) should equal the scheduling frequency for correct timing!
 //
 
 
 AtomSpeaker::AtomSpeaker(
-	string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate,
+	string name, double cpuClock, int sampleFreq, double emulationRate, double highEmulationRate,
 	DebugTracing  *debugTracing, ConnectionManager* connectionManager
 ) :
-	SoundDevice(name, ATOM_SPEAKER_DEV, cpuClock, sampleFreq, emulationRate, subEmulationRate, debugTracing, connectionManager)
+	SoundDevice(name, ATOM_SPEAKER_DEV, cpuClock, sampleFreq, emulationRate, highEmulationRate, debugTracing, connectionManager)
 {
 	registerPort("OUT", IN_PORT, 0x01, OUT, &mOUT);	// From PIA PC2
-
-	mUpdateFreqCount = (int)round(mCPUClock *1e6 / sampleFreq); // limit updates to sampleFreq
 
 	al_reserve_samples(0);
 
 	setEmulationSpeed(mEmulationSpeed);
-
 	
 }
 
@@ -42,7 +40,7 @@ void AtomSpeaker::setEmulationSpeed(double speed)
 			al_destroy_audio_stream(mAudioStream);
 	}
 
-	mSamplesPerFragment = (int)round(1.0 * mSampleRate / mLowEmulationRate); // 2 base emulation cycles of audio
+	mSamplesPerFragment = (int)round(3 * mSampleRate / mLowEmulationRate); // 3 base emulation cycles of audio seem to give smooth audio
 	mNFragments = 4;
 
 	// Create audio stream

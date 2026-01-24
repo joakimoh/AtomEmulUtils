@@ -26,11 +26,11 @@ protected:
 public:
 
 	SoundDevice(
-		string name, DeviceId devId, double cpuClock, int SampleFreq, double baseEmulationRate, double baseSubEmulationRate,
+		string name, DeviceId devId, double cpuClock, int SampleFreq, double baseEmulationRate, double highEmulationRate,
 		DebugTracing  *debugTracing, ConnectionManager* connectionManager
 	);
 
-	virtual void setInitialEmulationSpeed(double baseEmulationRate, double subEmulationRate, double speed);
+	virtual void setInitialEmulationSpeed(double baseEmulationRate, double highEmulationRate, double speed);
 	virtual void setEmulationSpeed(double speed) override;
 
 };

@@ -16,7 +16,6 @@ private:
 	int OUT;
 	uint8_t pOUT = 0x0;
 
-	int mUpdateFreqCount = 0;
 	int mSamplesPerFragment = 512;
 	int mNFragments = 8;
 
@@ -30,7 +29,7 @@ private:
 public:
 
 	AtomSpeaker(
-		string name, double cpuClock, int sampleFreq, double emulationRate, double subEmulationRate,
+		string name, double cpuClock, int sampleFreq, double emulationRate, double highEmulationRate,
 		DebugTracing  *debugTracing, ConnectionManager* connectionManager
 	);
 	~AtomSpeaker();

@@ -191,7 +191,7 @@ public:
 
 	void setScreenRefreshRate(double rate);
 
-	bool running() { return mQuit; }
+	bool running() { return !mQuit; }
 
 	void quit() { mQuit = true; }
 

@@ -272,7 +272,7 @@ bool Engine::run()
         // wait for event
         al_wait_for_event(mQueue, &event);
 
-        
+        // measure actual speed
         cycles_per_second += mCycleCount - pCycleCount;
         pCycleCount = mCycleCount;
         if (c++ % mTimerRateInt == 0) {
@@ -284,7 +284,7 @@ bool Engine::run()
             cycles_per_second = 0;
         }
         
-        mQuit = mGUI->running(); 
+        mQuit = !mGUI->running(); 
 
         bool cont = true && !mQuit;
         // There could be more than one event in the queue - make sure to empty it before waiting for the next timer event

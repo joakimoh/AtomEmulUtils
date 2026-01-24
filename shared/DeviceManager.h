@@ -49,7 +49,6 @@ private:
 
 	MemorySegmentTree mMemoryTree;
 
-	void checkAudioSampleRate();
 	int mAudioSampleRate = 0;
 	Display* mDisplay = nullptr;
 
@@ -61,7 +60,7 @@ public:
 		SoundDevice * &sound_device, vector<Device*>& allDevices,
 		vector<Device*>& baseRateScheduledDevices, vector<Device*>& subRateScheduledDevices, vector<Device*>& instructionRateScheduledDevices,
 		KeyboardDevice * &keyboardDevice, double speed,
-		double &baseSchedulingRate, double&subSchedulingRate
+		double &baseSchedulingRate, double&highSchedulingRate
 	);
 
 	~DeviceManager();
