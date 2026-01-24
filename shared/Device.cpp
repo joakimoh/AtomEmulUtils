@@ -49,7 +49,7 @@ Device::~Device()
 // Get pointer to other device to be able to call its methods
 bool Device::connectDevice(Device* dev)
 {
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
+	if (VERBOSE_EXT_OUTPUT)
 		cout << "DEVICE '" << dev->name << "' can be invoked by device '" << this->name << "'!\n";
 	mConnectedDevices.push_back(dev);
 	return true;
@@ -103,7 +103,7 @@ bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &ind
 	
 	mConnectionManager->addDevicePort(this, device_port);
 
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
+	if (VERBOSE_EXT_OUTPUT)
 		cout << "ADDED " << this->name << " " << _PORT_DIR(dir) << " PORT '" << name << "' #" << dec << index << " (#" << device_port->globalIndex << ")\n";
 	
 
@@ -291,7 +291,8 @@ bool Device::updatePorts()
 				return false;
 		}
 	}
-	DBG_LOG(this, DBG_VERBOSE, "All ports for "  + this->name + " have been shared...");
+	if (VERBOSE_EXT_OUTPUT)
+		cout << "All ports for " << this->name << " have been shared...\n";
 
 	return true;
 }

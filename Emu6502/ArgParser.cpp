@@ -39,10 +39,11 @@ void  ArgParser::printInfo()
 
 void ArgParser::printUsage(const char* name)
 {
-	cout << "Usage:\t" << name << " -map <memory map file> [-fmt <video format>] [-v] -nHA -halt\n\n";
+	cout << "Usage:\t" << name << " -map <memory map file> [-fmt <video format>] [-v] [-V] -nHA -halt\n\n";
 	cout << "<video format>:\nEither 'PAL' or 'NTSC'. If not specified, PAL is assumed\n\n";
 	cout << "<memory map file>:\n\tFile which defines devices and their memory mapping.\n\n";
 	cout << "-v:\n\tVerbose output\n\n";
+	cout << "-V:\n\tExtensive verbose output\n\n";
 	cout << "-nHA:\n\tTurn off Graphics hardware acceleration.\n\n";
 	cout << "-halt:\n\tHave the microprocessor halted initially.\n\n";
 
@@ -85,7 +86,10 @@ ArgParser::ArgParser(int argc, const char* argv[])
 			a++;
 		}
 		else if (strcmp(argv[a], "-v") == 0) {
-			debugTracing.setDebugLevel(DBG_VERBOSE);
+			debugTracing.setDebugLevel(DBG_VERBOSE_ALL);
+		}
+		else if (strcmp(argv[a], "-V") == 0) {
+			debugTracing.setDebugLevel(DBG_VERB_EXT_ALL);
 		}
 		else {
 			cout << "Unknown option " << argv[a] << "\n";

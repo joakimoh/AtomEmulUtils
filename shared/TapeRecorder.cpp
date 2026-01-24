@@ -54,7 +54,7 @@ bool TapeRecorder::advanceUntil(uint64_t stopCycle)
 				if (!mCodec->readPulse(mCasInPulses, mCasInPulseIndex, pulse_len)) {
 					mLoadFromTape = false;
 					updatePort(CAS_IN, 0);
-					DBG_LOG(this,DBG_VERBOSE, "End of Tape reached!");
+					DBG_LOG(this,DBG_VERB_DEV, "End of Tape reached!");
 					stop();
 				}
 				else {
@@ -86,7 +86,7 @@ bool TapeRecorder::startLoadFile(string tapeFile)
 	if (!mCodec->decode(tapeFile, mCasInPulses, mCasInPulseLevel, mSampleRate)) {
 		return false;
 	}
-	DBG_LOG(this,DBG_VERBOSE, "CSW File with  " + to_string(mCasInPulses.size()) + " pulse bytes...");
+	DBG_LOG(this,DBG_VERB_DEV, "CSW File with  " + to_string(mCasInPulses.size()) + " pulse bytes...");
 	updatePort(CAS_IN, mCasInPulseLevel);
 
 	return true;
@@ -105,7 +105,7 @@ void TapeRecorder::play()
 {
 	mPlay = true;
 	mStartPlaying = true;
-	DBG_LOG(this,DBG_VERBOSE, "PLAY");
+	DBG_LOG(this,DBG_VERB_DEV, "PLAY");
 }
 
 void TapeRecorder::rewind()
@@ -113,7 +113,7 @@ void TapeRecorder::rewind()
 	if (mLoadFromTape) {
 		mCasInPulseIndex = 0;
 		mPlay = false;
-		DBG_LOG(this, DBG_VERBOSE, "REWIND");
+		DBG_LOG(this, DBG_VERB_DEV, "REWIND");
 	}
 }
 
@@ -121,7 +121,7 @@ void TapeRecorder::pause()
 {
 	mPlay = false;
 	mRecord = false;
-	DBG_LOG(this, DBG_VERBOSE, "PAUSE");
+	DBG_LOG(this, DBG_VERB_DEV, "PAUSE");
 }
 
 void TapeRecorder::stop()
@@ -131,7 +131,7 @@ void TapeRecorder::stop()
 		mPlay = false;
 		mCasInPulses.clear();
 		updatePort(CAS_IN, 0);
-		DBG_LOG(this, DBG_VERBOSE, "STOP PLAYING");
+		DBG_LOG(this, DBG_VERB_DEV, "STOP PLAYING");
 	}
 	else if (mSaveToTape) {
 
@@ -145,7 +145,7 @@ void TapeRecorder::stop()
 
 		mSaveToTape = false;
 		mRecord = false;
-		DBG_LOG(this, DBG_VERBOSE, "STOP RECORDING");
+		DBG_LOG(this, DBG_VERB_DEV, "STOP RECORDING");
 
 		mCodec->closeTapeFileW();
 	}
@@ -155,7 +155,7 @@ void TapeRecorder::stop()
 void TapeRecorder::record()
 {
 	mRecord = true;
-	DBG_LOG(this, DBG_VERBOSE, "RECORD");
+	DBG_LOG(this, DBG_VERB_DEV, "RECORD");
 }
 
 // Outputs the internal state of the device

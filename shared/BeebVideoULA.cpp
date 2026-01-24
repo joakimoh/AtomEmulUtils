@@ -112,7 +112,7 @@ BeebVideoULA::BeebVideoULA(
 
 	al_clear_to_color(black);
 
-	DBG_LOG(this, DBG_VERBOSE, "create display bitmap " + to_string(vis_res.width) + " x " + to_string(vis_res.height));
+	DBG_LOG(this, DBG_VDU, "create display bitmap " + to_string(vis_res.width) + " x " + to_string(vis_res.height));
 	//cout << "create display bitmap " + to_string(vis_res.width) + " x " + to_string(vis_res.height) << "\n";
 
 	lockDisplay();

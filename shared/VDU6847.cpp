@@ -97,9 +97,9 @@ VDU6847::VDU6847(string name, uint16_t adr, Display* display, double cpuClock, u
 	// Initialise the VDU registers with zeros
 	mMem.assign(mAddressSpace.getSizeOfSpace(), 0);
 
-	DBG_LOG(this,DBG_VERBOSE, "VDU 6847 at address 0x" + Utility::int2HexStr(mStartOfSpace,4) +
-		" to 0x" + Utility::int2HexStr(mStartOfSpace + mAddressSpace.getEndOfSpace(),4) + " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)"
-	);
+	if (VERBOSE_EXT_OUTPUT)
+		cout << "VDU 6847 at address 0x" << Utility::int2HexStr(mStartOfSpace, 4) <<
+		" to 0x" << Utility::int2HexStr(mStartOfSpace << mAddressSpace.getEndOfSpace(), 4) << " (" << to_string(mAddressSpace.getSizeOfSpace()) << " bytes)\n";
 
 	// Initialise line counters
 	calcLineSettings();
@@ -114,23 +114,23 @@ VDU6847::VDU6847(string name, uint16_t adr, Display* display, double cpuClock, u
 
 	lockDisplay();
 
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE)) {
+	if (VERBOSE_EXT_OUTPUT) {
 		int mLineW = 2;
 		int mlineDur = 1;
-		DBG_LOG(this, DBG_VERBOSE,  "\n\nM6847 Parameters:");
-		DBG_LOG(this, DBG_VERBOSE,  "Field rate: " + to_string(mFieldFreq) + " [Hz]");
-		DBG_LOG(this, DBG_VERBOSE,  "Scan lines per field: " + to_string(mFieldScanLines) + " lines");
-		DBG_LOG(this, DBG_VERBOSE,  "Scan lines per frame: " + to_string(mScreenScanLines) + " lines");
-		DBG_LOG(this, DBG_VERBOSE,  "Line duration: " + to_string(mlineDur) + " [us] (" + to_string(mLineW) + " pixels)");
-		DBG_LOG(this, DBG_VERBOSE,  "Duration of horizontal borders: " + to_string(mBrdH) + " [us] (" + to_string(mHzBorderPixels) + " pixels)");
-		DBG_LOG(this, DBG_VERBOSE,  "Vertical borders: " + to_string(mTopBorderLines + mBottomBorderLines) + " lines");
-		DBG_LOG(this, DBG_VERBOSE,  "Vertical blanking: " + to_string(mTVBlkH + mBVBlkH) + " lines");
-		DBG_LOG(this, DBG_VERBOSE,  "Horizontal blanking: " + to_string(mHBlkDur) + " [us] (" + to_string(mHzBlankingPixels) + " pixels)");
-		DBG_LOG(this, DBG_VERBOSE,  "Visible Active Display Area: " + to_string(mHzDisplayedPixels) + " x " + to_string(mDisplayedLines) + " pixels");
-		DBG_LOG(this, DBG_VERBOSE,  "Total Visible Display Area: " + to_string(mScreenW) + " x " + to_string(mScreenH) + " pixels");
-		DBG_LOG(this, DBG_VERBOSE,  "Total Display Area (including invisible parts): " + to_string(mScreenScanLines) + " x " + to_string(mHzPixels) + " pixels");
-		DBG_LOG(this, DBG_VERBOSE,  "Visible Display Area: " + to_string(mScreenW) + " x " + to_string(mScreenH) + "");
-		DBG_LOG(this, DBG_VERBOSE,  "\n");
+		cout << "\n\nM6847 Parameters:\n";
+		cout << "Field rate: " << to_string(mFieldFreq) << " [Hz]\n";
+		cout << "Scan lines per field: " << to_string(mFieldScanLines) << " lines\n";
+		cout << "Scan lines per frame: " << to_string(mScreenScanLines) << " lines\n";
+		cout << "Line duration: " << to_string(mlineDur) << " [us] (" << to_string(mLineW) << " pixels)\n";
+		cout << "Duration of horizontal borders: " << to_string(mBrdH) << " [us] (" << to_string(mHzBorderPixels) << " pixels)\n";
+		cout << "Vertical borders: " << to_string(mTopBorderLines << mBottomBorderLines) << " lines\n";
+		cout << "Vertical blanking: " << to_string(mTVBlkH << mBVBlkH) << " lines\n";
+		cout << "Horizontal blanking: " << to_string(mHBlkDur) << " [us] (" << to_string(mHzBlankingPixels) << " pixels)\n";
+		cout << "Visible Active Display Area: " << to_string(mHzDisplayedPixels) << " x " << to_string(mDisplayedLines) << " pixels\n";
+		cout << "Total Visible Display Area: " << to_string(mScreenW) << " x " << to_string(mScreenH) << " pixels\n";
+		cout << "Total Display Area (including invisible parts): " << to_string(mScreenScanLines) << " x " << to_string(mHzPixels) << " pixels\n";
+		cout << "Visible Display Area: " << to_string(mScreenW) << " x " << to_string(mScreenH) << "\n";
+		cout << "\n\n";
 	}
 
 	mHzHalfLinePixels = (int)round(mHzPixels / 2);

@@ -36,14 +36,13 @@ void TI4689::setEmulationSpeed(double speed)
 	mNFragments = 4;
 
 
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE)) {
-		DBG_LOG(this, DBG_VERBOSE, "CPU Clock:                    " + to_string(mCPUClock) + " MHz");
-		DBG_LOG(this, DBG_VERBOSE, "Emulation rate:               " + to_string(mLowEmulationRate));
-		DBG_LOG(this, DBG_VERBOSE, "Sample rate:                  " + to_string(mSampleRate));
-		DBG_LOG(this, DBG_VERBOSE, "Samples per fragment:         " + to_string(mSamplesPerFragment));
-		DBG_LOG(this, DBG_VERBOSE, "CPU cycles per sample:        " + to_string(mCpuCyclesPerSample));
-		DBG_LOG(this, DBG_VERBOSE, "No of audio stream fragments: " + to_string(mNFragments));
-	}
+	DBG_LOG(this, DBG_VERB_DEV, "CPU Clock:                    " + to_string(mCPUClock) + " MHz");
+	DBG_LOG(this, DBG_VERB_DEV, "Emulation rate:               " + to_string(mLowEmulationRate));
+	DBG_LOG(this, DBG_VERB_DEV, "Sample rate:                  " + to_string(mSampleRate));
+	DBG_LOG(this, DBG_VERB_DEV, "Samples per fragment:         " + to_string(mSamplesPerFragment));
+	DBG_LOG(this, DBG_VERB_DEV, "CPU cycles per sample:        " + to_string(mCpuCyclesPerSample));
+	DBG_LOG(this, DBG_VERB_DEV, "No of audio stream fragments: " + to_string(mNFragments));
+	
 
 	mSampleCount = 0;
 

@@ -17,7 +17,7 @@ using namespace std;
 typedef int DebugLevel;
 #define	DBG_NONE			0x00000
 #define	DBG_ERROR			0x00001
-#define	DBG_VERBOSE			0x00002
+#define	DBG_VERB_DEV		0x00002
 #define	DBG_WARNING			0x00004
 #define	DBG_6502			0x00008
 #define DBG_PORT			0x00010
@@ -33,7 +33,12 @@ typedef int DebugLevel;
 #define DBG_RESET			0x04000	// Only reset
 #define DBG_SPI				0x08000
 #define DBG_ADC				0x10000
-#define	DBG_ALL				0xfffff
+#define	DBG_VERBOSE_ALL		0x20000
+#define DBG_VERB_EXT_ALL	0x40000
+#define	DBG_ALL				0x9ffff
+
+#define VERBOSE_OUTPUT				mDM->verboseOutput(false)
+#define VERBOSE_EXT_OUTPUT			mDM->verboseOutput(true)
 
 #define DBG_ON
 
@@ -41,7 +46,6 @@ typedef int DebugLevel;
 
 #define DBG_LOG(...)				mDM->log(__VA_ARGS__)
 #define DBG_LOG_COND(cond,...)		if(cond) mDM->log(__VA_ARGS__)
-#define DBG_LEVEL(...)				mDM->debugLevelIs(__VA_ARGS__)
 #define DBG_LEVEL_DEV(...)			mDM->debugLevelIs(__VA_ARGS__)
 
 
@@ -49,7 +53,6 @@ typedef int DebugLevel;
 
 #define DBG_LOG(...)
 #define DBG_LOG_COND(...)
-#define DBG_LEVEL(...)				false
 #define DBG_LEVEL_DEV(...)			false
 
 #endif
@@ -99,6 +102,8 @@ public:
 
 	bool debugLevelIs(Device* dev, DebugLevel level);
 	bool debugLevelIs(DebugLevel level);
+
+	bool verboseOutput(bool ext) { return !ext && (mDbgLevel & DBG_VERBOSE_ALL) != 0 || ext && (mDbgLevel & DBG_VERB_EXT_ALL); }
 	
 
 	bool setDebugLevel(DebugLevel level);

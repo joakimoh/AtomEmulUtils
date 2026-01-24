@@ -190,7 +190,7 @@ public:
 			mPowerOnReset = false;
 		}
 
-		if (DBG_LEVEL_DEV(this,DBG_VERBOSE)) {
+		if (DBG_LEVEL_DEV(this,DBG_VERB_DEV)) {
 			cout << "'" << this->name << "' RESET\n";
 			//pRESET = mRESET;
 		}

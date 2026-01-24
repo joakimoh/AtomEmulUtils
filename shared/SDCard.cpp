@@ -63,7 +63,7 @@ bool SDCard::insertCard(string cardImageFile)
 		return false;
 	}
 
-	DBG_LOG(this, DBG_VERBOSE, "SD Card Image '" + cardImageFile + " added...\n");
+	DBG_LOG(this, DBG_VERB_DEV, "SD Card Image '" + cardImageFile + " added...\n");
 
 	// Get file size (should normally equal ROM size)
 	mCardImage->seekg(0, ios::end);

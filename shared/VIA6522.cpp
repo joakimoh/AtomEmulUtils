@@ -32,8 +32,9 @@ VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8
 	registerPortDirChange(CA, 0);
 	registerPortDirChange(CB, 0);
 
-	DBG_LOG(this, DBG_VERBOSE, "VIA 6522 at address 0x" + Utility::int2HexStr(mStartOfSpace,4) +
-		" to 0x" + Utility::int2HexStr(mStartOfSpace + mAddressSpace.getEndOfSpace(),4) + " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)\n");
+	if (VERBOSE_EXT_OUTPUT)
+		cout <<"VIA 6522 '" << name << "' at address 0x" + Utility::int2HexStr(mStartOfSpace,4) <<
+		" to 0x" + Utility::int2HexStr(mStartOfSpace << mAddressSpace.getEndOfSpace(),4) << " (" + to_string(mAddressSpace.getSizeOfSpace()) << " bytes)\n";
 
 }
 

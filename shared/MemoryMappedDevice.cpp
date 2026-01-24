@@ -15,9 +15,10 @@ MemoryMappedDevice::MemoryMappedDevice(
 ): Device(name, typ, cat, cpuClock, debugTracing, connectionManager), mWaitStates(waitStates), mDeviceManager(deviceManager), mAddressSpace(adr, sz)
 {
 	mMemoryMapped = true;
-	string s1 = _DEVICE_ID(this->devType) + " at address "s;
+	string s1 = ""s + _DEVICE_ID(this->devType) + " '" + name + "' at address "s;
 	string s2 = s1 + mAddressSpace;
-	DBG_LOG(this, DBG_VERBOSE, s2);
+	if (VERBOSE_EXT_OUTPUT)
+		cout << s2 << "\n";
 
 	mStartOfSpace = mAddressSpace.getStartOfSpace();
 }
@@ -27,11 +28,12 @@ bool MemoryMappedDevice::selected(uint16_t adr)
 	return mCS == 0 && mAddressSpace.contains(adr);
 }
 
+// Register a gap in the device's memory map
 void MemoryMappedDevice::registerMemoryGap(uint16_t adr, uint16_t sz)
 {
 	mAddressSpace.addGap(adr, sz);
 
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
+	if (VERBOSE_EXT_OUTPUT)
 		cout << "Gap in memory space for device '" << this->name << "' between " << hex << setfill('0') << setw(4) << adr <<
 			" and " <<adr + sz << "\n";
 
@@ -86,7 +88,7 @@ bool MemoryMappedDevice::write(uint16_t adr, uint8_t data) {
 	return selected(adr);
 }
 
-
+// Register that another device shall be triggered on R/W accesses to this device
 bool MemoryMappedDevice::registerAccess(Device* dev, uint16_t adr, bool writeAccess) {
 	DeviceAccessScheduling dev_sch = { dev, adr };
 	if (writeAccess) {
@@ -97,7 +99,7 @@ bool MemoryMappedDevice::registerAccess(Device* dev, uint16_t adr, bool writeAcc
 		mTriggerOnRead = true;
 		mScheduleOnRead.push_back(dev_sch);
 	}
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
+	if (VERBOSE_OUTPUT)
 		cout << "TRIGGER " << dev->name << " ON " << this->name << " 0x" << hex << adr << (writeAccess ? " WRITE" : " READ") << " ACCESSES\n";
 	return true;
 }

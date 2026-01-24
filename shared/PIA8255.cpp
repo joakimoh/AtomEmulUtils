@@ -204,10 +204,9 @@ PIA8255::PIA8255(string name, double cpuclock, uint8_t waitStates, uint16_t adr,
 	registerPortDirChange(PIA_PORT_B, 0);
 	registerPortDirChange(PIA_PORT_C, 0);
 
-	DBG_LOG(
-		this,DBG_VERBOSE, "PIA 8255 at address 0x" + Utility::int2HexStr(mStartOfSpace,4) +
-		" to 0x" + Utility::int2HexStr(mStartOfSpace + mAddressSpace.getEndOfSpace(), 4) + " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)"
-	);
+	if (VERBOSE_EXT_OUTPUT)
+		cout << "PIA 8255 '" << this->name << "' at address 0x" << Utility::int2HexStr(mStartOfSpace, 4) <<
+		" to 0x" << Utility::int2HexStr(mStartOfSpace << mAddressSpace.getEndOfSpace(), 4) << " (" + to_string(mAddressSpace.getSizeOfSpace()) + " bytes)\n";
 }
 
 

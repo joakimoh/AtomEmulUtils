@@ -461,6 +461,8 @@ DeviceManager::DeviceManager(
 					sin >> accessed_adr_s;
 					uint16_t accessed_adr = stoi(accessed_adr_s, 0, 16);
 					((MemoryMappedDevice*)accessed_device)->registerAccess(triggered_device, accessed_adr, write);
+					if (VERBOSE_OUTPUT)
+						cout << "Device '" << triggered_device->name << "' triggered by memory access to device '" << accessed_device->name << "'\n";
 				}
 				else if (trigger_type == "CALL") {
 					string caller_name;
@@ -474,6 +476,8 @@ DeviceManager::DeviceManager(
 						cout << "Failed to connect device '" << triggered_device_name << " and '" << caller_name << "' at line " << dec << line_no << ":\n\t" << line << "\n";
 						throw runtime_error("Syntax error");
 					}
+					if (VERBOSE_OUTPUT)
+						cout << "Device '" << triggered_device->name << "' triggered by call from device '" << caller->name << "'\n";
 				}
 			}
 			else if (cmd == "SCHED") {
@@ -579,7 +583,7 @@ DeviceManager::DeviceManager(
 		// Get RAM device that matches the program load address
 		RAM* ram = NULL;
 		uint16_t video_mem_start_adr = mainVDU->getVideoMemAdr();
-		if (DBG_LEVEL(DBG_VERBOSE))
+		if (VERBOSE_EXT_OUTPUT)
 			cout << "Video Memory starts at address 0x" << hex << video_mem_start_adr << "\n";
 		for (int i = 0; i < mDevices.size(); i++) {
 			Device* dev = mDevices[i];
@@ -596,10 +600,10 @@ DeviceManager::DeviceManager(
 			cout << "couldn't find a RAM device large enough to become video memory\n";
 			throw runtime_error("couldn't find a RAM device large enough to become video memory");
 		}
-		if (DBG_LEVEL(DBG_VERBOSE))
+		if (VERBOSE_EXT_OUTPUT)
 			cout << "Found RAM that matches video memory range\n";
 		mainVDU->setVideoRam(ram);
-		if (DBG_LEVEL(DBG_VERBOSE))
+		if (VERBOSE_EXT_OUTPUT)
 			cout << "Video RAM set for '" << mainVDU->name << "' (" << _DEVICE_ID(mainVDU->devType) << ")\n";
 
 	}
@@ -624,10 +628,10 @@ DeviceManager::DeviceManager(
 			subRateScheduledDevices.push_back(d);
 		else if (d->scheduling == LOW_RATE)
 			baseRateScheduledDevices.push_back(d);
-		if (DBG_LEVEL(DBG_VERBOSE))
+		if (VERBOSE_OUTPUT)
 			cout << d->name << " scheduled on " << _SCHEDULING(d->scheduling) << " basis\n";
 	}
-	if (DBG_LEVEL(DBG_VERBOSE))
+	if (VERBOSE_EXT_OUTPUT)
 		cout << "Each device now powered on (reset) and each of its port's output have been shared with the connected devices...\n";
 
 	if (!getPageMemDevice(microprocessor->mZPMemDev, 0)) {
@@ -640,10 +644,10 @@ DeviceManager::DeviceManager(
 		throw runtime_error("Failed to get page one memory device");
 	}
 
-	if (DBG_LEVEL(DBG_VERBOSE))
+	if (VERBOSE_EXT_OUTPUT)
 		mCM->printRouting();
 
-	if (DBG_LEVEL(DBG_VERBOSE))
+	if (VERBOSE_OUTPUT)
 		printMemoryMap();
 
 }
@@ -695,7 +699,7 @@ bool DeviceManager::loadData(Program data)
 		vector<uint8_t> d(program_size);
 		pin.read((char*)&d[0], (streamsize)program_size);
 
-		if (DBG_LEVEL(DBG_VERBOSE))
+		if (VERBOSE_OUTPUT)
 			cout << "Data from file '" << data.fileName << "' of size " << dec << program_size << " bytes (0x" << hex << program_size << ")" <<
 			" will be written to memory at address 0x" << data.loadAdr << " to 0x" << data.loadAdr + program_size - 1 << "\n";
 
@@ -718,7 +722,7 @@ bool DeviceManager::getPeripherals(vector<Device*>& devices)
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->category != MEMORY_DEVICE && mDevices[i]->category != MICROROCESSOR_DEVICE) {
 			devices.push_back(mDevices[i]);
-			if (DBG_LEVEL(DBG_VERBOSE))
+			if (VERBOSE_EXT_OUTPUT)
 				cout << "Adding peripheral '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
@@ -730,7 +734,7 @@ bool DeviceManager::getMemoryMappedDevices(vector<MemoryMappedDevice*>& devices)
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->memoryMapped()) {
 			devices.push_back((MemoryMappedDevice*)mDevices[i]);
-			if (DBG_LEVEL(DBG_VERBOSE))
+			if (VERBOSE_EXT_OUTPUT)
 				cout << "Adding memory-mapped device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
@@ -748,7 +752,7 @@ bool DeviceManager::getOtherDevices(vector<Device*>& devices)
 			mDevices[i]->category != KEYBOARD_DEVICE
 			) {
 			devices.push_back(mDevices[i]);
-			if (DBG_LEVEL(DBG_VERBOSE))
+			if (VERBOSE_EXT_OUTPUT)
 				cout << "Adding other device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
@@ -760,7 +764,7 @@ bool DeviceManager::getRAMs(vector<RAM*>& RAMs)
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->devType == RAM_DEV) {
 			RAMs.push_back((RAM*)mDevices[i]);
-			if (DBG_LEVEL(DBG_VERBOSE))
+			if (VERBOSE_EXT_OUTPUT)
 				cout << "Adding RAM '" << mDevices[i]->name << "\n";
 		}
 	}
@@ -772,7 +776,7 @@ bool DeviceManager::getMemoryDevices(vector<MemoryMappedDevice*>& devices)
 	for (int i = 0; i < mDevices.size(); i++) {
 		if (mDevices[i]->category == MEMORY_DEVICE) {
 			devices.push_back((MemoryMappedDevice*)mDevices[i]);
-			if (DBG_LEVEL(DBG_VERBOSE))
+			if (VERBOSE_EXT_OUTPUT)
 				cout << "Adding memory '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 		}
 	}
@@ -788,7 +792,7 @@ bool DeviceManager::getPageMemDevice(MemoryMappedDevice*& zpMem, uint8_t page)
 		if (dev->category == MEMORY_DEVICE) {
 			MemoryMappedDevice* mdev = (MemoryMappedDevice*)dev;
 			if (mdev->selected(low_adr) && mdev->selected(high_adr)) {
-				if (DBG_LEVEL(DBG_VERBOSE))
+				if (VERBOSE_EXT_OUTPUT)
 					cout << "Adding page " << dec << (int) page << " memory device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
 				zpMem = mdev;
 			}
@@ -947,7 +951,7 @@ bool DeviceManager::createMemoryMap()
 			mMemoryTree.insert(segment);
 		}
 	}
-	if (DBG_LEVEL(DBG_VERBOSE))
+	if (VERBOSE_EXT_OUTPUT)
 		mMemoryTree.print();
 
 	return true;
@@ -962,11 +966,13 @@ MemoryMappedDevice* DeviceManager::getSelectedMemoryMappedDevice(uint16_t adr)
 
 void DeviceManager::printMemoryMap()
 {
+	cout << "\nMEMORY MAP\n\n";
 	for (int i = 0; i < mMemoryMappedDevices.size(); i++) {
 		MemoryMappedDevice* mm_dev = mMemoryMappedDevices[i];
 		AddressSpaceInfo space = mm_dev->getClaimedAddressSpace();
 		cout << setw(15) << setfill(' ')  << mm_dev->name << " " << space << "\n";
 	}
+	cout << "\n";
 
 }
 

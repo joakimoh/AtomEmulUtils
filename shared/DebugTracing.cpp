@@ -14,7 +14,7 @@ string DebugTracing::levels2str(DebugLevel debugLevel)
 
 	if ((debugLevel &  DBG_ERROR) != 0)
 		s += " ERROR";
-	if ((debugLevel & DBG_VERBOSE) != 0)
+	if ((debugLevel & DBG_VERB_DEV) != 0)
 		s += " VERBOSE";
 	if ((debugLevel & DBG_WARNING) != 0)
 		s += " WARNING";
@@ -55,6 +55,8 @@ string DebugTracing::levels2str(DebugLevel debugLevel)
 bool DebugTracing::string2debugLevel(string level, DebugLevel& debugLevel)
 {
 	debugLevel = DBG_NONE;
+	if (level.find("V") != string::npos)
+		debugLevel |= DBG_VERB_DEV;
 	if (level.find("e") != string::npos)
 		debugLevel  |= DBG_ERROR;
 	if (level.find("w") != string::npos)

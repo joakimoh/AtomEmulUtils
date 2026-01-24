@@ -234,10 +234,10 @@ void ACIA6850::update_settings()
 	mRxDivCycles = (int)round(mCPUClock * 1e6 / mRxDivClkRate);
 	mTxDivCycles = (int)round(mCPUClock * 1e6 / mTxDivClkRate);
 
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE) && change) {
+	if (DBG_LEVEL_DEV(this, DBG_IO_PERIPHERAL) && change) {
 		stringstream sout;
 		outputState(sout);
-		DBG_LOG(this, DBG_VERBOSE, "ACIA Settings:" + sout.str());		
+		DBG_LOG(this, DBG_IO_PERIPHERAL, "ACIA Settings:" + sout.str());
 	}
 
 }

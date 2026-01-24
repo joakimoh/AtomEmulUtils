@@ -52,7 +52,10 @@ public:
 	bool triggerAfterWrite(uint16_t adr, uint8_t data);
 	bool selected(uint16_t adr);
 
+	// Register that another device shall be triggered on R/W accesses to this device
 	bool registerAccess(Device* dev, uint16_t adr, bool writeAccess);
+
+	// Register a gap in the device's memory map
 	void registerMemoryGap(uint16_t adr, uint16_t sz);
 
 	uint8_t getWaitStates() { return mWaitStates; }

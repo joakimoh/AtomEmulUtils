@@ -729,6 +729,7 @@ void Debugger::help()
 	cout << "dsel (set <device> {,...<device>} | clr):           select the devices to be part of the extensive tracing\n";
 	cout << "notrace:                                            turn off extensive tracing\n";
 	cout << "trace <string with from letters below> [<n>]:   turn on extensive tracing for the devices selected by the dsel command. Stop after <n> instructions if specified.\n";
+	cout << "\t'V' verbose output\n"; 
 	cout << "\t'e' errors\n";
 	cout << "\t'w' warnings\n";
 	cout << "\t'u' microprocessor execution (can also be enabled at run-time with <CRTL-D>)\n";

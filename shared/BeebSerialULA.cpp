@@ -38,14 +38,13 @@ BeebSerialULA::BeebSerialULA(
 	mHighToneHalfCycleDurationMin = (int)round(t_low * cpuClock * 1e6 / 2400 / 2);
 	mHighToneHalfCycleDurationMax = (int)round(t_high * cpuClock * 1e6 / 2400 / 2);
 
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE)) {
-		DBG_LOG(this, DBG_VERBOSE, "mLowToneHalfCycleDuration = " + to_string(mLowToneHalfCycleDuration));
-		DBG_LOG(this, DBG_VERBOSE, "mLowToneHalfCycleDurationMin = " + to_string(mLowToneHalfCycleDurationMin));
-		DBG_LOG(this, DBG_VERBOSE, "mLowToneHalfCycleDurationMax = " + to_string(mLowToneHalfCycleDurationMax));
-		DBG_LOG(this, DBG_VERBOSE, "mHighToneHalfCycleDuration = " + to_string(mHighToneHalfCycleDuration));
-		DBG_LOG(this, DBG_VERBOSE, "mHighToneHalfCycleDurationMin = " + to_string(mHighToneHalfCycleDurationMin));
-		DBG_LOG(this, DBG_VERBOSE, "mHighToneHalfCycleDurationMax = " + to_string(mHighToneHalfCycleDurationMax));
-	}
+	DBG_LOG(this, DBG_IO_PERIPHERAL, "mLowToneHalfCycleDuration = " + to_string(mLowToneHalfCycleDuration));
+	DBG_LOG(this, DBG_IO_PERIPHERAL, "mLowToneHalfCycleDurationMin = " + to_string(mLowToneHalfCycleDurationMin));
+	DBG_LOG(this, DBG_IO_PERIPHERAL, "mLowToneHalfCycleDurationMax = " + to_string(mLowToneHalfCycleDurationMax));
+	DBG_LOG(this, DBG_IO_PERIPHERAL, "mHighToneHalfCycleDuration = " + to_string(mHighToneHalfCycleDuration));
+	DBG_LOG(this, DBG_IO_PERIPHERAL, "mHighToneHalfCycleDurationMin = " + to_string(mHighToneHalfCycleDurationMin));
+	DBG_LOG(this, DBG_IO_PERIPHERAL, "mHighToneHalfCycleDurationMax = " + to_string(mHighToneHalfCycleDurationMax));
+	
 
 	// Initialise the Tx 1/2 cycle duration to something > 0
 	mToneHalfCycleDuration = mHighToneHalfCycleDuration;

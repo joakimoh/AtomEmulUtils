@@ -112,7 +112,7 @@ bool CRTC6845::advanceChar()
 
 	mCycleCount = nextCycleCount;
 
-	if (DBG_LEVEL_DEV(this,DBG_VERBOSE) && mCLK != pCLK)
+	if (DBG_LEVEL_DEV(this, DBG_VDU) && mCLK != pCLK)
 		printSettings();
 	pCLK = mCLK;
 
@@ -478,7 +478,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 		if (n_updated_regs == 16) {
 			mInitialised = true;
 			mRegUpdates++;
-			if (DBG_LEVEL_DEV(this,DBG_VERBOSE))
+			if (DBG_LEVEL_DEV(this, DBG_VDU))
 				printSettings();
 		}
 	}
@@ -499,10 +499,10 @@ void CRTC6845::updateSettings(uint8_t reg)
 		updatePort(HS, mHS);
 		updatePort(VS, mVS);
 		mField = 0;
-		if (DBG_LEVEL_DEV(this, DBG_VERBOSE)) {
+		if (DBG_LEVEL_DEV(this, DBG_VDU)) {
 			stringstream sout;
 			outputState(sout);
-			DBG_LOG(this, DBG_VERBOSE, sout.str());
+			DBG_LOG(this, DBG_VDU, sout.str());
 		}
 
 	}
