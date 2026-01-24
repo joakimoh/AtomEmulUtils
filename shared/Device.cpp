@@ -234,12 +234,12 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 
 	// Always update the destination port's recollection of the source port's value
 	// - Needed as the value change below is w.r.t the arbitrated value and not w.r.t the 
-	// destination port's current recollection of the source port's value.
+	//   destination port's current recollection of the source port's value.
 	if (dstPort.port->arbitration) {
 		int i = 0;
-		for (; i < dstPort.port->portSources.size() && dstPort.port->portSources[i].srcPort != srcPort; i++);
-		if (i < dstPort.port->portSources.size())
-			dstPort.port->portSources[i].dstVal = nval;
+		for (; i < dst_port_sources_sz && dst_port_sources[i].srcPort != srcPort; i++);
+		if (i < dst_port_sources_sz)
+			dst_port_sources[i].dstVal = nval;
 	}
 
 	// Update destination port on change

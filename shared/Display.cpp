@@ -1,5 +1,8 @@
 #include "Display.h"
 #include <cmath>
+#include <sstream>
+#include <iomanip>
+#include "Utility.h"
 
 
 
@@ -78,13 +81,23 @@ void Display::updateWindowTitle()
     Resolution res = mVideoSettings.getTotalResolution();
     int clock_int = (int)trunc(mCPUClock);
     int clock_fra = (int)trunc((mCPUClock - clock_int)*10);
+    string speed_s;
+    if (mMeasuredSpeed < 1)
+        speed_s = to_string((int)round(mMeasuredSpeed * 100)) + "%";
+    else {
+        int speed_int = (int)trunc(mMeasuredSpeed);
+        int speed_fra = (int)trunc((mMeasuredSpeed - speed_int) * 100);
+        stringstream speed_ss;
+        speed_ss << speed_int << "." << setw(2) << setfill('0') << dec << speed_fra;
+        speed_s = speed_ss.str();
+    }
     if (mVideoSettings.format() == VideoFormat::NO_FMT)
         al_set_window_title(
             mDisplay,
             (
                 M_WINDOW_TITLE +
                 " CLOCK " + to_string(round(mCPUClock * 10) / 10) + " Mhz" +
-                " SPEED " + to_string((int)round(100 * mMeasuredSpeed)) +
+                " SPEED " + speed_s +
                 " " + mVideoSettings.getFormat() + " " + to_string(res.width) + "x" + to_string(res.height)
                 ).c_str()
         );
@@ -94,8 +107,8 @@ void Display::updateWindowTitle()
             (
                 M_WINDOW_TITLE +
                 " CLOCK " + to_string(clock_int) + "." + to_string(clock_fra) + " Mhz" +
-                " SPEED " + to_string((int)round(100 * mMeasuredSpeed)) +
-                "% FPS " + to_string((int)round(mMeasuredFrameRate)) +
+                " SPEED " + speed_s +
+                " FPS " + to_string((int)round(mMeasuredFrameRate)) +
                 " " + mVideoSettings.getFormat() + " " + to_string(res.width) + "x" + to_string(res.height)
             ).c_str()   
         );

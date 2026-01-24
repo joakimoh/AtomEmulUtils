@@ -56,10 +56,14 @@ enum {
 	SPEED_10_ID,
     SPEED_25_ID,
     SPEED_50_ID,
-    SPEED_100_ID,
-    SPEED_200_ID,
-    SPEED_300_ID,
-    SPEED_500_ID,
+    SPEED_REALTIME_ID,
+    SPEED_2X_ID,
+    SPEED_3X_ID,
+    SPEED_5X_ID,
+	SPEED_10X_ID,
+	SPEED_25X_ID,
+	SPEED_50X_ID,
+	SPEED_100X_ID,
 
 	RATE_ID,
 	RATE_5_ID,
@@ -84,7 +88,7 @@ private:
 	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
 #define MY_ALLEGRO_MENU_SEPARATOR {NULL, (uint16_t)-1,0, NULL}
 
-	ALLEGRO_MENU_INFO mMainMenu[50] = {
+	ALLEGRO_MENU_INFO mMainMenu[54] = {
 
 		ALLEGRO_START_OF_MENU("&File", FILE_ID),
 			{ "&Load data into RAM",   LOAD_INTO_RAM,  0,  NULL },
@@ -103,14 +107,18 @@ private:
 		ALLEGRO_END_OF_MENU,
 
 		ALLEGRO_START_OF_MENU("&Speed", SPEED_ID),
-			{ "Real-time",         SPEED_100_ID,           ALLEGRO_MENU_ITEM_CHECKED, NULL },
-			{ "1%",                SPEED_1_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-			{ "10%",               SPEED_10_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-			{ "25%",               SPEED_25_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-			{ "50%",               SPEED_50_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-			{ "200%",              SPEED_200_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-			{ "300%",              SPEED_300_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-			{ "500%",              SPEED_500_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "Real-time",			SPEED_REALTIME_ID,		ALLEGRO_MENU_ITEM_CHECKED, NULL },
+			{ "1%",					SPEED_1_ID,				ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "10%",				SPEED_10_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "25%",				SPEED_25_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "50%",				SPEED_50_ID,            ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "x2",					SPEED_2X_ID,			ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "x3",					SPEED_3X_ID,			ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "x5",					SPEED_5X_ID,			ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "x10",				SPEED_10X_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "x25",				SPEED_25X_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "x50",				SPEED_50X_ID,           ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+			{ "x100",				SPEED_100X_ID,				ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 			ALLEGRO_END_OF_MENU,
 
 		ALLEGRO_START_OF_MENU("&Screen refresh rate", RATE_ID),

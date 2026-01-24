@@ -421,10 +421,14 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_100_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_200_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_300_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_500_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_REALTIME_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_2X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_3X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_5X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_100X_ID, 0);
         }
     break; 
     case SPEED_10_ID:
@@ -434,10 +438,14 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
             al_set_menu_item_flags(mMenu, SPEED_10_ID, ALLEGRO_MENU_ITEM_CHECKED);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_100_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_200_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_300_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_500_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_REALTIME_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_2X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_3X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_5X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_100X_ID, 0);
         }
         break;
 
@@ -448,10 +456,14 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, ALLEGRO_MENU_ITEM_CHECKED);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_100_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_200_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_300_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_500_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_REALTIME_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_2X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_3X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_5X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_100X_ID, 0);
         }
         break;
 
@@ -462,66 +474,155 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, ALLEGRO_MENU_ITEM_CHECKED);
-            al_set_menu_item_flags(mMenu, SPEED_100_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_200_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_300_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_500_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_REALTIME_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_2X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_3X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_5X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_100X_ID, 0);
         }
         break;
 
-    case SPEED_100_ID:
+    case SPEED_REALTIME_ID:
         if (mEmulationSpeed != NULL) {
             *mEmulationSpeed = 1;
             al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_100_ID, ALLEGRO_MENU_ITEM_CHECKED);
-            al_set_menu_item_flags(mMenu, SPEED_200_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_300_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_500_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_REALTIME_ID, ALLEGRO_MENU_ITEM_CHECKED);
+            al_set_menu_item_flags(mMenu, SPEED_2X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_3X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_5X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_100X_ID, 0);
         }
         break;
 
-    case SPEED_200_ID:
+    case SPEED_2X_ID:
         if (mEmulationSpeed != NULL) {
             *mEmulationSpeed = 2;
             al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_100_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_200_ID, ALLEGRO_MENU_ITEM_CHECKED);
-            al_set_menu_item_flags(mMenu, SPEED_300_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_500_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_REALTIME_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_2X_ID, ALLEGRO_MENU_ITEM_CHECKED);
+            al_set_menu_item_flags(mMenu, SPEED_3X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_5X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_100X_ID, 0);
         }
         break;
 
-    case SPEED_300_ID:
+    case SPEED_3X_ID:
         if (mEmulationSpeed != NULL) {
             *mEmulationSpeed = 3;
             al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_100_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_200_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_300_ID, ALLEGRO_MENU_ITEM_CHECKED);
-            al_set_menu_item_flags(mMenu, SPEED_500_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_REALTIME_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_2X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_3X_ID, ALLEGRO_MENU_ITEM_CHECKED);
+            al_set_menu_item_flags(mMenu, SPEED_5X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_100X_ID, 0);
         }
         break;
 
-    case SPEED_500_ID:
+    case SPEED_5X_ID:
         if (mEmulationSpeed != NULL) {
             *mEmulationSpeed = 5;
             al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
             al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_100_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_200_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_300_ID, 0);
-            al_set_menu_item_flags(mMenu, SPEED_500_ID, ALLEGRO_MENU_ITEM_CHECKED);
+            al_set_menu_item_flags(mMenu, SPEED_REALTIME_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_2X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_3X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_5X_ID, ALLEGRO_MENU_ITEM_CHECKED);
+            al_set_menu_item_flags(mMenu, SPEED_10X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_100X_ID, 0);
+        }
+        break;
+
+    case SPEED_10X_ID:
+        if (mEmulationSpeed != NULL) {
+            *mEmulationSpeed = 10;
+            al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_REALTIME_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_2X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_3X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_5X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10X_ID, ALLEGRO_MENU_ITEM_CHECKED);
+            al_set_menu_item_flags(mMenu, SPEED_25X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_100X_ID, 0);
+        }
+        break;
+    case SPEED_25X_ID:
+        if (mEmulationSpeed != NULL) {
+            *mEmulationSpeed = 25;
+            al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_REALTIME_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_2X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_3X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_5X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25X_ID, ALLEGRO_MENU_ITEM_CHECKED);
+            al_set_menu_item_flags(mMenu, SPEED_50X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_100X_ID, 0);
+        }
+        break;
+    case SPEED_50X_ID:
+        if (mEmulationSpeed != NULL) {
+            *mEmulationSpeed = 50;
+            al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_REALTIME_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_2X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_3X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_5X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50X_ID, ALLEGRO_MENU_ITEM_CHECKED);
+            al_set_menu_item_flags(mMenu, SPEED_100X_ID, 0);
+        }
+        break;
+    case SPEED_100X_ID:
+        if (mEmulationSpeed != NULL) {
+            *mEmulationSpeed = 100;
+            al_set_menu_item_flags(mMenu, SPEED_1_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_REALTIME_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_2X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_3X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_5X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_10X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_25X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_50X_ID, 0);
+            al_set_menu_item_flags(mMenu, SPEED_100X_ID, ALLEGRO_MENU_ITEM_CHECKED);
         }
         break;
 
