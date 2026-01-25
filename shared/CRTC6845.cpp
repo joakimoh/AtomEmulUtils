@@ -112,7 +112,7 @@ bool CRTC6845::advanceChar()
 
 	mCycleCount = nextCycleCount;
 
-	if (DBG_LEVEL_DEV(this, DBG_VDU) && mCLK != pCLK)
+	if (DBG_LEVEL_DEV(this, DBG_GRAPHICS) && mCLK != pCLK)
 		printSettings();
 	pCLK = mCLK;
 
@@ -126,7 +126,7 @@ bool CRTC6845::advanceChar()
 		// A new character row
 
 		DBG_LOG(
-			this, DBG_VDU, "CRTC SCAN LINE = "  + to_string(mScanLine) +
+			this, DBG_GRAPHICS, "CRTC SCAN LINE = "  + to_string(mScanLine) +
 			", RASTER LINE = " + to_string(mRA) + ", CHAR ROW = "  + to_string(mCharRow) +
 			" (" + to_string(mActiveRows_R6) + ")"
 		);
@@ -250,7 +250,7 @@ bool CRTC6845::updateOutputs()
 		(cursor_disp_mode == 0x3 && mField % 32 < 16)
 		) && mRA >= cursor_first_line && mRA <= cursor_last_line && mDISPTMG;
 	if (cursor_on && mStartAdr_R12_R13 + mCharRow * mActiveRowChars_R1 + mCharCol + mCharSkew_R8 == mCursorLocation_R14_R15 + mCursSkew_R8) {
-		DBG_LOG(this, DBG_VDU,
+		DBG_LOG(this, DBG_GRAPHICS,
 			"Cursor active for CRTC scan line " + to_string(mScanLine) + ", raster line " +
 			to_string(mRA) + ", char row " + to_string(mCharRow) + ", char col " + to_string(mCharCol) +
 			", start address 0x" + Utility::int2HexStr(mStartAdr_R12_R13, 2) +
@@ -478,7 +478,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 		if (n_updated_regs == 16) {
 			mInitialised = true;
 			mRegUpdates++;
-			if (DBG_LEVEL_DEV(this, DBG_VDU))
+			if (DBG_LEVEL_DEV(this, DBG_GRAPHICS))
 				printSettings();
 		}
 	}
@@ -499,10 +499,10 @@ void CRTC6845::updateSettings(uint8_t reg)
 		updatePort(HS, mHS);
 		updatePort(VS, mVS);
 		mField = 0;
-		if (DBG_LEVEL_DEV(this, DBG_VDU)) {
+		if (DBG_LEVEL_DEV(this, DBG_GRAPHICS)) {
 			stringstream sout;
 			outputState(sout);
-			DBG_LOG(this, DBG_VDU, sout.str());
+			DBG_LOG(this, DBG_GRAPHICS, sout.str());
 		}
 
 	}

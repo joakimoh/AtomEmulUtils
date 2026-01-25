@@ -701,3 +701,39 @@ bool Engine::reset()
 {
     return mMicroprocessor->reset();
 }
+
+string Engine::getBreakPointInfo() {
+
+    stringstream sout;
+
+    if (!mBreakPoint)
+        return "";
+
+    switch (mBreakPointMode) {
+        case ENG_X_BRK_WAIT:
+            sout << "Break on execution at address 0x" << hex << mBreakAdr;
+            break;
+        case ENG_R_BRK_WAIT:
+            sout << "Break on reading of address 0x" << hex << mBreakAdr;
+            break;
+        case ENG_R_V_BRK_WAIT:
+            sout << "Break on reading of value 0x" << hex << (int)mReadData << " from address 0x" << mBreakAdr;
+            break;
+        case ENG_W_BRK_WAIT:
+            sout << "Break on writing to address 0x" << hex << mBreakAdr;
+            break;
+        case ENG_W_V_BRK_WAIT:
+            sout << "Break on writing of value 0x" << hex << (int)mWrittenData << " to address 0x" << mBreakAdr;
+            break;
+        case ENG_RW_BRK_WAIT:
+            sout << "Break on reading or writing to/from address 0x" << mBreakAdr;
+            break;
+        case ENG_RW_V_BRK_WAIT:
+            sout << "Break on reading or writing the value 0x" << hex << (int)mWrittenData << " to/from address 0x" << mBreakAdr;
+            break;
+        default:
+            break;
+    }
+ 
+    return sout.str();
+}

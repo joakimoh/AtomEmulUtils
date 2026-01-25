@@ -444,7 +444,7 @@ Device* Debugger::readDevice(istream& sin)
 
 	Device* dev;
 	if ((dev = mCM->getDevice(dev_s)) == nullptr) {
-		cout << "Port doesn't exist!\n";
+		cout << "Device doesn't exist!\n";
 		return nullptr;
 	}
 
@@ -727,17 +727,18 @@ void Debugger::help()
 	cout << "dlog (set <device> {,...<device>} | clr):           add logging of specific devices' states to the trace\n";
 	cout << "exit:                                               exit the debugger\n";
 	cout << "dsel (set <device> {,...<device>} | clr):           select the devices to be part of the extensive tracing\n";
+	cout << "settings:                                           output the current settings (breakpoints, selected devices for logging etc.)\n";
 	cout << "notrace:                                            turn off extensive tracing\n";
 	cout << "trace <string with from letters below> [<n>]:   turn on extensive tracing for the devices selected by the dsel command. Stop after <n> instructions if specified.\n";
 	cout << "\t'V' verbose output\n"; 
 	cout << "\t'e' errors\n";
 	cout << "\t'w' warnings\n";
-	cout << "\t'u' microprocessor execution (can also be enabled at run-time with <CRTL-D>)\n";
+	cout << "\t'u' microprocessor execution\n";
 	cout << "\t'p' device port updates\n";
 	cout << "\t'i' interrupts & reset\n";
 	cout << "\t'r' only reset\n";
 	cout << "\t'k' keyboard\n";
-	cout << "\t'v' video display units (can also be enabled at run time with <CTRL-V>)\n";
+	cout << "\t'g' graphics <=> video display units\n";
 	cout << "\t's' serial/parallel I/O peripherals\n";
 	cout << "\t'a' audio\n";
 	cout << "\t'd' device execution in general\n";
@@ -746,6 +747,7 @@ void Debugger::help()
 	cout << "\t'x' measuring execution time of the different components\n";
 	cout << "\t'S' SPI devices\n";
 	cout << "\t'C' ADC devices\n";
+	cout << "\t'X' extensive debugging for the selected debug scope\n";
 	cout << "\t'A' all the above\n\n";
 }
 
@@ -829,6 +831,8 @@ void Debugger::run()
 				success = exit();
 			else if (cmd == "mlog")
 				success = memLogCmd(sin);
+			else if (cmd == "settings")
+				success = settingsCmd();
 			else if (cmd != "")
 				cout << "Unknown command '" << cmd << "'!\n";
 
@@ -954,4 +958,53 @@ bool Debugger::selectTracedDevices(istream& sin)
 
 	return true;
 
+}
+
+bool Debugger::settingsCmd()
+{
+	// Output traced devices
+	vector<Device*>* traced_devices = mDM->getDevices();
+	if (traced_devices != nullptr && traced_devices->size() > 0) {
+		cout << "Devices selected for tracing: ";
+		for (int i = 0; i < traced_devices->size(); i++) {
+			Device* dev = (*traced_devices)[i];
+			if (dev != nullptr && dev->tracingEnabled()) {
+				cout << dev->name << " ";
+			}
+		}
+	}
+
+	// Output logged devices
+	vector<Device*>* logged_devices = nullptr;
+	mEngine->getLoggedDevices(logged_devices);
+	if (logged_devices != nullptr && logged_devices->size() > 0) {
+		cout << "Devices selected for logging: ";
+		for (int i = 0; i < logged_devices->size(); i++) {
+			Device* dev = (*logged_devices)[i];
+			if (dev != nullptr) {
+				cout << dev->name << " ";
+			}
+		}
+		cout << "\n";
+	}
+
+	// Output logged ports
+	vector<DevicePort*>* logged_ports = nullptr;
+	mEngine->getLoggedPorts(logged_ports);
+	if (logged_ports != nullptr && logged_ports->size() > 0) {
+		cout << "Ports selected for logging: ";
+		for (int i = 0; i < logged_ports->size(); i++) {
+			DevicePort* port = (*logged_ports)[i];
+			if (port != nullptr) {
+				cout << port->dev->name << ":" << port->name << " ";
+			}
+		}
+		cout << "\n";
+	}
+
+	// Output breakpoint
+	string breakpoint_info = mEngine->getBreakPointInfo();
+	if (breakpoint_info != "") {
+		cout << "Breakpoint set: " << breakpoint_info << "\n";
+	}
 }

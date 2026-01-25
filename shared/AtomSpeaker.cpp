@@ -14,6 +14,10 @@ AtomSpeaker::AtomSpeaker(
 ) :
 	SoundDevice(name, ATOM_SPEAKER_DEV, cpuClock, sampleFreq, emulationRate, highEmulationRate, debugTracing, connectionManager)
 {
+
+	if (round(highEmulationRate / sampleFreq) != 1)
+		throw runtime_error("The audio device needs to be scheduled with the high rate!");
+
 	registerPort("OUT", IN_PORT, 0x01, OUT, &mOUT);	// From PIA PC2
 
 	al_reserve_samples(0);

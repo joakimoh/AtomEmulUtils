@@ -26,8 +26,8 @@ string DebugTracing::levels2str(DebugLevel debugLevel)
 		s += " INTERRUPTS";
 	if ((debugLevel & DBG_KEYBOARD) != 0)
 		s += " KEYBOARD";
-	if ((debugLevel & DBG_VDU) != 0)
-		s += " VDU";
+	if ((debugLevel & DBG_GRAPHICS) != 0)
+		s += " GRAPHICS";
 	if ((debugLevel & DBG_IO_PERIPHERAL) != 0)
 		s += " IO_PERIPHERAL";
 	if ((debugLevel & DBG_DEVICE) != 0)
@@ -46,6 +46,10 @@ string DebugTracing::levels2str(DebugLevel debugLevel)
 		s += " SPI";
 	if ((debugLevel & DBG_ADC) != 0)
 		s += " ADC";
+	if ((debugLevel & DBG_EXTENSIVE) != 0)
+		s += " EXTENSIVE";
+	if ((debugLevel & DBG_VERBOSE) != 0)
+		s += " VERBOSE";
 
 	return s;
 }
@@ -73,8 +77,8 @@ bool DebugTracing::string2debugLevel(string level, DebugLevel& debugLevel)
 		debugLevel  |= DBG_RESET;
 	if (level.find("k") != string::npos)
 		debugLevel  |= DBG_KEYBOARD;
-	if (level.find("v") != string::npos)
-		debugLevel  |= DBG_VDU;
+	if (level.find("g") != string::npos)
+		debugLevel  |= DBG_GRAPHICS;
 	if (level.find("s") != string::npos)
 		debugLevel  |= DBG_IO_PERIPHERAL;
 	if (level.find("t") != string::npos)
@@ -91,6 +95,10 @@ bool DebugTracing::string2debugLevel(string level, DebugLevel& debugLevel)
 		debugLevel  |= DBG_SPI;
 	if (level.find("C") != string::npos)
 		debugLevel  |= DBG_ADC;
+	if (level.find("X") != string::npos)
+		debugLevel |= DBG_EXTENSIVE;
+	if (level.find("v") != string::npos)
+		debugLevel |= DBG_VERBOSE;
 
 	if (debugLevel == DBG_NONE && level != "")
 		return false;
@@ -101,7 +109,7 @@ bool DebugTracing::string2debugLevel(string level, DebugLevel& debugLevel)
 
 bool DebugTracing::setDebugLevel(DebugLevel level)
 {
-	mDbgLevel |= level;
+	mDbgLevel = level;
 	return true;
 }
 
@@ -110,7 +118,7 @@ bool DebugTracing::setDebugLevel(string levelS)
 	DebugLevel level;
 	if (!string2debugLevel(levelS, level))
 		return false;
-	mDbgLevel |= level;
+	mDbgLevel = level;
 	return true;
 }
 
@@ -141,12 +149,12 @@ DebugLevel DebugTracing::getDebugLevel()
 
 bool DebugTracing::debugLevelIs(DebugLevel level)
 {
-	return  (mDbgLevel & level) != 0;
+	return  (mDbgLevel & level) == level;
 }
 
 bool DebugTracing::debugLevelIs(Device *dev, DebugLevel level)
 {
-	return (mDbgLevel & level) != 0 && dev->tracingEnabled();
+	return (mDbgLevel & level) == level && dev->tracingEnabled();
 	
 }
 

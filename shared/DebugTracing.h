@@ -23,7 +23,7 @@ typedef int DebugLevel;
 #define DBG_PORT			0x00010
 #define DBG_INTERRUPTS		0x00020	// Interrupts & reset
 #define DBG_KEYBOARD		0x00040
-#define DBG_VDU				0x00080
+#define DBG_GRAPHICS		0x00080
 #define DBG_IO_PERIPHERAL	0x00100
 #define	DBG_DEVICE			0x00200
 #define DBG_TRGGERING		0x00400	// TRIGGERING
@@ -33,9 +33,13 @@ typedef int DebugLevel;
 #define DBG_RESET			0x04000	// Only reset
 #define DBG_SPI				0x08000
 #define DBG_ADC				0x10000
-#define	DBG_VERBOSE_ALL		0x20000
-#define DBG_VERB_EXT_ALL	0x40000
+#define	DBG_VERBOSE			0x20000
+#define DBG_EXTENSIVE		0x80000 // Make the extensive type of debugging for the selected debugging scope
 #define	DBG_ALL				0x9ffff
+
+#define	DBG_VERB_EXT_DEV		(DBG_VERB_DEV|DBG_EXTENSIVE)
+#define DGB_VERBOSE_EXTENSIVE	(DBG_VERBOSE|DBG_EXTENSIVE)
+
 
 #define VERBOSE_OUTPUT				mDM->verboseOutput(false)
 #define VERBOSE_EXT_OUTPUT			mDM->verboseOutput(true)
@@ -103,7 +107,7 @@ public:
 	bool debugLevelIs(Device* dev, DebugLevel level);
 	bool debugLevelIs(DebugLevel level);
 
-	bool verboseOutput(bool ext) { return !ext && (mDbgLevel & DBG_VERBOSE_ALL) != 0 || ext && (mDbgLevel & DBG_VERB_EXT_ALL); }
+	bool verboseOutput(bool ext) { return (mDbgLevel & DBG_VERBOSE) != 0 && (!ext || ext && (mDbgLevel & DBG_EXTENSIVE)); }
 	
 
 	bool setDebugLevel(DebugLevel level);

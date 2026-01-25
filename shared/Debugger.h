@@ -98,6 +98,8 @@ private:
 	bool logPortsCmd(istream& sin);
 	bool logDevicesCmd(istream& sin);
 
+	bool settingsCmd();
+
 	bool mLogWinEnabled = false;
 
 	Codec6502 *mCodec = nullptr;

@@ -112,7 +112,7 @@ BeebVideoULA::BeebVideoULA(
 
 	al_clear_to_color(black);
 
-	DBG_LOG(this, DBG_VDU, "create display bitmap " + to_string(vis_res.width) + " x " + to_string(vis_res.height));
+	DBG_LOG(this, DBG_GRAPHICS, "create display bitmap " + to_string(vis_res.width) + " x " + to_string(vis_res.height));
 	//cout << "create display bitmap " + to_string(vis_res.width) + " x " + to_string(vis_res.height) << "\n";
 
 	lockDisplay();
@@ -217,7 +217,7 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 
 			refreshEvent();
 
-			DBG_LOG(this, DBG_VDU, "UPDATE SCREEN");
+			DBG_LOG(this, DBG_GRAPHICS, "UPDATE SCREEN");
 
 			// Unlock the screen display (bitmap) so it can be written to
 			unlockDisplay();

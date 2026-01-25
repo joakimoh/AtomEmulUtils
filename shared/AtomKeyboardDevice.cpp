@@ -76,7 +76,7 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugTracin
 	map<int, AtomKey>::iterator keys_it;
 	for (keys_it = mKeycodes.begin(); keys_it != mKeycodes.end(); keys_it++) {
 		AtomKey* key = &(keys_it->second);
-		if (key->row >= 0 && key->row <= 9 && key->col >= 0 && key->col <= 5)
+		if (key->row >= 0 && key->row < ATOM_KB_ROWS && key->col >= 0 && key->col < ATOM_COLS)
 			mKeyboardMatrix[key->row][key->col] = key;
 		else if (key->atomKeyName == "SHIFT") {
 			if (mShiftKeyCodes[0] == -1)
@@ -95,34 +95,46 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugTracin
 
 	al_get_keyboard_state(&mKeyboardState);
 
-	// Make sure Keyboard refresh rate always is 60 Hz (or less)
-	mKeyboardRefreshCycles = max(1, (int)round(cpuClock * 1e6 * mEmulationSpeed / 60));
+	// Make sure Keyboard refresh rate always is 60 Hz (or less) - add a 10% margin
+	mKeyboardRefreshCycles = max(1, (int)round(1.1 * cpuClock * 1e6 * mEmulationSpeed / 60));
 }
-
 
 bool AtomKeyboardDevice::advanceUntil(uint64_t stopCycle)
 {
-	mCnt += stopCycle - mCycleCount;
-
 	// Don't update keyboard state too often as it creates a lot of load...
 	int next_refresh_cycle = mCycleCount + mKeyboardRefreshCycles;
+	uint64_t start_cycle = mCycleCount;
 	mCycleCount = stopCycle;
 	if (stopCycle > next_refresh_cycle)
 		return true;
+
+	return checkKeyBoard();
+}
+
+bool AtomKeyboardDevice::checkKeyBoard()
+{
 
 	al_get_keyboard_state(&mKeyboardState);
 
 	uint8_t column_L = 0xff;
 	uint8_t column_H = 0x03;
 
-	if (mSelectedRow <= 9) {
+	if (mSelectedRow < ATOM_KB_ROWS) {
 
 		// Get non-modifier keys
-		vector<AtomKey*> key_vec = mKeyboardMatrix[mSelectedRow];
-		for (uint8_t c = 0; c < 6; c++) {
+		vector<AtomKey*> &key_vec = mKeyboardMatrix[mSelectedRow];
+		for (uint8_t c = 0; c < ATOM_COLS; c++) {
 			AtomKey* key = key_vec[c];
-			if (key != NULL && al_key_down(&mKeyboardState, key->keyCode))
-				column_L &= ~(0x1 << c);
+			if (key != nullptr) {		
+				int key_state_index = mSelectedRow * ATOM_COLS + c;
+				bool key_depressed_state = keyDepressedState[key_state_index];
+				keyDepressedState[key_state_index] = false;
+				if (al_key_down(&mKeyboardState, key->keyCode)) {
+					column_L &= ~(0x1 << c);
+					keyDepressedState[key_state_index] = true;
+					DBG_LOG_COND(!key_depressed_state, this, DBG_KEYBOARD, "Key " + key->atomKeyName + " depressed\n");
+				}
+			}
 		}
 
 	}
@@ -149,7 +161,7 @@ bool AtomKeyboardDevice::advanceUntil(uint64_t stopCycle)
 		return false;
 
 
-	DBG_LOG_COND(column_L != 0xff || column_H != 0x3, this, DBG_KEYBOARD, 
+	DBG_LOG_COND(column_L != 0xff || column_H != 0x3, this, DBG_KEYBOARD | DBG_EXTENSIVE,
 		"column L = 0x" + Utility::int2HexStr(column_L,2) + ", column H = 0x" + Utility::int2HexStr(column_H,2)
 		);
 	
@@ -160,7 +172,7 @@ bool AtomKeyboardDevice::advanceUntil(uint64_t stopCycle)
 void AtomKeyboardDevice::processPortUpdate(int index)
 {
 	if (index == KB_ROW) {
-		advanceUntil(mCycleCount);
+		checkKeyBoard();
 	}
 }
 
@@ -178,7 +190,7 @@ void AtomKeyboardDevice::setEmulationSpeed(double speed)
 {
 	KeyboardDevice::setEmulationSpeed(speed);
 
-	// Make sure Keyboard refresh rate always is 60 Hz (or less)
-	mKeyboardRefreshCycles = max(1, (int)round(mCPUClock * 1e6 * mEmulationSpeed / 60));
+	// Make sure Keyboard refresh rate always is 60 Hz (or less) - add a 10% margin
+	mKeyboardRefreshCycles = max(1, (int)round(1.1*mCPUClock * 1e6 * mEmulationSpeed / 60));
 
 }

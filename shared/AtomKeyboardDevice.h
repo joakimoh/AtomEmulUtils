@@ -70,6 +70,8 @@ typedef struct AtomKey_struct {
 	int		col;	// 6 columns
 	string	atomKeyName; // e.g, "COPY", "ESC" and "A"
 } AtomKey;
+#define ATOM_KB_ROWS 10
+#define ATOM_COLS 6
 
 typedef struct AtomModifier_struct {
 	int	keyCode;
@@ -82,7 +84,7 @@ class AtomKeyboardDevice : public KeyboardDevice {
 
 private:
 
-	
+	array<bool, ATOM_KB_ROWS * ATOM_COLS> keyDepressedState = { false };
 
 	map<int, AtomKey> mKeycodes = {
 
@@ -186,10 +188,9 @@ private:
 	int mRepeatKeyCode = -1;
 	int mBreakKeyCode = -1;
 
-	double mKBCnt = 0;
-	int mCnt = 0;
-
 	int mKeyboardRefreshCycles = 1;
+
+	bool checkKeyBoard();
 
 public:
 

@@ -30,25 +30,25 @@ using namespace std;
 class Engine {
 
 private:
-	KeyboardDevice *mKeyboardDevice = NULL;
+	KeyboardDevice* mKeyboardDevice = NULL;
 
 public:
 
 	enum RunState {
-		ENG_TBD =			0x000,		// 0000 0000 0000	Only used intially to indicate that the user hasn't specified an initial mode
-		ENG_HALT =			0x010,		// 0000 0001 0000
-		ENG_BRK_DET =		0x300,		// 0011 0000 0000
-		ENG_RUN =			0x800,		// 1000 0000 0000
-		ENG_STEP =			0x900,		// 1001 0000 0000
-		ENG_STEP_OVER =		0x910,		// 1001 0001 0000
-		ENG_X_BRK_WAIT =	0xa00,		// 1010 0000 0000
-		ENG_R_BRK_WAIT =	0xa10,		// 1010 0001 0000
-		ENG_R_V_BRK_WAIT =	0xa51,		// 1010 0101 0001
-		ENG_W_BRK_WAIT =	0xa20,		// 1010 0010 0000
-		ENG_W_V_BRK_WAIT =	0xa61,		// 1010 0110 0001
-		ENG_RW_BRK_WAIT =	0xa30,		// 1010 0011 0000
-		ENG_RW_V_BRK_WAIT =	0xa71,		// 1010 0111 0001
-		ENG_WAIT_ON_RET =	0xc00		// 1100 0000 0000
+		ENG_TBD = 0x000,		// 0000 0000 0000	Only used intially to indicate that the user hasn't specified an initial mode
+		ENG_HALT = 0x010,		// 0000 0001 0000
+		ENG_BRK_DET = 0x300,		// 0011 0000 0000
+		ENG_RUN = 0x800,		// 1000 0000 0000
+		ENG_STEP = 0x900,		// 1001 0000 0000
+		ENG_STEP_OVER = 0x910,		// 1001 0001 0000
+		ENG_X_BRK_WAIT = 0xa00,		// 1010 0000 0000
+		ENG_R_BRK_WAIT = 0xa10,		// 1010 0001 0000
+		ENG_R_V_BRK_WAIT = 0xa51,		// 1010 0101 0001
+		ENG_W_BRK_WAIT = 0xa20,		// 1010 0010 0000
+		ENG_W_V_BRK_WAIT = 0xa61,		// 1010 0110 0001
+		ENG_RW_BRK_WAIT = 0xa30,		// 1010 0011 0000
+		ENG_RW_V_BRK_WAIT = 0xa71,		// 1010 0111 0001
+		ENG_WAIT_ON_RET = 0xc00		// 1100 0000 0000
 	};
 #define _BRK_ANY_WAIT(x)	( x & 0x200          )	// xx1x xxxx xxxx
 #define	_BRK_R_WAIT(x)		((x & 0x250) == 0x210)	// xx1x x0x1 xxxx
@@ -104,13 +104,13 @@ private:
 	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
 	ALLEGRO_TIMER* mEmulationTimer = NULL;
 
-	DebugTracing *mDT = NULL;
+	DebugTracing* mDT = NULL;
 	bool mRecurringTracing = false;
 
-	ConnectionManager *mConnectionManager = NULL;
+	ConnectionManager* mConnectionManager = NULL;
 
 
-	GUI *mGUI = nullptr;
+	GUI* mGUI = nullptr;
 	Debugger* mDebugger = nullptr;
 
 
@@ -143,7 +143,7 @@ private:
 	double pSpeedFactor = 2;
 
 	double mTimerRate = mLowEmulationRate * mSpeedFactor;
-	int mTimerRateInt = (int) round(mTimerRate);
+	int mTimerRateInt = (int)round(mTimerRate);
 
 	int mEmulationCycle = 0;
 
@@ -169,7 +169,7 @@ private:
 	void updateLogWindow();
 	void clrLogWindow();
 
-	
+
 
 
 	vector<InstrLogData> mInstrLogBuffer;
@@ -193,7 +193,7 @@ private:
 public:
 
 	Engine(string mapFileName, VideoFormat videoFormat, bool enableHWAcc,
-		DebugTracing *debugTracing, string outDir, RunState initialState);
+		DebugTracing* debugTracing, string outDir, RunState initialState);
 	~Engine();
 
 	bool limitTracing(int n) {
@@ -215,7 +215,7 @@ public:
 	bool step(int n, bool stepOver);
 	bool step(int n);
 
-	bool setBreakPointAndWait(ostream& sout, RunState mode, uint16_t adr, uint8_t &readData, uint8_t &writtenData, uint16_t &operandAdr, bool repetition, bool enableTrace);
+	bool setBreakPointAndWait(ostream& sout, RunState mode, uint16_t adr, uint8_t& readData, uint8_t& writtenData, uint16_t& operandAdr, bool repetition, bool enableTrace);
 
 	bool clrBreakPoint();
 
@@ -232,7 +232,12 @@ public:
 
 	bool setLoggedPorts(vector<DevicePort*> loggedPorts);
 	bool setLoggedDevices(vector<Device*> loggedDevices);
-};
 
+	bool getLoggedPorts(vector<DevicePort*>*& loggedPorts) { loggedPorts = &mLoggedPorts; return true; }
+	bool getLoggedDevices(vector<Device*>*& loggedDevices) { loggedDevices = &mLoggedDevices; return true; }
+
+	string getBreakPointInfo();
+
+};
 
 #endif

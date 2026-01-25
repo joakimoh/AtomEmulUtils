@@ -330,6 +330,9 @@ bool P6502::serveNMI()
 		DBG_LOG_COND(mIRQ == 0, this, DBG_INTERRUPTS, getInterruptStack(mStackPointer + 1, oStackPointer, oProgramCounter, oStatusRegister));
 	}
 
+	// Increase time by 7 clock cycles for the NMI
+	tick(7);
+
 	return true;
 }
 
@@ -366,6 +369,9 @@ bool P6502::serveIRQ()
 		DBG_LOG_COND(mIRQ == 0, this, DBG_INTERRUPTS, getInterruptStack(mStackPointer+1, oStackPointer, oProgramCounter, oStatusRegister));
 	}
 
+	// Increase time by 7 clock cycles for the IRQ
+	tick(7);
+
 	return true;
 }
 
@@ -397,8 +403,9 @@ bool P6502::advanceUntil(uint64_t stopCycle)
 {
 
 	while (mCycleCount < stopCycle) {
-		if (!advanceInstr(stopCycle))
+		if (!advanceInstr(stopCycle)) {
 			return false;
+		}
 	}
 
 	return true;
@@ -471,6 +478,8 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	// Increase time by the no of clock cycles specified for the instruction and mode.
 	// This excludes extra cycle at page boundary as this is instead accounted for
 	// in the methods for evaluating the operand part of the instruction.
+	// In addition to this, a branch instruction's clock cycles need to be further adjusted also in the execution handler
+	// as the cycle depends also on whether the branch was taaken or not.
 	tick(pInstructionInfo->cycles);
 
 	// Return time reached
