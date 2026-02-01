@@ -8,12 +8,13 @@
 #include "CRTC6845.h"
 #include <cmath>
 #include <chrono>
+#include "TimedDevice.h"
 
 
 #define BITMAP_PTR unsigned int *
 #define LOCKED_BITMAP_PTR char *
 
-class BeebVideoULA : public VideoDisplayUnit {
+class BeebVideoULA : public VideoDisplayUnit, public TimedDevice {
 
 private:
 
@@ -172,7 +173,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	BeebVideoULA(string name, uint16_t adr, Display *display, double cpuclock, uint8_t waitStates, 
+	BeebVideoULA(string name, uint16_t adr, Display *display, double tickRate, uint8_t waitStates, 
 		DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~BeebVideoULA();
 
@@ -183,8 +184,8 @@ public:
 	// Device power on
 	bool power();
 
-	// Advance until clock cycle stopcycle has been reached
-	bool advanceUntil(uint64_t stopCycle);
+	// Advance until time tickTime
+	bool advanceUntil(uint64_t tickTime) override;
 
 	// Get pointer to other device to be able to call its methods
 	bool connectDevice(Device* dev);

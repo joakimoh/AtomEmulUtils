@@ -7,8 +7,9 @@
 #include "CSWCodec.h"
 #include "allegro5/allegro_audio.h"
 #include <cmath>
+#include "TimedDevice.h"
 
-class AtomSpeaker : public SoundDevice {
+class AtomSpeaker : public SoundDevice, public TimedDevice {
 
 private:
 
@@ -29,12 +30,12 @@ private:
 public:
 
 	AtomSpeaker(
-		string name, double cpuClock, int sampleFreq, double emulationRate, double highEmulationRate,
+		string name, double tickRate, int sampleFreq, double emulationRate, double highEmulationRate,
 		DebugTracing  *debugTracing, ConnectionManager* connectionManager
 	);
 	~AtomSpeaker();
 
-	bool advanceUntil(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopTick) override;
 
 	void setEmulationSpeed(double speed) override;
 

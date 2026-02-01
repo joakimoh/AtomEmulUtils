@@ -7,15 +7,13 @@
 
 namespace fs = std::filesystem;
 
-SDCard::SDCard(string name, double cpuClock, string cardImageFile, DebugTracing* debugTracing, ConnectionManager* connectionManager):
-	Device(name, SD_CARD, OTHER_DEVICE, cpuClock, debugTracing, connectionManager)
+SDCard::SDCard(string name,string cardImageFile, DebugTracing* debugTracing, ConnectionManager* connectionManager):
+	Device(name, SD_CARD, OTHER_DEVICE, debugTracing, connectionManager)
 {
 	registerPort("CLK",		IN_PORT,	0x1,	CLK,	&mCLK);		// Clock
 	registerPort("MOSI",	IN_PORT,	0x1,	MOSI,	&mMOSI);	// Data In
 	registerPort("SEL",		IN_PORT,	0x1,	SEL,	&mSEL);		// Select
 	registerPort("MISO",	OUT_PORT,	0x1,	MISO,	&mMISO);	// Data Out
-
-	mKeepsTime = false;
 
 	mSlaveDataToken.resize(512);
 

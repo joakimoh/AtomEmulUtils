@@ -79,8 +79,11 @@ bool Display::init(VideoFormat videoFormat)
 void Display::updateWindowTitle()
 {
     Resolution res = mVideoSettings.getTotalResolution();
-    int clock_int = (int)trunc(mCPUClock);
-    int clock_fra = (int)trunc((mCPUClock - clock_int)*10);
+    int tick_int = (int)trunc(mTickRate);
+    int tick_fra = (int)trunc((mTickRate - tick_int)*10);
+    int clock_int = (int)trunc(mCPUClockRate);
+    int clock_fra = (int)trunc((mCPUClockRate - clock_int) * 10);
+    
     string speed_s;
     if (mMeasuredSpeed < 1)
         speed_s = to_string((int)round(mMeasuredSpeed * 100)) + "%";
@@ -96,7 +99,8 @@ void Display::updateWindowTitle()
             mDisplay,
             (
                 M_WINDOW_TITLE +
-                " CLOCK " + to_string(round(mCPUClock * 10) / 10) + " Mhz" +
+                " TICK RATE " + to_string(tick_int) + "." + to_string(tick_fra)  + " Mhz" +
+                " CPU CLOCK " + to_string(clock_int) + "." + to_string(clock_fra) + " Mhz" +
                 " SPEED " + speed_s +
                 " " + mVideoSettings.getFormat() + " " + to_string(res.width) + "x" + to_string(res.height)
                 ).c_str()
@@ -106,7 +110,8 @@ void Display::updateWindowTitle()
             mDisplay,
             (
                 M_WINDOW_TITLE +
-                " CLOCK " + to_string(clock_int) + "." + to_string(clock_fra) + " Mhz" +
+                " TICK RATE " + to_string(tick_int) + "." + to_string(tick_fra) + " Mhz" + +
+                " CPU CLOCK " + to_string(clock_int) + "." + to_string(clock_fra) + " Mhz" +
                 " SPEED " + speed_s +
                 " FPS " + to_string((int)round(mMeasuredFrameRate)) +
                 " " + mVideoSettings.getFormat() + " " + to_string(res.width) + "x" + to_string(res.height)
@@ -114,7 +119,13 @@ void Display::updateWindowTitle()
         );
 }
 
-void Display::setClock(double cpuClock)
+void Display::setTickRate(double tickRate)
 {
-    mCPUClock = cpuClock;
+    mTickRate = tickRate;
+
+}
+
+void Display::setCPUClockRate(double clockRate)
+{
+    mCPUClockRate = clockRate;
 }

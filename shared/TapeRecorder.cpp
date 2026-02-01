@@ -4,8 +4,8 @@
 #include <iostream>
 #include <iomanip>
 
-TapeRecorder::TapeRecorder(string name, double cpuClock, DebugTracing  *debugTracing, ConnectionManager* connectionManager) :
-	Device(name, TAPE_RECORDER_DEV, OTHER_DEVICE, cpuClock, debugTracing, connectionManager)
+TapeRecorder::TapeRecorder(string name, double tickRate, DebugTracing  *debugTracing, ConnectionManager* connectionManager) :
+	Device(name, TAPE_RECORDER_DEV, OTHER_DEVICE, debugTracing, connectionManager), TimedDevice(tickRate)
 {
 	registerPort("CAS_IN", OUT_PORT, 0x01, CAS_IN, &mCAS_IN);
 	registerPort("CAS_OUT", IN_PORT, 0x01, CAS_OUT, &mCAS_OUT);
@@ -19,14 +19,14 @@ TapeRecorder::~TapeRecorder()
 	delete mCodec;
 }
 
-bool TapeRecorder::advanceUntil(uint64_t stopCycle)
+bool TapeRecorder::advanceUntil(uint64_t stopTick)
 {
 	if (!mLoadFromTape && !mSaveToTape) {
-		mCycleCount = stopCycle;
+		mTicks = stopTick;
 		return true;
 	}
 
-	while (mCycleCount < stopCycle) {
+	while (mTicks < stopTick) {
 
 		if (mCAS_OUT != pCAS_OUT) {
 
@@ -34,7 +34,7 @@ bool TapeRecorder::advanceUntil(uint64_t stopCycle)
 
 				// One 1/2 cycle has passed => update tape file
 				if (mRecord) {
-					unsigned int pulse_len = (int)round((double)mHalfCycleDuration / (mCPUClock * 1e6) * mSampleRate);
+					unsigned int pulse_len = (int)round((double)mHalfCycleDuration / (mTickRate * 1e6) * mSampleRate);
 					if (!mCodec->writePulse(pulse_len)) {
 						return false;
 					}
@@ -46,7 +46,7 @@ bool TapeRecorder::advanceUntil(uint64_t stopCycle)
 
 		if (mLoadFromTape && mPlay) {
 
-			if (mStartPlaying || mCycleCount - mCasInPulseStartCount == mCasInPulseLen) {
+			if (mStartPlaying || mTicks - mCasInPulseStartCount == mCasInPulseLen) {
 				mStartPlaying = false;
 				mCasInPulseLevel = 1 - mCasInPulseLevel;
 				updatePort(CAS_IN, mCasInPulseLevel);
@@ -59,8 +59,8 @@ bool TapeRecorder::advanceUntil(uint64_t stopCycle)
 				}
 				else {
 				
-					mCasInPulseLen = (int)round(mCPUClock * 1e6 * pulse_len / mSampleRate);
-					mCasInPulseStartCount = mCycleCount;
+					mCasInPulseLen = (int)round(mTickRate * 1e6 * pulse_len / mSampleRate);
+					mCasInPulseStartCount = mTicks;
 				}
 			}
 		}
@@ -69,7 +69,7 @@ bool TapeRecorder::advanceUntil(uint64_t stopCycle)
 
 		mHalfCycleDuration++;
 
-		mCycleCount++;
+		mTicks++;
 
 
 	}
@@ -137,7 +137,7 @@ void TapeRecorder::stop()
 
 		// Add a last long pulse
 		if (mRecord) {
-			unsigned int pulse_len = (int)round((double)mHalfCycleDuration / (mCPUClock * 1e6) * mSampleRate);
+			unsigned int pulse_len = (int)round((double)mHalfCycleDuration / (mTickRate * 1e6) * mSampleRate);
 			if (!mCodec->writePulse(pulse_len)) {
 				DBG_LOG(this, DBG_ERROR, "Failed to write last pulse!");
 			}

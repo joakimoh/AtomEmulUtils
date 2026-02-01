@@ -80,7 +80,7 @@ typedef struct AtomModifier_struct {
 	bool repeat;
 } AtomModifier;
 
-class AtomKeyboardDevice : public KeyboardDevice {
+class AtomKeyboardDevice : public KeyboardDevice, public TimedDevice {
 
 private:
 
@@ -194,17 +194,18 @@ private:
 
 public:
 
-	AtomKeyboardDevice(string name, double cpuClock, DebugTracing  *debugTracing, ConnectionManager* connectionManager);
+	AtomKeyboardDevice(string name, double tickRate, DebugTracing  *debugTracing, ConnectionManager* connectionManager);
 
 	// Reset device
-	bool power() { mCycleCount = 0; return true; }
+	bool power() { mTicks = 0; return true; }
 
 
-	//  Advance until clock cycle stopcycle has been reached
-	bool advanceUntil(uint64_t stopCycle);
+	//  Advance until time tickTime
+	bool advanceUntil(uint64_t tickTime) override;
 
 	// Handle input port changes directly on change
 	void processPortUpdate(int index) override;
+	void processPortUpdate() override;
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

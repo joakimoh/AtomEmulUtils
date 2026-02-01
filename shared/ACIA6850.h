@@ -9,7 +9,7 @@
 using namespace std;
 
 
-class ACIA6850 : public MemoryMappedDevice, ClockedDevice {
+class ACIA6850 : public MemoryMappedDevice, public ClockedDevice {
 
 public:
 	bool mDataStart = false; // for debugging only
@@ -122,7 +122,7 @@ private:
 
 public:
 
-	ACIA6850(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugTracing  *debugTracing,
+	ACIA6850(string name, uint16_t adr, double deviceClockRate, double tickRate, uint8_t waitStates, DebugTracing  *debugTracing,
 		ConnectionManager* connectionManager, DeviceManager *deviceManager);
 
 	bool read(uint16_t adr, uint8_t& data);
@@ -135,8 +135,8 @@ public:
 	// Device power on
 	bool power() { return reset(); }
 
-	// Advance until clock cycle stopcycle has been reached
-	bool advanceUntil(uint64_t stopCycle);
+	// Advance until time tickTime
+	bool advanceUntil(uint64_t tickTime) override;
 
 	// Process clock updates to drive shifting on changes
 	void processPortUpdate(int index);

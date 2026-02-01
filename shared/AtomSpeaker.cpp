@@ -9,10 +9,11 @@
 
 
 AtomSpeaker::AtomSpeaker(
-	string name, double cpuClock, int sampleFreq, double emulationRate, double highEmulationRate,
+	string name, double tickRate, int sampleFreq, double emulationRate, double highEmulationRate,
 	DebugTracing  *debugTracing, ConnectionManager* connectionManager
 ) :
-	SoundDevice(name, ATOM_SPEAKER_DEV, cpuClock, sampleFreq, emulationRate, highEmulationRate, debugTracing, connectionManager)
+	SoundDevice(name, ATOM_SPEAKER_DEV, sampleFreq, emulationRate, highEmulationRate, debugTracing, connectionManager),
+	TimedDevice(tickRate)
 {
 
 	if (round(highEmulationRate / sampleFreq) != 1)
@@ -78,14 +79,14 @@ void AtomSpeaker::setEmulationSpeed(double speed)
 }
 
 
-bool AtomSpeaker::advanceUntil(uint64_t stopCycle)
+bool AtomSpeaker::advanceUntil(uint64_t stopTick)
 {
 
 	updateAudio(mOUT << 7);
 	if (mOUT != pOUT)
 		mSoundCnt++;
 	pOUT = mOUT;
-	mCycleCount = stopCycle;
+	mTicks = stopTick;
 
 
 	return true;

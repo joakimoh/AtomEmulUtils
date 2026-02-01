@@ -1,5 +1,5 @@
-CLOCK 1.0	// CPU Clock in MHz
-VIDEO	NTSC	// Video Format
+TICK_RATE	1.0		// Emulator's tick rate - must be >= the max clock rate of any device
+VIDEO		NTSC	// Video Format
 
 // Emulation rates
 EMU_LOW_RATE		60		// NTSC Field Rate
@@ -8,7 +8,7 @@ EMU_HIGH_RATE		31250	// From the duration of a 1/2 scan line for NTSC (32us)
 //
 //	Device instances
 //
-//	Devices are either a microcontroller, a memory-mapped peripheral
+//	Devices are either a microprocessor, a memory-mapped peripheral
 //	or a non-memory mapped peripheral.
 //
 //	Only a memory-mapped device has address and size properties.
@@ -21,7 +21,7 @@ EMU_HIGH_RATE		31250	// From the duration of a 1/2 scan line for NTSC (32us)
 //		ROM:		ROM of any size (within the 64k address space)
 //		VDU6847:	A 6847 Video Data Unit (memory-mapped)
 //		PIA8255		An 8255 PIA (memory-mapped)
-//		UC6052		A 6502 microcontroller (obviously NOT memory-mapped)
+//		UC6052		A 6502 microprocessor (obviously NOT memory-mapped)
 //		ATOMKB		An Acorn Atom Keyboard (NOT memory-mapped)
 //		ATOMCAS		An Acorn Atom Cassette Interface (NOT memory-mapped)
 //		TAPREC		A Tape Recorder emulation (CSW files read/written)
@@ -41,7 +41,7 @@ ADD	ROM			FP			d000	1000 		0			Atom_FloatingPoint.rom	// Floating-point ROM
 ADD	ROM			KERNEL		f000	1000 		0			Atom_Kernel.rom			// CAS ROM
 ADD	ATOMKB		ATOMKB																// Acorn Atom keyboard
 ADD	ATOMCAS		CUTS																// CUTS Cassette Interface
-ADD	CPU_6502		UC																	// Microcontroller 6502
+ADD	CPU_6502		UC										1.0						// Microcontroller 6502 running at 1 MHz
 ADD	TAPREC		TAPREC																// Standard Tape Recorder
 ADD	ATOMSP		SPEAKER																// Acorn Atom Speaker
 //
@@ -68,7 +68,7 @@ CONNECT ATOMKB:COL_H;0	PIA:PortC;6	// REPEAT key
 CONNECT:P PIA:PortA;3;0	ATOMKB:ROW
 
 // ATOMKB BREAK key <=> device RESET Connections
-CONNECT ATOMKB:COL_H;1	UC:RESET	// BREAK key => RESET of microcontroller
+CONNECT ATOMKB:COL_H;1	UC:RESET	// BREAK key => RESET of microprocessor
 CONNECT ATOMKB:COL_H;1	PIA:RESET	// BREAK key => RESET of PIA 8255
 CONNECT ATOMKB:COL_H;1	VIA:RESET	// BREAK key => RESET of VIA 6522
 
@@ -94,7 +94,7 @@ CONNECT	PIA:PortC;2		SPEAKER:OUT
 // the access of that peripheral's register). The device being triggered should be
 // a non-memory mapped device (like a keyboard, tape recorder, speaker etc.).
 // Default (when no triggering is specified) is to schedule each device periodically
-// synchronised with the microcontroller instruction execution (INSTR_RATE)
+// synchronised with the microprocessor instruction execution (INSTR_RATE)
 //
 // SCHEDULING IS ONE OF LOW_RATE, HIGH_RATE, INSTR_RATE, NONE
 //

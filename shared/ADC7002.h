@@ -4,18 +4,18 @@
 #include <cstdint>
 #include "MemoryMappedDevice.h"
 #include <vector>
+#include "ClockedDevice.h"
 
 
 using namespace std;
 
-class ADC7002 : public MemoryMappedDevice {
+class ADC7002 : public MemoryMappedDevice, public ClockedDevice {
 	// Selects one of the four sideways ROM sockets (IC52, IC88, IC100, IC101, left to right on the board after the OS socket)
 
 private:
 
 	// (Digital) Ports
-	int CLK, EOC;
-	uint8_t mCLK = 1;	// Clock frequency [MHz]
+	int EOC;
 	uint8_t mEOC = 0x0; // End of Conversion IRQ output
 
 	int mSpeed12 = 10000; // 12-bit conversion time in CLK units (e.g., CLK = 1 MHz => 10 ms)
@@ -53,10 +53,10 @@ private:
 public:
 
 
-	ADC7002(string name, double cpuClock, uint16_t adr, uint16_t sz, int waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager,
+	ADC7002(string name, double tickRate, double deviceClockRate, uint16_t adr, uint16_t sz, int waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager,
 		DeviceManager *deviceManager);
 
-	bool advanceUntil(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopTick);
 
 	bool read(uint16_t adr, uint8_t& data);
 

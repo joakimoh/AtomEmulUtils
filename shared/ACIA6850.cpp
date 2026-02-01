@@ -2,11 +2,18 @@
 #include <cmath>
 #include "Utility.h"
 
-ACIA6850::ACIA6850(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugTracing  *debugTracing,
+ACIA6850::ACIA6850(string name, uint16_t adr, double deviceClockRate, double tickRate, uint8_t waitStates, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager) :
-	MemoryMappedDevice(name, ACIA6850_DEV, PERIPHERAL, cpuClock, waitStates, adr, 0x08, debugTracing, connectionManager, deviceManager),
-	ClockedDevice(cpuClock, clock)
-{	registerPort("RxD",		IN_PORT,	0x1,	RxD,	&mRxD); 	registerPort("CTS",		IN_PORT,	0x1,	CTS,	&mCTS); 	registerPort("DCD",		IN_PORT,	0x1,	DCD,	&mDCD);	registerPort("TxD",		OUT_PORT,	0x1,	TxD,	&mTxD);	registerPort("RTS",		OUT_PORT,	0x1,	RTS,	&mRTS);	registerPort("IRQ",		OUT_PORT,	0x1,	IRQ,	&mIRQ);
+	MemoryMappedDevice(name, ACIA6850_DEV, PERIPHERAL, waitStates, adr, 0x08, debugTracing, connectionManager, deviceManager),
+	ClockedDevice(tickRate, deviceClockRate)
+{
+	registerPort("RxD",		IN_PORT,	0x1,	RxD,	&mRxD);
+ 	registerPort("CTS",		IN_PORT,	0x1,	CTS,	&mCTS);
+ 	registerPort("DCD",		IN_PORT,	0x1,	DCD,	&mDCD);
+	registerPort("TxD",		OUT_PORT,	0x1,	TxD,	&mTxD);
+	registerPort("RTS",		OUT_PORT,	0x1,	RTS,	&mRTS);
+	registerPort("IRQ",		OUT_PORT,	0x1,	IRQ,	&mIRQ);
+
 }
 
 bool ACIA6850::read(uint16_t adr, uint8_t& data)
@@ -231,8 +238,8 @@ void ACIA6850::update_settings()
 
 	mRxDivClkRate = mRxClkRate / mClkDiv;
 	mTxDivClkRate = mTxClkRate / mClkDiv;
-	mRxDivCycles = (int)round(mCPUClock * 1e6 / mRxDivClkRate);
-	mTxDivCycles = (int)round(mCPUClock * 1e6 / mTxDivClkRate);
+	mRxDivCycles = (int)round(mTickRate * 1e6 / mRxDivClkRate);
+	mTxDivCycles = (int)round(mTickRate * 1e6 / mTxDivClkRate);
 
 	if (DBG_LEVEL_DEV(this, DBG_IO_PERIPHERAL) && change) {
 		stringstream sout;
@@ -250,32 +257,32 @@ bool ACIA6850::reset()
 	return true;
 }
 
-// Advance until clock cycle stopcycle has been reached
-bool ACIA6850::advanceUntil(uint64_t stopCycle)
+// Advance until time tickTime
+bool ACIA6850::advanceUntil(uint64_t tickTime)
 {
 	uint8_t p_SR;
 	uint8_t p_CR;
 
 	if (mDataStart && mDataStartCount < 0) {
-			mDataStartCount = mCycleCount;
-			DBG_LOG(this, DBG_IO_PERIPHERAL, "Rx DATA STARTS AT " + to_string(mDataStartCount) + " cycles (" + to_string(mCycleCount / mCPUClock * 1e-6) + "s)");
+			mDataStartCount = mTicks;
+			DBG_LOG(this, DBG_IO_PERIPHERAL, "Rx DATA STARTS AT " + to_string(mDataStartCount) + " cycles (" + to_string(mTicks / mTickRate * 1e-6) + "s)");
 	}
 
-	while (mCycleCount < stopCycle) {
+	while (mTicks < tickTime) {
 
 		p_SR = mSR;
 		p_CR = mCR;
 
-		mDataCount = mCycleCount - mDataStartCount;
+		mDataCount = mTicks - mDataStartCount;
 		double data_time, time;
 		if (DBG_LEVEL_DEV(this,DBG_IO_PERIPHERAL)) {
-			data_time = mDataCount / mCPUClock * 1e-6;
-			time = mCycleCount / mCPUClock * 1e-6;
+			data_time = mDataCount / mTickRate * 1e-6;
+			time = mTicks / mTickRate * 1e-6;
 		}
 
 		// Check for a start bit at the external Rx clock rate to find and 
 		// synchronise to the middle of a bit
-		if (mRxState == START_BIT && mCycleCount % mRxClkCycles == 0) {
+		if (mRxState == START_BIT && mTicks % mRxClkCycles == 0) {
 			if (mRxD == 0)
 				mRxLowSamples++;
 			else {
@@ -283,7 +290,7 @@ bool ACIA6850::advanceUntil(uint64_t stopCycle)
 			}
 			if (mRxLowSamples > mClkDiv / 2 ) { // Got LOW samples for half the bit duration?
 
-				mRxMidSampleClkCycle = mCycleCount; // Save mid sample reference for use as sample point later on
+				mRxMidSampleClkCycle = mTicks; // Save mid sample reference for use as sample point later on
 				mRxState = DATA_BIT;
 				mRxBits = 0;
 				mRxBuffer = 0;
@@ -298,7 +305,7 @@ bool ACIA6850::advanceUntil(uint64_t stopCycle)
 		}
 
 		// Check for data/parity/stop bits at the internal Rx DIV clock rate
-		else if (mRxState != START_BIT && mRxState != NO_BIT && (mCycleCount - mRxMidSampleClkCycle) % mRxDivCycles == 0) {
+		else if (mRxState != START_BIT && mRxState != NO_BIT && (mTicks - mRxMidSampleClkCycle) % mRxDivCycles == 0) {
 
 			switch (mRxState) {
 			case DATA_BIT:
@@ -345,7 +352,7 @@ bool ACIA6850::advanceUntil(uint64_t stopCycle)
 			}
 		}
 
-		if (mCycleCount % mTxDivCycles == 0) { // Internal Tx DIV clock rate
+		if (mTicks % mTxDivCycles == 0) { // Internal Tx DIV clock rate
 			if (mTxState == NO_BIT) {
 				if (mTxPending) {
 					mTxState = START_BIT;
@@ -424,7 +431,7 @@ bool ACIA6850::advanceUntil(uint64_t stopCycle)
 		if (mSR != p_SR || mCR != p_CR)
 			updateIRQ();
 
-		mCycleCount++;
+		mTicks++;
 	}
 	return true;
 }
@@ -498,13 +505,13 @@ void ACIA6850::updateIRQ()
 
 void ACIA6850::setRxClkRate(long clkRate) {
 	mRxClkRate = clkRate;
-	mRxClkCycles = (int)round(mCPUClock * 1e6 / clkRate);	
+	mRxClkCycles = (int)round(mTickRate * 1e6 / clkRate);	
 	update_settings();
 }
 
 void ACIA6850::setTxClkRate(long clkRate) {
 	mTxClkRate = clkRate;
-	mTxClkCycles = (int)round(mCPUClock * 1e6 / clkRate);
+	mTxClkCycles = (int)round(mTickRate * 1e6 / clkRate);
 	update_settings();
 }
 

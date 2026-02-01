@@ -19,8 +19,8 @@
 // CAS_OUT		Cassette output to the Tape Recorder
 //
 
-AtomCUTSInterface::AtomCUTSInterface(string name, double systemClock, DebugTracing  *debugTracing, ConnectionManager* connectionManager) :
-	Device(name, ATOM_CUTS_DEV, OTHER_DEVICE, systemClock, debugTracing, connectionManager)
+AtomCUTSInterface::AtomCUTSInterface(string name, double tickRate, DebugTracing  *debugTracing, ConnectionManager* connectionManager) :
+	Device(name, ATOM_CUTS_DEV, OTHER_DEVICE, debugTracing, connectionManager), TimedDevice(tickRate)
 {
 	registerPort("TAPE_OUT",	IN_PORT,	0x01, TAPE_OUT, &mTAPE_OUT);	// From PIA PC0
 	registerPort("ENA_TONE",	IN_PORT,	0x01, ENA_TONE, &mENA_TONE);	// From PIA PC1
@@ -29,17 +29,17 @@ AtomCUTSInterface::AtomCUTSInterface(string name, double systemClock, DebugTraci
 	registerPort("TAPE_IN",		OUT_PORT,	0x01, TAPE_IN, &mTAPE_IN);		// To PIA PC5
 	registerPort("CAS_OUT",		OUT_PORT,	0x01, CAS_OUT,	&mCAS_OUT);		// To Tape Recorder
 
-	mToneHalfcycle = (int)round(systemClock * 1e6 / 2400 / 2);
+	mToneHalfcycle = (int)round(tickRate * 1e6 / 2400 / 2);
 
 }
 
 
-bool AtomCUTSInterface::advanceUntil(uint64_t stopCycle)
+bool AtomCUTSInterface::advanceUntil(uint64_t stopTick)
 {
-	while (mCycleCount < stopCycle) {
+	while (mTicks < stopTick) {
 
 		// Generate TONE - toggles the 2.4 kHz tone when one 1/2 cycle of 2.4 Khz has elapsed
-		if (mCycleCount % mToneHalfcycle == 0)
+		if (mTicks % mToneHalfcycle == 0)
 			updatePort(TONE, 1 - mTONE);
 
 		// Generate CAS OUT based on ENA_TONE, TONE and TAPE OUT
@@ -50,13 +50,13 @@ bool AtomCUTSInterface::advanceUntil(uint64_t stopCycle)
 		
 		if (DBG_LEVEL_DEV(this,DBG_TAPE) && mTAPE_IN != mCAS_IN) {
 			int prev_half_cycle_time_point = mDebugPrevHalfCycleTimePoint;
-			mDebugPrevHalfCycleTimePoint = mCycleCount;
-			double cycle_len = 2 * (mDebugPrevHalfCycleTimePoint- prev_half_cycle_time_point) / (mCPUClock * 1e6);
+			mDebugPrevHalfCycleTimePoint = mTicks;
+			double cycle_len = 2 * (mDebugPrevHalfCycleTimePoint- prev_half_cycle_time_point) / (mTickRate * 1e6);
 			DBG_LOG(this, DBG_TAPE, to_string(cycle_len > 0 ? 1 / cycle_len : 9999) + " Hz 1/2 cycle detected");
 		}
 		updatePort(TAPE_IN, mCAS_IN);
 
-		mCycleCount++;
+		mTicks++;
 
 		
 	}

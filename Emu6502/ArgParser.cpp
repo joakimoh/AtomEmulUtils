@@ -14,8 +14,8 @@ bool ArgParser::failed()
 
 void  ArgParser::printInfo()
 {
-	cout << "Emulates 6502-based microcontroller systems of the 1980's.\n";
-	cout << "\nAny microcontroller system that uses the emulated hardware devices should in theory be possible\n";
+	cout << "Emulates 6502-based microprocessor systems of the 1980's.\n";
+	cout << "\nAny microprocessor system that uses the emulated hardware devices should in theory be possible\n";
 	cout << "to support. The system of concern is specified by a configuration file that specifies the\n";
 	cout << "used devices, their memory mapping, and how they are connected.\n\n";
 	cout << "Currently the following hardware devices are supported:\n";

@@ -7,8 +7,9 @@
 #include "CSWCodec.h"
 #include <cmath>
 #include <chrono>
+#include "ClockedDevice.h"
 
-class AtomCUTSInterface : public Device {
+class AtomCUTSInterface : public Device, public TimedDevice {
 
 private:
 
@@ -26,9 +27,9 @@ private:
 
 public:
 
-	AtomCUTSInterface(string name, double systemClock, DebugTracing  *debugTracing, ConnectionManager* connectionManager);
+	AtomCUTSInterface(string name, double tickRate, DebugTracing  *debugTracing, ConnectionManager* connectionManager);
 
-	bool advanceUntil(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopTick) override;
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

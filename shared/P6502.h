@@ -9,10 +9,11 @@
 #include <cstdint>
 #include <cmath>
 #include <fstream>
+#include "ClockedDevice.h"
 
 using namespace std;
 
-class P6502 : public Device {
+class P6502 : public Device, public ClockedDevice {
 
 private:
 
@@ -243,7 +244,7 @@ public:
 	MemoryMappedDevice* mZPMemDev = NULL;
 	MemoryMappedDevice* mStackMemDev = NULL;
 
-	P6502(string name, double clockSpeed, DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager *deviceManager);
+	P6502(string name, double deviceClockRate, double tickRate, DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager *deviceManager);
 	~P6502();
 
 	// Reset device
@@ -252,8 +253,8 @@ public:
 	// Device power on
 	bool power() { return reset(); }
 
-	// Advance until clock cycle stopcycle has been reached
-	bool advanceUntil(uint64_t stopCycle);
+	// Advance until time tickTime
+	bool advanceUntil(uint64_t tickTime) override;
 
 	// Advance one instruction if the stop cycle hasn't already been reached
 	bool advanceInstr(uint64_t& endCycle);

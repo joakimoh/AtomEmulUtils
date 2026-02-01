@@ -16,7 +16,7 @@ private:
 public:
 
 
-	RAM(string name, double clockSpeed, uint8_t waitStates, bool DRAM, uint16_t adr, uint16_t sz, DebugTracing  *debugTracing,
+	RAM(string name, uint8_t waitStates, bool DRAM, uint16_t adr, uint16_t sz, DebugTracing  *debugTracing,
 		ConnectionManager * connectionManager, DeviceManager* deviceManager);
 
 	bool read(uint16_t adr, uint8_t& data);

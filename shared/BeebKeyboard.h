@@ -69,7 +69,7 @@ typedef struct Key_struct {
 	string	keyName; // e.g, "COPY", "ESC" and "A"
 }  Key;
 
-class BeebKeyboard : public KeyboardDevice, ClockedDevice {
+class BeebKeyboard : public KeyboardDevice, public ClockedDevice {
 
 private:
 
@@ -219,13 +219,13 @@ private:
 
 public:
 
-	BeebKeyboard(string name, double cpuClock, double deviceClock, uint8_t startupOptions, DebugTracing  *debugTracing, ConnectionManager* connectionManager);
+	BeebKeyboard(string name, double tickRate, double deviceClockRate, uint8_t startupOptions, DebugTracing  *debugTracing, ConnectionManager* connectionManager);
 
 	// Device power on
-	bool power() { mCycleCount = 0; return true; }
+	bool power() { mTicks = 0; return true; }
 
-	//  Advance until clock cycle stopcycle has been reached
-	bool advanceUntil(uint64_t stopCycle);
+	//  Advance until time tickTime
+	bool advanceUntil(uint64_t tickTime) override;
 
 	void processPortUpdate(int index);
 

@@ -12,10 +12,10 @@ using namespace std;
 //
 
 
-VIA6522::VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugTracing  *debugTracing, ConnectionManager* connectionManager,
+VIA6522::VIA6522(string name, uint16_t adr, double deviceClockRate, double tickRate, uint8_t waitStates, DebugTracing  *debugTracing, ConnectionManager* connectionManager,
 	DeviceManager *deviceManager) :
-	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL, cpuClock, waitStates, adr, 0x10, debugTracing, connectionManager, deviceManager),
-	ClockedDevice(cpuClock, clock)
+	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL,waitStates, adr, 0x10, debugTracing, connectionManager, deviceManager),
+	ClockedDevice(tickRate, deviceClockRate)
 {
 
 	// Specify ports that can be connected to other devices
@@ -425,7 +425,7 @@ void VIA6522::checkForHandShaking()
 	}
 }
 
-bool VIA6522::advanceUntil(uint64_t stopCycle)
+bool VIA6522::advanceUntil(uint64_t stopTick)
 {
 	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
@@ -434,7 +434,7 @@ bool VIA6522::advanceUntil(uint64_t stopCycle)
 
 	if (!mRESET && reset_transition) {
 		reset();
-		mCycleCount = stopCycle;
+		mTicks = stopTick;
 		return true;
 	}
 
@@ -455,9 +455,9 @@ bool VIA6522::advanceUntil(uint64_t stopCycle)
 
 	shifting_active = false;
 
-	while (mCycleCount < stopCycle) {
+	while (mTicks < stopTick) {
 
-		if (mCycleCount % mCpuCyclesPerDeviceCycle == 0) {
+		if (mTicks % mTicksPerDeviceCycle == 0) {
 
 			// Update port aliases
 			CA1_In = mCAIn & 0x1;
@@ -507,11 +507,11 @@ bool VIA6522::advanceUntil(uint64_t stopCycle)
 			updateIRQ();
 
 			// Advance one phi2 cycle		
-			mCycleCount += mCpuCyclesPerDeviceCycle;
+			mTicks += mTicksPerDeviceCycle;
 
 		}
 		else
-			mCycleCount++;
+			mTicks++;
 	}
 
 	pPCR = mPCR;
@@ -565,7 +565,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 		return false;
 
 	// Advance VIA one cycle to check for transitions before read operation
-	advanceUntil(mCycleCount + mCpuCyclesPerDeviceCycle);
+	advanceUntil(mTicks + mTicksPerDeviceCycle);
 
 	uint16_t a = (adr - mStartOfSpace) & 0xf;
 	switch (a) {

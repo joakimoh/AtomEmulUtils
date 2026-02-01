@@ -18,7 +18,7 @@ public:
 public:
 
 
-	ROM(string name, double clockSpeed, uint8_t waitStates, uint16_t adr, uint16_t sz, string binaryContent, DebugTracing  *debugTracing,
+	ROM(string name, uint8_t waitStates, uint16_t adr, uint16_t sz, string binaryContent, DebugTracing  *debugTracing,
 		ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
 	bool read(uint16_t adr, uint8_t& data);

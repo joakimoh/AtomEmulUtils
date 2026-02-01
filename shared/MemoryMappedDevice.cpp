@@ -10,9 +10,9 @@
 using namespace std;
 
 MemoryMappedDevice::MemoryMappedDevice(
-	string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz, DebugTracing  *debugTracing,
+	string name, DeviceId typ, DeviceCategory cat, uint8_t waitStates, uint16_t adr, uint16_t sz, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager
-): Device(name, typ, cat, cpuClock, debugTracing, connectionManager), mWaitStates(waitStates), mDeviceManager(deviceManager), mAddressSpace(adr, sz)
+): Device(name, typ, cat, debugTracing, connectionManager), mWaitStates(waitStates), mDeviceManager(deviceManager), mAddressSpace(adr, sz)
 {
 	mMemoryMapped = true;
 	string s1 = ""s + _DEVICE_ID(this->devType) + " '" + name + "' at address "s;
@@ -56,8 +56,8 @@ bool MemoryMappedDevice::triggerBeforeRead(uint16_t adr, uint8_t data)
 	for (int i = 0; i < mScheduleOnRead.size(); i++) {
 		if (mScheduleOnRead[i].triggeringAdr == adr) {
 			DBG_LOG(this, DBG_TRGGERING, "READ 0x" + Utility::int2HexStr(adr, 4) +  " => triggers " +
-					mScheduleOnRead[i].device->name + " at " + to_string(mCycleCount) + "\n");
-			mScheduleOnRead[i].device->advanceUntil(mCycleCount); // align the triggered device's time with this device
+					mScheduleOnRead[i].device->name + " at " + to_string(mTicks) + "\n");
+			mScheduleOnRead[i].device->processPortUpdate(); // request device on what outputs this device depends to update its outputs
 		}
 	}
 	return true;
@@ -76,8 +76,8 @@ bool MemoryMappedDevice::triggerAfterWrite(uint16_t adr, uint8_t data)
 	for (int i = 0; i < mScheduleOnWrite.size(); i++) {
 		if (mScheduleOnWrite[i].triggeringAdr == adr) {
 			DBG_LOG(this, DBG_TRGGERING, "WRITE 0x" + Utility::int2HexStr(data,2) + " TO 0x" + Utility::int2HexStr(adr,4) + " => triggers " +
-					mScheduleOnWrite[i].device->name + " at " + to_string(mCycleCount) + "\n");
-			mScheduleOnWrite[i].device->advanceUntil(mCycleCount); // align the triggered device's time with this device
+					mScheduleOnWrite[i].device->name + " at " + to_string(mTicks) + "\n");
+			mScheduleOnWrite[i].device->processPortUpdate(); // request device that depends on the outputs this device to update its outputs
 		}
 	}
 	return true;

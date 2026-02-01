@@ -75,7 +75,7 @@ private:
 	bool writeMemCmd(istream& sin);
 	bool writeMemStrCmd(istream& sin);
 	bool dumpDevCmd(istream& sin);
-	bool dumpUcCmd(istream& sin);
+	bool dumpMPCmd(istream& sin);
 	bool listDevicesCmd(istream& sin);
 
 	bool memLogCmd(istream& sin);

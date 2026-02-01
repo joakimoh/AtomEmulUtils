@@ -6,11 +6,12 @@
 #include <vector>
 #include "ROM.h"
 #include "DeviceManager.h"
+#include "TimedDevice.h"
 
 
 using namespace std;
 
-class BeebROMSel : public MemoryMappedDevice {
+class BeebROMSel : public MemoryMappedDevice, public TimedDevice {
 	//
 	// Selects one of the sixteen sideways RAM/ROMs
 	// A standard Model B can only select ROM sockets (IC52, IC88, IC100, IC101, left to right on the board after the OS socket)
@@ -35,7 +36,7 @@ private:
 public:
 
 
-	BeebROMSel(string name, double cpuClock, uint8_t waitStates, uint16_t adr, DebugTracing  *debugTracing, ConnectionManager * connectionManager, DeviceManager* deviceManager);
+	BeebROMSel(string name, double tickRate, uint8_t waitStates, uint16_t adr, DebugTracing  *debugTracing, ConnectionManager * connectionManager, DeviceManager* deviceManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool dump(uint16_t adr, uint8_t& data) override;

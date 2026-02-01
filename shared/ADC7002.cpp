@@ -2,24 +2,24 @@
 #include "Utility.h"
 #include <cmath>
 
-ADC7002::ADC7002(string name, double cpuClock, uint16_t adr, uint16_t sz, int waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager,
+ADC7002::ADC7002(string name, double tickRate, double deviceClockRate, uint16_t adr, uint16_t sz, int waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager,
 	DeviceManager* deviceManager) :
-	MemoryMappedDevice(name, ADC_7002_DEV, OTHER_DEVICE, cpuClock, waitStates, adr, sz, debugTracing, connectionManager, deviceManager)
+	MemoryMappedDevice(name, ADC_7002_DEV, OTHER_DEVICE, waitStates, adr, sz, debugTracing, connectionManager, deviceManager),
+	ClockedDevice(tickRate, deviceClockRate)
 {
-	registerPort("CLK", IN_PORT, 0x01, CLK, &mCLK);	// CLK input
-	registerPort("EOC", OUT_PORT, 0x01, EOC, &mEOC);	// CLK input
+	registerPort("EOC", OUT_PORT, 0x01, EOC, &mEOC);	// EOC output
 
-	mSpeed12 = (int)round(mSpeed12 * cpuClock / mCLK);
-	mSpeed8 = (int)round(mSpeed8 * cpuClock / mCLK);
+	mSpeed12 = (int)round(mSpeed12 * tickRate / mDeviceClockRate);
+	mSpeed8 = (int)round(mSpeed8 * tickRate / mDeviceClockRate);
 }
 
-bool ADC7002::advanceUntil(uint64_t stopCycle)
+bool ADC7002::advanceUntil(uint64_t stopTick)
 {
-	while (mCycleCount < stopCycle) {
+	while (mTicks < stopTick) {
 
 		if (mConversion) {
 
-			if (mCycleCount - mStartCycleCount >= mSpeed) {
+			if (mTicks - mStartCycleCount >= mSpeed) {
 				mConversion = false;
 				uint16_t range = (ADC_7002_CR_12_BIT ? 0x3ff : 0xff);
 				uint16_t data = mCHInput[ADC_7002_CR_CH]  * range;
@@ -36,7 +36,7 @@ bool ADC7002::advanceUntil(uint64_t stopCycle)
 
 		}
 
-		mCycleCount++;
+		timeTick(1);
 	}
 
 	return true;
@@ -118,7 +118,7 @@ bool ADC7002::write(uint16_t adr, uint8_t data)
 		mConversionCount = 0;
 		mConversion = true;
 		mSpeed = (ADC_7002_CR_12_BIT ? mSpeed12 : mSpeed8);
-		mStartCycleCount = mCycleCount;
+		mStartCycleCount = mTicks;
 
 		DBG_LOG(this, DBG_ADC, "Start "s + (ADC_7002_CR_12_BIT?"12-bit"s:"8-bit"s) + " conversion for channel " + to_string(ADC_7002_CR_CH));
 	}

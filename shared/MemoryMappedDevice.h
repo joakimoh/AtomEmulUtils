@@ -4,6 +4,7 @@
 #include <iostream>
 #include "Device.h"
 #include "AddressSpaceInfo.h"
+#include "TimedDevice.h"
 
 class DeviceManager;
 
@@ -36,7 +37,7 @@ protected:
 
 public:
 
-	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, double cpuClock, uint8_t waitStates, uint16_t adr, uint16_t sz,
+	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, uint8_t waitStates, uint16_t adr, uint16_t sz,
 		DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager *deviceManager);
 
 	// Intrusive read of a device's memory that could trigger actions on the device's side

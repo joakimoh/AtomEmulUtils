@@ -35,8 +35,8 @@ using namespace std;
 // Device class
 //
 
-Device::Device(string n, DeviceId typ, DeviceCategory cat, double cpuClock, DebugTracing  *debugTracing, ConnectionManager *connectionManager) :
-	devType(typ), mConnectionManager(connectionManager), mDM(debugTracing), name(n), category(cat), mCPUClock(cpuClock)
+Device::Device(string n, DeviceId typ, DeviceCategory cat, DebugTracing  *debugTracing, ConnectionManager *connectionManager) :
+	devType(typ), mConnectionManager(connectionManager), mDM(debugTracing), name(n), category(cat)
 {
 }
 

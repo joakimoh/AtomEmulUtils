@@ -6,11 +6,12 @@
 #include <string>
 #include <allegro5/allegro.h>
 #include "MemoryMappedDevice.h"
+#include "TimedDevice.h"
 
 
 using namespace std;
 
-class PIA8255 : public MemoryMappedDevice {
+class PIA8255 : public MemoryMappedDevice, public TimedDevice {
 
 private:
 
@@ -30,7 +31,7 @@ private:
 
 public:
 
-	PIA8255(string name, double cpuclock, uint8_t waitStates, uint16_t adr, DebugTracing  *debugTracing, ConnectionManager *connectionManager, DeviceManager* deviceManager);
+	PIA8255(string name, double tickRate, uint8_t waitStates, uint16_t adr, DebugTracing  *debugTracing, ConnectionManager *connectionManager, DeviceManager* deviceManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool dump(uint16_t adr, uint8_t& data) override;
@@ -42,8 +43,8 @@ public:
 	// Device power on
 	bool power() { return reset(); }
 
-	// Advance until clock cycle stopcycle has been reached
-	bool advanceUntil(uint64_t stopCycle);
+	// Advance until time tickTime
+	bool advanceUntil(uint64_t tickTime) override;
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

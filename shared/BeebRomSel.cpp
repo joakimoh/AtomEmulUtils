@@ -13,9 +13,10 @@
 // left to right on the board after the OS socket.
 //
 
-BeebROMSel::BeebROMSel(string name, double cpuClock, uint8_t waitStates, uint16_t adr, DebugTracing  *debugTracing, ConnectionManager * connectionManager,
+BeebROMSel::BeebROMSel(string name, double tickRate, uint8_t waitStates, uint16_t adr, DebugTracing  *debugTracing, ConnectionManager * connectionManager,
 	DeviceManager *deviceManager) :
-	MemoryMappedDevice(name, BEEB_PAGED_ROM_SEL_DEV, OTHER_DEVICE, cpuClock, waitStates, adr, 1, debugTracing, connectionManager, deviceManager)
+	MemoryMappedDevice(name, BEEB_PAGED_ROM_SEL_DEV, OTHER_DEVICE, waitStates, adr, 1, debugTracing, connectionManager, deviceManager),
+	TimedDevice(tickRate)
 {
 	registerPort("NW", OUT_PORT, 0x1, NW, &mNW);
 	registerPort("NE", OUT_PORT, 0x1, NE, &mNE);

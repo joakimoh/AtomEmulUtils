@@ -11,6 +11,7 @@
 #include "VideoSettings.h"
 #include "Device.h"
 #include "MemorySegmentTree.h"
+#include "TimedDevice.h"
 
 
 using namespace std;
@@ -55,11 +56,11 @@ private:
 public:
 
 	DeviceManager(
-		string memMapFile, double& cpuClock, Display* display, DebugTracing* debugTracing,
+		string memMapFile, double& tickRate, Display* display, DebugTracing* debugTracing,
 		ConnectionManager* connectionManager, P6502*& microprocessor, VideoDisplayUnit*& vdu,
 		SoundDevice * &sound_device, vector<Device*>& allDevices,
-		vector<Device*>& baseRateScheduledDevices, vector<Device*>& subRateScheduledDevices, vector<Device*>& instructionRateScheduledDevices,
-		KeyboardDevice * &keyboardDevice, double speed,
+		vector<TimedDevice*>& baseRateScheduledDevices, vector<TimedDevice*>& subRateScheduledDevices, vector<TimedDevice*>& instructionRateScheduledDevices,
+		double speed,
 		double &baseSchedulingRate, double&highSchedulingRate
 	);
 
@@ -77,7 +78,7 @@ public:
 
 	bool getDevice(string name, Device*& device);
 	bool getDevice(DeviceId id, Device*& device);
-	bool getUc(Device* &device) { device = mMicroprocessor; return true; }
+	bool getMicroprocessor(Device* &device) { device = mMicroprocessor; return true; }
 
 	
 

@@ -10,7 +10,7 @@
 using namespace std;
 
 
-class VIA6522 : public MemoryMappedDevice, ClockedDevice {
+class VIA6522 : public MemoryMappedDevice, public ClockedDevice {
 
 private:
 
@@ -206,7 +206,7 @@ private:
 
 public:
 
-	VIA6522(string name, uint16_t adr, double clock, double cpuClock, uint8_t waitStates, DebugTracing  *debugTracing, ConnectionManager* connectionManager,
+	VIA6522(string name, uint16_t adr, double deviceClockRate, double tickRate, uint8_t waitStates, DebugTracing  *debugTracing, ConnectionManager* connectionManager,
 		DeviceManager* deviceManager);
 
 	bool read(uint16_t adr, uint8_t& data);
@@ -219,8 +219,8 @@ public:
 	// Device power on
 	bool power() { return reset(); }
 
-	// Advance until clock cycle stopcycle has been reached
-	bool advanceUntil(uint64_t stopCycle);
+	// Advance until time tickTime
+	bool advanceUntil(uint64_t tickTime) override;
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

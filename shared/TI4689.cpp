@@ -8,10 +8,10 @@
 // 
 
 
-TI4689::TI4689(string name, double cpuClock, int sampleFreq, double emulationRate, double highEmulationRate,
+TI4689::TI4689(string name, double tickRate, int sampleFreq, double emulationRate, double highEmulationRate,
 	DebugTracing* debugTracing, ConnectionManager* connectionManager) :
-
-	SoundDevice(name, TI4689_DEV, cpuClock, sampleFreq, emulationRate, highEmulationRate, debugTracing, connectionManager)
+	SoundDevice(name, TI4689_DEV, sampleFreq, emulationRate, highEmulationRate, debugTracing, connectionManager),
+	TimedDevice(tickRate)
 {
 	registerPort("CLK", IN_PORT, 0x1, CLK,	&mCLK);
 	registerPort("D",	IN_PORT, 0xff, D,	&mD);
@@ -32,11 +32,11 @@ void TI4689::setEmulationSpeed(double speed)
 	SoundDevice::setEmulationSpeed(speed);
 
 	mSamplesPerFragment = (int)round(1.0 * mSampleRate / mLowEmulationRate); // one emulation base cycle of audio
-	mCpuCyclesPerSample = (int)round(1e6 * mCPUClock / mBaseSampleRate);
+	mCpuCyclesPerSample = (int)round(1e6 * mTickRate / mBaseSampleRate);
 	mNFragments = 4;
 
 
-	DBG_LOG(this, DBG_VERB_DEV, "CPU Clock:                    " + to_string(mCPUClock) + " MHz");
+	DBG_LOG(this, DBG_VERB_DEV, "CPU Clock:                    " + to_string(mTickRate) + " MHz");
 	DBG_LOG(this, DBG_VERB_DEV, "Emulation rate:               " + to_string(mLowEmulationRate));
 	DBG_LOG(this, DBG_VERB_DEV, "Sample rate:                  " + to_string(mSampleRate));
 	DBG_LOG(this, DBG_VERB_DEV, "Samples per fragment:         " + to_string(mSamplesPerFragment));
@@ -95,12 +95,12 @@ TI4689::~TI4689()
 	}
 }
 
-// Advance until the CPU stopCycle has been reached
-bool TI4689::advanceUntil(uint64_t stopCycle)
+// Advance until the CPU stopTick has been reached
+bool TI4689::advanceUntil(uint64_t stopTick)
 {
-	while (mCycleCount < stopCycle) {
+	while (mTicks < stopTick) {
 
-		if (mCycleCount % mCpuCyclesPerSample == 0) {
+		if (mTicks % mCpuCyclesPerSample == 0) {
 
 			for (int channel = 0; channel < 4; channel++) {
 
@@ -127,7 +127,7 @@ bool TI4689::advanceUntil(uint64_t stopCycle)
 					//		|								_______ 				   |   |	 |__/
 					//		|______________________________/      //-------------------+   |
 					//									  |  XOR ||________________________+
-					//									   \______\\ 
+					//									   \______\\
 					//
 					// For periodic noise, the feedback network is just bit b0
 					// 
@@ -171,11 +171,11 @@ bool TI4689::advanceUntil(uint64_t stopCycle)
 						mOutput[channel] = 1 - mOutput[channel];
 						DBG_LOG_COND(
 							mChannelVolume[channel] > 0, this, DBG_AUDIO,
-							to_string(1e6 * mCPUClock / (2 * (mCycleCount - mHalfCycleCount[channel]))) +
-							" Hz (" + to_string(mCycleCount - mHalfCycleCount[channel]) + " 1/2 CPU cycles) for 1/2 cycle samples of " +
+							to_string(1e6 * mTickRate / (2 * (mTicks - mHalfCycleCount[channel]))) +
+							" Hz (" + to_string(mTicks - mHalfCycleCount[channel]) + " 1/2 CPU cycles) for 1/2 cycle samples of " +
 								to_string(mChannelHalfCycleSamples[channel]) + " for channel " + to_string(channel)
 						);
-						mHalfCycleCount[channel] = mCycleCount;
+						mHalfCycleCount[channel] = mTicks;
 					}
 
 				}
@@ -233,10 +233,10 @@ bool TI4689::advanceUntil(uint64_t stopCycle)
 
 			mSampleCount++;
 
-			mCycleCount += mCpuCyclesPerSample;
+			mTicks += mCpuCyclesPerSample;
 		}
 		else
-			mCycleCount++;
+			mTicks++;
 	}
 
 	return true;

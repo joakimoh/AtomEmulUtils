@@ -139,8 +139,6 @@ protected:
 	bool mPowerOnReset = true;
 
 	DebugTracing *mDM = NULL;
-
-	uint64_t mCycleCount = 0;
 	
 	vector<DevicePort*> mPorts; // the device's ports that can be connected to by other devices
 
@@ -156,14 +154,10 @@ protected:
 	uint8_t mRESET = 0x1;
 	uint8_t pRESET = 0x1;
 
-	bool mKeepsTime = true;
-
 
 	double mEmulationSpeed = 1.0;
 
 public:
-
-	double mCPUClock = 2.0;
 
 	Scheduling scheduling = INSTR_RATE; // default scheduling if nothing specified
 
@@ -173,10 +167,8 @@ public:
 
 	DeviceCategory category;
 
-	Device(string name, DeviceId typ, DeviceCategory cat, double cpuClock, DebugTracing *debugTracing, ConnectionManager *connectionManager);
+	Device(string name, DeviceId typ, DeviceCategory cat, DebugTracing *debugTracing, ConnectionManager *connectionManager);
 	virtual ~Device();
-
-	uint64_t getCycleCount() { return mCycleCount; }
 
 	bool tracingEnabled() { return mTracingEnabled; }
 	void enableTracing() { mTracingEnabled = true; }
@@ -186,7 +178,6 @@ public:
 	virtual bool reset() {
 
 		if (mPowerOnReset) {
-			mCycleCount = 0;
 			mPowerOnReset = false;
 		}
 
@@ -203,11 +194,12 @@ public:
 		return true;
 	}
 
-	//  Advance until clock cycle stopcycle has been reached
-	virtual bool advanceUntil(uint64_t stopCycle) { mCycleCount = stopCycle; return true; }
+	
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 	bool updatePort(int index, uint8_t val, bool forceUpdate = false);
+
+	
 
 	// Register that the direction of a bidirectional port (PORT_IO) has changed
 	bool registerPortDirChange(int index, uint8_t mask);
@@ -215,6 +207,9 @@ public:
 	// In the case the port value need to be processed immediately (if the qualifier 'P' was added to 'CONNECT')
 	// then this method will be called for the device receiving the port update
 	virtual void processPortUpdate(int index) {};
+
+	// As processPortUpdate above but assumes all input portss have been updated
+	virtual void processPortUpdate() { }
 
 	// Force an update of a device's all ports to secure that all connected devices have the correct port value
 	// Should be made after all device's have been connected. No triggering of connected devices are made.
@@ -259,9 +254,6 @@ public:
 
 	// Output a single serialised device state
 	virtual bool outputSerialisedState(SerialisedState& serialisedState, ostream& sout) { return true; }
-
-	// Get current device time
-	bool getTimeSec(double& t) { t = mCycleCount * 1e-6 / mCPUClock; return mKeepsTime; }
 
 	// Tells the device about the current emulation rate, should this be used by the device
 	// Normally overriden by each device that uses this rate

@@ -7,8 +7,9 @@
 #include "CSWCodec.h"
 #include "allegro5/allegro_audio.h"
 #include <cmath>
+#include "TimedDevice.h"
 
-class TI4689 : public SoundDevice {
+class TI4689 : public SoundDevice, public TimedDevice {
 
 private:
 	int mHalfCycleCount[4] = { 0 };
@@ -95,14 +96,14 @@ private:
 
 public:
 
-	TI4689(string name, double cpuClock, int sampleFreq, double emulationRate, double highEmulationRate,
+	TI4689(string name, double masterClock, int sampleFreq, double emulationRate, double highEmulationRate,
 		DebugTracing* debugTracing, ConnectionManager* connectionManager);
 	~TI4689();
 
 	void setEmulationSpeed(double speed) override;
 
-	// Advance until clock cycle stopcycle has been reached
-	bool advanceUntil(uint64_t stopCycle);
+	// Advance until time tickTime
+	bool advanceUntil(uint64_t tickTime) override;
 
 	// Process input port changes directly (i.e. don't wait until the next call of the advanceUntil() method)
 	void processPortUpdate(int index);

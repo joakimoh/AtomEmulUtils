@@ -9,8 +9,9 @@
 using namespace std;
 
 BeebSerialULA::BeebSerialULA(
-	string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
-	MemoryMappedDevice(name, BEEB_SERIAL_ULA_DEV, PERIPHERAL, cpuClock, waitStates, adr, 1, debugTracing, connectionManager, deviceManager)
+	string name, uint16_t adr, double tickRate, uint8_t waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
+	MemoryMappedDevice(name, BEEB_SERIAL_ULA_DEV, PERIPHERAL, waitStates, adr, 1, debugTracing, connectionManager, deviceManager),
+	TimedDevice(tickRate)
 {
 	registerPort("RxD",		OUT_PORT,	0x1,	RxD,		&mRxD);		// Receive Data					to ACIA
 	registerPort("CTSO",	OUT_PORT,	0x1,	CTSO,		&mCTSO);	// Clear To Send				to ACIA
@@ -31,12 +32,12 @@ BeebSerialULA::BeebSerialULA(
 	double tolerance = 0.3;
 	double t_low = 1 - tolerance;
 	double t_high = 1 + tolerance;
-	mLowToneHalfCycleDuration = (int)round(cpuClock * 1e6 / 1200 / 2);
-	mLowToneHalfCycleDurationMin = (int)round(t_low * cpuClock * 1e6 / 1200 / 2);
-	mLowToneHalfCycleDurationMax = (int)round(t_high * cpuClock * 1e6 / 1200 / 2);
-	mHighToneHalfCycleDuration = (int)round(cpuClock * 1e6 / 2400 / 2);
-	mHighToneHalfCycleDurationMin = (int)round(t_low * cpuClock * 1e6 / 2400 / 2);
-	mHighToneHalfCycleDurationMax = (int)round(t_high * cpuClock * 1e6 / 2400 / 2);
+	mLowToneHalfCycleDuration = (int)round(tickRate * 1e6 / 1200 / 2);
+	mLowToneHalfCycleDurationMin = (int)round(t_low * tickRate * 1e6 / 1200 / 2);
+	mLowToneHalfCycleDurationMax = (int)round(t_high * tickRate * 1e6 / 1200 / 2);
+	mHighToneHalfCycleDuration = (int)round(tickRate * 1e6 / 2400 / 2);
+	mHighToneHalfCycleDurationMin = (int)round(t_low * tickRate * 1e6 / 2400 / 2);
+	mHighToneHalfCycleDurationMax = (int)round(t_high * tickRate * 1e6 / 2400 / 2);
 
 	DBG_LOG(this, DBG_IO_PERIPHERAL, "mLowToneHalfCycleDuration = " + to_string(mLowToneHalfCycleDuration));
 	DBG_LOG(this, DBG_IO_PERIPHERAL, "mLowToneHalfCycleDurationMin = " + to_string(mLowToneHalfCycleDurationMin));
@@ -225,15 +226,15 @@ bool BeebSerialULA::isNewHalfCycle(int &nCpuCycles)
 }
 
 
-// Advance until clock cycle stopcycle has been reached
-bool BeebSerialULA::advanceUntil(uint64_t stopCycle)
+// Advance until time tickTime
+bool BeebSerialULA::advanceUntil(uint64_t tickTime)
 {
 	if (mTapeStartCount < 0) {
 		if (mCAS_IN != pCAS_IN) {
 			if (!mfirstTapeSample) {
-				mTapeStartCount = mCycleCount;
+				mTapeStartCount = mTicks;
 				DBG_LOG(this,DBG_TAPE,
-					"TAPE STARTS AT " + to_string(mTapeStartCount) + " cycles(" + to_string(mCycleCount / mCPUClock * 1e-6) + "s)"
+					"TAPE STARTS AT " + to_string(mTapeStartCount) + " cycles(" + to_string(mTicks / mTickRate * 1e-6) + "s)"
 				);
 				if (mACIA != NULL)
 					mACIA->mDataStart = true;				
@@ -244,14 +245,14 @@ bool BeebSerialULA::advanceUntil(uint64_t stopCycle)
 	}
 	
 	
-	while (mCycleCount < stopCycle) {
+	while (mTicks < tickTime) {
 
 		if (!SER_ULA_CR_ENA_SER) { // Cassette Interface
 
 
-			mTapeCount = mCycleCount - mTapeStartCount;
-			mTapeTime = mTapeCount / mCPUClock * 1e-6;
-			mTime = mCycleCount / mCPUClock * 1e-6;
+			mTapeCount = mTicks - mTapeStartCount;
+			mTapeTime = mTapeCount / mTickRate * 1e-6;
+			mTime = mTicks / mTickRate * 1e-6;
 
 
 			// Check for a complete 1/2 Cycle
@@ -345,7 +346,7 @@ bool BeebSerialULA::advanceUntil(uint64_t stopCycle)
 						DBG_LOG(this, DBG_TAPE,
 							"\n" + to_string(mHighToneHalfCycles) + " 1/2 cycles (" + 
 							to_string((double)mHighToneHalfCycles / 2400 / 2) + "s) of Carrier detected at " +
-								to_string(mCycleCount / mCPUClock * 1e-6) + "s"
+								to_string(mTicks / mTickRate * 1e-6) + "s"
 						);
 						DBG_LOG(this, DBG_TAPE, "DCD -> LOW at " + to_string(mTapeTime) + "s (" + to_string(mTime) + "s)");
 						updatePort(DCD, DCD_ACTIVE);
@@ -413,8 +414,8 @@ bool BeebSerialULA::advanceUntil(uint64_t stopCycle)
 
 			// Consider a too long same level input as loss of carrier
 			if (mLevelCnt > mLowToneHalfCycleDurationMax && mDCD == DCD_ACTIVE) {			
-				DBG_LOG_COND(mDCD == DCD_ACTIVE, this, DBG_TAPE, "\nCarrier lost  at " + to_string(mCycleCount / mCPUClock * 1e-6) + "s");
-				DBG_LOG_COND(mDCD == DCD_ACTIVE, this, DBG_TAPE, "\nDCD -> HIGH at " + to_string(mCycleCount / mCPUClock * 1e-6) + "s");
+				DBG_LOG_COND(mDCD == DCD_ACTIVE, this, DBG_TAPE, "\nCarrier lost  at " + to_string(mTicks / mTickRate * 1e-6) + "s");
+				DBG_LOG_COND(mDCD == DCD_ACTIVE, this, DBG_TAPE, "\nDCD -> HIGH at " + to_string(mTicks / mTickRate * 1e-6) + "s");
 				updatePort(DCD, DCD_INACTIVE);
 				mHighToneHalfCycles = 0;
 				mCarrierDetected = false;
@@ -432,7 +433,7 @@ bool BeebSerialULA::advanceUntil(uint64_t stopCycle)
 
 
 
-		mCycleCount++;
+		mTicks++;
 	}
 
 	

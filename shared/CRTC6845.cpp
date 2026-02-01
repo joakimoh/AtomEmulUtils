@@ -32,11 +32,12 @@
 // R16, R17   Light pen position				-     -     -     -     -     -     -     -
 //
 CRTC6845::CRTC6845(
-	string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugTracing  *debugTracing,
+	string name, uint16_t adr, double tickRate, uint8_t waitStates, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager *deviceManager
-//) : VideoDisplayUnit(name, CRTC6845_DEV, display, cpuClock, waitStates, adr, 0x2, 0x0 /* dummy adr as not used by the 6845 */, debugTracing,
+//) : VideoDisplayUnit(name, CRTC6845_DEV, display, tickRate, waitStates, adr, 0x2, 0x0 /* dummy adr as not used by the 6845 */, debugTracing,
 //	connectionManager, deviceManager)
-): MemoryMappedDevice(name, CRTC6845_DEV, VDU_DEVICE, cpuClock, waitStates, adr, 0x2, debugTracing, connectionManager, deviceManager)
+): MemoryMappedDevice(name, CRTC6845_DEV, VDU_DEVICE, waitStates, adr, 0x2, debugTracing, connectionManager, deviceManager),
+TimedDevice(tickRate)
 {
 
 	registerPort("CLK",			IN_PORT,  0x3,	CLK,		&mCLK);
@@ -106,11 +107,11 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 bool CRTC6845::advanceChar()
 {
 
-	int nextCycleCount = (int)round(mCycleCount + mCPUClock / mCLK);
-	if (nextCycleCount == mCycleCount)
+	int nextCycleCount = (int)round(mTicks + mTickRate / mCLK);
+	if (nextCycleCount == mTicks)
 		nextCycleCount++;
 
-	mCycleCount = nextCycleCount;
+	mTicks = nextCycleCount;
 
 	if (DBG_LEVEL_DEV(this, DBG_GRAPHICS) && mCLK != pCLK)
 		printSettings();
@@ -264,7 +265,7 @@ bool CRTC6845::updateOutputs()
 	return true;
 }
 
-bool CRTC6845::advanceUntil(uint64_t stopCycle)
+bool CRTC6845::advanceUntil(uint64_t stopTick)
 {
 	bool reset_transition = mRESET != pRESET;
 	pRESET = mRESET;
@@ -275,11 +276,11 @@ bool CRTC6845::advanceUntil(uint64_t stopCycle)
 		reset();
 
 	if (!mInitialised) {
-		mCycleCount = stopCycle;
+		mTicks = stopTick;
 		return true;
 	}
 
-	while (mCycleCount < stopCycle) {
+	while (mTicks < stopTick) {
 		updateOutputs();
 		advanceChar();
 	}

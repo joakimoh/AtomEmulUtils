@@ -5,9 +5,10 @@
 #include <fstream>
 #include <iostream>
 #include "CSWCodec.h"
+#include "TimedDevice.h"
 #include <cmath>
 
-class TapeRecorder : public Device {
+class TapeRecorder : public Device, public TimedDevice {
 
 private:
 
@@ -35,10 +36,10 @@ private:
 	bool mStartPlaying = false;
 
 public:
-	TapeRecorder(string name, double cpuClock, DebugTracing  *debugTracing, ConnectionManager* connectionManager);
+	TapeRecorder(string name, double tickRate, DebugTracing  *debugTracing, ConnectionManager* connectionManager);
 	~TapeRecorder();
 
-	bool advanceUntil(uint64_t stopCycle);
+	bool advanceUntil(uint64_t stopTick);
 
 	bool startLoadFile(string tapeFile);
 	bool startSaveFile(string tapeFile);

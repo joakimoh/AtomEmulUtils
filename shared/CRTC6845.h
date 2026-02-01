@@ -6,9 +6,10 @@
 #include "RAM.h"
 #include <cmath>
 #include <vector>
+#include "TimedDevice.h"
 
 
-class CRTC6845 : public MemoryMappedDevice {
+class CRTC6845 : public MemoryMappedDevice, public TimedDevice {
 
 	//
 	// This emulates the Hitachi HD6845SP used in e.g. the BBC Micro.
@@ -163,7 +164,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	CRTC6845(string name, uint16_t adr, double cpuclock, uint8_t waitStates,
+	CRTC6845(string name, uint16_t adr, double tickRate, uint8_t waitStates,
 		DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~CRTC6845() {}
 
@@ -178,8 +179,8 @@ public:
 	// Device power on
 	bool power() { return reset(); }
 
-	// Advance until clock cycle stopcycle has been reached
-	bool advanceUntil(uint64_t stopCycle);
+	// Advance until time tickTime
+	bool advanceUntil(uint64_t tickTime) override;
 	bool advanceChar();
 	bool updateOutputs();
 

@@ -37,6 +37,7 @@
 #include "DeviceMemorySegment.h"
 #include "MemorySegmentTree.h"
 #include "Display.h"
+#include "TimedDevice.h"
 
 using namespace std;
 
@@ -79,14 +80,15 @@ string DeviceManager::getFileName(string& path, stringstream& sin)
 }
 
 DeviceManager::DeviceManager(
-	string memMapFile, double& cpuClock, Display* display, DebugTracing* debugTracing,
+	string memMapFile, double& tickRate, Display* display, DebugTracing* debugTracing,
 	ConnectionManager* mCM, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device, vector<Device*>& allDevices,
-	vector<Device*>& baseRateScheduledDevices, vector<Device*>& subRateScheduledDevices, vector<Device*>& instructionRateScheduledDevices,
-	KeyboardDevice*& keyboardDevice, double speed, double& baseSchedulingRate, double& highSchedulingRate
+	vector<TimedDevice*>& baseRateScheduledDevices, vector<TimedDevice*>& subRateScheduledDevices, vector<TimedDevice*>& instructionRateScheduledDevices,
+	double speed, double& baseSchedulingRate, double& highSchedulingRate
 ) : mDM(debugTracing), mCM(mCM), mDisplay(display)
 {
 
-	cpuClock = 1.0; // Default 1 Mhz CPU clock
+	tickRate = 1.0; // Default 1 Mhz simulation clock
+
 
 	mainVDU = NULL;
 	sound_device = NULL;
@@ -117,8 +119,8 @@ DeviceManager::DeviceManager(
 				// Commment
 			}
 
-			else if (cmd == "CLOCK") {
-				sin >> cpuClock;
+			else if (cmd == "TICK_RATE") {
+				sin >> tickRate;
 			}
 
 			else if (cmd == "ADD") {
@@ -137,18 +139,16 @@ DeviceManager::DeviceManager(
 
 				if (dev_type == "ATOMKB") {
 
-					AtomKeyboardDevice* kb = new AtomKeyboardDevice(dev_name, cpuClock, mDM, mCM);
+					AtomKeyboardDevice* kb = new AtomKeyboardDevice(dev_name, tickRate, mDM, mCM);
 					mDevices.push_back(kb);
-					keyboardDevice = kb;
 
 				}
 
 				else if (dev_type == "BEEBKB") {
 
 					uint8_t startup_options = getHexVal(sin) & 0xff;
-					BeebKeyboard* kb = new BeebKeyboard(dev_name, cpuClock, 1.0, startup_options, mDM, mCM);
+					BeebKeyboard* kb = new BeebKeyboard(dev_name, tickRate, 1.0, startup_options, mDM, mCM);
 					mDevices.push_back(kb);
-					keyboardDevice = kb;
 
 				}
 
@@ -160,7 +160,7 @@ DeviceManager::DeviceManager(
 
 					mAudioSampleRate = highSchedulingRate;
 					AtomSpeaker* sp = new AtomSpeaker(
-						dev_name, cpuClock, mAudioSampleRate, baseSchedulingRate, highSchedulingRate, mDM, mCM
+						dev_name, tickRate, mAudioSampleRate, baseSchedulingRate, highSchedulingRate, mDM, mCM
 					);
 					mDevices.push_back(sp);
 					sound_device = sp;
@@ -171,7 +171,7 @@ DeviceManager::DeviceManager(
 
 					mAudioSampleRate = highSchedulingRate;
 					TI4689* sd = new TI4689(
-						dev_name, cpuClock, mAudioSampleRate, baseSchedulingRate, highSchedulingRate, mDM, mCM
+						dev_name, tickRate, mAudioSampleRate, baseSchedulingRate, highSchedulingRate, mDM, mCM
 					);
 					mDevices.push_back(sd);
 					sound_device = sd;
@@ -184,14 +184,14 @@ DeviceManager::DeviceManager(
 
 				else if (dev_type == "TAPREC") {
 
-					TapeRecorder* tr = new TapeRecorder(dev_name, cpuClock, mDM, mCM);
+					TapeRecorder* tr = new TapeRecorder(dev_name, tickRate, mDM, mCM);
 					mDevices.push_back(tr);
 
 				}
 
 				else if (dev_type == "ATOMCAS") {
 
-					AtomCUTSInterface* cuts = new AtomCUTSInterface(dev_name, cpuClock, mDM, mCM);
+					AtomCUTSInterface* cuts = new AtomCUTSInterface(dev_name, tickRate, mDM, mCM);
 					mDevices.push_back(cuts);
 
 				}
@@ -201,8 +201,9 @@ DeviceManager::DeviceManager(
 				//
 
 				else if (dev_type == "CPU_6502") {
-
-					microprocessor = new P6502(dev_name, cpuClock, mDM, mCM, this);
+					double cpuClock;
+					sin >> cpuClock;
+					microprocessor = new P6502(dev_name, cpuClock, tickRate, mDM, mCM, this);
 					mDevices.push_back(microprocessor);
 					mMicroprocessor = microprocessor;
 
@@ -217,7 +218,7 @@ DeviceManager::DeviceManager(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					RAM* ram = new RAM(dev_name, cpuClock, wait_states, false, dev_adr, dev_sz, mDM, mCM, this);
+					RAM* ram = new RAM(dev_name, wait_states, false, dev_adr, dev_sz, mDM, mCM, this);
 					mDevices.push_back(ram);
 				}
 
@@ -226,7 +227,7 @@ DeviceManager::DeviceManager(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					RAM* ram = new RAM(dev_name, cpuClock, wait_states, true, dev_adr, dev_sz, mDM, mCM, this);
+					RAM* ram = new RAM(dev_name, wait_states, true, dev_adr, dev_sz, mDM, mCM, this);
 					mDevices.push_back(ram);
 
 				}
@@ -237,7 +238,7 @@ DeviceManager::DeviceManager(
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					string ROM_file_path = getFileName(memMapFile, sin);
-					ROM* rom = new ROM(dev_name, cpuClock, wait_states, dev_adr, dev_sz, ROM_file_path, mDM, mCM, this);
+					ROM* rom = new ROM(dev_name, wait_states, dev_adr, dev_sz, ROM_file_path, mDM, mCM, this);
 					mDevices.push_back(rom);
 
 				}
@@ -247,7 +248,7 @@ DeviceManager::DeviceManager(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					BeebROMSel *paged_rom_sel = new BeebROMSel(dev_name, cpuClock, wait_states, dev_adr, mDM, mCM, this);
+					BeebROMSel *paged_rom_sel = new BeebROMSel(dev_name, tickRate, wait_states, dev_adr, mDM, mCM, this);
 					mDevices.push_back(paged_rom_sel);
 
 				}
@@ -261,7 +262,7 @@ DeviceManager::DeviceManager(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					BeebSerialULA* serial_ULA = new BeebSerialULA(dev_name, dev_adr, cpuClock, wait_states, mDM, mCM, this);
+					BeebSerialULA* serial_ULA = new BeebSerialULA(dev_name, dev_adr, tickRate, wait_states, mDM, mCM, this);
 					mDevices.push_back(serial_ULA);
 
 				}
@@ -271,7 +272,7 @@ DeviceManager::DeviceManager(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					PIA8255* pia = new PIA8255(dev_name, cpuClock, wait_states, dev_adr, mDM, mCM, this);
+					PIA8255* pia = new PIA8255(dev_name, tickRate, wait_states, dev_adr, mDM, mCM, this);
 					mDevices.push_back(pia);
 
 				}
@@ -282,7 +283,7 @@ DeviceManager::DeviceManager(
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					double clk = getDoubleVal(sin);
-					VIA6522* via = new VIA6522(dev_name, dev_adr, clk, cpuClock, wait_states, mDM, mCM, this);
+					VIA6522* via = new VIA6522(dev_name, dev_adr, clk, tickRate, wait_states, mDM, mCM, this);
 					mDevices.push_back(via);
 
 				}
@@ -293,7 +294,7 @@ DeviceManager::DeviceManager(
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					double clk = getDoubleVal(sin);
-					ACIA6850* acia = new ACIA6850(dev_name, dev_adr, clk, cpuClock, wait_states, mDM, mCM, this);
+					ACIA6850* acia = new ACIA6850(dev_name, dev_adr, clk, tickRate, wait_states, mDM, mCM, this);
 					mDevices.push_back(acia);
 
 				}
@@ -309,7 +310,7 @@ DeviceManager::DeviceManager(
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					uint16_t video_mem_adr = getHexVal(sin);
 					if (!mDisplay->initialised()) mDisplay->init();
-					mainVDU = new VDU6847(dev_name, dev_adr, mDisplay, cpuClock, wait_states, video_mem_adr, mDM, mCM, this);
+					mainVDU = new VDU6847(dev_name, dev_adr, mDisplay, tickRate, wait_states, video_mem_adr, mDM, mCM, this);
 					mDevices.push_back(mainVDU);
 				}
 
@@ -319,14 +320,14 @@ DeviceManager::DeviceManager(
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					if (!mDisplay->initialised()) mDisplay->init();
-					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, cpuClock, wait_states, mDM, mCM, this);
+					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, tickRate, wait_states, mDM, mCM, this);
 					mDevices.push_back(crtc);
 				}
 
 				else if (dev_type == "TT5050") {
 
 					if (!mDisplay->initialised()) mDisplay->init();
-					TT5050* tcg = new TT5050(dev_name, 0x0, cpuClock, 0x0, mDM, mCM);
+					TT5050* tcg = new TT5050(dev_name, 0x0, tickRate, 0x0, mDM, mCM);
 					mDevices.push_back(tcg);
 				}
 
@@ -336,7 +337,7 @@ DeviceManager::DeviceManager(
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
 					if (!mDisplay->initialised()) mDisplay->init();
-					mainVDU = new BeebVideoULA(dev_name, dev_adr, mDisplay, cpuClock, wait_states, mDM, mCM, this);
+					mainVDU = new BeebVideoULA(dev_name, dev_adr, mDisplay, tickRate, wait_states, mDM, mCM, this);
 					mDevices.push_back(mainVDU);
 				}
 
@@ -346,13 +347,13 @@ DeviceManager::DeviceManager(
 
 				// Emulation of BBC Micro IC31 & IC32
 				else if (dev_type == "BEEBVIALATCH") {
-					BeebViaLatch* latch = new BeebViaLatch(dev_name, cpuClock, mDM, mCM);
+					BeebViaLatch* latch = new BeebViaLatch(dev_name, tickRate, mDM, mCM);
 					mDevices.push_back(latch);
 				}
 
 				else if (dev_type == "SD_CARD") {
 					string card_file_path = getFileName(memMapFile, sin);
-					SDCard* card = new SDCard(dev_name, cpuClock, card_file_path, mDM, mCM);
+					SDCard* card = new SDCard(dev_name, card_file_path, mDM, mCM);
 					mDevices.push_back(card);
 				}
 
@@ -360,7 +361,8 @@ DeviceManager::DeviceManager(
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
 					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					ADC7002* adc = new ADC7002(dev_name, cpuClock, dev_adr, dev_sz, wait_states, mDM, mCM, this);
+					double clk = getDoubleVal(sin);
+					ADC7002* adc = new ADC7002(dev_name, tickRate, clk, dev_adr, dev_sz, wait_states, mDM, mCM, this);
 					mDevices.push_back(adc);
 					}
 
@@ -622,12 +624,15 @@ DeviceManager::DeviceManager(
 		if (d->category == MICROROCESSOR_DEVICE || d->category == MEMORY_DEVICE) {
 			continue;
 		}
-		else if (d->scheduling == INSTR_RATE)
-			instructionRateScheduledDevices.push_back(d);
-		else if (d->scheduling == HIGH_RATE)
-			subRateScheduledDevices.push_back(d);
-		else if (d->scheduling == LOW_RATE)
-			baseRateScheduledDevices.push_back(d);
+		else if (dynamic_cast<TimedDevice*>(d) != nullptr) {
+			TimedDevice* td = dynamic_cast<TimedDevice*>(d);
+			if (d->scheduling == INSTR_RATE)
+				instructionRateScheduledDevices.push_back(td);
+			else if (d->scheduling == HIGH_RATE)
+				subRateScheduledDevices.push_back(td);
+			else if (d->scheduling == LOW_RATE)
+				baseRateScheduledDevices.push_back(td);
+		}
 		if (VERBOSE_OUTPUT)
 			cout << d->name << " scheduled on " << _SCHEDULING(d->scheduling) << " basis\n";
 	}

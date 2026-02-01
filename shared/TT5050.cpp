@@ -8,8 +8,8 @@
 using namespace std;
 
 TT5050::TT5050(
-	string name, uint16_t adr, double cpuClock, uint16_t videoMemAdr, DebugTracing  *debugTracing, ConnectionManager* connectionManager
-) : Device(name, TT_5050_DEV, VDU_DEVICE, cpuClock, debugTracing, connectionManager)
+	string name, uint16_t adr, double tickRate, uint16_t videoMemAdr, DebugTracing  *debugTracing, ConnectionManager* connectionManager
+) : Device(name, TT_5050_DEV, VDU_DEVICE, debugTracing, connectionManager), TimedDevice(tickRate)
 {
 	if (VERBOSE_EXT_OUTPUT)
 		cout << "Teletext Character Generator SA5050 '" << name << "' added\n";
@@ -253,8 +253,8 @@ void TT5050::stretchTo16Pixels()
 	}
 }
 
-// Advance until clock cycle stopcycle has been reached
-bool TT5050::advanceUntil(uint64_t stopCycle)
+// Advance until time tickTime
+bool TT5050::advanceUntil(uint64_t tickTime)
 {
 	// Currently not intended to be used as getScreenData() should instead be called periodically
 
@@ -277,7 +277,7 @@ bool TT5050::getScreenData(uint8_t pageData, ScreenDataType* &screenData, TTColo
 {
 
 	// Advance time 1 us
-	mCycleCount += max(1, (int) round(mCPUClock / 1.0));
+	mTicks += max(1, (int) round(mTickRate / 1.0));
 
 	if (mLOSE) {
 
@@ -460,10 +460,10 @@ bool TT5050::getScreenData(uint8_t pageData, ScreenDataType* &screenData, TTColo
 				else
 					fgColour = mAlpaNumericColour;
 
-				double hz_0_75 = mCPUClock * 1e6 * 0.75;
+				double hz_0_75 = mTickRate * 1e6 * 0.75;
 				int flash_75 = (int)round(hz_0_75 * 0.75);
 				int flash_100 = (int)round(hz_0_75);
-				if (mFlash && mCycleCount % flash_100 >= flash_75) {
+				if (mFlash && mTicks % flash_100 >= flash_75) {
 					bgColour = mBackgroundColour;
 					fgColour = mBackgroundColour;
 				}

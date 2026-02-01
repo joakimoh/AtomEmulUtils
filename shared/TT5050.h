@@ -5,6 +5,7 @@
 #include "Device.h"
 #include "RAM.h"
 #include <cmath>
+#include "TimedDevice.h"
 
 
 //
@@ -27,7 +28,7 @@
 // input shall be high during the visible part of the scan line.
 //
 
-class TT5050 : public Device {
+class TT5050 : public Device, public TimedDevice {
 
 private:
 
@@ -248,7 +249,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	TT5050(string name, uint16_t adr, double clockSpeed, uint16_t videoMemAdr, DebugTracing  *debugTracing,
+	TT5050(string name, uint16_t adr, double tickRate, uint16_t videoMemAdr, DebugTracing  *debugTracing,
 		ConnectionManager* connectionManager);
 
 	~TT5050();
@@ -256,8 +257,8 @@ public:
 	// Device power on
 	bool power() { return reset(); }
 
-	// Advance until clock cycle stopcycle has been reached
-	bool advanceUntil(uint64_t stopCycle);
+	// Advance until time tickTime
+	bool advanceUntil(uint64_t tickTime) override;
 
 	// Called by the device that needs the RGB pixel data (screenData) that
 	// the TT5050 generates based on page memory data (pageData).

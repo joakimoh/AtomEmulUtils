@@ -21,8 +21,8 @@
 // PL16				IN				LED1	PB2:0 as BDC 7;PB3 has val		Low							SHIFT Lock LED
 // PL17				IN				LED2	PB2:0 as BDC 6;PB3 has val		Low							CAPS Lock LED
 // 
-BeebKeyboard::BeebKeyboard(string name, double cpuClock, double deviceClock, uint8_t startupOptions, DebugTracing  *debugTracing, ConnectionManager* connectionManager):
-	KeyboardDevice(name, BEEB_KEYBOARD_DEV, cpuClock, debugTracing, connectionManager), ClockedDevice(cpuClock, deviceClock)
+BeebKeyboard::BeebKeyboard(string name, double tickRate, double deviceClockRate, uint8_t startupOptions, DebugTracing  *debugTracing, ConnectionManager* connectionManager):
+	KeyboardDevice(name, BEEB_KEYBOARD_DEV, debugTracing, connectionManager), ClockedDevice(tickRate, deviceClockRate)
 {
 	// Specify ports that can be connected to other devices	
 	registerPort("SW",			IN_PORT,	0xf, SW,		&mSW);
@@ -34,7 +34,7 @@ BeebKeyboard::BeebKeyboard(string name, double cpuClock, double deviceClock, uin
 	registerPort("PRESSED",		OUT_PORT,	0x1, PRESSED,	&mPRESSED);
 
 	// Make sure Keyboard refresh rate always is 50 Hz (or less)
-	mKeyboardRefreshCycles = max(1, (int) round(cpuClock * 1e6 * mEmulationSpeed/ 50));
+	mKeyboardRefreshCycles = max(1, (int) round(1.1 * tickRate * 1e6 * mEmulationSpeed/ 50));
 
 }
 
@@ -105,15 +105,16 @@ void BeebKeyboard::processPortUpdate(int index)
 
 }
 
-//  Advance until clock cycle stopcycle has been reached
-bool BeebKeyboard::advanceUntil(uint64_t stopCycle)
+//  Advance until time tickTime
+bool BeebKeyboard::advanceUntil(uint64_t tickTime)
 {
 
 	// Don't update keyboard state too often as it creates a lot of load...
-	int next_refresh_cycle = mCycleCount + mKeyboardRefreshCycles;
-	mCycleCount = stopCycle;
-	//if (stopCycle > next_refresh_cycle)
-	//	return true;
+	int next_refresh_cycle = mTicks + mKeyboardRefreshCycles;
+	if (tickTime < next_refresh_cycle)
+		return true;
+
+	mTicks = tickTime;
 
 	al_get_keyboard_state(&mKeyboardState);
 
@@ -138,7 +139,7 @@ bool BeebKeyboard::advanceUntil(uint64_t stopCycle)
 // Scans the next column
 bool BeebKeyboard::scanNextColumn()
 {
-	if (mENA && mCycleCount % mCpuCyclesPerDeviceCycle == 0) {
+	if (mENA && mTicks % mTicksPerDeviceCycle == 0) {
 		mCOL_SEL = (mCOL_SEL + 1) % 10;
 		return scanColumn(mCOL_SEL);
 	}
@@ -215,5 +216,5 @@ void BeebKeyboard::setEmulationSpeed(double speed)
 	KeyboardDevice::setEmulationSpeed(speed);
 
 	// Make sure Keyboard refresh rate always is 50 Hz (or less)
-	mKeyboardRefreshCycles = max(1, (int)round(mCPUClock * 1e6 * mEmulationSpeed / 50));
+	mKeyboardRefreshCycles = max(1, (int)round(mTickRate * 1e6 * mEmulationSpeed / 50));
 }

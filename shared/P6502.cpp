@@ -10,6 +10,7 @@
 #include <cmath>
 #include "Utility.h"
 #include "DeviceManager.h"
+#include "ClockedDevice.h"
 
 void P6502::initInstrTable()
 {
@@ -283,10 +284,11 @@ void P6502::initInstrTable()
 
 }
 
-P6502::P6502(string name, double clockSpeed, DebugTracing  *debugTracing, ConnectionManager *connectionManager, DeviceManager* deviceManager):
-	Device(name, P6502_DEV, MICROROCESSOR_DEVICE, clockSpeed, debugTracing, connectionManager), mDeviceManager(deviceManager)
+P6502::P6502(string name, double deviceClockRate, double tickRate, DebugTracing  *debugTracing, ConnectionManager *connectionManager, DeviceManager* deviceManager):
+	Device(name, P6502_DEV, MICROROCESSOR_DEVICE, debugTracing, connectionManager), mDeviceManager(deviceManager),
+	ClockedDevice(tickRate, deviceClockRate)
 {
-	cPeriod = (int) round(1000 / clockSpeed);
+	cPeriod = (int) round(1000 / tickRate);
 
 	// Specify ports that can be connected to other devices
 	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
@@ -398,12 +400,12 @@ bool P6502::reset()
 }
 
 // 
-// Advance until stop cycle has been reached
-bool P6502::advanceUntil(uint64_t stopCycle)
+// Advance until time stopTick
+bool P6502::advanceUntil(uint64_t stopTick)
 {
 
-	while (mCycleCount < stopCycle) {
-		if (!advanceInstr(stopCycle)) {
+	while (mTicks < stopTick) {
+		if (!advanceInstr(stopTick)) {
 			return false;
 		}
 	}
@@ -413,7 +415,7 @@ bool P6502::advanceUntil(uint64_t stopCycle)
 
 
 // Advance one instruction
-bool P6502::advanceInstr(uint64_t& endCycle)
+bool P6502::advanceInstr(uint64_t& endTick)
 {
 	bool success = true;
 
@@ -436,7 +438,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	if (!mRESET) {
 		reset();
 		// No meaning to continue execution before RESET line becomes HIGH again
-		endCycle = mCycleCount;
+		endTick = mTicks;
 		return true;
 	}
 	else if (!mNMI && mNmiTransition)	// NMI is edge-triggered!
@@ -445,7 +447,7 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 		serveIRQ();
 
 	// Save cycle count before fetching and executing the instruction
-	uint64_t start_cycle = mCycleCount;
+	uint64_t start_cycle = mCycle;
 
 	// Get mOpcode of next instruction
 	mOpcodePC = mProgramCounter;
@@ -483,10 +485,11 @@ bool P6502::advanceInstr(uint64_t& endCycle)
 	tick(pInstructionInfo->cycles);
 
 	// Return time reached
-	endCycle = mCycleCount;
+	endTick = mTicks;
+	uint64_t end_cycle = mCycle;
 
 	// Calculate the no of cycles for the executed instruction
-	mExecutedCycles = endCycle - start_cycle;
+	mExecutedCycles = end_cycle - start_cycle;
 
 	// Log executed instruction if enabled
 	if (DBG_LEVEL_DEV(this, DBG_6502)) {
@@ -2540,7 +2543,7 @@ bool P6502::pageBoundaryCrossed(uint16_t before, uint16_t after)
 
 void P6502::tick(int cycles)
 {
-	mCycleCount += cycles;
+	deviceTick(cycles);
 }
 
 void P6502::setNZflags(uint8_t val_8_u)
@@ -2596,8 +2599,8 @@ void  P6502::adjustForWaitStates(MemoryMappedDevice* dev)
 	// Add wait states if applicable
 	int wait_states = dev->getWaitStates();
 	if (wait_states > 0) {
-		mCycleCount += mCycleCount % 2; // synchronise with CPU Clock phase
-		mCycleCount += wait_states; // add extra memory access cycles
+		deviceTick(mCycle % 2); // synchronise with CPU Clock phase
+		deviceTick(wait_states); // add extra memory access cycles
 	}
 }
 //
@@ -2770,7 +2773,7 @@ bool P6502::outputState(ostream& sout)
 }
 
 bool P6502::getInstrLogData(InstrLogData& instrLogData) {
-	instrLogData.logTime = getCycleCount() / (mCPUClock * 1e6);
+	instrLogData.logTime = getCycleCount() / (mTickRate * 1e6);
 	instrLogData.instr = pInstructionInfo;
 	instrLogData.A = mAcc;
 	instrLogData.X = mRegisterX;

@@ -4,12 +4,13 @@
 #include <cstdint>
 #include <string>
 #include "MemoryMappedDevice.h"
+#include "TimedDevice.h"
 
 using namespace std;
 
 class ACIA6850;
 
-class BeebSerialULA : public MemoryMappedDevice {
+class BeebSerialULA : public MemoryMappedDevice, public TimedDevice {
 
 private:
 
@@ -98,7 +99,7 @@ private:
 
 public:
 
-	BeebSerialULA(string name, uint16_t adr, double cpuClock, uint8_t waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
+	BeebSerialULA(string name, uint16_t adr, double tickRate, uint8_t waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
 	bool read(uint16_t adr, uint8_t& data);
 	bool dump(uint16_t adr, uint8_t& data) override;
@@ -110,8 +111,8 @@ public:
 	// Device power on
 	bool power() { return reset(); }
 
-	// Advance until clock cycle stopcycle has been reached
-	bool advanceUntil(uint64_t stopCycle);
+	// Advance until time tickTime
+	bool advanceUntil(uint64_t tickTime) override;
 
 	// Process clock updates to drive shifting on changes
 	void processPortUpdate(int index);

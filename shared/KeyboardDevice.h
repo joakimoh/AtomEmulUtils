@@ -18,7 +18,7 @@ protected:
 
 public:
 
-	KeyboardDevice(string name, DeviceId typ, double cpuClock, DebugTracing* debugTracing, ConnectionManager* connectionManager);
+	KeyboardDevice(string name, DeviceId typ, DebugTracing* debugTracing, ConnectionManager* connectionManager);
 
 	// Set emulation speed
 	void setEmulationSpeed(double speed) override;

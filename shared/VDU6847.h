@@ -5,9 +5,10 @@
 #include "VideoDisplayUnit.h"
 #include "RAM.h"
 #include <cmath>
+#include "TimedDevice.h"
 
 
-class VDU6847 : public VideoDisplayUnit {
+class VDU6847 : public VideoDisplayUnit, public TimedDevice {
 
 public:
 
@@ -233,7 +234,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	VDU6847(string name, uint16_t adr, Display *display, double clockSpeed, uint8_t wait_states,
+	VDU6847(string name, uint16_t adr, Display *display, double tickRate, uint8_t wait_states,
 		uint16_t videoMemAdr, DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~VDU6847();
 
@@ -245,8 +246,8 @@ public:
 	// Device power on
 	bool power();
 
-	// Advance until clock cycle stopcycle has been reached
-	bool advanceUntil(uint64_t stopCycle);
+	// Advance until time tickTime
+	bool advanceUntil(uint64_t tickTime) override;
 
 	void lockDisplay();
 	void unlockDisplay();

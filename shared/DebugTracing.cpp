@@ -4,6 +4,7 @@
 #include "Device.h"
 #include "Utility.h"
 #include <bitset>
+#include "TimedDevice.h"
 
 
 using namespace std;
@@ -166,7 +167,11 @@ void DebugTracing::log(Device * dev, DebugLevel level, string line)
 	if (!debugLevelIs(dev, level) || !dev->tracingEnabled())
 		return;
 
-	double t = dev->getCycleCount() / (dev->mCPUClock * 1e6);
+	double t = 0;
+	if (dynamic_cast<TimedDevice*>(dev)) {
+		TimedDevice* td = dynamic_cast<TimedDevice*>(dev);
+		t = td->getTimeSec();
+	}
 	string t_s = Utility::encodeCPUTime(t);
 	string prefix = t_s + " " + dev->name + " ";
 

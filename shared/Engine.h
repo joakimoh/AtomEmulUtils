@@ -18,6 +18,7 @@
 #include <string>
 #include <fstream>
 #include <array>
+#include "TimedDevice.h"
 
 class SoundDevice;
 class Debugmanager;
@@ -28,9 +29,6 @@ class Debugger;
 using namespace std;
 
 class Engine {
-
-private:
-	KeyboardDevice* mKeyboardDevice = NULL;
 
 public:
 
@@ -89,17 +87,17 @@ private:
 	int mTracingCount = 0;
 	int mTracingCountMax = -1;
 
-	uint64_t mCycleCount = 0;
+	uint64_t mTicks = 0;
 	bool mQuit = false;
 
 	DeviceManager* mDeviceManager = nullptr;
 
 	VideoDisplayUnit* mVDU = NULL;
 	SoundDevice* mSoundDevice = NULL;
-	vector<Device*> mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices;
+	vector<TimedDevice*> mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices;
 	vector<Device*> mDevices;
 	P6502* mMicroprocessor = NULL;
-	double mCPUClock = 1.0;
+	double mTickRate = 1.0;
 
 	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
 	ALLEGRO_TIMER* mEmulationTimer = NULL;

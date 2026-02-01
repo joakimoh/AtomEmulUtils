@@ -12,6 +12,7 @@
 #include "ConnectionManager.h"
 #include "Device.h"
 #include "Codec6502.h"
+#include "TimedDevice.h"
 
 using namespace std;
 
@@ -88,12 +89,14 @@ bool Debugger::readChar(istream& sin, char& c)
 double Debugger::getDeviceTime(Device* dev)
 {
 	double t_s;
-	if (dev == NULL || !dev->getTimeSec(t_s)) {
-		Device* uc = NULL;
-		if (!mDM->getUc(uc)) {
+
+	if (dev == NULL || !dynamic_cast<TimedDevice*>(dev)) {
+		Device* up_dev = NULL;
+		if (!mDM->getMicroprocessor(up_dev)) {
 			return 0.0;
 		}
-		uc->getTimeSec(t_s);
+		P6502* up = static_cast<P6502*>(up_dev);
+		t_s = up->getTimeSec();
 	}
 	return t_s;
 }
@@ -116,11 +119,11 @@ bool Debugger::dumpDevCmd(istream& sin)
 	return true;
 }
 
-bool Debugger::dumpUcCmd(istream& sin)
+bool Debugger::dumpMPCmd(istream& sin)
 {
 	Device* dev = NULL;
 	
-	if (!mDM->getUc(dev)) {
+	if (!mDM->getMicroprocessor(dev)) {
 		return false;
 	}
 	double t_s = getDeviceTime(dev);
@@ -710,7 +713,7 @@ void Debugger::help()
 	cout << "swrite <hex start address> \"<string>\":              write ASCII string to memory\n";
 	cout << "devices:                                            lists the devices\n";
 	cout << "state <name of device>:                             get a device's state\n";
-	cout << "uc:                                                 get the microcontroller's state\n";
+	cout << "up:                                                 get the microprocessor's state\n";
 	cout << "step [<no of instructions>]:                        execute the specifed no of instructions (default is 1) and then stop (instruction tracing only)\n";
 	cout << "skip:                                               as 'step 1' but will step over a JSR instruction\n";
 	cout << "cont:                                               continue execution (if previusly stopped)\n";
@@ -807,8 +810,8 @@ void Debugger::run()
 				success = writeMemStrCmd(sin);
 			else if (cmd == "state")
 				success = dumpDevCmd(sin);
-			else if (cmd == "uc")
-				success = dumpUcCmd(sin);
+			else if (cmd == "up")
+				success = dumpMPCmd(sin);
 			else if (cmd == "devices")
 				success = listDevicesCmd(sin);
 			else if (cmd == "step")
@@ -1007,4 +1010,6 @@ bool Debugger::settingsCmd()
 	if (breakpoint_info != "") {
 		cout << "Breakpoint set: " << breakpoint_info << "\n";
 	}
+
+	return true;
 }

@@ -24,7 +24,7 @@ private:
 public:
 
 
-	BeebViaLatch(string name, double cpuClock, DebugTracing* debugTracing, ConnectionManager* connectionManager);
+	BeebViaLatch(string name, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager);
 
 	// Process a port update directly (and not just next time the advanceUntil() method is called)
 	void processPortUpdate(int port) override;

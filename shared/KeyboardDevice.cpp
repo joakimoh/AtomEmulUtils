@@ -8,8 +8,8 @@
 using namespace std;
 
 
-KeyboardDevice::KeyboardDevice(string name, DeviceId typ, double cpuClock, DebugTracing* debugTracing, ConnectionManager* connectionManager) :
-	Device(name, typ, KEYBOARD_DEVICE, cpuClock, debugTracing, connectionManager)
+KeyboardDevice::KeyboardDevice(string name, DeviceId typ, DebugTracing* debugTracing, ConnectionManager* connectionManager) :
+	Device(name, typ, KEYBOARD_DEVICE, debugTracing, connectionManager)
 {
 	al_get_keyboard_state(&mKeyboardState);
 }

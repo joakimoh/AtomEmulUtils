@@ -63,8 +63,8 @@ using namespace std;
 //                 |     |     |     |     |     |     |  0V |     |     |
 //                5V    5V    5V    5V    5V    5V    5V    5V    5V    5V
 
-AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugTracing  *debugTracing, ConnectionManager* connectionManager) :
-	KeyboardDevice(name, ATOM_KB_DEV, cpuClock, debugTracing, connectionManager)
+AtomKeyboardDevice::AtomKeyboardDevice(string name, double tickRate, DebugTracing  *debugTracing, ConnectionManager* connectionManager) :
+	KeyboardDevice(name, ATOM_KB_DEV, debugTracing, connectionManager), TimedDevice(tickRate)
 {
 	// Specify ports that can be connected to other devices	
 	registerPort("ROW", IN_PORT, 0x0f, KB_ROW, &mSelectedRow);
@@ -96,17 +96,17 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double cpuClock, DebugTracin
 	al_get_keyboard_state(&mKeyboardState);
 
 	// Make sure Keyboard refresh rate always is 60 Hz (or less) - add a 10% margin
-	mKeyboardRefreshCycles = max(1, (int)round(1.1 * cpuClock * 1e6 * mEmulationSpeed / 60));
+	mKeyboardRefreshCycles = max(1, (int)round(1.1 * tickRate * 1e6 * mEmulationSpeed / 60));
 }
 
-bool AtomKeyboardDevice::advanceUntil(uint64_t stopCycle)
+bool AtomKeyboardDevice::advanceUntil(uint64_t stopTick)
 {
 	// Don't update keyboard state too often as it creates a lot of load...
-	int next_refresh_cycle = mCycleCount + mKeyboardRefreshCycles;
-	uint64_t start_cycle = mCycleCount;
-	mCycleCount = stopCycle;
-	if (stopCycle > next_refresh_cycle)
+	int next_refresh_cycle = mTicks + mKeyboardRefreshCycles;
+	if (stopTick < next_refresh_cycle)
 		return true;
+
+	mTicks = stopTick;
 
 	return checkKeyBoard();
 }
@@ -176,6 +176,11 @@ void AtomKeyboardDevice::processPortUpdate(int index)
 	}
 }
 
+void AtomKeyboardDevice::processPortUpdate()
+{
+		checkKeyBoard();
+}
+
 // Outputs the internal state of the device
 bool AtomKeyboardDevice::outputState(ostream& sout)
 {
@@ -191,6 +196,6 @@ void AtomKeyboardDevice::setEmulationSpeed(double speed)
 	KeyboardDevice::setEmulationSpeed(speed);
 
 	// Make sure Keyboard refresh rate always is 60 Hz (or less) - add a 10% margin
-	mKeyboardRefreshCycles = max(1, (int)round(1.1*mCPUClock * 1e6 * mEmulationSpeed / 60));
+	mKeyboardRefreshCycles = max(1, (int)round(1.1*mTickRate * 1e6 * mEmulationSpeed / 60));
 
 }

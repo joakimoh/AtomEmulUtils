@@ -92,14 +92,15 @@ Engine::Engine(string mapFileName, VideoFormat videoFormat, bool enableHWAcc,
     mConnectionManager = new ConnectionManager(mDT);
     mDeviceManager = new DeviceManager(
         mapFileName,
-        mCPUClock,            // CPU Clock frequency in MHz
+        mTickRate,            // CPU Clock frequency in MHz
         mDisplay,
         mDT, mConnectionManager, mMicroprocessor, mVDU, mSoundDevice, mDevices,
-        mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices, mKeyboardDevice,
+        mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices,
         mSpeedFactor, mLowEmulationRate, mHighEmulationRate
     );
 
-    mDisplay->setClock(mCPUClock);
+    mDisplay->setTickRate(mTickRate);
+    mDisplay->setCPUClockRate(mTickRate);
 
     if (mMicroprocessor == NULL) {
         cout << "No microprocessor defined!\n";
@@ -176,14 +177,14 @@ bool Engine::run()
     ALLEGRO_EVENT event;
 
     // Duration of one base (low rate) emulation period in CPU cycles.
-    int CPU_cycles_per_low_rate_cycle = (int)round(mCPUClock * 1e6 / mLowEmulationRate);
+    int CPU_cycles_per_low_rate_cycle = (int)round(mTickRate * 1e6 / mLowEmulationRate);
 
     // Duration of one sub emulation period in CPU cycles.
-    int CPU_cycles_per_high_rate_cycle = (int)round(mCPUClock * 1e6 / mHighEmulationRate);
+    int CPU_cycles_per_high_rate_cycle = (int)round(mTickRate * 1e6 / mHighEmulationRate);
 
     /*
     cout << "Timer: " << (1000 / mLowEmulationRate / mSpeedFactor) << " ms\n";
-    cout << "CPU Rate:  " << mCPUClock << " MHz\n";
+    cout << "CPU Rate:  " << mTickRate << " MHz\n";
     cout << "Low (Base) Emulation Rate: " << mLowEmulationRate << " Hz <=> " << CPU_cycles_per_low_rate_cycle << " CPU Cycles\n";
     cout << "High Emulation Rate: " << mHighEmulationRate << " Hz <=> " << CPU_cycles_per_high_rate_cycle << " CPU Cycles\n";
 
@@ -213,11 +214,11 @@ bool Engine::run()
 
             // Advance time for each device that is scheduled on low rate (base emulation period) basis
             for (int i = 0; i < mEmulationPeriodScheduledDevices.size(); i++)
-                mEmulationPeriodScheduledDevices[i]->advanceUntil(mCycleCount + CPU_cycles_per_low_rate_cycle);
+                mEmulationPeriodScheduledDevices[i]->advanceUntil(mTicks + CPU_cycles_per_low_rate_cycle);
 
             // update devices scheduled on instruction and high emulation rate basis for the low rate emulation period
-            uint64_t end_cycle = mCycleCount + CPU_cycles_per_low_rate_cycle;
-            while (mCycleCount < end_cycle) {
+            uint64_t end_cycle = mTicks + CPU_cycles_per_low_rate_cycle;
+            while (mTicks < end_cycle) {
 
                 // Acquire execution mutex
                 mExecMutex.lock();
@@ -227,9 +228,9 @@ bool Engine::run()
                     // Remember the return address for a potential JSR instruction
                     mCPURetAdr = mMicroprocessor->getPC() + 3;
 
-                    // Execute one microprocessor instruction and advance time accordingly (mCycleCount updated)
-                    uint64_t p_cycle_count = mCycleCount;
-                    if (!mMicroprocessor->advanceInstr(mCycleCount)) {
+                    // Execute one microprocessor instruction and advance time accordingly (mTicks updated)
+                    uint64_t p_cycle_count = mTicks;
+                    if (!mMicroprocessor->advanceInstr(mTicks)) {
                         // Execution stopped - exit
                         mExecMutex.unlock();
                         return false;
@@ -248,14 +249,14 @@ bool Engine::run()
                     // Advance time for each device scheduled on instruction basis so that it matches the time
                     // of the microprocessor.
                     for (int d = 0; d < mInstrScheduledDevices.size(); d++)
-                        mInstrScheduledDevices[d]->advanceUntil(mCycleCount);
+                        mInstrScheduledDevices[d]->advanceUntil(mTicks);
 
                     // Update devices scheduled on high emulation rate basis if one high rate period has elapsed.
-                    // If there (after the execution of one instruction) is a wraparound of mCycleCount % CPU_cycles_per_high_rate_cycle it means that the
+                    // If there (after the execution of one instruction) is a wraparound of mTicks % CPU_cycles_per_high_rate_cycle it means that the
                     // zero value has been reached => time to run the devices scheduled on the high rate
-                    if (mCycleCount % CPU_cycles_per_high_rate_cycle < p_cycle_count % CPU_cycles_per_high_rate_cycle) {
+                    if (mTicks % CPU_cycles_per_high_rate_cycle < p_cycle_count % CPU_cycles_per_high_rate_cycle) {
                         for (int i = 0; i < mHighRateScheduledDevices.size(); i++)
-                            mHighRateScheduledDevices[i]->advanceUntil(mCycleCount);
+                            mHighRateScheduledDevices[i]->advanceUntil(mTicks);
                     }
 
                     // Check whether a breakpoint has been reached or not and take action if it has been reached
@@ -273,8 +274,8 @@ bool Engine::run()
         al_wait_for_event(mQueue, &event);
 
         // measure actual speed
-        cycles_per_second += mCycleCount - pCycleCount;
-        pCycleCount = mCycleCount;
+        cycles_per_second += mTicks - pCycleCount;
+        pCycleCount = mTicks;
         if (c++ % mTimerRateInt == 0) {
             auto stop = high_resolution_clock::now();
             auto duration = duration_cast<microseconds>(stop - start);

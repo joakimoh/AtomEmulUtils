@@ -75,10 +75,10 @@ using namespace std;
 //						 -´     `-´     `-´     `-´     `-´     `-´
 
 BeebVideoULA::BeebVideoULA(
-	string name, uint16_t adr, Display* display, double cpuclock, uint8_t waitStates,
+	string name, uint16_t adr, Display* display, double tickRate, uint8_t waitStates,
 	DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager
-) : VideoDisplayUnit(name, BEEB_VDU_DEV, display, cpuclock, waitStates, adr, 0x10, 0x0 /* dummy adr */, debugTracing, connectionManager,
-	deviceManager)
+) : VideoDisplayUnit(name, BEEB_VDU_DEV, display, waitStates, adr, 0x10, 0x0 /* dummy adr */, debugTracing, connectionManager,
+	deviceManager), TimedDevice(tickRate)
 {
 	//registerPort("SCROLL_CTRL",	IN_PORT,	0x0f, SCROLL_CTRL,	&mSCROLL_CTRL);
 	registerPort("C",			IN_PORT,	0x03,	C,			&mC);
@@ -140,16 +140,16 @@ bool BeebVideoULA::power()
 	return true;
 }
 
-// Advance until clock cycle stopcycle has been reached
-bool BeebVideoULA::advanceUntil(uint64_t stopCycle)
+// Advance until time tickTime
+bool BeebVideoULA::advanceUntil(uint64_t tickTime)
 {
-	uint64_t cycle = stopCycle;
+	uint64_t cycle = tickTime;
 	//cout << "[";
-	while (mCycleCount < stopCycle) {
-		int p_cycle = mCycleCount;
+	while (mTicks < tickTime) {
+		int p_cycle = mTicks;
 		advanceChar(cycle);
-		if (mCycleCount <= p_cycle)
-			mCycleCount = p_cycle + 1;
+		if (mTicks <= p_cycle)
+			mTicks = p_cycle + 1;
 	}
 	//cout << "]";
 	return true;
@@ -166,26 +166,26 @@ bool BeebVideoULA::addHalfLine(uint64_t &endCycle)
 			mRenderedPixels = 0;
 			if (mHzNonCharVisiblePixels > 0) {
 				mLineRenderedPixels += mRenderedPixels;
-				mCycleCount = mCycleCountLineRef + (int)round(mLineRenderedPixels * mCPUClock / (mPixelRate * 2));
+				mTicks = mCycleCountLineRef + (int)round(mLineRenderedPixels * mTickRate / (mPixelRate * 2));
 			}
 			mAddHalfLine = false;
-			mCycleCountLineRef = mCycleCount;
+			mCycleCountLineRef = mTicks;
 			mLineRenderedPixels = 0;
 			mCharPos = 0;
 	
-			endCycle = mCycleCount;
+			endCycle = mTicks;
 
 			return true;
 		}
 
 		mLineRenderedPixels += mRenderedPixels;
-		mCycleCount = mCycleCountLineRef + (int)round(mLineRenderedPixels * mCPUClock / (mPixelRate * 2));
+		mTicks = mCycleCountLineRef + (int)round(mLineRenderedPixels * mTickRate / (mPixelRate * 2));
 
 		// Next character
 		mVisibleCharPos++;
 		mCharPos++;
 
-		endCycle = mCycleCount;
+		endCycle = mTicks;
 
 		return true;
 	}
@@ -269,7 +269,7 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 
 	if (!mCRTC->getMemFetchAdr(crtc_adr)) {
 		DBG_LOG(this, DBG_ERROR, "Failed to get address from the CRTC!");
-		mCycleCount = endCycle; // Ensure time still advances
+		mTicks = endCycle; // Ensure time still advances
 		return false;
 	}
 
@@ -291,7 +291,7 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	uint8_t screen_data;
 	if (!mVideoMem->read(screen_adr, screen_data)) {
 		DBG_LOG(this, DBG_ERROR, "Failed to read video memory at address 0x" + Utility::int2HexStr(screen_adr,4));
-		mCycleCount = endCycle; // Ensure time still advances
+		mTicks = endCycle; // Ensure time still advances
 		return false;
 	}
 
@@ -447,14 +447,14 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	}
 
 	mLineRenderedPixels += mRenderedPixels;
-	mCycleCount = mCycleCountLineRef + (int)round(mLineRenderedPixels * mCPUClock / (mPixelRate * 2));
-	//cout << "endCycle="<< endCycle<<",mCycleCount="<< mCycleCount<<",mCycleCountLineRef=" << mCycleCountLineRef << ",mLineRenderedPixels=" << mLineRenderedPixels << ",mCPUClock="<< mCPUClock<<",mPixelRate=" << mPixelRate << "\n";
+	mTicks = mCycleCountLineRef + (int)round(mLineRenderedPixels * mTickRate / (mPixelRate * 2));
+	//cout << "endCycle="<< endCycle<<",mTicks="<< mTicks<<",mCycleCountLineRef=" << mCycleCountLineRef << ",mLineRenderedPixels=" << mLineRenderedPixels << ",mTickRate="<< mTickRate<<",mPixelRate=" << mPixelRate << "\n";
 
 	// Next character
 	mVisibleCharPos++;
 	mCharPos++;
 
-	endCycle = mCycleCount;
+	endCycle = mTicks;
 
 	return true;
 }
@@ -734,7 +734,7 @@ void BeebVideoULA::processPortUpdate(int index)
 	}
 	else if (index == HS) {
 		if (mHS == 1) {
-			mCycleCountLineRef = mCycleCount;
+			mCycleCountLineRef = mTicks;
 			mLineRenderedPixels = 0;			
 			mCharPos = 0;
 			mVisibleCharPos = -mHzVisibleCharOffset;
