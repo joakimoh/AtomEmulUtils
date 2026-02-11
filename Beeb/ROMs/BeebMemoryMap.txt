@@ -141,11 +141,11 @@ CONNECT		ACIA:IRQ				CPU:IRQ
 //	Device scheduling
 //
 SCHED	KB			LOW_RATE
-SCHED	CRTC		NONE								// Trigger the CRTC only on VDU function calls.
+SCHED	CRTC		NONE								// Trigger the CRTC only on VDU function calls (to emulate a CRTC data transfer to the VDU)
 TRIGGER	CRTC		CALL	VDU							// 
-SCHED	TCG			NONE								// Trigger the TCG only on VDU function calls.
+SCHED	TCG			NONE								// Trigger the TCG only on VDU function calls (to emulate a CRTC data transfer to the TCG)
 TRIGGER	TCG			CALL	VDU							// 
-TRIGGER ACIA		CALL	SerialULA					// Trigger the ACIA on Serial ULA function calls
+TRIGGER ACIA		CALL	SerialULA					// Trigger the ACIA on Serial ULA function calls (to update the ACIA's Rx/Tx CLK rates)
 SCHED	ACIA		INSTR_RATE							// as well as on instruction basis.
 SCHED	SerialULA	INSTR_RATE
 SCHED	VIAL		NONE								// The VIA latch is driven only by changes in the I/O pins

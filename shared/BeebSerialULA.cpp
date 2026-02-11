@@ -229,6 +229,7 @@ bool BeebSerialULA::isNewHalfCycle(int &nCpuCycles)
 // Advance until time tickTime
 bool BeebSerialULA::advanceUntil(uint64_t tickTime)
 {
+	// Only for debug output (tape time)
 	if (mTapeStartCount < 0) {
 		if (mCAS_IN != pCAS_IN) {
 			if (!mfirstTapeSample) {
@@ -237,7 +238,7 @@ bool BeebSerialULA::advanceUntil(uint64_t tickTime)
 					"TAPE STARTS AT " + to_string(mTapeStartCount) + " cycles(" + to_string(mTicks / mTickRate * 1e-6) + "s)"
 				);
 				if (mACIA != NULL)
-					mACIA->mDataStart = true;				
+					mACIA->mDataStart = true;	// Only for debug output (tape time)			
 			}
 			mfirstTapeSample = false;
 		}		
@@ -250,9 +251,9 @@ bool BeebSerialULA::advanceUntil(uint64_t tickTime)
 		if (!SER_ULA_CR_ENA_SER) { // Cassette Interface
 
 
-			mTapeCount = mTicks - mTapeStartCount;
-			mTapeTime = mTapeCount / mTickRate * 1e-6;
-			mTime = mTicks / mTickRate * 1e-6;
+			mTapeCount = mTicks - mTapeStartCount;		// Only for debug output (tape time)
+			mTapeTime = mTapeCount / mTickRate * 1e-6;	//
+			mTime = mTicks / mTickRate * 1e-6;			//
 
 
 			// Check for a complete 1/2 Cycle

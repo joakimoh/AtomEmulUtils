@@ -33,6 +33,8 @@ public:
 
 	uint64_t timeTick(int ticks);
 
+	uint64_t getDeviceClockRate() { return mDeviceClockRate;  }
+
 
 };
 

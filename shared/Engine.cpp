@@ -100,7 +100,7 @@ Engine::Engine(string mapFileName, VideoFormat videoFormat, bool enableHWAcc,
     );
 
     mDisplay->setTickRate(mTickRate);
-    mDisplay->setCPUClockRate(mTickRate);
+    mDisplay->setCPUClockRate(mMicroprocessor->getDeviceClockRate());
 
     if (mMicroprocessor == NULL) {
         cout << "No microprocessor defined!\n";
