@@ -65,7 +65,7 @@ CONNECT:P	PIA:PortA;7;5	VDU:GM			// Used to update graphic mode only on change (
 // ATOMKB <=> PIA Connections
 CONNECT ATOMKB:COL_L	PIA:PortB			// non-modifiers keys + SHIFT + CTRL
 CONNECT ATOMKB:COL_H;0	PIA:PortC;6			// REPEAT key
-CONNECT PIA:PortA;3;0	ATOMKB:ROW			// Used to force update of the keyboard state when the ROW is updated by the PIA
+CONNECT:P PIA:PortA;3;0	ATOMKB:ROW			// Used to force update of the keyboard state when the ROW is updated by the PIA
 											// (otherwise the column state would indicate 'key pressed' for several consecutive rows
 											//  leading to a false positive detection of 'key pressed' for the first selected row. E.g.,
 											//  if "A" is pressed, the column state will remain LOW when the selected ROW is for "Q"

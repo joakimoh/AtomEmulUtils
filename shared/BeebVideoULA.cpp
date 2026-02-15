@@ -12,9 +12,14 @@
 using namespace std;
 
 // 
-// Emulation of the BBC Micro Video ULA.
+// Emulation of the BBC Micro Video ULA including the address translation logic provided by IC36.
 // 
-// The Video ULA sets up the 6847 CRTC.
+// In real life, the CRTC generates an addresse into the display memory, address translation is made (by IC36)
+// and (in synchrony) the Video ULA makes a read of the resulting address.
+// This is emulated by the Video ULA instead repeatedly calling the CRTC for a new address, applying address translation
+// based on input from the address translation device (Latch74Ls259) and then reading data at the translated address.
+// 
+// The Video ULA sets up the 6847 CRTC to get the correct addresses generated.
 // 
 // The 6845 R12/R13 value is set as follows:
 // MODE 0 - 6:	screen address / 8 <=> 0,1,2: 0x3000 => 0x600, 3: 0x4000 => 0x800, 4-5: 0xb00, 6: 0x6000 => 0xc00

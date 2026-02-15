@@ -34,7 +34,7 @@ ADD	BEEBKB			KB			00										// startup options (DIP switches)
 ADD	CPU_6502		CPU										2.0			// Microprocessor 6502 running ay 2 MHz
 ADD	TAPREC			TAPREC												// Standard Tape Recorder
 ADD	TI4689			SOUND
-ADD	BEEBVIALATCH	VIAL												// System VIA Latch with 8 outputs, each updated by writing to Port B bits 3:0
+ADD	BEEBVIALATCH	74LS259												// System VIA Latch with 8 outputs, each updated by writing to Port B bits 3:0
 ADD SD_CARD			MMFS_CARD								MMC.img		// FAT32 SD Card image
 
 //
@@ -51,8 +51,8 @@ ADD SD_CARD			MMFS_CARD								MMC.img		// FAT32 SD Card image
 CONNECT:P	ADC:EOC				SYS_VIA:CB;0	// ADC EOC output => SYS_VIA CB1 input
 
 // Sound chip connections
-CONNECT:P 	SYS_VIA:PB;3;0		VIAL:CTRL	// PB3:0 => CTRL
-CONNECT:P	VIAL:Q;0			SOUND:WE	// Q0 => WE
+CONNECT:P 	SYS_VIA:PB;3;0		74LS259:CTRL	// PB3:0 => CTRL
+CONNECT:P	74LS259:Q;0			SOUND:WE	// Q0 => WE
 CONNECT:P	SYS_VIA:PA			SOUND:D		// PA7:0 => D
 
 // Video Display Unit connections
@@ -66,7 +66,7 @@ CONNECT:P	CRTC:RA;3;0			VDU:RA
 CONNECT		CRTC:VS				SYS_VIA:CA;0	// VS => CA1
 CONNECT:P	CRTC:VS				VDU:VS
 CONNECT:P	CRTC:HS				VDU:HS
-CONNECT:P	VIAL:Q;5;4			VDU:C
+CONNECT:P	74LS259:Q;5;4			VDU:C
 CONNECT 	VDU:CRTC_CLK		CRTC:CLK
 
 // Paged ROMs
@@ -117,7 +117,7 @@ CONNECT 	SYS_VIA:IRQ				CPU:IRQ			// VIA generates 100 Hz timer interrupts and m
 CONNECT		USER_VIA:IRQ			CPU:IRQ			// User-define usage (i.e.not used by the BBC MOS)
 
 // Keyboard connections
-CONNECT		VIAL:Q;3				KB:ENA			// Connect System VIA Latch Q3 (value set by writing to System VIA Port B) to KB ENA
+CONNECT		74LS259:Q;3				KB:ENA			// Connect System VIA Latch Q3 (value set by writing to System VIA Port B) to KB ENA
 CONNECT:P 	SYS_VIA:PA;3;0			KB:COL_SEL		// PA3:0 => COL_SEL
 CONNECT:P 	SYS_VIA:PA;6;4			KB:ROW_SEL		// PA6:4 => ROW_SEL
 CONNECT 	KB:ROW					SYS_VIA:PA;7	// ROW => PA7
@@ -143,12 +143,12 @@ CONNECT		ACIA:IRQ				CPU:IRQ
 SCHED	KB			LOW_RATE
 SCHED	CRTC		NONE								// Trigger the CRTC only on VDU function calls (to emulate a CRTC data transfer to the VDU)
 TRIGGER	CRTC		CALL	VDU							// 
-SCHED	TCG			NONE								// Trigger the TCG only on VDU function calls (to emulate a CRTC data transfer to the TCG)
+SCHED	TCG			NONE								// Trigger the TCG only on VDU function calls (to emulate a CRTC data transfer to the TCG and the resulting RGB signal back to the VDU)
 TRIGGER	TCG			CALL	VDU							// 
 TRIGGER ACIA		CALL	SerialULA					// Trigger the ACIA on Serial ULA function calls (to update the ACIA's Rx/Tx CLK rates)
 SCHED	ACIA		INSTR_RATE							// as well as on instruction basis.
 SCHED	SerialULA	INSTR_RATE
-SCHED	VIAL		NONE								// The VIA latch is driven only by changes in the I/O pins
+SCHED	74LS259		NONE								// The VIA latch is driven only by changes in the I/O pins
 SCHED	SOUND		HIGH_RATE
 SCHED	MMFS_CARD	NONE								// The SC Card is driven only by changes in the I/O pins
 

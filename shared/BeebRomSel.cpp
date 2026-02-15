@@ -11,6 +11,14 @@
 // There are 16 slots but on an unmodified BBC Micro Model B, only the upper slots (12-15) can be selected.
 // These on board sideways ROM sockets are IC52 (slot 12), IC88 (slot 13), IC100 (slot 14), IC101 (slot 15),
 // left to right on the board after the OS socket.
+// 
+// 74LS163 is really a 4-bit modulo 16 counter but is setup in way that it will behave just like a 4-bit latch.
+// 74LS139 (IC20) is a 2-to-4 line decoder and is used to map a 2-bit slot address (0-3) into the (active low)
+// assertion of one out of four outputs.That part generates the NW, NE, SW & SE outputs based on the two lower bits
+// of the 4-bit latch address.
+// 
+// If an address outside the board (0-11 <=> at least one of the upper two bits cleared) is selected, then the SO input
+// pin (overflag pin) on the NMOS 6502 will be se by the hardware. This part is not emulated currently.
 //
 
 BeebROMSel::BeebROMSel(string name, double tickRate, uint8_t waitStates, uint16_t adr, DebugTracing  *debugTracing, ConnectionManager * connectionManager,

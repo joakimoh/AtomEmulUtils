@@ -4,7 +4,7 @@ add_library(
 	"AtomKeyboardDevice.cpp" "ConnectionManager.cpp" "Tokeniser.cpp" "MemoryMappedDevice.cpp" "AtomCUTSInterface.cpp" "CSWCodec.cpp" "zpipe.cpp" "GUI.cpp"
 	"SoundDevice.cpp" "CRTC6845.cpp" "TT5050.cpp" "BeebRomSel.cpp" "ACIA6850.cpp" "DebugTracing.cpp" "BeebSerialULA.cpp" "DeviceManager.cpp"
 	"TimedDevice.cpp" "TimedDevice.h"
-	"VideoSettings.cpp" "TI4689.cpp" "BeebViaLatch.cpp" "VideoDisplayUnit.cpp" "BeebVideoULA.cpp" "BeebKeyboard.cpp" "Utility.cpp" "ClockedDevice.cpp"
+	"VideoSettings.cpp" "TI4689.cpp" "Latch74LS259.cpp" "VideoDisplayUnit.cpp" "BeebVideoULA.cpp" "BeebKeyboard.cpp" "Utility.cpp" "ClockedDevice.cpp"
 	"Codec6502.h" "P6502.h" "VIA6522.h" "AtomKeyboardDevice.h" "MemoryMappedDevice.h" "AtomCUTSInterface.h" "CSWCodec.h" "SoundDevice.h" "BeebVideoULA.h"
 	 "VDU6847.h"  "PIA8255.h"  "ROM.h"  "RAM.h" "Device.h" "Tokeniser.h" "DebugTracing.h" "GUI.h" "TapeRecorder.h" "AtomSpeaker.h" "VideoDisplayUnit.h"
 	"VideoDisplayUnit.h" "SoundDevice.h"  "BeebKeyboard.h" "CRTC6845.h" "TT5050.h"

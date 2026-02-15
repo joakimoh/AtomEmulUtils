@@ -31,6 +31,7 @@ void  ArgParser::printInfo()
 	cout << "\t- MC6847 Video Display Generator\n";
 	cout << "\t- SAA5050 Teletext Character Generator\n";
 	cout << "\t- SD Card with SPI interface\n";
+	cout << "\t- 8-bit addressable latch 74LS259 (used in e.g., the BBC Micro)\n";
 	cout << "\t- Standard Tape Recorder: Emulates the tape recorder you connect to the computer\n";
 	cout << "\t- Custom Acorn Atom hardware: Cassette Interface, Keyboard amd Speaker\n";
 	cout << "\t- Custom BBC Micro hardware: Serial ULA, Keyboard, ROM Selection and Video ULA\n";

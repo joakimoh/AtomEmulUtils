@@ -25,7 +25,7 @@
 #include "ACIA6850.h"
 #include "BeebSerialULA.h"
 #include "TI4689.h"
-#include "BeebViaLatch.h"
+#include "Latch74LS259.h"
 #include "Device.h"
 #include "ConnectionManager.h"
 #include "DeviceManager.h"
@@ -347,7 +347,7 @@ DeviceManager::DeviceManager(
 
 				// Emulation of BBC Micro IC31 & IC32
 				else if (dev_type == "BEEBVIALATCH") {
-					BeebViaLatch* latch = new BeebViaLatch(dev_name, tickRate, mDM, mCM);
+					Latch74LS259* latch = new Latch74LS259(dev_name, tickRate, mDM, mCM);
 					mDevices.push_back(latch);
 				}
 
