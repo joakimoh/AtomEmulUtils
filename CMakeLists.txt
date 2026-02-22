@@ -40,7 +40,7 @@ message(CMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS}")
 FetchContent_Declare(
   allegro5
   GIT_REPOSITORY https://github.com/liballeg/allegro5.git
-  GIT_TAG        5.2.10.1
+  GIT_TAG        5.2.11.13
 )
 FetchContent_GetProperties(allegro5)
 if(NOT allegro5_POPULATED)
