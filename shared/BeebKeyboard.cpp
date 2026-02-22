@@ -4,6 +4,7 @@
 #include <allegro5/allegro5.h>
 #include "DebugTracing.h"
 #include "BeebKeyboard.h"
+#include <cmath>
 
 //
 // This is an emulation of a BBC Micro Keyboard

@@ -2,6 +2,7 @@
 #define UTILITY_H
 
 #include <string>
+#include <cstdint>
 
 using namespace std;
 

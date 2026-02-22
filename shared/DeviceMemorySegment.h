@@ -2,6 +2,7 @@
 #define DEVICE_MEMORY_SEGMENT_H
 
 #include <iostream>
+#include <cstdint>
 
 
 using namespace std;

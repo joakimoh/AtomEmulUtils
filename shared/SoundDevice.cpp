@@ -1,4 +1,5 @@
 #include "SoundDevice.h"
+#include <cmath>
 
 
 SoundDevice::SoundDevice(

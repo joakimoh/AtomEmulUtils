@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include <cmath>
 #include "Utility.h"
 
 using namespace std;
