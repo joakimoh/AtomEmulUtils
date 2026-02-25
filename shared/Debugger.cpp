@@ -456,10 +456,12 @@ Device* Debugger::readDevice(istream& sin)
 
 bool Debugger::setPortCmd(istream& sin)
 {
+	/*
 	if (mEngine->isRunning()) {
 		cout << "The micoprocessor is running - it needs to be halted before changing any port value!\n";
 		return true;
 	}
+	*/
 
 	PortSelection port_sel;
 	if (!readPortSel(sin, port_sel))

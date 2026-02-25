@@ -294,6 +294,9 @@ P6502::P6502(string name, double deviceClockRate, double tickRate, DebugTracing 
 	registerPort("RESET", IN_PORT, 0x01, RESET, &mRESET);
 	registerPort("IRQ", IN_PORT, 0x01, RESET, &mIRQ);
 	registerPort("NMI", IN_PORT, 0x01, RESET, &mNMI);
+	registerPort("SO", IN_PORT, 0x01, SO, &mSO);
+	registerPort("RDY", IN_PORT, 0x01, RDY, &mRDY);
+	registerPort("SYNC", OUT_PORT, 0x01, SYNC, &mSYNC);
 
 	initInstrTable();
 
@@ -428,6 +431,9 @@ bool P6502::advanceInstr(uint64_t& endTick)
 	mNmiTransition = mNMI != pNMI;
 	pNMI = mNMI;
 
+	mSOTransition = mSO != pSO;
+	pSO = mSO;
+
 	DBG_LOG_COND(mResetTransition, this, DBG_RESET, "RESET => " + to_string(mRESET) + "\n");
 
 	DBG_LOG_COND(mIrqTransition, this, DBG_INTERRUPTS, "IRQ => " + to_string(mIRQ) + "\n");
@@ -445,16 +451,27 @@ bool P6502::advanceInstr(uint64_t& endTick)
 		serveNMI();
 	else if (!mIRQ)	// IRQ is level-triggered!
 		serveIRQ();
+	else if (!mSO && mSOTransition)
+		mStatusRegister |= V_set_mask; // Set overflow flag on SO transition as per 6502 specification
+	else if (mRDY == 0) {
+		// If RDY is low, the processor is paused and will not execute the next instruction until RDY goes high again.
+		// However, time still advances and the processor can still respond to interrupts (NMI, IRQ) and RESET while paused.
+		DBG_LOG(this, DBG_6502, "RDY low => CPU paused at address 0x" + Utility::int2HexStr(mProgramCounter,4) + "...\n");
+		endTick = mTicks;
+		return true;
+	}
 
 	// Save cycle count before fetching and executing the instruction
 	uint64_t start_cycle = mCycle;
 
 	// Get mOpcode of next instruction
+	updatePort(SYNC, 0)	; // SYNC goes low at the start of the fetch phase of an instruction
 	mOpcodePC = mProgramCounter;
 	if (!readProgramMem(mProgramCounter++, mOpcode)) {
 		success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to read instruction!\n");
 	}
+	updatePort(SYNC, 1); // SYNC goes high at the end of the fetch phase of an instruction
 
 	pInstructionData = &(pInstrDataTbl->data[mOpcode]); // Execution info
 	pInstructionInfo = &(pInstructionData->info); // Opcode info only
@@ -2768,6 +2785,8 @@ bool P6502::outputState(ostream& sout)
 	sout << "IRQ = " << (int)mIRQ << "\n";
 	sout << "RESET = " << (int)mRESET << "\n";
 	sout << "NMI = " << (int)mNMI << "\n";
+	sout << "SO = " << (int)mSO << "\n";
+	sout << "RDY = " << (int)mRDY << "\n";
 
 	return true;
 }

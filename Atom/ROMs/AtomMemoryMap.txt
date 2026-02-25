@@ -41,7 +41,7 @@ ADD	ROM			FP			d000	1000 		0			Atom_FloatingPoint.rom	// Floating-point ROM
 ADD	ROM			KERNEL		f000	1000 		0			Atom_Kernel.rom			// CAS ROM
 ADD	ATOMKB		ATOMKB																// Acorn Atom keyboard
 ADD	ATOMCAS		CUTS																// CUTS Cassette Interface
-ADD	CPU_6502		UC										1.0						// Microcontroller 6502 running at 1 MHz
+ADD	CPU_6502	CPU										1.0						// Microcontroller 6502 running at 1 MHz
 ADD	TAPREC		TAPREC																// Standard Tape Recorder
 ADD	ATOMSP		SPEAKER																// Acorn Atom Speaker
 //
@@ -72,12 +72,12 @@ CONNECT:P PIA:PortA;3;0	ATOMKB:ROW			// Used to force update of the keyboard sta
 											//  leading to the Atom software incorrectly seeing this as "Q" pressed rather than "A".)
 
 // ATOMKB BREAK key <=> device RESET Connections
-CONNECT ATOMKB:COL_H;1	UC:RESET	// BREAK key => RESET of microprocessor
+CONNECT ATOMKB:COL_H;1	CPU:RESET	// BREAK key => RESET of microprocessor
 CONNECT ATOMKB:COL_H;1	PIA:RESET	// BREAK key => RESET of PIA 8255
 CONNECT ATOMKB:COL_H;1	VIA:RESET	// BREAK key => RESET of VIA 6522
 
 // VIA <=> Microcontroller Connections
-CONNECT VIA:IRQ		UC:IRQ
+CONNECT VIA:IRQ		CPU:IRQ
 
 // PIA <=> CUTS Connections
 CONNECT PIA:PortC;0		CUTS:TAPE_OUT	// tape out

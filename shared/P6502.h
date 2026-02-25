@@ -28,6 +28,7 @@ private:
 	bool mResetTransition = false;
 	bool mIrqTransition = false;
 	bool mNmiTransition = false;
+	bool mSOTransition = false;
 
 	Codec6502 mCodec;
 
@@ -194,12 +195,17 @@ private:
 	string getState();
 
 	// Ports that can be connected to other devices
-	int NMI = 0, IRQ = 0;
+	int NMI = 0, IRQ = 0, SO = 0, RDY = 0, SYNC = 0;
 	uint8_t mNMI = 0x1;
 	uint8_t mIRQ = 0x1;
+	uint8_t mSO = 0x1;
+	uint8_t mRDY = 0x1;
+	uint8_t mSYNC = 0x1;
 
 	uint8_t pNMI = 0x1;
 	uint8_t pIRQ = 0x1;
+	uint8_t pSO = 0x1;
+	
 
 	int mRAccAdr = -1;
 	int mWAccAdr = -1;
