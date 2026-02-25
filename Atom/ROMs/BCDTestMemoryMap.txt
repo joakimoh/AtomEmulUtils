@@ -1,5 +1,4 @@
-CLOCK 1.0																// CPU Clock in MHz
-ADD	CPU_6502	CPU														// CPU
+ADD	CPU_6502	CPU		1												// CPU
 ADD	SRAM		STACK	0100	0200	0								// Stack space
 ADD	SRAM		DATA	4000	0100	0								// Program data (256 bytes)
 ADD	ROM			PGM		f000	1000	0			BCD_test.rom		// Program (starts at f000;RESET vector points there)
