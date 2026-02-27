@@ -13,6 +13,7 @@ ClockedDevice::ClockedDevice(double tickRate, double deviceClockRate) : mDeviceC
 	mTicksPerHalfDeviceCycle = (int) round(mTicksPerDeviceCycle / 2);
 }
 
+// Advance the device time by the specified number of device cycles and return the current device cycle count after the advance
 uint64_t ClockedDevice::deviceTick(int deviceCycles)
 {
 	if (deviceCycles < 0)
@@ -24,6 +25,17 @@ uint64_t ClockedDevice::deviceTick(int deviceCycles)
 		mClockPhase = LOW_PHASE;
 	else
 		mClockPhase = HIGH_PHASE;
+
+	return mCycle;
+}
+
+// Advance the device time by the specified number of device cycles without changing the device cycle count and return the current device cycle count after the advance
+uint64_t ClockedDevice::advanceTimeOnly(int deviceCycles)
+{
+	if (deviceCycles < 0)
+		throw runtime_error("negative tick");
+
+	mTicks += mTicksPerDeviceCycle * deviceCycles;
 
 	return mCycle;
 }

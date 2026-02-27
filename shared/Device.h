@@ -89,8 +89,9 @@ public:
 	uint8_t					ioDirMask = 0xff;		// I/O direction for the bits of a bidirectional port:a set bit indicates OUT, a cleared bit IN
 	uint8_t					mask = 0x1;				// mask to select only the implemented bits
 	int						sz = 8;					// no of bits
-	uint8_t	*				valOut = NULL;			// pointer to variable holding an output port's value (or a bidirectional port's output value)
-	uint8_t *				valIn = NULL;			// pointer to variabel holding an input port's value (or a bidirectional port's input value)
+	uint8_t	*				valOut = NULL;			// pointer to variable holdding an input port's value (or a bidirectional port's input value)
+	uint16_t *				val16 = NULL;			// value of a 16-bit input/output port (e.g., the 16-bit address bus of the 6502 CPU) - cannot be of bidirectional type
+	uint8_t *				valIn = NULL;			// pointer to variabel holut ports wider than 8 bits (e.g., the 16-bit address bus of the 6502 CPU)
 	vector<InputReference>	inputs;					// connected inputs (used only if the port is an output port)
 	vector<OutputReference> portSources;			// Connected outputs - used if more than one device connects to a port (e.g., an IRQ input connected to many devices)
 	bool					arbitration = false;	// true if more than one device is connected to at least to one bit slice of the port (for a destination port)
@@ -131,6 +132,7 @@ private:
 	bool mTracingEnabled = false;
 
 	bool updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal);
+	bool updateDstPortValue(DevicePort* srcPort, InputReference& dstPort, uint16_t srcVal);
 
 	void getPortSelection(DevicePort* srcPort, InputReference& dstPort, string& srcSel, string& dstSel);
 
@@ -198,6 +200,7 @@ public:
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 	bool updatePort(int index, uint8_t val, bool forceUpdate = false);
+	bool update16BitPort(int index, uint16_t val, bool forceUpdate = false);
 
 	
 
@@ -229,6 +232,7 @@ public:
 
 	// Used by a device to make a port available for routing
 	bool registerPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* val);
+	bool registerPort(string name, PortDirection dir, int& index, uint16_t* val);
 	bool registerPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* valIn, uint8_t* valOut);
 
 	// Get pointer to other device to be able to call its methods

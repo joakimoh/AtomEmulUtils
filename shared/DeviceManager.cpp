@@ -15,7 +15,8 @@
 #include <sstream>
 #include <allegro5/allegro.h>
 #include <string>
-#include "P6502.h"
+#include "P6502IC.h"
+#include "P6502CC.h"
 #include <vector>
 #include "AtomCUTSInterface.h"
 #include "TapeRecorder.h"
@@ -203,7 +204,16 @@ DeviceManager::DeviceManager(
 				else if (dev_type == "CPU_6502") {
 					double cpuClock;
 					sin >> cpuClock;
-					microprocessor = new P6502(dev_name, cpuClock, tickRate, mDM, mCM, this);
+					microprocessor = new P6502IC(dev_name, cpuClock, tickRate, mDM, mCM, this);
+					mDevices.push_back(microprocessor);
+					mMicroprocessor = microprocessor;
+
+				}
+
+				else if (dev_type == "CPU_6502CC") {
+					double cpuClock;
+					sin >> cpuClock;
+					microprocessor = new P6502CC(dev_name, cpuClock, tickRate, mDM, mCM, this);
 					mDevices.push_back(microprocessor);
 					mMicroprocessor = microprocessor;
 

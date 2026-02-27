@@ -1,4 +1,4 @@
-#ifndef P6052_H
+#ifndef P6502_H
 #define P6502_H
 
 #include "Codec6502.h"
@@ -15,13 +15,11 @@ using namespace std;
 
 class P6502 : public Device, public ClockedDevice {
 
-private:
+protected:
 
 	int cPeriod = 1000; // clock period in ns
 
 	uint64_t cycleCount = 0; // #clock cycles passed since RESET
-
-	mutex mMutex;
 
 	bool mStop = false;
 
@@ -71,167 +69,144 @@ private:
 	// Information about an instructon required to execute it
 	typedef struct struct_InstructionData {
 		Codec6502::InstructionInfo info;
-		bool (P6502::*addrHdlr)();
-		bool (P6502::*execHdlr)();
+		bool (P6502::* addrHdlr)();
+		bool (P6502::* execHdlr)();
 	} InstructionData;
 	InstructionData* pInstructionData = nullptr;
-	Codec6502::InstructionInfo *pInstructionInfo = nullptr;
+	Codec6502::InstructionInfo* pInstructionInfo = nullptr;
 
 
 	// Information about all possible instructions (including unofficial undocumented ones and illegal ones)
 	typedef struct InstrDataTable_struct { InstructionData data[256]; } InstrDataTable;
 	InstrDataTable* pInstrDataTbl = nullptr;
-	
-	
+
+
 	// Initialise the instruction data above
 	void initInstrTable();
 
-	
-	// Addressing Modes (independent of the instruction)
-	bool accAdrHdlr();
-	bool impliedAdrHdlr();
-	bool relativeAdrHdlr();
-	bool immediateAdrHdlr();
-	bool zeroPageAdrHdlr();
-	bool zeroPageXAdrHdlr();
-	bool zeroPageYAdrHdlr();
-	bool absoluteAdrHdlr();
-	bool absoluteXAdrHdlr();
-	bool absoluteYAdrHdlr();
-	bool indirectAdrHdlr();
-	bool preIndXAdrHdlr();
-	bool postIndYAdrHdlr();
-	bool undefinedAdrHdlr();
 
-	//
-	// Handling of variable cycles for branch instructions.
-	// 
-	// Variable cycles for other instructions are handled by the AdrHdlr above.
-	// 
-	// For the branch instruction the extra cycles shall only be added if
-	// the branch is taken which is not known before the instruction is executed.
-	//
-	bool addBranchTakenCycles();
+	// Addressing Modes (independent of the instruction)
+	virtual bool accAdrHdlr() { return true; }
+	virtual bool impliedAdrHdlr() { return true; }
+	virtual bool relativeAdrHdlr() { return true; }
+	virtual bool immediateAdrHdlr() { return true; }
+	virtual bool zeroPageAdrHdlr() { return true; }
+	virtual bool zeroPageXAdrHdlr() { return true; }
+	virtual bool zeroPageYAdrHdlr() { return true; }
+	virtual bool absoluteAdrHdlr() { return true; }
+	virtual bool absoluteXAdrHdlr() { return true; }
+	virtual bool absoluteYAdrHdlr() { return true; }
+	virtual bool indirectAdrHdlr() { return true; }
+	virtual bool preIndXAdrHdlr() { return true; }
+	virtual bool postIndYAdrHdlr() { return true; }
+	virtual bool undefinedAdrHdlr() { return true; }
 
 
 
 	// Instruction handlers (independent of the addressing mode)
-	bool ADCExecHdlr();
-	bool ANDExecHdlr();
-	bool ASLExecHdlr();
-	bool BCCExecHdlr();
-	bool BCSExecHdlr();
-	bool BEQExecHdlr();
-	bool BITExecHdlr();
-	bool BMIExecHdlr();
-	bool BNEExecHdlr();
-	bool BPLExecHdlr();
-	bool BRKExecHdlr();
-	bool BVCExecHdlr();
-	bool BVSExecHdlr();
-	bool CLCExecHdlr();
-	bool CLDExecHdlr();
-	bool CLIExecHdlr();
-	bool CLVExecHdlr();
-	bool CMPExecHdlr();
-	bool CPXExecHdlr();
-	bool CPYExecHdlr();
-	bool DECExecHdlr();
-	bool DEXExecHdlr();
-	bool DEYExecHdlr();
-	bool EORExecHdlr();
-	bool INCExecHdlr();
-	bool INXExecHdlr();
-	bool INYExecHdlr();
-	bool JMPExecHdlr();
-	bool JSRExecHdlr();
-	bool LDAExecHdlr();
-	bool LDXExecHdlr();
-	bool LDYExecHdlr();
-	bool LSRExecHdlr();
-	bool NOPExecHdlr();
-	bool ORAExecHdlr();
-	bool PHAExecHdlr();
-	bool PHPExecHdlr();
-	bool PLAExecHdlr();
-	bool PLPExecHdlr();
-	bool ROLExecHdlr();
-	bool RORExecHdlr();
-	bool RTIExecHdlr();
-	bool RTSExecHdlr();
-	bool SBCExecHdlr();
-	bool SECExecHdlr();
-	bool SEDExecHdlr();
-	bool SEIExecHdlr();
-	bool STAExecHdlr();
-	bool STXExecHdlr();
-	bool STYExecHdlr();
-	bool TAXExecHdlr();
-	bool TAYExecHdlr();
-	bool TSXExecHdlr();
-	bool TXAExecHdlr();
-	bool TXSExecHdlr();
-	bool TYAExecHdlr();
-	bool LAXExecHdlr();
-	bool SBXExecHdlr();
-	bool ISCExecHdlr();
-	bool DCPExecHdlr();
-	bool ANCExecHdlr();
-	bool ALRExecHdlr();
-	bool ARRExecHdlr();
-	bool LASExecHdlr();
-	bool RLAExecHdlr();
-	bool RRAExecHdlr();
-	bool SAXExecHdlr();
-	bool SLOExecHdlr();
-	bool SREExecHdlr();
-	bool undefinedExecHdlr();
-
-	// Execute an instruction which opcode has been fetched already 
-	bool executeInstr();
-
-
+	virtual bool ADCExecHdlr() { return true; }
+	virtual bool ANDExecHdlr() { return true; }
+	virtual bool ASLExecHdlr() { return true; }
+	virtual bool BCCExecHdlr() { return true; }
+	virtual bool BCSExecHdlr() { return true; }
+	virtual bool BEQExecHdlr() { return true; }
+	virtual bool BITExecHdlr() { return true; }
+	virtual bool BMIExecHdlr() { return true; }
+	virtual bool BNEExecHdlr() { return true; }
+	virtual bool BPLExecHdlr() { return true; }
+	virtual bool BRKExecHdlr() { return true; }
+	virtual bool BVCExecHdlr() { return true; }
+	virtual bool BVSExecHdlr() { return true; }
+	virtual bool CLCExecHdlr() { return true; }
+	virtual bool CLDExecHdlr() { return true; }
+	virtual bool CLIExecHdlr() { return true; }
+	virtual bool CLVExecHdlr() { return true; }
+	virtual bool CMPExecHdlr() { return true; }
+	virtual bool CPXExecHdlr() { return true; }
+	virtual bool CPYExecHdlr() { return true; }
+	virtual bool DECExecHdlr() { return true; }
+	virtual bool DEXExecHdlr() { return true; }
+	virtual bool DEYExecHdlr() { return true; }
+	virtual bool EORExecHdlr() { return true; }
+	virtual bool INCExecHdlr() { return true; }
+	virtual bool INXExecHdlr() { return true; }
+	virtual bool INYExecHdlr() { return true; }
+	virtual bool JMPExecHdlr() { return true; }
+	virtual bool JSRExecHdlr() { return true; }
+	virtual bool LDAExecHdlr() { return true; }
+	virtual bool LDXExecHdlr() { return true; }
+	virtual bool LDYExecHdlr() { return true; }
+	virtual bool LSRExecHdlr() { return true; }
+	virtual bool NOPExecHdlr() { return true; }
+	virtual bool ORAExecHdlr() { return true; }
+	virtual bool PHAExecHdlr() { return true; }
+	virtual bool PHPExecHdlr() { return true; }
+	virtual bool PLAExecHdlr() { return true; }
+	virtual bool PLPExecHdlr() { return true; }
+	virtual bool ROLExecHdlr() { return true; }
+	virtual bool RORExecHdlr() { return true; }
+	virtual bool RTIExecHdlr() { return true; }
+	virtual bool RTSExecHdlr() { return true; }
+	virtual bool SBCExecHdlr() { return true; }
+	virtual bool SECExecHdlr() { return true; }
+	virtual bool SEDExecHdlr() { return true; }
+	virtual bool SEIExecHdlr() { return true; }
+	virtual bool STAExecHdlr() { return true; }
+	virtual bool STXExecHdlr() { return true; }
+	virtual bool STYExecHdlr() { return true; }
+	virtual bool TAXExecHdlr() { return true; }
+	virtual bool TAYExecHdlr() { return true; }
+	virtual bool TSXExecHdlr() { return true; }
+	virtual bool TXAExecHdlr() { return true; }
+	virtual bool TXSExecHdlr() { return true; }
+	virtual bool TYAExecHdlr() { return true; }
+	virtual bool LAXExecHdlr() { return true; }
+	virtual bool SBXExecHdlr() { return true; }
+	virtual bool ISCExecHdlr() { return true; }
+	virtual bool DCPExecHdlr() { return true; }
+	virtual bool ANCExecHdlr() { return true; }
+	virtual bool ALRExecHdlr() { return true; }
+	virtual bool ARRExecHdlr() { return true; }
+	virtual bool LASExecHdlr() { return true; }
+	virtual bool RLAExecHdlr() { return true; }
+	virtual bool RRAExecHdlr() { return true; }
+	virtual bool SAXExecHdlr() { return true; }
+	virtual bool SLOExecHdlr() { return true; }
+	virtual bool SREExecHdlr() { return true; }
+	virtual bool undefinedExecHdlr() { return true; }
 
 	string getState();
 
 	// Ports that can be connected to other devices
-	int NMI = 0, IRQ = 0, SO = 0, RDY = 0, SYNC = 0;
+	int NMI = 0, IRQ = 0, SO = 0, RDY = 0, SYNC = 0, RW = 0;
+	int ADDRESS = 0, DATA = 0;
 	uint8_t mNMI = 0x1;
 	uint8_t mIRQ = 0x1;
 	uint8_t mSO = 0x1;
 	uint8_t mRDY = 0x1;
 	uint8_t mSYNC = 0x1;
+	uint8_t mRW = 0x1;// 1 for read, 0 for write
+	uint16_t mADDRESS = 0x0;
+	uint8_t mDATA = 0x0;
 
 	uint8_t pNMI = 0x1;
 	uint8_t pIRQ = 0x1;
 	uint8_t pSO = 0x1;
+
 	
 
-	int mRAccAdr = -1;
-	int mWAccAdr = -1;
-	uint8_t mReadVal8 = 0xff;
-	uint8_t mWrittenVal = 0xff;
-	uint16_t mOpcodePC = 0xffff;
-	uint8_t mOpcode = 0xff;
-	uint16_t mOperand16 = 0xffff;
-	uint16_t mOperandAddress = 0xffff;	
 	
-	bool writeDevice(uint16_t adr, uint8_t data);
 
-	bool readProgramMem(uint16_t adr, uint8_t& data);
-	bool readProgramMem(uint16_t adr, uint8_t& data, bool adjustTiming);
-	bool readZP(uint8_t adr, uint8_t& data);
+	// State of the current instruction execution
+	uint8_t mOpcode = 0xff;			
+	uint16_t mOperand16 = 0xffff;		// The operand bytes (up to two bytes) of the current instruction (if applicable)
+	uint16_t mOpcodePC = 0xffff;		// The program counter value at which the opcode of the current instruction was fetched
+	uint16_t mOperandAddress = 0;		// Calculated effective address of the instruction's operand (if applicable)
+	uint8_t mReadVal = 0xff;			// Value read from memory as part of the operand evaluation (if applicable)
+	uint8_t mWrittenVal = 0xff;			// Value written to memory as part of the instruction execution (if applicable)
+	int mRAccAdr = -1;					// Memory address read by the instruction (if applicable) or -1 if no memory read is made or the instruction only reads from the accumulator
+	int mWAccAdr = -1;					// Memory address written to by the instruction (if applicable) or -1 if no memory write is made or the instruction only writes to the accumulator
 
-	string getInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister);
-	string getCallStack();
-
-	void push(uint8_t v);
-	void pull(uint8_t& v);
-	void pushWord(uint16_t word);
-	void pullWord(uint16_t& word);
-	string stack2Str();
-	
-	void  adjustForWaitStates(MemoryMappedDevice* dev);
 
 	DeviceManager* mDeviceManager = NULL;
 
@@ -240,30 +215,32 @@ private:
 
 	int mMemLogAdr = -1;
 
-	bool serveNMI();
-	bool serveIRQ();
+	virtual bool serveNMI() { return true; }
+	virtual bool serveIRQ() { return true; }
+
+	bool readMem(uint16_t address, uint8_t& data);
+	bool writeMem(uint16_t address, uint8_t data);
+
+	string stack2Str();
+	string getInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister);
+	string getCallStack();
 
 public:
-
-	bool readDevice(uint16_t adr, uint8_t& data);
 
 	MemoryMappedDevice* mZPMemDev = NULL;
 	MemoryMappedDevice* mStackMemDev = NULL;
 
-	P6502(string name, double deviceClockRate, double tickRate, DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager *deviceManager);
+	P6502(string name, double deviceClockRate, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~P6502();
 
 	// Reset device
-	bool reset(); 
+	virtual bool reset() { return true; }
 
 	// Device power on
 	bool power() { return reset(); }
 
-	// Advance until time tickTime
-	bool advanceUntil(uint64_t tickTime) override;
-
 	// Advance one instruction if the stop cycle hasn't already been reached
-	bool advanceInstr(uint64_t& endCycle);
+	virtual bool advanceInstr(uint64_t& endCycle) { return true; }
 
 	int getPC() { return (int)mProgramCounter; }
 
@@ -273,7 +250,7 @@ public:
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;
 
-	int readAdr(uint8_t& data) { data = mReadVal8;  return (int)mRAccAdr; }
+	int readAdr(uint8_t& data) { data = mReadVal;  return (int)mRAccAdr; }
 	int writtenAdr(uint8_t& data) { data = mWrittenVal;  return (int)mWAccAdr; }
 	int operandAddress() { return (int)mOperandAddress; }
 

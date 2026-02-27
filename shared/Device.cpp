@@ -69,6 +69,33 @@ bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int& ind
 }
 
 // Used by a device to make a port available for routing
+bool Device::registerPort(string name, PortDirection dir, int& index, uint16_t* val)
+{
+	index = mPortIndex++;
+	DevicePort* device_port = new DevicePort();
+	device_port->dev = this;
+	device_port->name = name;
+	device_port->dir = dir;
+	device_port->localIndex = index;
+	device_port->val16 = val;
+	device_port->sz = 16;
+
+	device_port->globalIndex = -1;
+	if (DBG_LEVEL_DEV(this, DBG_DEVICE))
+		cout << "DEVICE ADDS PORT " << mConnectionManager->printDevicePort(device_port) << "\n";
+
+	mPorts.push_back(device_port);
+
+	mConnectionManager->addDevicePort(this, device_port);
+
+	if (VERBOSE_EXT_OUTPUT)
+		cout << "ADDED " << this->name << " " << _PORT_DIR(dir) << " PORT '" << name << "' #" << dec << index << " (#" << device_port->globalIndex << ")\n";
+
+
+	return true;
+}
+
+// Used by a device to make a port available for routing
 bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &index, uint8_t *valIn, uint8_t *valOut)
 {
 	
@@ -204,6 +231,66 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 	return true;
 }
 
+bool Device::update16BitPort(int index, uint16_t val, bool forceUpdate)
+{
+	if(index < 0 || index >= mPorts.size())
+		return false;
+
+	// Get reference to the source port
+	DevicePort& port = *mPorts[index];
+
+	// Check that the source port is not an input port
+	if (port.dir == IN_PORT) {
+		cout << "INTERNAL ERROR - attempt to use the INPUT port '" << port.dev->name << ":" << port.name << "' as an output port!\n";
+		return false;
+	}
+
+	// Get reference to the current source port value
+	uint16_t& port_val = *port.val16;
+
+	// No need to propagate value if there are no connected ports...
+	if (port.fanOut < 1) {
+		port_val = val;
+		return true;
+	}
+
+	// Changes or enforced update?
+	bool changed = port_val != val || forceUpdate;
+
+	// Update the source port value with the new value
+	port_val = val;
+
+	// No need to progate value if the source port is unchanged unless an update is enforced
+	if (!changed)
+		return true;
+
+	// Update the destination ports based on the new value
+	for (int i = 0; i < port.inputs.size(); i++) {
+
+		InputReference& input = port.inputs[i];
+
+		if (updateDstPortValue(&port, input, val)) { // update destination port on change
+
+			// Call direct processing on the receiving device - if specified by configuration
+			if (input.process)
+				input.port->dev->processPortUpdate(input.port->localIndex);
+
+		}
+
+	}
+
+	return true;
+}
+
+bool Device::updateDstPortValue(DevicePort* srcPort, InputReference& dstPort, uint16_t srcVal)
+{
+	uint16_t* dst_val_p = dstPort.port->val16;
+	uint16_t pval = *dst_val_p;
+	*dst_val_p = srcVal;
+
+	return true;
+}
+
 //
 // Update a destination port based on a source port value
 //
@@ -230,7 +317,7 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 	nval = ((pval & ~dst_sel_mask) | nval_or) & dst_mask;
 
 	vector <OutputReference>& dst_port_sources = dstPort.port->portSources;
-	int dst_port_sources_sz = dst_port_sources.size();
+	int dst_port_sources_sz = (int)dst_port_sources.size();
 
 	// Always update the destination port's recollection of the source port's value
 	// - Needed as the value change below is w.r.t the arbitrated value and not w.r.t the 
@@ -287,7 +374,10 @@ bool Device::updatePorts()
 {
 	for (int i = 0; i < mPorts.size(); i++) {
 		if ((mPorts[i]->dir == OUT_PORT || mPorts[i]->dir == IO_PORT)) {
-			if (!updatePort(i, *(mPorts[i]->valOut), true)) // force update of each connected output/bidirectional port
+			if (
+				mPorts[i]->sz > 8 && !update16BitPort(i, *(mPorts[i]->val16),true) ||
+				mPorts[i]->sz  <= 8 && !updatePort(i, *(mPorts[i]->valOut), true)
+			) // force update of each connected output/bidirectional port
 				return false;
 		}
 	}

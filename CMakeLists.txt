@@ -171,5 +171,3 @@ ELSEIF(UNIX)
 ENDIF()
 set(CPACK_SOURCE_GENERATOR "TGZ")
 include(CPack)
-
-add_subdirectory("Atom")

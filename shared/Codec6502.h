@@ -51,15 +51,15 @@ public:
 	enum Mode {
 		Accumulator,	// OPC A
 		Implied,		// OPC
-		Relative,		// OPC <branch target>	-- add one cycle if page boundary crosseds
+		Relative,		// OPC <branch target>	-- add one cycle if branch taken, add one more if page boundary crossed
 		Immediate,		// OPC #$12
 		ZeroPage,		// OPC $12
 		ZeroPage_X,		// OPC $12,X
-		ZeroPage_Y,		// OPC $12,Y			-- add one cycle if page boundary crossed for some instructions
+		ZeroPage_Y,		// OPC $12,Y
 		Absolute,		// OPC $1234
 		Absolute_X,		// OPC $1234,X			-- add one cycle if page boundary crossed for some instructions
 		Absolute_Y,		// OPC $1234,Y			-- add one cycle if page boundary crossed for some instructions
-		Indirect,		// OPC ($1234)
+		Indirect,		// OPC ($1234)			-- add one cycle if page boundary crossed for CMOS JMP instruction
 		PreInd_X,		// OPC ($12),X
 		PostInd_Y,		// OPC ($12),Y			-- add one cycle if page boundary crossed for some instructions
 		UndefinedMode	// Undefined

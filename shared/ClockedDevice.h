@@ -29,11 +29,15 @@ public:
 
 	ClockedDevice(double tickRate, double deviceClockRate);
 
+	// Advance the device time by the specified number of device cycles and return the current device cycle count after the advance
 	uint64_t deviceTick(int deviceCycles);
+
+	// Advance the device time by the specified number of device cycles without changing the device cycle count and return the current device cycle count after the advance
+	uint64_t advanceTimeOnly(int deviceCycles);
 
 	uint64_t timeTick(int ticks);
 
-	uint64_t getDeviceClockRate() { return mDeviceClockRate;  }
+	double getDeviceClockRate() { return mDeviceClockRate;  }
 
 
 };

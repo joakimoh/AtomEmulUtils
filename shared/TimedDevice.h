@@ -33,7 +33,7 @@ public:
 
 	void timeTick(int ticks) { mTicks += ticks; }
 
-	uint64_t getTickRate() { return mTickRate; }
+	double getTickRate() { return mTickRate; }
 
 
 };
