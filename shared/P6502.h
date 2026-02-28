@@ -193,10 +193,8 @@ protected:
 	uint8_t pIRQ = 0x1;
 	uint8_t pSO = 0x1;
 
+	InstrLogData mInstrLogData; // Saved data about the last executed instruction - to be used for logging and debugging purposes
 	
-
-	
-
 	// State of the current instruction execution
 	uint8_t mOpcode = 0xff;			
 	uint16_t mOperand16 = 0xffff;		// The operand bytes (up to two bytes) of the current instruction (if applicable)
@@ -224,6 +222,8 @@ protected:
 	string stack2Str();
 	string getInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister);
 	string getCallStack();
+
+	bool setInstrLogData();
 
 public:
 

@@ -112,7 +112,7 @@ private:
 
 	// Temp variables for the reset()
 	bool resetHdlr();
-	uint8_t mResetVecLow = 0;
+	uint8_t mVecLow = 0;
 
 	// Servicing of NMI and IRQ
 	bool serveNMI() override;
@@ -132,7 +132,8 @@ private:
 	bool initMemRead(uint16_t adr);
 	bool prepMemRead(uint16_t adr);	
 	bool initOperandByteRead();
-	bool initDummyByteRead();
+	bool initDummyRead();
+	bool initDummyRead(uint16_t adr);
 
 	// Write a byte to memory at the address specified by the current instruction and addressing mode. Returns false if an error occurs.
 	bool initMemWrite(uint16_t adr, uint8_t val);
@@ -162,6 +163,9 @@ private:
 	bool mReadingOperandByte = true; // Whether the current memory access is for reading an operand byte (as opposed to for executing the instruction or for a dummy read)
 	uint8_t mOperandBytes[2] = { 0 }; // For instructions with operand fetch cycles, this is used to store the operand byte(s) read during these cycles
 	int mOperandByteCount = 0; // For instructions with operands, this is used to keep track of how many operand bytes have been read so far during these cycles
+
+	enum InterruptState { NONE, NMI_PENDING, IRQ_PENDING, RESET_PENDING } mInterruptState = NONE; // Whether a RESET, an NMI or an IRQ is pending
+	uint16_t mInterruptVector = 0; // The interrupt vector to jump to when the pending interrupt is executed
 
 public:
 

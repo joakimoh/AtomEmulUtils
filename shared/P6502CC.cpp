@@ -102,7 +102,6 @@ bool P6502CC::advanceInstr(uint64_t& endTick)
 			mWAccAdr = mOperandAddress;
 	}
 
-
 	endTick = mTicks;
 
 	return true;
@@ -111,20 +110,19 @@ bool P6502CC::advanceInstr(uint64_t& endTick)
 // Initialise the CPU state for fetching the next instruction (fetching the opcode of the next instruction will be done in the next cycle by executeInstrMicroCycle)
 bool P6502CC::initFetch()
 {
-	// Log previously executed instruction if enabled
+	mExpectedCycles = mOPerandMicroCycle + mExecMicroCycle + 1;
+
+	// Save information about the executed instruction for debugging and tracing purposes
+	setInstrLogData();
+
+	// Log the previously executed instruction if enabled
 	if (DBG_LEVEL_DEV(this, DBG_6502)) {
-		InstrLogData instr_log_data;
-		getInstrLogData(instr_log_data);
 		stringstream sout;
-		printInstrLogData(sout, instr_log_data);
+		printInstrLogData(sout, mInstrLogData);
 		DBG_LOG(this, DBG_6502, sout.str());
 	}
 
-	int observed_cycles = mOPerandMicroCycle + mExecMicroCycle + 1;
-	if (mExpectedCycles != observed_cycles) {
-		cout << "Expected " << mExpectedCycles << " cycles for instruction at PC " << hex << mOpcodePC << " but got " << dec << observed_cycles << " cycles\n";
-		cout << "operand micro cycles = " << mOPerandMicroCycle << " and execution micro cycles =  " << mExecMicroCycle + 1 << "\n";
-	}
+	
 
 	// Uppdate the RW, SYNC & ADDRESS ports for the opcode fetch of the next instruction
 	updatePort(RW, 1); // Set R/W port to read mode
@@ -136,7 +134,6 @@ bool P6502CC::initFetch()
 	mOpcodePC = mProgramCounter;
 	mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the next instruction
 	mExecMicroCycle = 0; // Reset the execution microcycle counter for the next instruction
-	mExpectedCycles = 0;
 
 	// Advance the program counter to point either to the first operand byte or (/if there are no operands) the next instruction's opcode 
 	mProgramCounter++;
@@ -149,8 +146,6 @@ bool P6502CC::completeFetch()
 	mOpcode = mDATA;
 	pInstructionData = &(pInstrDataTbl->data[mOpcode]); // Execution info
 	pInstructionInfo = &(pInstructionData->info); // Opcode info only
-
-	mExpectedCycles = pInstructionInfo->cycles;
 
 	return true;
 }
@@ -187,11 +182,18 @@ bool P6502CC::initOperandByteRead()
 	return initMemRead(mProgramCounter++);
 }
 
-bool P6502CC::initDummyByteRead()
+bool P6502CC::initDummyRead()
 {
 	mReadingOperandByte = false;
 	return initMemRead(mProgramCounter++);
 }
+
+bool P6502CC::initDummyRead(uint16_t adr)
+{
+	mReadingOperandByte = false;
+	return initMemRead(adr);
+}
+
 bool P6502CC::executeInstrMicroCycle()
 {
 	mResetTransition = mRESET != pRESET;
@@ -213,14 +215,12 @@ bool P6502CC::executeInstrMicroCycle()
 			mCPUExecState = IN_RESET; // Set the CPU execution state to (in the next cycle) be in reset processing
 			mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the reset sequence
 			mExecMicroCycle = -1; // Reset the execution microcycle counter (even if not used for the reset sequence)
-			mExpectedCycles = 7;
 		}
 
 		if (!mIRQ && !I_flag) {
 			mCPUExecState = IN_IRQ; // Set the CPU execution state to (in the next cycle) be in IRQ processing
 			mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the reset sequence
 			mExecMicroCycle = -1; // Reset the execution microcycle counter (even if not used for the reset sequence)
-			mExpectedCycles = 7;
 		}
 
 		if (!mNMI && mNmiTransition) {
@@ -228,7 +228,6 @@ bool P6502CC::executeInstrMicroCycle()
 			mCPUExecState = IN_NMI; // Set the CPU execution state to (in the next cycle) be in NMI processing
 			mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the reset sequence
 			mExecMicroCycle = -1; // Reset the execution microcycle counter (even if not used for the reset sequence)
-			mExpectedCycles = 7;
 		}
 		else if (mNMI)
 			mNmiTransition = false;
@@ -263,8 +262,7 @@ bool P6502CC::reset()
 {
 	mCPUExecState = IN_RESET; // Set the CPU execution state to (in the next cycle) be in reset
 	mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the reset sequence
-	mExecMicroCycle = -1; // Reset the execution microcycle counter (even if not used for the reset sequence)
-	mExpectedCycles = 7;
+	mExecMicroCycle = -1; // Reset the execution microcycle counter (even if not used for the reset sequence);
 
 	return true;
 }
@@ -278,13 +276,13 @@ bool P6502CC::resetHdlr()
 	Device::reset();
 
 	switch (mOPerandMicroCycle++) {
-	case 0:initMemRead(0x00ff); return true; // dummy read always made by NMOS 6502
-	case 1:initMemRead(0x0100); return true; // dummy read always made by NMOS 6502
-	case 2:initMemRead(0x01ff); return true; // dummy read always made by NMOS 6502
-	case 3:initMemRead(0x01fe); return true; // dummy read always made by NMOS 6502
-	case 4:initMemRead(0xfffc); return true; // dummy read always made by NMOS 6502
-	case 5:mResetVecLow = mDATA; initMemRead(0xfffd); return true; // read low byte of reset vector
-	case 6:mProgramCounter = (mDATA << 8) | mResetVecLow; initFetch();; return true; // read high byte of reset vector
+	case 0:initDummyRead(0x00ff); return true; // dummy read always made by NMOS 6502
+	case 1:initDummyRead(0x0100); return true; // dummy read always made by NMOS 6502
+	case 2:initDummyRead(0x01ff); return true; // dummy read always made by NMOS 6502
+	case 3:initDummyRead(0x01fe); return true; // dummy read always made by NMOS 6502
+	case 4:initMemRead(0xfffc); return true; // init reading of the low byte of the reset vector
+	case 5:mVecLow = mDATA; initMemRead(0xfffd); return true; // get the low byte of the reset vector
+	case 6:mProgramCounter = (mDATA << 8) | mVecLow; initFetch();; return true; // PC = reset vector, prepare for fetching the next instruction
 	default:
 		return false;
 	}
@@ -309,13 +307,13 @@ bool P6502CC::accAdrHdlr()
 	return impliedAdrHdlr();
 }
 
-// Instructions with implied or accumulator addressing mode (like ASL A, NOP or CLC)
+// Instructions with implied or accumulator addressing mode (like BRK, ASL A, NOP or CLC)
 bool P6502CC::impliedAdrHdlr()
 {
 	switch (mOPerandMicroCycle++) {
 	
 	case 0:
-		initDummyByteRead(); mCPUExecState = EXECUTE_INSTRUCTION; return true; // dummy read always made by NMOS 6502
+		initDummyRead(); mCPUExecState = EXECUTE_INSTRUCTION; return true; // dummy read always made by NMOS 6502
 	
 	default:
 		return false;
@@ -328,6 +326,7 @@ bool P6502CC::immediateAdrHdlr()
 	switch (mOPerandMicroCycle++) {
 
 	case 0:
+
 		initOperandByteRead(); mCPUExecState = EXECUTE_INSTRUCTION; return true; // iniitialize the read of immediate operand byte (the read will be performed in the next cycle by executeInstrMicroCycle)
 
 	default:
@@ -350,6 +349,7 @@ bool P6502CC::relativeAdrHdlr()
 	switch (mOPerandMicroCycle++) {
 
 	case 0:
+
 		initOperandByteRead(); mCPUExecState = EXECUTE_INSTRUCTION;
 		return true;
 	
@@ -382,6 +382,7 @@ bool P6502CC::absoluteAdrHdlr()
 		return true;
 
 	case 1:
+
 		mOperandAddress = mDATA; initOperandByteRead(); mCPUExecState = EXECUTE_INSTRUCTION;
 		return true;
 	
@@ -443,12 +444,12 @@ bool P6502CC::ANDExecHdlr() { return true; }
 // N	Z	C	I	D	V
 // +	+	+	-	-	-
 //
-// Mode			Syntax		OPC	Bytes	Cycles
-// accumulator	ASL A		0A	1		2
-// zeropage		ASL oper	06	2		5
-// zeropage,X	ASL oper,X	16	2		6
-// absolute		ASL oper	0E	3		6
-// absolute,X	ASL oper,X	1E	3		7
+// Mode			Syntax		Opcode	Bytes	Cycles
+// accumulator	ASL A		0A		1		2
+// zeropage		ASL oper	06		2		5
+// zeropage,X	ASL oper,X	16		2		6
+// absolute		ASL oper	0E		3		6
+// absolute,X	ASL oper,X	1E		3		7
 //
 bool P6502CC::ASLExecHdlr()
 {
@@ -456,6 +457,7 @@ bool P6502CC::ASLExecHdlr()
 	switch (mExecMicroCycle++) {
 
 	case 0:
+
 		if (!pInstructionInfo->writesMem)
 			mReadVal = mAcc;
 		else
@@ -474,10 +476,12 @@ bool P6502CC::ASLExecHdlr()
 		return true;
 
 	case 1:
+
 		initMemWrite(mOperandAddress, mCalcVal);
 		return true;
 
 	case 2:
+
 		initFetch();
 		return true;
 
@@ -499,30 +503,43 @@ bool P6502CC::ASLExecHdlr()
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
+// Mode			Syntax		Opcode	Bytes	Cycles
+// relative		BCC oper	90		2		2+
+// 
+// The branch is taken if the carry flag is clear (C = 0).
+// If the branch is taken, the program counter is set to the address of the branch target and the next instruction is fetched from there.
+// If the branch is not taken, the program counter is not modified and the next instruction is fetched from the next address after the branch instruction as usual.
+// The number of cycles taken by a branch instruction depends on whether the branch is taken (+1) or not (+0) and on whether a page boundary is crossed when branching (+1).
+//
 bool P6502CC::BCCExecHdlr()
 {
 	if (!C_flag) {
+
 		// Branch taken, so set the program counter to the branch target address and fetch the next instruction in one or two cycles (depending on if a page boundary is crossed or not)
 		switch (mExecMicroCycle++) {
+
 		case 0:	
-			mExpectedCycles++;
+
 			mOperandAddress = ((int8_t)mDATA + mProgramCounter) & 0xffff;
 			if (!pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
-				mExpectedCycles++;
-				initDummyByteRead(); // A dummy read is always made
+				initDummyRead(); // A dummy read is always made
 				return true;
 			}
 			mProgramCounter = mOperandAddress;
 			initFetch();
 			return true;
+
 		case 1:
+
 			mProgramCounter = mOperandAddress;
 			initFetch();
 			return true;
+
 		default:
 			return false;
 		}
 	}
+
 	// No branch taken, so just fetch the next instruction
 	initFetch();
 	return true;
@@ -535,7 +552,91 @@ bool P6502CC::BITExecHdlr() { return true; }
 bool P6502CC::BMIExecHdlr() { return true; }
 bool P6502CC::BNEExecHdlr() { return true; }
 bool P6502CC::BPLExecHdlr() { return true; }
-bool P6502CC::BRKExecHdlr() { return true; }
+
+
+//
+// BRK (as well as handling an IRQ and an NMI)
+//
+// Force Break
+// 
+// Initiates a software interrupt
+// 
+// push PC+2, push SR (together with a set b4 <=> B)
+// 
+// The high PC byte is pushed first (so that the PC is stored in little endian format in the memory)
+// 
+// N	Z	C	I	D	V
+// -	-	-	1	-	-
+//
+//	Mode		Syntax		Opcode	Bytes	Cycles
+//	implied		BRK			00		1		7
+//
+bool P6502CC::BRKExecHdlr()
+{
+	// The first micro cycle has already been executed for a BRK instruction when this handler
+	// is called (the speculative - and dummy - read of a potentially next instruction's opcode),
+	// so then we start with the second micro cycle. When servicing an NMI or an IRQ, there has
+	// been no opcode fetch, so we start with the first micro cycle instead.
+	int exec_cycle = (mInterruptState == NONE ? mExecMicroCycle++ + 1 : mExecMicroCycle++);
+
+	switch (exec_cycle) {
+
+	case 0:
+
+		initDummyRead(); return true; // dummy read at current PC (PC also incremented by 1 after this read)
+
+	case 1:
+
+		// Push high byte of the program counter to the stack (the low byte of the program counter is not pushed to the stack until the next cycle, so that the PC is stored in little endian format in the memory)
+		initMemWrite(0x100 | (uint16_t)mStackPointer--, mProgramCounter >> 8);
+		return true;
+
+	case 2:
+
+		// Push the low byte of the program counter to the stack
+		initMemWrite(0x100 | (uint16_t)mStackPointer--, mProgramCounter & 0xff);
+
+		return true;
+
+	case 3:
+
+		// Push the status register to the stack with the break flag (B) set
+		initMemWrite(0x100 + (uint16_t)mStackPointer--, mStatusRegister | B_set_mask);
+		return true;
+
+	case 4:
+
+		if (mInterruptState != NONE)
+			mStatusRegister |= I_set_mask; // (For an NMI and an IRQ) set the interrupt disable flag to prevent further interrupts until the RTI instruction is executed
+
+		// Choose interrupt vector based on the type of interrupt (NMI or IRQ/BRK)
+		if (mInterruptState == NMI_PENDING)
+			mInterruptVector = 0xfffa; // NMI
+		else 
+			mInterruptVector = 0xfffe; // IRQ or BRK
+
+		initMemRead(mInterruptVector);
+		return true; // init reading of the low byte of the BRK/IRQ/NMI vector
+
+	case 5:
+		
+		mVecLow = mDATA;
+		initMemRead(mInterruptVector + 1);
+		return true; // get the low byte of the interrupt vector; prepare reading of the high byte of interrupt vector
+
+	case 6:
+		
+		mProgramCounter = (mDATA << 8) | mVecLow;
+		mInterruptState = NONE; // reset the interrupt state
+		initFetch();
+		return true; // PC = BRK vector; prepare fetching of the next instruction
+
+	default:
+		return false;
+	}
+}
+
+
 bool P6502CC::BVCExecHdlr() { return true; }
 bool P6502CC::BVSExecHdlr() { return true; }
 bool P6502CC::CLCExecHdlr() { return true; }
@@ -585,15 +686,15 @@ bool P6502CC::JSRExecHdlr() { return true; }
 // +	+	-	-	-	-
 //
 //
-// Mode			Syntax		OPC	Bytes	Cycles
-// immediate	LDA #oper	A9	2		2  
-// zeropage		LDA oper	A5	2		3
-// zeropage,X	LDA oper,X	B5	2		4
-// absolute		LDA oper	AD	3		4
-// absolute,X	LDA oper,X	BD	3		4+
-// absolute,Y	LDA oper,Y	B9	3		4+
-// (indirect,X)	LDA(oper,X)	A1	2		6
-// (indirect),Y	LDA(oper),Y	B1	2		5+
+// Mode			Syntax		Opcode	Bytes	Cycles
+// immediate	LDA #oper	A9		2		2  
+// zeropage		LDA oper	A5		2		3
+// zeropage,X	LDA oper,X	B5		2		4
+// absolute		LDA oper	AD		3		4
+// absolute,X	LDA oper,X	BD		3		4+
+// absolute,Y	LDA oper,Y	B9		3		4+
+// (indirect,X)	LDA(oper,X)	A1		2		6
+// (indirect),Y	LDA(oper),Y	B1		2		5+
 
 bool P6502CC::LDAExecHdlr()
 {
@@ -642,7 +743,7 @@ bool P6502CC::SEIExecHdlr() { return true; }
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
-// Mode			Syntax		OPC	Bytes	Cycles
+// Mode			Syntax		Opcode	Bytes	Cycles
 // zeropage		STA oper	85	2		3  
 // zeropage,X	STA oper,X	95	2		4
 // absolute		STA oper	8D	3		4

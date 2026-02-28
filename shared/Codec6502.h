@@ -49,20 +49,41 @@ public:
 	};
 
 	enum Mode {
-		Accumulator,	// OPC A
-		Implied,		// OPC
-		Relative,		// OPC <branch target>	-- add one cycle if branch taken, add one more if page boundary crossed
-		Immediate,		// OPC #$12
-		ZeroPage,		// OPC $12
-		ZeroPage_X,		// OPC $12,X
-		ZeroPage_Y,		// OPC $12,Y
-		Absolute,		// OPC $1234
-		Absolute_X,		// OPC $1234,X			-- add one cycle if page boundary crossed for some instructions
-		Absolute_Y,		// OPC $1234,Y			-- add one cycle if page boundary crossed for some instructions
-		Indirect,		// OPC ($1234)			-- add one cycle if page boundary crossed for CMOS JMP instruction
-		PreInd_X,		// OPC ($12),X
-		PostInd_Y,		// OPC ($12),Y			-- add one cycle if page boundary crossed for some instructions
-		UndefinedMode	// Undefined
+		Accumulator = 0,	// OPC A
+		Implied = 1,		// OPC
+		Relative = 2,		// OPC <branch target>
+		Immediate = 3,		// OPC #$12
+		ZeroPage = 4,		// OPC $12
+		ZeroPage_X = 5,		// OPC $12,X
+		ZeroPage_Y = 6,		// OPC $12,Y
+		Absolute = 7,		// OPC $1234
+		Absolute_X = 8,		// OPC $1234,X
+		Absolute_Y = 9,		// OPC $1234,Y
+		Indirect = 10,		// OPC ($1234)
+		PreInd_X = 11,		// OPC ($12),X
+		PostInd_Y = 12,		// OPC ($12),Y
+		UndefinedMode = 13	// Undefined
+	};
+
+	typedef struct ModeInfo_struct {
+		Mode				mode;
+		bool				addCycleAtPageBoundary; // whether an extra cycle is added if a page boundary is crossed when calculating the effective address for this addressing mode (applicable for some instructions but not all)
+	} ModeInfo;
+
+	static inline vector<ModeInfo> MODE_INFO {
+		{ Accumulator, false },
+		{ Implied, false },
+		{ Relative, true },
+		{ Immediate, false },	// add one cycle if branch taken, add one more if page boundary crossed
+		{ ZeroPage, false },
+		{ ZeroPage_X, false },
+		{ ZeroPage_Y, false },
+		{ Absolute, false },
+		{ Absolute_X, true },	// add one cycle if page boundary crossed for some instructions
+		{ Absolute_Y, true },	// add one cycle if page boundary crossed for some instructions
+		{ Indirect, false },	// add one cycle if page boundary crossed for CMOS JMP instruction only (not for NMOS 6502 where the page boundary crossing bug makes the instruction unusable)
+		{ PreInd_X, false },
+		{ PostInd_Y, true },	// add one cycle if page boundary crossed for some instructions
 	};
 
 	typedef struct InstructionInfo_struct {

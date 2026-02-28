@@ -43,7 +43,6 @@ bool P6502IC::serveNMI()
 	if (!readProgramMem(0xfffa, adr_L) || !readProgramMem(0xfffb, adr_H))
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
-	mStatusRegister |= I_set_mask;
 
 	if (DBG_LEVEL_DEV(this, DBG_INTERRUPTS | DBG_6502)) {
 		DBG_LOG(this, DBG_INTERRUPTS, "Serving NMI at PC = 0x" + Utility::int2HexStr(oProgramCounter, 4) + "\n");
@@ -227,11 +226,10 @@ bool P6502IC::advanceInstr(uint64_t& endTick)
 	mExecutedCycles = end_cycle - start_cycle;
 
 	// Log executed instruction if enabled
+	setInstrLogData();
 	if (DBG_LEVEL_DEV(this, DBG_6502)) {
-		InstrLogData instr_log_data;
-		getInstrLogData(instr_log_data);
 		stringstream sout;
-		printInstrLogData(sout, instr_log_data);
+		printInstrLogData(sout, mInstrLogData);
 		DBG_LOG(this, DBG_6502, sout.str());
 	}
 

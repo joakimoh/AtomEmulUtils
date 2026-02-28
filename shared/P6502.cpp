@@ -486,36 +486,41 @@ bool P6502::outputState(ostream& sout)
 }
 
 bool P6502::getInstrLogData(InstrLogData& instrLogData) {
-	instrLogData.logTime = getCycleCount() / (mTickRate * 1e6);
-	instrLogData.instr = pInstructionInfo;
-	instrLogData.A = mAcc;
-	instrLogData.X = mRegisterX;
-	instrLogData.Y = mRegisterY;
-	instrLogData.SP = mStackPointer;
-	instrLogData.SR = mStatusRegister;
-	instrLogData.opcodePC = mOpcodePC;
-	instrLogData.PC = mProgramCounter;
-	instrLogData.opcode = mOpcode;
-	instrLogData.operand = mOperand16;
-	instrLogData.accessAdr = mOperandAddress;
-	instrLogData.activeIRQ = (!mIRQ && mIrqTransition);
-	instrLogData.activeNMI = (!mNMI && mNmiTransition);
-	instrLogData.execFailure = !mExecSuccess;
-	instrLogData.readVal = mReadVal;
-	instrLogData.writtenVal = mWrittenVal;
+	instrLogData = mInstrLogData;
+	return true;
+}
+
+bool P6502::setInstrLogData() {
+	mInstrLogData.logTime = getCycleCount() / (mTickRate * 1e6);
+	mInstrLogData.instr = pInstructionInfo;
+	mInstrLogData.A = mAcc;
+	mInstrLogData.X = mRegisterX;
+	mInstrLogData.Y = mRegisterY;
+	mInstrLogData.SP = mStackPointer;
+	mInstrLogData.SR = mStatusRegister;
+	mInstrLogData.opcodePC = mOpcodePC;
+	mInstrLogData.PC = mProgramCounter;
+	mInstrLogData.opcode = mOpcode;
+	mInstrLogData.operand = mOperand16;
+	mInstrLogData.accessAdr = mOperandAddress;
+	mInstrLogData.activeIRQ = (!mIRQ && mIrqTransition);
+	mInstrLogData.activeNMI = (!mNMI && mNmiTransition);
+	mInstrLogData.execFailure = !mExecSuccess;
+	mInstrLogData.readVal = mReadVal;
+	mInstrLogData.writtenVal = mWrittenVal;
 	uint16_t a = (0x100 + mStackPointer + 1) & 0x1ff;
 	uint8_t l, h;
 	readMem(a, l);
 	readMem(a + 1, h);
 	uint16_t w = (h << 8) | l;
-	instrLogData.stack = w;
+	mInstrLogData.stack = w;
 
-	instrLogData.cycles = mExecutedCycles;
+	mInstrLogData.cycles = mExecutedCycles;
 
 	if (mMemLogAdr > 0 && mDeviceManager != NULL) {
 		uint8_t data;
 		mDeviceManager->dumpDeviceMemory(mMemLogAdr, data);
-		instrLogData.memContent = (int)data;
+		mInstrLogData.memContent = (int)data;
 	}
 
 	return true;
@@ -533,7 +538,10 @@ bool P6502::printInstrLogData(ostream& sout, InstrLogData& instrLogData)
 
 	string t_s = Utility::encodeCPUTime(instrLogData.logTime);
 
-	sout << t_s << " [" << instrLogData.cycles << "] " << setfill(' ') << setw(30) << left << instr_s << right <<
+	int expected_cycles = instrLogData.instr->cycles;
+	bool possible_extra_cycles = Codec6502::MODE_INFO[instr.mode].addCycleAtPageBoundary;
+	string  expected_cycles_s = to_string(expected_cycles) + (possible_extra_cycles ? + "+": " ");
+	sout << t_s << " [" << instrLogData.cycles << "(" << expected_cycles_s << ")] " << setfill(' ') << setw(30) << left << instr_s << right <<
 		" " << hex << setfill('0') <<
 		"A:" << setw(2) << (int)instrLogData.A <<
 		" X:" << setw(2) << (int)instrLogData.X <<

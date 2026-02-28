@@ -149,8 +149,6 @@ private:
 
 	void  adjustForWaitStates(MemoryMappedDevice* dev);
 
-
-	int mExecutedCycles = 0;
 	bool mExecSuccess = true;
 
 	int mMemLogAdr = -1;
