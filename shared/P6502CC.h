@@ -132,11 +132,11 @@ private:
 	bool initMemRead(uint16_t adr);
 	bool prepMemRead(uint16_t adr);	
 	bool initOperandByteRead();
-	bool initDummyRead();
+	bool initDummyOperandRead();
 	bool initDummyRead(uint16_t adr);
 
 	// Write a byte to memory at the address specified by the current instruction and addressing mode. Returns false if an error occurs.
-	bool initMemWrite(uint16_t adr, uint8_t val);
+	bool prepMemWrite(uint16_t adr, uint8_t val);
 
 	//
 	// The 6502 executes instructions in up to 7 micro cycles (depending on the instruction and addressing mode) and
@@ -149,13 +149,8 @@ private:
 
 	int cPeriod = 1000; // clock period in ns
 
-	// State of the current instruction execution
-	//uint8_t mOpcode = 0;			
-	//uint16_t mOpcodePC = 0;			// The program counter value at which the opcode of the current instruction was fetched
-	//uint16_t mOperandAddress = 0;	// Calculated effective address of the instruction's operand (if applicable)
-	//uint8_t mReadVal = 0;			// Value read from memory as part of the operand evaluation (if applicable)
+	// State of the current instruction execution (in addition to what the base class holds)
 	uint8_t mCalcVal = 0;			// A value calculated as part of the instruction execution (e.g., the result of an addition in ADC) that will be written to memory or a register in a later micro cycle (if applicable)
-	int mExpectedCycles = 0;		// The expected number of cycles for the current instruction execution (used for debugging and tracing)
 
 	int getWaitStates(MemoryMappedDevice* dev);
 	int mPendingWaitStates = 0; // Number of wait states that the CPU needs to wait to complete a memory access to a slow device
@@ -166,6 +161,13 @@ private:
 
 	enum InterruptState { NONE, NMI_PENDING, IRQ_PENDING, RESET_PENDING } mInterruptState = NONE; // Whether a RESET, an NMI or an IRQ is pending
 	uint16_t mInterruptVector = 0; // The interrupt vector to jump to when the pending interrupt is executed
+	bool mPendingNMI = false;
+	bool mPendingIRQ = false;
+	void fakeBRKFetch(); // Make IRQ/NMI appear as a BRK instruction during execution to support tracing also of their execution
+
+	// Temp byte/word used when reading or there is a need to 'remember' a 16-bit value over two micro cycles (usually an address)
+	uint8_t mTmpReadByte = 0x0;
+	uint8_t mTmpReadWord = 0x0;
 
 public:
 
