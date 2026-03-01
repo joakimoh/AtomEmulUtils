@@ -2071,14 +2071,19 @@ bool P6502IC::absoluteXAdrHdlr()
 	// Calculate address and save it for use when executing the specific instruction later on
 	mOperandAddress = mOperand16 + mRegisterX;
 
+	// Add one cycle if page boundary crossed and make dummy read
+	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16)) {
+		uint8_t dummy_byte;
+		readProgramMem(mOperandAddress & 0xff | mOperand16 & 0xff00, dummy_byte); // dummy read
+		tick();
+	}
+
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal' later on when executing the instruction
 	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal))
 		return false;
 
-	// Add one cycle if page boundary crossed
-	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16))
-		tick();
+
 
 	return true;
 }
@@ -2107,14 +2112,17 @@ bool P6502IC::absoluteYAdrHdlr()
 	// Calculate address and save it for use when executing the specific instruction later on
 	mOperandAddress = mOperand16 + mRegisterY;
 
+	// Add one cycle if page boundary crossed and make dummy read
+	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16)) {
+		uint8_t dummy_byte;
+		readProgramMem(mOperandAddress & 0xff | mOperand16 & 0xff00, dummy_byte); // dummy read
+		tick();
+	}
+
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal' later on when executing the instruction
 	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal))
 		return false;
-
-	// Add one cycle if page boundary crossed
-	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16))
-		tick();
 
 	return true;
 }
@@ -2127,36 +2135,30 @@ bool P6502IC::absoluteYAdrHdlr()
 // Read 16-bit little-endian word from Mem[Mem[<absolute address>]]
 // 
 // e.g., JMP ($1234)
+// 
+// Only used for the JMP instruction
 //
 bool P6502IC::indirectAdrHdlr()
 {
 
 	// Read address operand
-	uint8_t a_L, a_H;
-	if (!readProgramMem(mProgramCounter++, a_L))
+	uint8_t lookup_address_L, lookup_address_H;
+	if (!readProgramMem(mProgramCounter++, lookup_address_L))
 		return false;
-	if (!readProgramMem(mProgramCounter++, a_H))
+	if (!readProgramMem(mProgramCounter++, lookup_address_H))
 		return false;
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
-	mOperand16 = (a_H << 8) | a_L;
+	mOperand16 = (lookup_address_H << 8) | lookup_address_L;
 
-	// Read indirect address
-	uint16_t adr_i = mOperand16;
-	if (!readDevice(adr_i, a_L) || !readDevice(adr_i + 1, a_H))
+	// Read indirect (effective) address; crossing page boundary for the lookup address + 1 is ignored
+	uint16_t lookup_address = mOperand16;
+	uint8_t effective_address_L, effective_address_H;
+	if (!readDevice(lookup_address, effective_address_L) || !readDevice((mOperand16 & 0xff00) | (lookup_address + 1) & 0xff, effective_address_H))
 		return false;
 
-	// Calculate address and save it for use when executing the specific instruction later on
-	mOperandAddress = (a_H << 8) | a_L;
-
-	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
-	// to make it available as 'mReadVal' later on when executing the instruction
-	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal))
-		return false;
-
-	// Add one cycle if page boundary is crossed fpr the indirect address
-	if (pInstructionInfo->addCycleAtPageBoundary && (adr_i ^ (adr_i + 1)) != 0)
-		tick();
+	// Calculate effective address
+	mOperandAddress = (effective_address_H << 8) | effective_address_L;
 
 	return true;
 }
@@ -2182,14 +2184,13 @@ bool P6502IC::preIndXAdrHdlr()
 	mOperand16 = zp_a;
 
 	// Read indirect address
-	uint8_t mem_a = zp_a + mRegisterX;
-	uint8_t mem_a_1 = mem_a + 1; // allow value to wrap around as for an actual NMOS 6502
-	uint8_t a_L, a_H;
-	if (!readZP(mem_a, a_L) || !readZP(mem_a_1, a_H))
+	uint8_t lookup_address = zp_a + mRegisterX;
+	uint8_t effective_address_L, effective_address_H;
+	if (!readZP(lookup_address, effective_address_L) || !readZP((lookup_address + 1) & 0xff, effective_address_H))
 		return false;
 
-	// Calculate address and save it for use when executing the specific instruction later on
-	mOperandAddress = (a_H << 8) | a_L;
+	// Calculate the effective address and save it for use when executing the specific instruction later on
+	mOperandAddress = (effective_address_H << 8) | effective_address_L;
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal' later on when executing the instruction
@@ -2220,14 +2221,14 @@ bool P6502IC::postIndYAdrHdlr()
 	mOperand16 = zp_a;
 
 	// Read Indirect address -  e.g. ($12)
-	uint8_t a_L, a_H;
+	uint8_t effective_address_L, effective_address_H;
 	uint8_t zp_a_1 = zp_a + 1; // allow value to wrap around as for an actual NMOS 6502
-	if (!readZP((uint16_t)zp_a, a_L) || !readZP((uint16_t)zp_a_1, a_H))
+	if (!readZP((uint16_t)zp_a, effective_address_L) || !readZP((uint16_t)zp_a_1, effective_address_H))
 		return false;
-	uint16_t mem_a = (a_H << 8) | a_L;
+	uint16_t effective_address = (effective_address_H << 8) | effective_address_L;
 
 	// Calculate address and save it for use when executing the specific instruction later on
-	mOperandAddress = mem_a + mRegisterY;
+	mOperandAddress = effective_address + mRegisterY;
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal' later on when executing the instruction
@@ -2235,7 +2236,7 @@ bool P6502IC::postIndYAdrHdlr()
 		return false;
 
 	// Add one cycle if page boundary crossed
-	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mem_a, mOperandAddress))
+	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(effective_address, mOperandAddress))
 		tick();
 
 	return true;

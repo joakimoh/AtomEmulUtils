@@ -139,13 +139,24 @@ private:
 	bool prepMemWrite(uint16_t adr, uint8_t val);
 
 	//
-	// The 6502 executes instructions in up to 7 micro cycles (depending on the instruction and addressing mode) and
-	// the internal state of the device can change in each of these micro cycles. The mOPerandMicroCycle and mExecMicroCycle are used to keep
-	// track of which micro cycle of the instruction execution we are in.
-	// In the last cycle, the next instruction will always be fetched.
+	// The 6502 executes instructions in (depending on the instruction and addressing mode) up to 7 micro cycles  and
+	// the internal state of the device can change in each of these micro cycles. Many of the micro cycles are spent
+	// on reading and evaulating the operand considering the addressing mode specified (as given by the opcode) for the instruction of concern .
+	// These micro cycles look to a large extent the same for one and the same addressing mode, irrespectively of what instruction is
+	// being executed. For that reason the micro cycles spent on reading and evaulating the operand are here emulated in a
+	// non-instrcuction context as operand micro cycles (mOPerandMicroCycle specifies the current one being executed when CPUExecState
+	// is FETCH_OPERAND). The instruction-specific micro cycles are referred to as execution micro cycles (mExecMicroCycle specifies
+	// the current one being executed when CPUExecState is EXECUTE_INSTRUCTION) and are emulated for one and the same instruction
+	// (e.g., LDA) independently of the addressing mode. This makes it possible to re-use a lot of the micro cycle emulation code.
+	// 
+	// However, sometimes the last operand micro cycle needs to be interleaved with the first execution micro cycle (i.e. they
+	// correspond to the same actual micro cycle) to handle certain special cases. For those cases, CPUExecState is set to
+	// EXECUTE_INSTRUCTION_DIRECTLY when executing the last operand micro cycle so a direct transition is made to the first
+	// execution cycle within the same actual micro cycle.
+	// 
 	int mOPerandMicroCycle = 0; // For instructions with operand fetch cycles, this is used to keep track of which operand fetch cycle we are in (if more than one)
 	int mExecMicroCycle = 0; // For instructions with execution cycles, this is used to keep track of which execution cycle we are in (if more than one)
-	enum CPUExecState { IN_RESET, IN_IRQ, IN_NMI, FETCH_OPCODE, FETCH_OPERAND, EXECUTE_INSTRUCTION, UNDEFINED } mCPUExecState = UNDEFINED;
+	enum CPUExecState { IN_RESET, IN_IRQ, IN_NMI, FETCH_OPCODE, FETCH_OPERAND, EXECUTE_INSTRUCTION, EXECUTE_INSTRUCTION_DIRECTLY, UNDEFINED } mCPUExecState = UNDEFINED;
 
 	int cPeriod = 1000; // clock period in ns
 
@@ -168,6 +179,9 @@ private:
 	// Temp byte/word used when reading or there is a need to 'remember' a 16-bit value over two micro cycles (usually an address)
 	uint8_t mTmpReadByte = 0x0;
 	uint8_t mTmpReadWord = 0x0;
+	uint16_t mLookupAddress = 0x0;
+	uint16_t mEffectiveAddress = 0x0;
+	uint16_t mTmpAddress = 0x0;
 
 public:
 

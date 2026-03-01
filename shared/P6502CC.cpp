@@ -283,9 +283,18 @@ bool P6502CC::executeInstrMicroCycle()
 			completeFetch(); // Fetch the opcode and instruction info for the current instruction
 			mCPUExecState = FETCH_OPERAND; // Set the CPU execution state to (in the next cycle) fetch the operand of the current instruction
 		}
-		if (mCPUExecState == FETCH_OPERAND)
+		CPUExecState adjusted_CPU_exec_state = mCPUExecState;
+		if (adjusted_CPU_exec_state == FETCH_OPERAND)
 			return (this->*(pInstructionData->addrHdlr))(); // Fetch the operand bytes and perform any related read operations (or prepare fetching of the next opcode if there were no operand bytes)
-		else
+		
+		if (mCPUExecState == EXECUTE_INSTRUCTION_DIRECTLY) {
+			// The last operand micro cycle shall be interleaved with the first execution micro cycle (a trick to be able to share common micro cycle parts)
+			mOPerandMicroCycle--; // As the last operand and the first execution micro cycle is one and the same, the no of operand micro cycles is decremented to make the sum of these cycles correct
+			mCPUExecState = EXECUTE_INSTRUCTION;
+			adjusted_CPU_exec_state = EXECUTE_INSTRUCTION;
+		}
+
+		if (adjusted_CPU_exec_state == EXECUTE_INSTRUCTION)
 			return (this->*(pInstructionData->execHdlr))(); // Execute the instruction - takes at least one cycle and the last cycle includes preparing for the fetching of the next instruction's opcode
 	}
 
@@ -342,13 +351,31 @@ bool P6502CC::serveIRQ() { mInterruptState = IRQ_PENDING;  return BRKExecHdlr();
 // Addressing modes
 //
 
-// Instructions with accumulator addressing mode (like ASL A)
+//
+// Accumulator addressing
+//
+// Mnemonic
+// 
+// E.g., ASL A, TAX
+// 
+// Operand Syntax	Operand Bytes	Cycles
+// -				0				1
+//
 bool P6502CC::accAdrHdlr()
 {
 	return impliedAdrHdlr();
 }
 
-// Instructions with implied or accumulator addressing mode (like BRK, ASL A, NOP or CLC)
+//
+// Immediate addressing
+//
+// Mnemonic
+// 
+// E.g., BRK, NOP or CLC
+// 
+// Operand Syntax	Operand Bytes	Cycles
+// -				0				1
+//
 bool P6502CC::impliedAdrHdlr()
 {
 	switch (mOPerandMicroCycle++) {
@@ -365,14 +392,29 @@ bool P6502CC::impliedAdrHdlr()
 
 }
 
+//
+// Immediate addressing
+//
+// Mnemonic #<value>
+// 
+// E.g., LDA #12
+// 
+// Operand Syntax	Operand Bytes	Cycles
+// #oper			1				2 
+//
 bool P6502CC::immediateAdrHdlr()
 {
 	switch (mOPerandMicroCycle++) {
 
 	case 0:
 
-		initOperandByteRead(); // iniitialize the read of immediate operand byte(the read will be performed in the next cycle by executeInstrMicroCycle)
+		initOperandByteRead(); // iniitialize the read of immediate operand byte (the read will be performed in the next cycle by executeInstrMicroCycle)
 		mCPUExecState = EXECUTE_INSTRUCTION;
+		return true;
+
+	case 1:
+		mReadVal = mDATA;
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
 		return true;
 
 	default:
@@ -390,6 +432,9 @@ bool P6502CC::immediateAdrHdlr()
 // 
 // E.g., BNE
 //
+// Operand Syntax	Operand Bytes	Cycles
+// <branch adr>		1				1 (RO)
+//
 bool P6502CC::relativeAdrHdlr()
 {
 	switch (mOPerandMicroCycle++) {
@@ -397,85 +442,652 @@ bool P6502CC::relativeAdrHdlr()
 	case 0:
 
 		initOperandByteRead();
-		mCPUExecState = EXECUTE_INSTRUCTION;
+		return true;
+
+	case 1:
+		mReadVal = mDATA;
+		mOperandAddress = ((int8_t)mReadVal + mProgramCounter) & 0xffff;
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
 		return true;
 	
 	default:
+
 		return false;
 	}
 }
 
+//
+// Zero-page addressing
+//
+// Mnemonic <zero page address>
+// 
+// Get zero-page address (and for read and read-modify-write instructions, also make a read at the address)
+// 
+// E.g., LDA $12 and STA &12
+//
+// Operand Syntax	Operand Bytes	Cycles
+// zeropage			1				2 (WO) 3 (R,RW)
+//
 bool P6502CC::zeroPageAdrHdlr()
-{
-	return true;
-}
-
-bool P6502CC::zeroPageXAdrHdlr()
-{
-	return true;
-}
-
-bool P6502CC::zeroPageYAdrHdlr()
-{
-	return true;
-}
-
-bool P6502CC::absoluteAdrHdlr()
 {
 	switch (mOPerandMicroCycle++) {
 
 	case 0:
+
+		// Initialise reading of the zero page address
 		initOperandByteRead();
 		return true;
 
 	case 1:
 
-		mTmpReadByte = mDATA;
-		initOperandByteRead();
-		if (pInstructionData->info.readsMem)
-			return true;
+		// Complete reading of the zeropage address
+		mOperandAddress = mDATA;
 
-		// Write instructions only
-		mCPUExecState = EXECUTE_INSTRUCTION;
+		// For Read and Read-modify-Write instructions, prepare a read at the address
+		if (pInstructionData->info.readsMem) {
+			initMemRead(mOperandAddress);
+			return true;
+		}
+
+		// For Write-only instructions, hand over to instruction execution handler directly
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		initOperandByteRead();
 		return true;
 
 	case 2:
 
 		// Read and Read-Modify-Write instructions only
 
-		prepMemRead((mDATA << 8) | mTmpReadByte);
-		mCPUExecState = EXECUTE_INSTRUCTION;
+		mReadVal = mDATA;
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
 		return true;
-	
+
+	default:
+		return false;
+	}
+}
+
+//
+// Zero-page X-indexed addressing
+//
+// Mnemonic <zero page address>,X
+// 
+// Calculate zero-page address + X (and for read and read-modify-write instructions, also make a read at the calculated address)
+// 
+// E.g., LDA $12,X
+//
+// Operand Syntax	Operand Bytes	Cycles
+// zeropage,X		1				3 (WO) 4 (R,RW)
+//
+bool P6502CC::zeroPageXAdrHdlr()
+{
+	switch (mOPerandMicroCycle++) {
+
+	case 0:
+
+		// Initialise reading of the zero page address
+		initOperandByteRead();
+
+		return true;
+
+	case 1:
+
+		// Complete reading of the zeropage address
+		mOperandAddress = mDATA;
+
+		// Make dummy read at  the zero page address
+		initMemRead(mOperandAddress);
+
+		return true;
+
+	case 2:
+
+		// Calculate zero page address + X
+		mOperandAddress = mOperandAddress + mRegisterX;
+
+		// For Read and Read-modify-Write instructions, add one micro cycle for reading at the calculated address
+		if (pInstructionData->info.readsMem) {
+			initMemRead(mOperandAddress);
+			return true;
+		}
+
+		// For Write-only instructions, leave to instruction execution handler to make use of the calculated address
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+	case 3:
+
+		// (Read and Read-Modify-Write instructions only) complete reading at the calculated address
+		mReadVal = mDATA;
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+//
+// Zero-page Y-indexed addressing
+//
+// Mnemonic <zero page address>,Y
+// 
+// Calculate zero-page address + Y (and for read and read-modify-write instructions, initiate a read at the calculated address)
+// 
+// E.g., LDX $12,Y
+//
+// Operand Syntax	Operand Bytes	Cycles
+// zeropage,Y		1				3 (WO) 4 (R,RW)
+//
+bool P6502CC::zeroPageYAdrHdlr()
+{
+	switch (mOPerandMicroCycle++) {
+
+	case 0:
+
+		// Initialise reading of the zero page address
+		initOperandByteRead();
+
+		return true;
+
+	case 1:
+
+		// Complete reading of the zeropage address
+		mOperandAddress = mDATA;
+
+		// Make dummy read at  the zero page address
+		initMemRead(mOperandAddress);
+
+		return true;
+
+	case 2:
+
+		// Calculate zero page address + Y
+		mOperandAddress = mOperandAddress + mRegisterY;
+
+		// For Read and Read-modify-Write instructions, add one micro cycle for reading at the calculated address
+		if (pInstructionData->info.readsMem) {
+			initMemRead(mOperandAddress);
+			return true;
+		}
+
+		// For Write-only instructions, leave to instruction execution handler to make use of the calculated address
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+	case 3:
+
+		// (Read and Read-Modify-Write instructions only) complete reading at the calculated address
+		mReadVal = mDATA;
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+//
+// Absolute addressing
+// 
+// Mnemonic <address>
+// 
+// Get address  (and for read and read-modify-write instructions, initiate a read at the address)
+// 
+// E.g., LDX $1234
+//
+// Operand Syntax	Operand Bytes	Cycles
+// <address>		2				3 (WO) 4 (R,RW)
+//
+bool P6502CC::absoluteAdrHdlr()
+{
+
+	switch (mOPerandMicroCycle++) {
+
+	case 0:
+
+		// Initialise reading of the low address byte
+		initOperandByteRead();
+		return true;
+
+	case 1:
+
+		// Complete reading of the low address byte
+		mOperandAddress = mDATA;
+
+		// Initialise reading of the high address byte
+		initOperandByteRead();
+
+		return true;
+
+	case 2:
+
+		// Complete reading of the address 
+		mOperandAddress = (mDATA << 8) | mOperandAddress;
+
+		// For Read and Read-modify-Write instructions, add one micro cycle for reading at the calculated address
+		if (pInstructionData->info.readsMem) {
+			initMemRead(mOperandAddress);
+			return true;
+		}
+
+		// For Write-only instructions, leave to instruction execution handler to make use of the calculated address
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+	case 3:
+
+		// (Read and Read-Modify-Write instructions only) complete reading at the calculated address
+		mReadVal = mDATA;
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
 	default:
 		return false;
 	}
 
 }
 
+
+//
+// X-indexed addressing
+//
+// Mnemonic <address>,X
+// 
+// Calculate address + X (and for read and read-modify-write instructions, initiate a read at the calculated address)
+// 
+// E.g., LDA $1234,X
+//
+// Operand Syntax		Bytes	Cycles
+// absolute,X			2		4 (WO) 3+ (R) 3 (RW)
+//
+// One micro cycle is added if the calculated address passes a page boundary
+//
 bool P6502CC::absoluteXAdrHdlr()
 {
-	return true;
+	switch (mOPerandMicroCycle++) {
+
+	case 0:
+
+		// Initialise reading of the low address byte
+		initOperandByteRead();
+		return true;
+
+	case 1:
+
+		// Complete reading of the low address byte
+		mOperandAddress = mDATA;
+
+		// Initialise reading of the high address byte
+		initOperandByteRead();
+
+		return true;
+
+	case 2:
+	{
+		// Calculate address + X
+		mOperand16 = (mDATA << 8) | mOperandAddress;
+		mOperandAddress = mOperand16 + mRegisterX;
+		uint16_t calc_adr_raw = (mOperand16 & 0xff00) | (mOperandAddress & 0xff);
+
+		// Initialise reading at the calculated address (page boundary cross ignored)
+		// Done even for a write-onlu instruction like STA abs,X...
+		initMemRead(calc_adr_raw);
+		return true;
+	}
+	case 3:
+
+		// All types of accesses (read-only, write-only and read-modify-write)
+
+		// Make a re-read if page boundary crossed for read-only accesses
+		if (pInstructionData->info.readsMem && !pInstructionData->info.writesMem) {
+			if (pageBoundaryCrossed(mOperandAddress, mOperand16)) {
+				initMemRead(mOperandAddress);
+				return true;
+			}
+		}
+
+		// Hand over to instruction execution directly
+		mReadVal = mDATA; // only used if the instruction actually reads data...
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+
+	case 4:
+
+		// Read-only when page boundary crossed
+
+		// Hand over to instruction execution directly 
+		mReadVal = mDATA; // only used if the instruction actually reads data...
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+	default:
+		return false;
+	}
 }
 
+
+//
+// Y-indexed addressing
+//
+// Mnemonic <address>,X
+// 
+// Calculate address + X (and for read [and read-modify-write instructions]*, initiate a read at the calculated address)
+// 
+// E.g., LDX $1234,Y
+//
+// Operand Syntax		Bytes	Cycles
+// absolute,Y			2		4 (WO) 3+ (R) [3 (RW)]*
+//
+// One micro cycle is added if the calculated address passes a page boundary
+//
+// * There doesn't seem to exist any read-modify-write instructions using Y-indexed addressing. Kept just as the code
+//   can be identical as for the X-indexed addressing.
+//
 bool P6502CC::absoluteYAdrHdlr()
 {
-	return true;
+	switch (mOPerandMicroCycle++) {
+
+	case 0:
+
+		// Initialise reading of the low address byte
+		initOperandByteRead();
+		return true;
+
+	case 1:
+
+		// Complete reading of the low address byte
+		mOperandAddress = mDATA;
+
+		// Initialise reading of the high address byte
+		initOperandByteRead();
+
+		return true;
+
+	case 2:
+	{
+		// Calculate address + Y
+		mOperand16 = (mDATA << 8) | mOperandAddress;
+		mOperandAddress = mOperand16 + mRegisterY;
+		uint16_t calc_adr_raw = (mOperand16 & 0xff00) | (mOperandAddress & 0xff);
+
+		// Initialise reading at the calculated address (page boundary cross ignored)
+		// Done even for a write-onlu instruction like STA abs,X...
+		initMemRead(calc_adr_raw);
+		return true;
+	}
+	case 3:
+
+		// All types of accesses (read-only, write-only and read-modify-write)
+
+		// Make a re-read if page boundary crossed for read-only accesses
+		if (pInstructionData->info.readsMem && !pInstructionData->info.writesMem) {
+			if (pageBoundaryCrossed(mOperandAddress, mOperand16)) {
+				initMemRead(mOperandAddress);
+				return true;
+			}
+		}
+
+		// Hand over to instruction execution directly
+		mReadVal = mDATA; // only used if the instruction actually reads data...
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+
+	case 4:
+
+		// Read-only when page boundary crossed
+
+		// Hand over to instruction execution directly 
+		mReadVal = mDATA; // only used if the instruction actually reads data...
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+	default:
+		return false;
+	}
 }
 
+//
+// Indirect addressing
+//
+// Mnemonic (<absolute address>)
+// 
+// Read 16-bit little-endian word from Mem[Mem[<absolute address>]]
+// 
+// e.g., JMP ($1234)
+// 
+// Operand Syntax		Bytes	Cycles
+// (absolute)			2		5+
+// 
+// Only used for the JMP instruction
+//
 bool P6502CC::indirectAdrHdlr()
 {
-	return true;
+	switch (mOPerandMicroCycle++) {
+
+	case 0:
+
+		// Initialise reading of the low address byte
+		initOperandByteRead();
+		return true;
+
+	case 1:
+
+		// Complete reading of the low address byte
+		mOperandAddress = mDATA;
+
+		// Initialise reading of the high address byte
+		initOperandByteRead();
+		return true;
+
+	case 2:
+
+		mOperandAddress = (mDATA << 8) | mOperandAddress;
+
+		// Initialise reading at the lookup address
+		initMemRead(mOperandAddress);
+		return true;
+
+	case 3:
+
+		// Initialise reading at the lookup address + 1 (ignoring crossing of page boundary)
+		initMemRead((mOperandAddress & 0xff00) | ((mOperandAddress + 1) & 0xff));
+
+		mOperandAddress = mDATA;
+
+		return true;
+
+	case 4:
+
+		// Complete calculation of the effective address
+		mOperandAddress = (mDATA << 8) | mOperandAddress;
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+	default:
+
+		return false;
+	}
+
 }
 
+//
+// Pre-index indirect addressing  - X
+//
+// Mnemonic (<zero-page address>,X)
+// 
+// Read/Write Mem[Mem[<zero-page address>+X]]
+// 
+// E.g., LDA ($12,X)
+//
+// Operand Syntax		Bytes	Cycles
+// (indirect,X)			1		5 (write-only) 6 (read-only)
+//
+// Read-only and write-only use only.
+//
 bool P6502CC::preIndXAdrHdlr()
 {
-	return true;
+	switch (mOPerandMicroCycle++) {
+
+	case 0:
+
+		// Initialise reading of the zero page address
+		initOperandByteRead();
+
+		return true;
+
+	case 1:
+
+		// Complete reading of the zeropage address
+		mLookupAddress = mDATA;
+
+		// Make dummy read at  the zero page address
+		initMemRead(mLookupAddress);
+
+		return true;
+
+	case 2:
+
+		// Calculate the lookup address <=> zero page address + X
+		mLookupAddress = (mLookupAddress + mRegisterX) & 0xff;
+
+		// Initialise reading at the lookup address
+		initMemRead(mLookupAddress);
+		return true;
+
+	case 3:
+
+		// Initialise reading at the lookup address + 1 (ignoring crossing of page boundary)
+		initMemRead((mLookupAddress + 1) & 0xff);
+
+		mEffectiveAddress = mDATA;
+
+		return true;
+
+	case 4:
+
+		// Complete calculation of the effective address
+		mEffectiveAddress = (mDATA << 8) | mEffectiveAddress;
+
+		// Save calculated address for use by the instruction execution handler (and logging)
+		mOperandAddress = mEffectiveAddress;
+
+		// (For read-only instructions) Initialise reading at the effective address
+		if (pInstructionData->info.readsMem) {
+			initMemRead(mEffectiveAddress);
+			return true;
+		}
+
+		// (For write-only instructions) hand over to instruction execution directly
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+	case 5:
+
+		mReadVal = mDATA;
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+	default:
+
+		return false;
+	}
 }
 
+//
+// Post-indexed indirect addressing
+//
+// Mnemonic (<zero-page address>),Y
+// 
+// Read/Write Mem[Mem[<zero-page address>]+Y]
+// 
+// e.g., LDA ($12),Y
+//
+// Operand Syntax		Bytes	Cycles
+// (indirect),Y			1		5 (write-only) 6 (read-only)
+//
+// Read-only and write-only use only.
+// Operand Syntax		Bytes	Cycles
+// (indirect),Y	LDA(oper),Y	B1		2		5+
 bool P6502CC::postIndYAdrHdlr()
 {
-	return true;
+	switch (mOPerandMicroCycle++) {
+
+	case 0:
+
+		// Initialise reading of the zero page address
+		initOperandByteRead();
+
+		return true;
+
+	case 1:
+
+		// Complete reading of the zeropage address <=> lookup address
+		mLookupAddress = mDATA;
+
+		// Initialise reading at the lookup address
+		initMemRead(mLookupAddress);
+
+		return true;
+
+	case 2:
+
+		// Complete reading of the low effective address byte
+		mEffectiveAddress = mDATA;
+
+		// Initialise reading of the high effective address byte
+		initMemRead((mLookupAddress + 1) & 0xff);
+
+		return true;
+
+	case 3:
+
+		// Complete reading of the high effective address byte
+		mEffectiveAddress = (mDATA << 8) | mTmpAddress;
+
+		// Preliminary calculated address <=> mEffectiveAddress + Y, ignoring crossing of page boundary
+		mTmpAddress = (mEffectiveAddress & 0xff00) | (mEffectiveAddress + mRegisterY) & 0xff;
+
+		// Save (final) calculated address for use by the instruction execution handler (and logging)
+		mOperandAddress = mTmpAddress + mRegisterY;
+
+		// (For read-only instructions) initialise a read at the operand address
+		if (pInstructionData->info.readsMem) {
+			initMemRead(mTmpAddress);
+			return true;
+		}
+
+		// (For write-only instructions) hand over directly to the instruction execution handler
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+	case 4:
+
+		// For read-only instructions
+
+		if (pageBoundaryCrossed(mOperandAddress, mTmpAddress)) {
+			initMemRead(mEffectiveAddress);
+			return true;
+		}
+
+		// Complete reading of the data and then hand over directly to the instruction execution handler
+		mReadVal = mDATA;
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+	case 5:
+
+		// Complete reading of the data and then hand over directly to the instruction execution handler
+		mReadVal = mDATA;
+		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		return true;
+
+	default:
+
+		return false;
+	}
 }
 
 bool P6502CC::undefinedAdrHdlr()
@@ -581,18 +1193,17 @@ bool P6502CC::BCCExecHdlr()
 
 		case 0:	
 
-			mTmpReadWord = ((int8_t)mDATA + mProgramCounter) & 0xffff;
-			if (!pageBoundaryCrossed(mProgramCounter, mTmpReadWord)) {
+			if (!pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
 				initDummyOperandRead(); // A dummy read is always made
 				return true;
 			}
-			mProgramCounter = mTmpReadWord;
+			mProgramCounter = mOperandAddress;
 			initFetch();
 			return true;
 
 		case 1:
 
-			mProgramCounter = mTmpReadWord;
+			mProgramCounter = mOperandAddress;
 			initFetch();
 			return true;
 
@@ -780,7 +1391,7 @@ bool P6502CC::LDAExecHdlr()
 
 	case 0:
 
-		mReadVal = mDATA;
+		mAcc = mReadVal;
 		setNZflags(mAcc);
 		initFetch();
 		return true;
@@ -837,7 +1448,7 @@ bool P6502CC::STAExecHdlr()
 
 	case 0:
 
-		prepMemWrite((mDATA << 8) | mTmpReadByte, mAcc);
+		prepMemWrite(mOperandAddress, mAcc);
 		return true;
 
 	case 1:
