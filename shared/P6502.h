@@ -225,6 +225,8 @@ protected:
 
 	bool setInstrLogData();
 
+	bool ADCCalc();
+
 public:
 
 	MemoryMappedDevice* mZPMemDev = NULL;

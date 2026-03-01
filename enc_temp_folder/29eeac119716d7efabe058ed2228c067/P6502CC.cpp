@@ -2267,13 +2267,11 @@ bool P6502CC::JMPExecHdlr() {
 //	===========		==========	======	=====	======
 //	absolute		JSR oper	20		3		6
 //
-TBC Makes a second dummy read during reading of the low byte of the jump address; then saves the OC on stack and finally first reads the high byte of the jump address!
 bool P6502CC::JSRExecHdlr()
 {
 	switch (mExecMicroCycle++) {
 
 	case 0:
-
 		// Push high byte of the program counter to the stack (the low byte of the program counter is not pushed to the stack until the next cycle, so that the PC is stored in little endian format in the memory)
 		prepMemWrite(0x100 | (uint16_t)mStackPointer--, mProgramCounter >> 8);
 		return true;

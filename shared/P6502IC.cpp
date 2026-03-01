@@ -265,43 +265,7 @@ bool P6502IC::executeInstr()
 //
 bool P6502IC::ADCExecHdlr()
 {
-	int16_t val_C, val_V;
-	if (D_flag) {
-
-		// Calculate zero - flag set as for non-BDC addition
-		int16_t val_Z = mAcc + mReadVal + C_flag;
-		int8_t set_Z = ((val_Z & 0xff) == 0);
-
-		// BCD Addition and calculation of carry flag
-		uint8_t low_digit = (mAcc & 0xf) + (mReadVal & 0xf) + C_flag;
-		uint8_t carry = 0;
-		if (low_digit >= 0xa) {
-			low_digit += 0x6; // same as subtraction by 10 (modulo 16)
-			carry = 0x10;
-		}
-		low_digit &= 0xf;
-		int16_t val_NV = (int8_t)(mAcc & 0xf0) + (int8_t)(mReadVal & 0xf0) + carry + low_digit; // save for later use when setting N & V flags
-		uint16_t high_digit = (mAcc & 0xf0) + (mReadVal & 0xf0) + carry; // result could be up to 0x130 (0x90+0x90+0x10)
-		int8_t set_C = 0;
-		if (high_digit >= 0xa0) {
-			high_digit += 0x60; // same as subtraction by 10 (modulo 16)
-			set_C = 1;
-		}
-		high_digit &= 0xf0;
-		mAcc = high_digit | low_digit;
-
-		// Calculate N & V flags - they are based on the sum before adjusting for overflow of the high digit
-		setNZCVflags((val_NV & 0x80) != 0, set_Z, set_C, val_NV < -128 || val_NV > 127);
-	}
-	else {
-		val_V = (int8_t)mAcc + (int8_t)mReadVal + C_flag; // Add as signed no to determine overflow (V)
-		val_C = mAcc + mReadVal + C_flag; // Add as unsigned no to determine carry (C)
-		mAcc = val_C & 0xff;
-		setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, (val_C & 0x100) != 0, val_V < -128 || val_V > 127);
-	}
-
-	return true;
-
+	return ADCCalc();
 }
 
 //
@@ -619,7 +583,6 @@ bool P6502IC::CLDExecHdlr()
 //
 bool P6502IC::CLIExecHdlr()
 {
-	uint8_t oStatusRegister = mStatusRegister;
 	mStatusRegister &= ~I_set_mask;
 
 	return true;
