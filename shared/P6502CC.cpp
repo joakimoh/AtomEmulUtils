@@ -1,7 +1,6 @@
 
 #include "P6502CC.h"
 
-
 int  P6502CC::getWaitStates(MemoryMappedDevice* dev)
 {
 	// Add wait states if applicable
@@ -22,9 +21,12 @@ bool P6502CC::pageBoundaryCrossed(uint16_t before, uint16_t after)
 P6502CC::P6502CC(string name, double deviceClockRate, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
 	P6502(name, P6502_DEV, MICROROCESSOR_DEVICE, debugTracing, connectionManager, deviceManager)
 {
+	
 
+	// Modify address handler entry for JSR to point to the execution handler instead
+	// - needed as JSR doesn't follow the normal micro cycle pattern for absolute mode
+	pInstrDataTbl->data[0x20].addrHdlr = static_cast<bool (P6502::*)()>(&P6502CC::JSRExecHdlr);
 }
-
 
 P6502CC::~P6502CC()
 {
@@ -276,7 +278,6 @@ bool P6502CC::executeInstrMicroCycle()
 			return serveNMI();
 		if (mCPUExecState == IN_IRQ)
 			return serveIRQ();
-
 
 		// Execute the instruction handler for the current instruction and addressing mode
 		if (mCPUExecState == FETCH_OPCODE) {
@@ -2267,25 +2268,47 @@ bool P6502CC::JMPExecHdlr() {
 //	===========		==========	======	=====	======
 //	absolute		JSR oper	20		3		6
 //
-TBC Makes a second dummy read during reading of the low byte of the jump address; then saves the OC on stack and finally first reads the high byte of the jump address!
 bool P6502CC::JSRExecHdlr()
 {
 	switch (mExecMicroCycle++) {
 
 	case 0:
 
+		// Initialise reading of the low byte of the jump address
+		initOperandByteRead();
+		return true;
+
+	case 1:
+
+		// Complete reading of of the low byte of the jump address
+		mOperandAddress = mDATA;
+
+		// Initialise dummy reading at the stack pointer address
+		initMemRead(0x100 | mStackPointer);
+		return true;
+
+	case 2:
+
 		// Push high byte of the program counter to the stack (the low byte of the program counter is not pushed to the stack until the next cycle, so that the PC is stored in little endian format in the memory)
 		prepMemWrite(0x100 | (uint16_t)mStackPointer--, mProgramCounter >> 8);
 		return true;
 
-	case 1:
+	case 3:
 
 		// Push the low byte of the program counter to the stack
 		prepMemWrite(0x100 | (uint16_t)mStackPointer--, mProgramCounter & 0xff);
 		return true;
 
-	case 2:
+	case 4:
 
+		// Initialise reading of the high byte of the jump address
+		initOperandByteRead();
+		return true;
+
+	case 5:
+
+		// Complete reading of of the high byte of the jump address
+		mOperandAddress = (mDATA << 8) | mOperandAddress;
 		mProgramCounter = mOperandAddress;
 		initFetch();
 		return true;
@@ -2437,6 +2460,7 @@ bool P6502CC::RTSExecHdlr()
 
 	case 2:
 		mProgramCounter = (mDATA << 8) | mTmpReadByte;
+		mProgramCounter++;
 		initFetch();
 		return true;
 

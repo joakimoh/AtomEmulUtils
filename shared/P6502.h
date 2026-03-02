@@ -86,94 +86,94 @@ protected:
 
 
 	// Addressing Modes (independent of the instruction)
-	virtual bool accAdrHdlr() { return true; }
-	virtual bool impliedAdrHdlr() { return true; }
-	virtual bool relativeAdrHdlr() { return true; }
-	virtual bool immediateAdrHdlr() { return true; }
-	virtual bool zeroPageAdrHdlr() { return true; }
-	virtual bool zeroPageXAdrHdlr() { return true; }
-	virtual bool zeroPageYAdrHdlr() { return true; }
-	virtual bool absoluteAdrHdlr() { return true; }
-	virtual bool absoluteXAdrHdlr() { return true; }
-	virtual bool absoluteYAdrHdlr() { return true; }
-	virtual bool indirectAdrHdlr() { return true; }
-	virtual bool preIndXAdrHdlr() { return true; }
-	virtual bool postIndYAdrHdlr() { return true; }
-	virtual bool undefinedAdrHdlr() { return true; }
+	virtual bool accAdrHdlr() = 0;
+	virtual bool impliedAdrHdlr() = 0;
+	virtual bool relativeAdrHdlr() = 0;
+	virtual bool immediateAdrHdlr() = 0;
+	virtual bool zeroPageAdrHdlr() = 0;
+	virtual bool zeroPageXAdrHdlr() = 0;
+	virtual bool zeroPageYAdrHdlr() = 0;
+	virtual bool absoluteAdrHdlr() = 0;
+	virtual bool absoluteXAdrHdlr() = 0;
+	virtual bool absoluteYAdrHdlr() = 0;
+	virtual bool indirectAdrHdlr() = 0;
+	virtual bool preIndXAdrHdlr() = 0;
+	virtual bool postIndYAdrHdlr() = 0;
+	virtual bool undefinedAdrHdlr() = 0;
 
 
 
 	// Instruction handlers (independent of the addressing mode)
-	virtual bool ADCExecHdlr() { return true; }
-	virtual bool ANDExecHdlr() { return true; }
-	virtual bool ASLExecHdlr() { return true; }
-	virtual bool BCCExecHdlr() { return true; }
-	virtual bool BCSExecHdlr() { return true; }
-	virtual bool BEQExecHdlr() { return true; }
-	virtual bool BITExecHdlr() { return true; }
-	virtual bool BMIExecHdlr() { return true; }
-	virtual bool BNEExecHdlr() { return true; }
-	virtual bool BPLExecHdlr() { return true; }
-	virtual bool BRKExecHdlr() { return true; }
-	virtual bool BVCExecHdlr() { return true; }
-	virtual bool BVSExecHdlr() { return true; }
-	virtual bool CLCExecHdlr() { return true; }
-	virtual bool CLDExecHdlr() { return true; }
-	virtual bool CLIExecHdlr() { return true; }
-	virtual bool CLVExecHdlr() { return true; }
-	virtual bool CMPExecHdlr() { return true; }
-	virtual bool CPXExecHdlr() { return true; }
-	virtual bool CPYExecHdlr() { return true; }
-	virtual bool DECExecHdlr() { return true; }
-	virtual bool DEXExecHdlr() { return true; }
-	virtual bool DEYExecHdlr() { return true; }
-	virtual bool EORExecHdlr() { return true; }
-	virtual bool INCExecHdlr() { return true; }
-	virtual bool INXExecHdlr() { return true; }
-	virtual bool INYExecHdlr() { return true; }
-	virtual bool JMPExecHdlr() { return true; }
-	virtual bool JSRExecHdlr() { return true; }
-	virtual bool LDAExecHdlr() { return true; }
-	virtual bool LDXExecHdlr() { return true; }
-	virtual bool LDYExecHdlr() { return true; }
-	virtual bool LSRExecHdlr() { return true; }
-	virtual bool NOPExecHdlr() { return true; }
-	virtual bool ORAExecHdlr() { return true; }
-	virtual bool PHAExecHdlr() { return true; }
-	virtual bool PHPExecHdlr() { return true; }
-	virtual bool PLAExecHdlr() { return true; }
-	virtual bool PLPExecHdlr() { return true; }
-	virtual bool ROLExecHdlr() { return true; }
-	virtual bool RORExecHdlr() { return true; }
-	virtual bool RTIExecHdlr() { return true; }
-	virtual bool RTSExecHdlr() { return true; }
-	virtual bool SBCExecHdlr() { return true; }
-	virtual bool SECExecHdlr() { return true; }
-	virtual bool SEDExecHdlr() { return true; }
-	virtual bool SEIExecHdlr() { return true; }
-	virtual bool STAExecHdlr() { return true; }
-	virtual bool STXExecHdlr() { return true; }
-	virtual bool STYExecHdlr() { return true; }
-	virtual bool TAXExecHdlr() { return true; }
-	virtual bool TAYExecHdlr() { return true; }
-	virtual bool TSXExecHdlr() { return true; }
-	virtual bool TXAExecHdlr() { return true; }
-	virtual bool TXSExecHdlr() { return true; }
-	virtual bool TYAExecHdlr() { return true; }
-	virtual bool LAXExecHdlr() { return true; }
-	virtual bool SBXExecHdlr() { return true; }
-	virtual bool ISCExecHdlr() { return true; }
-	virtual bool DCPExecHdlr() { return true; }
-	virtual bool ANCExecHdlr() { return true; }
-	virtual bool ALRExecHdlr() { return true; }
-	virtual bool ARRExecHdlr() { return true; }
-	virtual bool LASExecHdlr() { return true; }
-	virtual bool RLAExecHdlr() { return true; }
-	virtual bool RRAExecHdlr() { return true; }
-	virtual bool SAXExecHdlr() { return true; }
-	virtual bool SLOExecHdlr() { return true; }
-	virtual bool SREExecHdlr() { return true; }
-	virtual bool undefinedExecHdlr() { return true; }
+	virtual bool ADCExecHdlr() = 0;
+	virtual bool ANDExecHdlr() = 0;
+	virtual bool ASLExecHdlr() = 0;
+	virtual bool BCCExecHdlr() = 0;
+	virtual bool BCSExecHdlr() = 0;
+	virtual bool BEQExecHdlr() = 0;
+	virtual bool BITExecHdlr() = 0;
+	virtual bool BMIExecHdlr() = 0;
+	virtual bool BNEExecHdlr() = 0;
+	virtual bool BPLExecHdlr() = 0;
+	virtual bool BRKExecHdlr() = 0;
+	virtual bool BVCExecHdlr() = 0;
+	virtual bool BVSExecHdlr() = 0;
+	virtual bool CLCExecHdlr() = 0;
+	virtual bool CLDExecHdlr() = 0;
+	virtual bool CLIExecHdlr() = 0;
+	virtual bool CLVExecHdlr() = 0;
+	virtual bool CMPExecHdlr() = 0;
+	virtual bool CPXExecHdlr() = 0;
+	virtual bool CPYExecHdlr() = 0;
+	virtual bool DECExecHdlr() = 0;
+	virtual bool DEXExecHdlr() = 0;
+	virtual bool DEYExecHdlr() = 0;
+	virtual bool EORExecHdlr() = 0;
+	virtual bool INCExecHdlr() = 0;
+	virtual bool INXExecHdlr() = 0;
+	virtual bool INYExecHdlr() = 0;
+	virtual bool JMPExecHdlr() = 0;
+	virtual bool JSRExecHdlr() = 0;
+	virtual bool LDAExecHdlr() = 0;
+	virtual bool LDXExecHdlr() = 0;
+	virtual bool LDYExecHdlr() = 0;
+	virtual bool LSRExecHdlr() = 0;
+	virtual bool NOPExecHdlr() = 0;
+	virtual bool ORAExecHdlr() = 0;
+	virtual bool PHAExecHdlr() = 0;
+	virtual bool PHPExecHdlr() = 0;
+	virtual bool PLAExecHdlr() = 0;
+	virtual bool PLPExecHdlr() = 0;
+	virtual bool ROLExecHdlr() = 0;
+	virtual bool RORExecHdlr() = 0;
+	virtual bool RTIExecHdlr() = 0;
+	virtual bool RTSExecHdlr() = 0;
+	virtual bool SBCExecHdlr() = 0;
+	virtual bool SECExecHdlr() = 0;
+	virtual bool SEDExecHdlr() = 0;
+	virtual bool SEIExecHdlr() = 0;
+	virtual bool STAExecHdlr() = 0;
+	virtual bool STXExecHdlr() = 0;
+	virtual bool STYExecHdlr() = 0;
+	virtual bool TAXExecHdlr() = 0;
+	virtual bool TAYExecHdlr() = 0;
+	virtual bool TSXExecHdlr() = 0;
+	virtual bool TXAExecHdlr() = 0;
+	virtual bool TXSExecHdlr() = 0;
+	virtual bool TYAExecHdlr() = 0;
+	virtual bool LAXExecHdlr() = 0;
+	virtual bool SBXExecHdlr() = 0;
+	virtual bool ISCExecHdlr() = 0;
+	virtual bool DCPExecHdlr() = 0;
+	virtual bool ANCExecHdlr() = 0;
+	virtual bool ALRExecHdlr() = 0;
+	virtual bool ARRExecHdlr() = 0;
+	virtual bool LASExecHdlr() = 0;
+	virtual bool RLAExecHdlr() = 0;
+	virtual bool RRAExecHdlr() = 0;
+	virtual bool SAXExecHdlr() = 0;
+	virtual bool SLOExecHdlr() = 0;
+	virtual bool SREExecHdlr() = 0;
+	virtual bool undefinedExecHdlr() = 0;
 
 	string getState();
 
@@ -213,8 +213,8 @@ protected:
 
 	int mMemLogAdr = -1;
 
-	virtual bool serveNMI() { return true; }
-	virtual bool serveIRQ() { return true; }
+	virtual bool serveNMI() = 0;
+	virtual bool serveIRQ() = 0;
 
 	bool readMem(uint16_t address, uint8_t& data);
 	bool writeMem(uint16_t address, uint8_t data);
@@ -236,13 +236,13 @@ public:
 	~P6502();
 
 	// Reset device
-	virtual bool reset() { return true; }
+	virtual bool reset() = 0;
 
 	// Device power on
 	bool power() { return reset(); }
 
 	// Advance one instruction if the stop cycle hasn't already been reached
-	virtual bool advanceInstr(uint64_t& endCycle) { return true; }
+	virtual bool advanceInstr(uint64_t& endCycle) = 0;
 
 	int getPC() { return (int)mProgramCounter; }
 
