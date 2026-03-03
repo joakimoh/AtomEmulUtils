@@ -329,7 +329,7 @@ void Engine::checkForBreakPoint()
     uint8_t read_data, written_data;
     bool read_adr_triggered = mMicroprocessor->readAdr(read_data) == mBreakAdr;
     bool written_adr_triggered = mMicroprocessor->writtenAdr(written_data) == mBreakAdr;
-    bool opcode_adr_triggered = mMicroprocessor->getPC() == mBreakAdr;
+    bool opcode_adr_triggered = mMicroprocessor->getOpcodePC() == mBreakAdr;
     bool was_JSR = mMicroprocessor->getOpcode() == P6502_JSR_OPCODE;
 
     if (_BRK_ANY_WAIT(mState) && mBreakWindowEnabled)

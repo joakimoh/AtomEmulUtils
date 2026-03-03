@@ -14,7 +14,8 @@ int  P6502CC::getWaitStates(MemoryMappedDevice* dev)
 // Check if a page boundary is crossed between two addresses (used for some instructions to determine if an extra cycle is required)
 bool P6502CC::pageBoundaryCrossed(uint16_t before, uint16_t after)
 {
-	return (((before >> 8) ^ (after >> 8)) != 0);
+	mPageBoundaryCrossed =(((before >> 8) ^ (after >> 8)) != 0);
+	return mPageBoundaryCrossed;
 }
 
 
@@ -26,14 +27,6 @@ P6502CC::P6502CC(string name, double deviceClockRate, double tickRate, DebugTrac
 	// Modify address handler entry for JSR to point to the execution handler instead
 	// - needed as JSR doesn't follow the normal micro cycle pattern for absolute mode
 	pInstrDataTbl->data[0x20].addrHdlr = static_cast<bool (P6502::*)()>(&P6502CC::JSRExecHdlr);
-
-	// Modify address handler entry for RTS to point to the execution handler instead
-	// - needed as RTS doesn't follow the normal micro cycle pattern for implied mode
-	pInstrDataTbl->data[0x60].addrHdlr = static_cast<bool (P6502::*)()>(&P6502CC::RTSExecHdlr);
-
-	// Modify address handler entry for PLA to point to the execution handler instead
-	// - needed as PLA doesn't follow the normal micro cycle pattern for implied mode
-	pInstrDataTbl->data[0x68].addrHdlr = static_cast<bool (P6502::*)()>(&P6502CC::PLAExecHdlr);
 	
 }
 
@@ -51,7 +44,12 @@ bool P6502CC::advanceInstr(uint64_t& endTick)
 	int effective_cycles = 0; // safeguard to put an upper limit on the number of microcycles that can be executed for an instruction to prevent infinite loops in case of a bug in the code
 	CPUExecState prev_state = UNDEFINED;
 	mExecSuccess = true;
+
 	while (prev_state != FETCH_OPCODE && effective_cycles++ < 100) {
+
+		mPageBoundaryCrossed = false;
+		mBranchTaken = false;
+
 		// Keep executing microcycles of the current instruction until the next instruction's opcode needs to be fetched
 		MemoryMappedDevice* dev;
 		if (mPendingWaitStates == 0) {
@@ -378,7 +376,7 @@ bool P6502CC::accAdrHdlr()
 }
 
 //
-// Immediate addressing
+// Implied addressing
 //
 // Mnemonic
 // 
@@ -394,7 +392,7 @@ bool P6502CC::impliedAdrHdlr()
 	
 	case 0:
 
-		initDummyOperandRead(); // dummy read always made by NMOS 6502
+		initMemRead(mProgramCounter); // dummy read always made by NMOS 6502 - program counter NOT updated  (as it would be for a reading of an operand)
 		mCPUExecState = EXECUTE_INSTRUCTION;
 		return true; 
 	
@@ -456,6 +454,7 @@ bool P6502CC::relativeAdrHdlr()
 	case 0:
 
 		initOperandByteRead();
+		mBranchTaken = false;
 		return true;
 
 	case 1:
@@ -1273,6 +1272,8 @@ bool P6502CC::BCCExecHdlr()
 {
 	if (!C_flag) {
 
+		mBranchTaken = true;
+
 		// Branch taken, so set the program counter to the branch target address and fetch the next instruction in one or two cycles (depending on if a page boundary is crossed or not)
 		switch (mExecMicroCycle++) {
 
@@ -1327,6 +1328,8 @@ bool P6502CC::BCSExecHdlr() {
 
 	if (C_flag) {
 
+		mBranchTaken = true;
+
 		// Branch taken, so set the program counter to the branch target address and fetch the next instruction in one or two cycles (depending on if a page boundary is crossed or not)
 		switch (mExecMicroCycle++) {
 
@@ -1372,6 +1375,8 @@ bool P6502CC::BCSExecHdlr() {
 bool P6502CC::BEQExecHdlr() {
 
 	if (Z_flag) {
+
+		mBranchTaken = true;
 
 		// Branch taken, so set the program counter to the branch target address and fetch the next instruction in one or two cycles (depending on if a page boundary is crossed or not)
 		switch (mExecMicroCycle++) {
@@ -1461,6 +1466,8 @@ bool P6502CC::BMIExecHdlr() {
 
 	if (C_flag) {
 
+		mBranchTaken = true;
+
 		// Branch taken, so set the program counter to the branch target address and fetch the next instruction in one or two cycles (depending on if a page boundary is crossed or not)
 		switch (mExecMicroCycle++) {
 
@@ -1503,10 +1510,15 @@ bool P6502CC::BMIExecHdlr() {
 // -	-	-	-	-	-
 //
 bool P6502CC::BNEExecHdlr() {
+
 	if (!Z_flag) {
+
+		mBranchTaken = true;
 
 		// Branch taken, so set the program counter to the branch target address and fetch the next instruction in one or two cycles (depending on if a page boundary is crossed or not)
 		switch (mExecMicroCycle++) {
+
+			mBranchTaken = true;
 
 		case 0:
 
@@ -1549,6 +1561,8 @@ bool P6502CC::BNEExecHdlr() {
 bool P6502CC::BPLExecHdlr() {
 
 	if (!N_flag) {
+
+		mBranchTaken = true;
 
 		// Branch taken, so set the program counter to the branch target address and fetch the next instruction in one or two cycles (depending on if a page boundary is crossed or not)
 		switch (mExecMicroCycle++) {
@@ -1702,6 +1716,8 @@ bool P6502CC::BVCExecHdlr() {
 	
 	if (!V_flag) {
 
+		mBranchTaken = true;
+
 		// Branch taken, so set the program counter to the branch target address and fetch the next instruction in one or two cycles (depending on if a page boundary is crossed or not)
 		switch (mExecMicroCycle++) {
 
@@ -1754,7 +1770,10 @@ bool P6502CC::BVCExecHdlr() {
 // The number of cycles taken by a branch instruction depends on whether the branch is taken (+1) or not (+0) and on whether a page boundary is crossed when branching (+1).
 //
 bool P6502CC::BVSExecHdlr() {
+
 	if (V_flag) {
+
+		mBranchTaken = true;
 
 		// Branch taken, so set the program counter to the branch target address and fetch the next instruction in one or two cycles (depending on if a page boundary is crossed or not)
 		switch (mExecMicroCycle++) {
@@ -2612,23 +2631,18 @@ bool P6502CC::PHPExecHdlr()
 bool P6502CC::PLAExecHdlr() {
 
 	switch (mExecMicroCycle++) {
-
-	case 0:
-
-		initMemRead(mProgramCounter);
-		return true;
 		
-	case 1:
+	case 0:
 
 		initMemRead(0x100 | (uint16_t)mStackPointer++);
 		return true;
 
-	case 2:
+	case 1:
 
 		initMemRead(0x100 | (uint16_t)mStackPointer);
 		return true;
 
-	case 3:
+	case 2:
 
 		mAcc = mDATA;
 		setNZflags(mAcc);
@@ -2802,30 +2816,24 @@ bool P6502CC::RTSExecHdlr()
 
 	case 0:
 
-		// Initialise dummy operand read
-		initMemRead(mProgramCounter);
-		return true;
-
-	case 1:
-
 		// Initialise dummy stack read =>  stack pointer increased
 		initMemRead(0x100 + (uint16_t)mStackPointer++);
 		return true;
 
-	case 2:
+	case 1:
 
 		// Initialise the reading of the low program counter
 		initMemRead(0x100 + (uint16_t)mStackPointer++);
 		return true;
 
-	case 3:
+	case 2:
 
 		// Initialise the reading of the high program counter
 		mTmpReadByte = mDATA;
 		initMemRead(0x100 + (uint16_t)mStackPointer);
 		return true;
 
-	case 4:
+	case 3:
 
 		// Complete the reading of the high program counter
 		mProgramCounter = (mDATA << 8) | mTmpReadByte;
@@ -2834,7 +2842,7 @@ bool P6502CC::RTSExecHdlr()
 		initOperandByteRead();
 		return true;
 
-	case 5:
+	case 4:
 		
 		initFetch();
 		return true;

@@ -409,7 +409,8 @@ string P6502::getState()
 
 bool P6502::pageBoundaryCrossed(uint16_t before, uint16_t after)
 {
-	return (((before >> 8) ^ (after >> 8)) != 0);
+	mPageBoundaryCrossed = (((before >> 8) ^ (after >> 8)) != 0);
+	return mPageBoundaryCrossed;
 }
 
 void P6502::tick(int cycles)
@@ -601,10 +602,15 @@ bool P6502::setInstrLogData() {
 	}
 
 	int expected_cycles = mInstrLogData.instr->cycles;
-	bool possible_extra_cycles = Codec6502::MODE_INFO[mInstrLogData.instr->mode].addCycleAtPageBoundary;
+	Codec6502::ModeInfo &mode_info = Codec6502::MODE_INFO[mInstrLogData.instr->mode];
+	int extra_cycles = 0;
+	if (mPageBoundaryCrossed)
+		extra_cycles++;
+	if (mBranchTaken)
+		extra_cycles++;
 
-	if (mInstrLogData.cycles < expected_cycles || mInstrLogData.cycles > expected_cycles + possible_extra_cycles) {
-		cout << "*** ";
+	if (mInstrLogData.cycles != expected_cycles + extra_cycles) {
+		cout << "*** E" << expected_cycles + extra_cycles << " D" << mInstrLogData.cycles << " " << (mPageBoundaryCrossed ? " P" : "") << (mBranchTaken ? " B" : "") << " ";
 		printInstrLogData(cout, mInstrLogData);
 		cout << "\n";
 	}

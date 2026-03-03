@@ -136,6 +136,9 @@ bool P6502IC::advanceInstr(uint64_t& endTick)
 {
 	bool success = true;
 
+	mPageBoundaryCrossed = false;
+	mBranchTaken = false;
+
 	mResetTransition = mRESET != pRESET;
 	pRESET = mRESET;
 
@@ -330,6 +333,7 @@ bool P6502IC::ASLExecHdlr()
 bool P6502IC::BCCExecHdlr()
 {
 	if (!C_flag) {
+		mBranchTaken = true;
 		addBranchTakenCycles();
 		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
 	}
@@ -350,6 +354,7 @@ bool P6502IC::BCCExecHdlr()
 bool P6502IC::BCSExecHdlr()
 {
 	if (C_flag) {
+		mBranchTaken = true;
 		addBranchTakenCycles();
 		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
 	}
@@ -370,6 +375,7 @@ bool P6502IC::BCSExecHdlr()
 bool P6502IC::BEQExecHdlr()
 {
 	if (Z_flag) {
+		mBranchTaken = true;
 		addBranchTakenCycles();
 		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
 	}
@@ -416,6 +422,7 @@ bool P6502IC::BITExecHdlr()
 bool P6502IC::BMIExecHdlr()
 {
 	if (N_flag) {
+		mBranchTaken = true;
 		addBranchTakenCycles();
 		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
 	}
@@ -436,6 +443,7 @@ bool P6502IC::BMIExecHdlr()
 bool P6502IC::BNEExecHdlr()
 {
 	if (!Z_flag) {
+		mBranchTaken = true;
 		addBranchTakenCycles();
 		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
 	}
@@ -456,6 +464,7 @@ bool P6502IC::BNEExecHdlr()
 bool P6502IC::BPLExecHdlr()
 {
 	if (!N_flag) {
+		mBranchTaken = true;
 		addBranchTakenCycles();
 		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
 	}
@@ -516,6 +525,7 @@ bool P6502IC::BRKExecHdlr()
 bool P6502IC::BVCExecHdlr()
 {
 	if (!V_flag) {
+		mBranchTaken = true;
 		addBranchTakenCycles();
 		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
 	}
@@ -536,6 +546,7 @@ bool P6502IC::BVCExecHdlr()
 bool P6502IC::BVSExecHdlr()
 {
 	if (V_flag) {
+		mBranchTaken = true;
 		addBranchTakenCycles();
 		mProgramCounter = (mOpcodePC + 2 + mOperand16) & 0xffff;
 	}
@@ -1821,6 +1832,8 @@ bool P6502IC::relativeAdrHdlr()
 	// Save the calculated address for use when executing the specific instruction later on
 	mOperandAddress = (mOperand16 + mProgramCounter) & 0xffff;
 
+	mBranchTaken = false;
+
 	return true;
 
 }
@@ -2187,8 +2200,8 @@ void  P6502IC::adjustForWaitStates(MemoryMappedDevice* dev)
 	// Add wait states if applicable
 	int wait_states = dev->getWaitStates();
 	if (wait_states > 0) {
-		deviceTick(mCycle % 2); // synchronise with CPU Clock phase
-		deviceTick(wait_states); // add extra memory access cycles
+		advanceTimeOnly(mCycle % 2); // synchronise with CPU Clock phase
+		advanceTimeOnly(wait_states); // add extra memory access cycles
 	}
 }
 

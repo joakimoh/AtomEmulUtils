@@ -211,6 +211,9 @@ protected:
 	int mExecutedCycles = 0;
 	bool mExecSuccess = true;
 
+	bool mBranchTaken = false;
+	bool mPageBoundaryCrossed = false;
+
 	int mMemLogAdr = -1;
 
 	virtual bool serveNMI() = 0;

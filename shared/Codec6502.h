@@ -73,8 +73,8 @@ public:
 	static inline vector<ModeInfo> MODE_INFO {
 		{ Accumulator, false },
 		{ Implied, false },
-		{ Relative, true },
-		{ Immediate, false },	// add one cycle if branch taken, add one more if page boundary crossed
+		{ Relative, true },		// add one cycle if branch taken, add one more if page boundary crossed
+		{ Immediate, false },	
 		{ ZeroPage, false },
 		{ ZeroPage_X, false },
 		{ ZeroPage_Y, false },

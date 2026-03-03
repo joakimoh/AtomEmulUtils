@@ -716,7 +716,7 @@ void Debugger::help()
 	cout << "devices:                                            lists the devices\n";
 	cout << "state <name of device>:                             get a device's state\n";
 	cout << "up:                                                 get the microprocessor's state\n";
-	cout << "step [<no of instructions>]:                        execute the specifed no of instructions (default is 1) and then stop (instruction tracing only)\n";
+	cout << "step [<no of instructions>]:                        execute the specified no of instructions (default is 1) and then stop (instruction tracing only)\n";
 	cout << "skip:                                               as 'step 1' but will step over a JSR instruction\n";
 	cout << "cont:                                               continue execution (if previusly stopped)\n";
 	cout << "break x <hex address>:                              continue execution until the program counter reaches the specified address\n";

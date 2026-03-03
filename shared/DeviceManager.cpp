@@ -578,13 +578,13 @@ DeviceManager::DeviceManager(
 	}
 
 	if (mainVDU == NULL) {
-		cout << "Warning: No video display unit specifed - will run headless!\n";
-		//throw runtime_error("No video data unit device specifed");
+		cout << "Warning: No video display unit specified - will run headless!\n";
+		//throw runtime_error("No video data unit device specified");
 	}
 
 	if (microprocessor == NULL) {
-		cout << "No microprocessor device specifed!\n";
-		throw runtime_error("No microprocessor device specifed");
+		cout << "No microprocessor device specified!\n";
+		throw runtime_error("No microprocessor device specified");
 	}
 
 	// Update the video data unit with graphics memory data

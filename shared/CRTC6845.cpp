@@ -437,7 +437,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 		mScreenActiveLines = mActiveLines_R6xR9 * 2;
 		mScreenVSyncLine = mVSyncLine_R7xR9 * 2;
 		mScreenVSyncPulseH = mVSyncPulseH_R3 * 2;
-		mScreenScanLines = 2 * scan_lines_R4xR9_R5; // screen has twice as many visible scan lines as the specifed no of scan lines
+		mScreenScanLines = 2 * scan_lines_R4xR9_R5; // screen has twice as many visible scan lines as the specified no of scan lines
 
 	}
 	else if (interlaced(mInterlaceMode_R8)) {
@@ -452,7 +452,7 @@ void CRTC6845::updateSettings(uint8_t reg)
 		mScreenActiveLines = mActiveLines_R6xR9 * 2;
 		mScreenVSyncLine = mVSyncLine_R7xR9 * 2;
 		mScreenVSyncPulseH = mVSyncPulseH_R3 * 2;
-		mScreenScanLines = 2 * scan_lines_R4xR9_R5; // screen has twice as many visible scan lines as the specifed no of unique content scan lines
+		mScreenScanLines = 2 * scan_lines_R4xR9_R5; // screen has twice as many visible scan lines as the specified no of unique content scan lines
 
 	}
 	else { // if (interlaced_video(mInterlaceMode_R8)) {
