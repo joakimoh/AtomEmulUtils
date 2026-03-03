@@ -1167,43 +1167,7 @@ bool P6502IC::RTSExecHdlr()
 //
 bool P6502IC::SBCExecHdlr()
 {
-	{
-		int16_t val_C, val_V;
-		if (D_flag) {
-
-			// Calculate zero, negative & overflow flag as for non-BDC subtraction
-			int16_t val_ZNV = (int8_t)mAcc - (int8_t)mReadVal - (1 - C_flag);
-			setNZVflags((val_ZNV & 0x80) != 0, (val_ZNV & 0xff) == 0, val_ZNV < -128 || val_ZNV > 127);
-
-			// BCD Subtraction and calculation of carry flag
-			int8_t low_digit = (mAcc & 0xf) - (mReadVal & 0xf) - (1 - C_flag); // can become -10 (0-9-1) to 9 (9-0-0)
-			int8_t borrow = 0;
-			if (low_digit < 0) {
-				low_digit += 0x0a;
-				borrow = 0x10;
-			}
-			low_digit &= 0x0f;
-			int16_t high_digit = (mAcc & 0xf0) - (mReadVal & 0xf0) - borrow; // can become -0xa0 (0-0x90-0x10) to 0x90 (0x90-0-0) 
-			int8_t set_C = 1;
-			if (high_digit < 0) {
-				high_digit += 0xa0;
-				set_C = 0;
-			}
-			mAcc = (high_digit | low_digit) & 0xff;
-			mStatusRegister &= ~C_set_mask;
-			mStatusRegister |= set_C;
-
-		}
-		else {
-			val_V = (int8_t)mAcc - (int8_t)mReadVal - (1 - C_flag);
-			val_C = mAcc - mReadVal - (1 - C_flag);
-			mAcc = val_C & 0xff;
-			setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, val_C >= 0, val_V < -128 || val_V > 127);
-		}
-
-
-		return true;
-	}
+	return SBCCalc();
 }
 
 //

@@ -26,6 +26,15 @@ P6502CC::P6502CC(string name, double deviceClockRate, double tickRate, DebugTrac
 	// Modify address handler entry for JSR to point to the execution handler instead
 	// - needed as JSR doesn't follow the normal micro cycle pattern for absolute mode
 	pInstrDataTbl->data[0x20].addrHdlr = static_cast<bool (P6502::*)()>(&P6502CC::JSRExecHdlr);
+
+	// Modify address handler entry for RTS to point to the execution handler instead
+	// - needed as RTS doesn't follow the normal micro cycle pattern for implied mode
+	pInstrDataTbl->data[0x60].addrHdlr = static_cast<bool (P6502::*)()>(&P6502CC::RTSExecHdlr);
+
+	// Modify address handler entry for PLA to point to the execution handler instead
+	// - needed as PLA doesn't follow the normal micro cycle pattern for implied mode
+	pInstrDataTbl->data[0x68].addrHdlr = static_cast<bool (P6502::*)()>(&P6502CC::PLAExecHdlr);
+	
 }
 
 P6502CC::~P6502CC()
@@ -1111,9 +1120,14 @@ bool P6502CC::undefinedAdrHdlr()
 
 
 
-//
+
+
+
+/////////////////////////////////////////////////////////////////////
+// 
 // Instruction Execution
-//
+// 
+/////////////////////////////////////////////////////////////////////
 
 
 //
@@ -1209,8 +1223,10 @@ bool P6502CC::ASLExecHdlr()
 		mCalcVal = (mReadVal << 1) & 0xfe;
 		setNZflags(mCalcVal);
 
-		if (!pInstructionInfo->writesMem)
+		if (!pInstructionInfo->writesMem) {
+			mAcc = mCalcVal;
 			initFetch();
+		}
 		else
 			prepMemWrite(mOperandAddress, mReadVal); // dummy write always made by NMOS 6502
 
@@ -2414,16 +2430,355 @@ bool P6502CC::LDYExecHdlr()
 }
 
 
-bool P6502CC::LSRExecHdlr() { return true; }
-bool P6502CC::NOPExecHdlr() { return true; }
-bool P6502CC::ORAExecHdlr() { return true; }
-bool P6502CC::PHAExecHdlr() { return true; }
-bool P6502CC::PHPExecHdlr() { return true; }
-bool P6502CC::PLAExecHdlr() { return true; }
-bool P6502CC::PLPExecHdlr() { return true; }
-bool P6502CC::ROLExecHdlr() { return true; }
-bool P6502CC::RORExecHdlr() { return true; }
-bool P6502CC::RTIExecHdlr() { return true; }
+//
+// LSR
+//
+// Shift One Bit Right (Memory or Accumulator)
+// 
+// 0 -> [76543210] -> C
+// 
+// N	Z	C	I	D	V
+// 0	+	+	-	-	-
+//
+bool P6502CC::LSRExecHdlr()
+{
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		if (!pInstructionInfo->writesMem)
+			mReadVal = mAcc;
+		else
+			mReadVal = mDATA;
+
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((mReadVal & 0x1) != 0 ? C_set_mask : 0);
+		mCalcVal = (mReadVal >> 1) & 0x7f;
+		setNZflags(mCalcVal);
+
+		if (!pInstructionInfo->writesMem) {
+			mAcc = mCalcVal;
+			initFetch();
+		}
+		else
+			prepMemWrite(mOperandAddress, mReadVal); // dummy write always made by NMOS 6502
+
+		return true;
+
+	case 1:
+
+		prepMemWrite(mOperandAddress, mCalcVal);
+		return true;
+
+	case 2:
+
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+
+}
+
+
+//
+// NOP
+//
+// No Operation
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502CC::NOPExecHdlr() {
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+	{
+		mAcc &= mReadVal;
+		setNZflags(mAcc);
+		initFetch();
+		return true;
+	}
+
+	default:
+		return false;
+	}
+}
+
+
+//
+// ORA
+//
+// OR Memory with Accumulator
+// 
+// A OR M -> A
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502CC::ORAExecHdlr() {
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+	{
+		mAcc |= mReadVal;
+		setNZflags(mAcc);
+		initFetch();
+		return true;
+	}
+
+	default:
+		return false;
+	}
+
+}
+
+//
+// PHA
+//
+// Push Accumulator on Stack
+// 
+// push A
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502CC::PHAExecHdlr()
+{
+	switch (mExecMicroCycle++) {
+
+	case 0:
+	{
+		prepMemWrite(0x100 | (uint16_t)mStackPointer--, mAcc);
+		return true;
+	}
+
+	case 1:
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+
+}
+
+
+//
+// PHP
+//
+// Push Status on Stack
+// 
+// push SR.
+// 
+// The status register will be pushed with the B
+// flag and b5 set to 1
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502CC::PHPExecHdlr()
+{
+	switch (mExecMicroCycle++) {
+
+	case 0:
+	{
+		prepMemWrite(0x100 | (uint16_t)mStackPointer--, mStatusRegister | B_set_mask | b5_set_mask);
+		return true;
+	}
+
+	case 1:
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+//
+// PLA
+//
+// Pull Accumulator from Stack
+// 
+// pull A
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502CC::PLAExecHdlr() {
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		initMemRead(mProgramCounter);
+		return true;
+		
+	case 1:
+
+		initMemRead(0x100 | (uint16_t)mStackPointer++);
+		return true;
+
+	case 2:
+
+		initMemRead(0x100 | (uint16_t)mStackPointer);
+		return true;
+
+	case 3:
+
+		mAcc = mDATA;
+		setNZflags(mAcc);
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+
+}
+
+//
+// PLP
+//
+// Pull Status register from Stack
+// 
+// Pull SR (B flag and b5 ignored)
+// 
+// N	Z	C	I	D	V
+// +	+	+	+	+	+
+//
+bool P6502CC::PLPExecHdlr() {
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+	{
+		initMemRead(0x100 | (uint16_t)++mStackPointer);
+		return true;
+	}
+
+	case 1:
+		mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
+		mStatusRegister |= mDATA && ~(B_set_mask | b5_set_mask);
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+
+}
+
+//
+// ROL
+//
+// Rotate One Bit Left (Memory or Accumulator)
+// 
+// C <- [76543210] <- C
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+bool P6502CC::ROLExecHdlr() {
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+	{
+		if (!pInstructionInfo->writesMem)
+			mReadVal = mAcc;
+		else
+			mReadVal = mDATA;
+
+		mCalcVal = ((mReadVal << 1) & 0xfe) | C_flag;
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((mReadVal & 0x80) != 0 ? C_set_mask : 0);
+		setNZflags(mCalcVal);
+
+		if (!pInstructionInfo->writesMem) {
+			mAcc = mCalcVal;
+			initFetch();
+		}
+		else
+			prepMemWrite(mOperandAddress, mReadVal); // dummy write always made by NMOS 6502
+
+		return true;
+	}
+	case 1:
+
+		prepMemWrite(mOperandAddress, mCalcVal);
+		return true;
+
+	case 2:
+
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+
+}
+
+//
+// ROR
+//
+// Rotate One Bit Right (Memory or Accumulator)
+// 
+// C -> [76543210] -> C
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+bool P6502CC::RORExecHdlr() {
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+	{
+		if (!pInstructionInfo->writesMem)
+			mReadVal = mAcc;
+		else
+			mReadVal = mDATA;
+
+		mCalcVal = ((mReadVal >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((mReadVal & 0x1) ? C_set_mask : 0);
+		setNZflags(mCalcVal);
+
+		if (!pInstructionInfo->writesMem) {
+			mAcc = mCalcVal;
+			initFetch();
+		}
+		else
+			prepMemWrite(mOperandAddress, mReadVal); // dummy write always made by NMOS 6502
+
+		return true;
+	}
+	case 1:
+
+		prepMemWrite(mOperandAddress, mCalcVal);
+		return true;
+
+	case 2:
+
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+
+bool P6502CC::RTIExecHdlr()
+{
+	return true;
+}
 
 //
 // RTS
@@ -2447,20 +2802,40 @@ bool P6502CC::RTSExecHdlr()
 
 	case 0:
 
-		// Initialise the reading of the low program counter
-		initMemRead(0x100 + (uint16_t)++mStackPointer);
+		// Initialise dummy operand read
+		initMemRead(mProgramCounter);
 		return true;
 
 	case 1:
 
-		// Complete the reading of the low program counter
-		mTmpReadByte = mDATA;
-		initMemRead(0x100 + (uint16_t)++mStackPointer);
+		// Initialise dummy stack read =>  stack pointer increased
+		initMemRead(0x100 + (uint16_t)mStackPointer++);
 		return true;
 
 	case 2:
+
+		// Initialise the reading of the low program counter
+		initMemRead(0x100 + (uint16_t)mStackPointer++);
+		return true;
+
+	case 3:
+
+		// Initialise the reading of the high program counter
+		mTmpReadByte = mDATA;
+		initMemRead(0x100 + (uint16_t)mStackPointer);
+		return true;
+
+	case 4:
+
+		// Complete the reading of the high program counter
 		mProgramCounter = (mDATA << 8) | mTmpReadByte;
-		mProgramCounter++;
+
+		// Initialise dummy operand read (needed as program counter points at return address - 1)
+		initOperandByteRead();
+		return true;
+
+	case 5:
+		
 		initFetch();
 		return true;
 
@@ -2470,10 +2845,93 @@ bool P6502CC::RTSExecHdlr()
 }
 
 
-bool P6502CC::SBCExecHdlr() { return true; }
-bool P6502CC::SECExecHdlr() { return true; }
-bool P6502CC::SEDExecHdlr() { return true; }
-bool P6502CC::SEIExecHdlr() { return true; }
+//
+// SBC
+//
+// Subtract Memory from Accumulator with Borrow
+// 
+// If decimal flag is set, substraction will be BCD (Binary-Coded Decimal) and only the C flag will have a useful value
+// 
+// A - M - C* -> A
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	+
+//
+// V is set if sign bit is incorrect
+// C is cleared if overflow in b7
+//
+bool P6502CC::SBCExecHdlr() {
+	switch (mExecMicroCycle++) {
+
+	case 0:
+	{
+		if (SBCCalc()) {
+			initFetch();
+			return true;
+		}
+		return false;
+	}
+
+	default:
+		return false;
+	}
+}
+
+
+//
+// SEC
+//
+// Set Carry Flag
+// 
+// N	Z	C	I	D	V
+// -	-	1	-	-	-
+//
+bool P6502CC::SECExecHdlr()
+{
+	mStatusRegister |= C_set_mask;
+
+	mExecMicroCycle++;
+	initFetch();
+	return true;
+}
+
+
+//
+// SED
+//
+// Set Decimal Flag
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	1	-
+//
+bool P6502CC::SEDExecHdlr()
+{
+	mStatusRegister |= D_set_mask;
+
+	mExecMicroCycle++;
+	initFetch();
+	return true;
+}
+
+
+//
+// SEI
+//
+// Set Interrupt Disable Status
+// 
+// N	Z	C	I	D	V
+// -	-	-	1	-	-
+//
+bool P6502CC::SEIExecHdlr()
+{
+	mStatusRegister |= I_set_mask;
+
+	mExecMicroCycle++;
+	initFetch();
+	return true;
+}
+
+
 
 
 //
@@ -2516,14 +2974,243 @@ bool P6502CC::STAExecHdlr()
 }
 
 
-bool P6502CC::STXExecHdlr() { return true; }
-bool P6502CC::STYExecHdlr() { return true; }
-bool P6502CC::TAXExecHdlr() { return true; }
-bool P6502CC::TAYExecHdlr() { return true; }
-bool P6502CC::TSXExecHdlr() { return true; }
-bool P6502CC::TXAExecHdlr() { return true; }
-bool P6502CC::TXSExecHdlr() { return true; }
-bool P6502CC::TYAExecHdlr() { return true; }
+//
+// STX
+//
+// Store X in Memory
+// 
+// X -> M
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502CC::STXExecHdlr() {
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		prepMemWrite(mOperandAddress, mAcc);
+		return true;
+
+	case 1:
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+
+//
+// STY
+//
+// Store Y in Memory
+// 
+// Y -> M
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502CC::STYExecHdlr() {
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		prepMemWrite(mOperandAddress, mAcc);
+		return true;
+
+	case 1:
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+
+}
+
+
+//
+// TSX
+//
+// Transfer Accumulator to X
+// 
+// A -> X
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502CC::TAXExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		mRegisterX = mAcc;
+		setNZflags(mRegisterX);
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+
+}
+
+
+//
+// TSX
+//
+// Transfer Accumulator to Y
+// 
+// A -> Y
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502CC::TAYExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		mRegisterY = mAcc;
+		setNZflags(mRegisterY);
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+
+}
+
+
+//
+// TSX
+//
+// Transfer Stack Pointer to X
+// 
+// SP -> X
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502CC::TSXExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		mRegisterX = mStackPointer;
+		setNZflags(mRegisterX);
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+
+//
+// TXA
+//
+// Transfer X to Accumulator
+// 
+// X -> A
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502CC::TXAExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		mAcc = mRegisterX;
+		setNZflags(mAcc);
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+
+//
+// TXS
+//
+// Transfer X to Stack Register: X -> SP
+// 
+// X -> SP
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+bool P6502CC::TXSExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		mStackPointer = mRegisterX;
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+
+//
+// TYA
+//
+// Transfer Y to Accumulator: Y -> A
+// 
+// Y -> A
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+bool P6502CC::TYAExecHdlr() {
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		mAcc = mRegisterY;
+		setNZflags(mAcc);
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+
+
+
+/////////////////////////////////////////////////////////////////////////
+//
+// Undocumented (inoffical) instructions
+//
+/////////////////////////////////////////////////////////////////////////
+
+
+
 bool P6502CC::LAXExecHdlr() { return true; }
 bool P6502CC::SBXExecHdlr() { return true; }
 bool P6502CC::ISCExecHdlr() { return true; }
@@ -2537,4 +3224,9 @@ bool P6502CC::RRAExecHdlr() { return true; }
 bool P6502CC::SAXExecHdlr() { return true; }
 bool P6502CC::SLOExecHdlr() { return true; }
 bool P6502CC::SREExecHdlr() { return true; }
-bool P6502CC::undefinedExecHdlr() { return true; }
+
+
+bool P6502CC::undefinedExecHdlr()
+{
+	return false;
+}

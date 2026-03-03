@@ -226,6 +226,7 @@ protected:
 	bool setInstrLogData();
 
 	bool ADCCalc();
+	bool SBCCalc();
 
 public:
 
