@@ -990,3 +990,8 @@ void DeviceManager::printMemoryMap()
 	cout << "\n";
 
 }
+
+void DeviceManager::printMemoryTree()
+{
+	mMemoryTree.print();
+}

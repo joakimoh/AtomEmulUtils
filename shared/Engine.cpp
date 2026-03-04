@@ -126,7 +126,7 @@ Engine::Engine(string mapFileName, VideoFormat videoFormat, bool enableHWAcc,
     mDebugger = mGUI->getDebugger();
 
     // If headless emulation (i.e. no VDU), then start with the debugger being active
-    if (mVDU == NULL)
+    if (mVDU == NULL || mState == ENG_HALT)
         mGUI->startDebugger();
 
     // Setup emulation timer

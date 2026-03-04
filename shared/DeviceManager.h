@@ -94,6 +94,7 @@ public:
 
 	MemoryMappedDevice* getSelectedMemoryMappedDevice(uint16_t adr);
 	void printMemoryMap();
+	void printMemoryTree();
 
 };
 

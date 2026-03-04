@@ -101,6 +101,8 @@ private:
 
 	bool settingsCmd();
 
+	bool memMapCmd(istream& sin);
+
 	bool mLogWinEnabled = false;
 
 	Codec6502 *mCodec = nullptr;

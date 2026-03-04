@@ -842,6 +842,7 @@ bool VIA6522::dump(uint16_t adr, uint8_t& data)
 			return false;
 			break;
 		}
+		return true;
 	}
 	return false;
 }

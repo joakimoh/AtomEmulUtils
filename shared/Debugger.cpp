@@ -83,7 +83,12 @@ bool Debugger::readChar(istream& sin, char& c)
 	return true;
 }
 
-
+bool Debugger::memMapCmd(istream& sin)
+{
+	mDM->printMemoryMap();
+	mDM->printMemoryTree();
+	return true;
+}
 
 
 double Debugger::getDeviceTime(Device* dev)
@@ -138,8 +143,13 @@ bool Debugger::listDevicesCmd(istream& sin)
 	vector<Device*> *devices;
 	devices = mDM->getDevices();
 	for (int i = 0; i < devices->size();i++) {
-		cout << left << setw(20) << (*devices)[i]->name << ": " << setw(25) << _DEVICE_ID((*devices)[i]->devType) <<
-			setw(25) << _DEVICE_CATEGORY((*devices)[i]->category) << "\n";
+		cout << left << setfill(' ') << setw(20) << (*devices)[i]->name << ": " << setw(25) << _DEVICE_ID((*devices)[i]->devType) <<
+			setw(25) << _DEVICE_CATEGORY((*devices)[i]->category) << 
+			((*devices)[i]->memoryMapped()?
+				Utility::int2HexStr(((MemoryMappedDevice*)(*devices)[i])->getClaimedAddressSpace().getStartOfSpace(),4) + " " +
+				Utility::int2HexStr(((MemoryMappedDevice*)(*devices)[i])->getClaimedAddressSpace().getEndOfSpace(), 4):
+				"") <<
+			"\n";
 	}
 
 	return true;
@@ -734,6 +744,7 @@ void Debugger::help()
 	cout << "dsel (set <device> {,...<device>} | clr):           select the devices to be part of the extensive tracing\n";
 	cout << "settings:                                           output the current settings (breakpoints, selected devices for logging etc.)\n";
 	cout << "notrace:                                            turn off extensive tracing\n";
+	cout << "map:                                                print memory map\n";
 	cout << "trace <string with from letters below> [<n>]:   turn on extensive tracing for the devices selected by the dsel command. Stop after <n> instructions if specified.\n";
 	cout << "\t'V' verbose output\n"; 
 	cout << "\t'e' errors\n";
@@ -782,6 +793,8 @@ void Debugger::run()
 			bool success = true;
 			if (cmd == "help")
 				help();
+			else if(cmd == "map")
+				success = memMapCmd(sin);
 			else if (cmd == "dsel")
 				success = selectTracedDevices(sin);
 			else if (cmd == "trace")

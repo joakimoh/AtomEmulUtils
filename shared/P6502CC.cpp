@@ -97,7 +97,7 @@ bool P6502CC::advanceInstr(uint64_t& endTick)
 		cout << "Error: instruction at PC " << hex << mOpcodePC << " took more than 10 microcycles (" << micro_cycles << ") to execute. Possible infinite loop in code.\n";
 	} 
 
-	endTick = mExecutedCycles;
+	endTick = mTicks;
 
 	return true;
 }
@@ -505,7 +505,6 @@ bool P6502CC::zeroPageAdrHdlr()
 
 		// For Write-only instructions, hand over to instruction execution handler directly
 		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
-		initOperandByteRead();
 		return true;
 
 	case 2:
@@ -879,7 +878,7 @@ bool P6502CC::absoluteYAdrHdlr()
 // 
 //	Operand Syntax		Bytes	Cycles
 //	==============		=====	=============================
-//	(absolute)			2		5+
+//	(absolute)			2		5 (NMOS) 5+ (CMOS)
 // 
 // Only used for the JMP instruction
 //
@@ -1066,7 +1065,7 @@ bool P6502CC::postIndYAdrHdlr()
 	case 3:
 
 		// Complete reading of the high effective address byte
-		mEffectiveAddress = (mDATA << 8) | mTmpAddress;
+		mEffectiveAddress = (mDATA << 8) | mEffectiveAddress;
 
 		// Preliminary calculated address <=> mEffectiveAddress + Y, ignoring crossing of page boundary
 		mTmpAddress = (mEffectiveAddress & 0xff00) | (mEffectiveAddress + mRegisterY) & 0xff;
@@ -1179,6 +1178,7 @@ bool P6502CC::ANDExecHdlr() {
 	{
 		mAcc &= mReadVal;
 		setNZflags(mAcc);
+		initFetch();
 		return true;
 	}
 
@@ -1214,8 +1214,6 @@ bool P6502CC::ASLExecHdlr()
 
 		if (!pInstructionInfo->writesMem)
 			mReadVal = mAcc;
-		else
-			mReadVal = mDATA;
 
 		mStatusRegister &= ~C_set_mask;
 		mStatusRegister |= ((mReadVal & 0x80) != 0 ? C_set_mask : 0);
@@ -1435,6 +1433,7 @@ bool P6502CC::BITExecHdlr()
 		if ((mReadVal & 0x40) != 0)
 			mStatusRegister |= V_set_mask;
 		initFetch();
+		return true;
 	}
 
 	default:
@@ -1446,16 +1445,16 @@ bool P6502CC::BITExecHdlr()
 //
 // BMI
 // 
-// Branch on Result Minu
+// Branch on Result Minus
 // 
-// Branch on C = 1
+// Branch on N = 1
 // 
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
 //	Mode			Syntax		Opcode	Bytes	Cycles
 //	===========		==========	======	=====	======
-//	relative		BVS oper	30		2		2+
+//	relative		BMI oper	30		2		2+
 // 
 // The branch is taken if the negative flag is set (N = 1).
 // If the branch is taken, the program counter is set to the address of the branch target and the next instruction is fetched from there.
@@ -1464,7 +1463,7 @@ bool P6502CC::BITExecHdlr()
 //
 bool P6502CC::BMIExecHdlr() {
 
-	if (C_flag) {
+	if (N_flag) {
 
 		mBranchTaken = true;
 
@@ -2565,6 +2564,10 @@ bool P6502CC::ORAExecHdlr() {
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			PHA			48		1		3
+//
 bool P6502CC::PHAExecHdlr()
 {
 	switch (mExecMicroCycle++) {
@@ -2599,6 +2602,10 @@ bool P6502CC::PHAExecHdlr()
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			PHP			08		1		3
+//
 bool P6502CC::PHPExecHdlr()
 {
 	switch (mExecMicroCycle++) {
@@ -2627,6 +2634,10 @@ bool P6502CC::PHPExecHdlr()
 // 
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			PLA			68		1		4 
 //
 bool P6502CC::PLAExecHdlr() {
 
@@ -2665,17 +2676,26 @@ bool P6502CC::PLAExecHdlr() {
 // N	Z	C	I	D	V
 // +	+	+	+	+	+
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+// implied			PLP			28		1		4 
+//
 bool P6502CC::PLPExecHdlr() {
 
 	switch (mExecMicroCycle++) {
 
 	case 0:
-	{
-		initMemRead(0x100 | (uint16_t)++mStackPointer);
+
+		initMemRead(0x100 | (uint16_t)mStackPointer++);
 		return true;
-	}
 
 	case 1:
+
+		initMemRead(0x100 | (uint16_t)mStackPointer);
+		return true;
+
+
+	case 2:
 		mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
 		mStatusRegister |= mDATA && ~(B_set_mask | b5_set_mask);
 		initFetch();
@@ -2789,10 +2809,71 @@ bool P6502CC::RORExecHdlr() {
 }
 
 
+//
+// RTI
+//
+// Return from Interrupt
+// 
+// Pull SR (b5 and B flag ignored) and then pull PC
+// 
+// The low byte is pulled first.
+// 
+// N	Z	C	I	D	V
+// +	+	+	+	+	+
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			RTI			40		1		6 
+//
 bool P6502CC::RTIExecHdlr()
 {
-	return true;
+
+	switch(mExecMicroCycle++) {
+
+	case 0:
+
+		// Initialise dummy stack read =>  stack pointer increased
+		initMemRead(0x100 + (uint16_t)mStackPointer++);
+		return true;
+
+	case 1:
+
+		// Initialise the reading of the status register
+		initMemRead(0x100 + (uint16_t)mStackPointer++);
+		return true;
+
+	case 2:
+
+		// Pull status register while ignoring b5 and B flag
+		mStatusRegister = (mStatusRegister & ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask)) | (mDATA & ~(B_set_mask | b5_set_mask));
+
+		// Initialise the reading of the low program counter	
+		initMemRead(0x100 + (uint16_t)mStackPointer++);
+		return true;
+
+	case 3:
+
+		// Complete the reading of the low program counter
+		mTmpReadByte = mDATA;
+
+		// Initialise the reading of the high program counter	
+		initMemRead(0x100 + (uint16_t)mStackPointer);
+
+		return true;
+
+	case 4:
+
+		// Complete the reading of the high program counter
+		mProgramCounter = (mDATA << 8) | mTmpReadByte;
+
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
 }
+
 
 //
 // RTS
@@ -2850,6 +2931,7 @@ bool P6502CC::RTSExecHdlr()
 	default:
 		return false;
 	}
+
 }
 
 
@@ -2992,13 +3074,19 @@ bool P6502CC::STAExecHdlr()
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	zeropage		STX oper	86		2		3  
+//	zeropage,Y		STX oper,Y	96		2		4
+//	absolute		STX oper	8E		3		4
+//
 bool P6502CC::STXExecHdlr() {
 
 	switch (mExecMicroCycle++) {
 
 	case 0:
 
-		prepMemWrite(mOperandAddress, mAcc);
+		prepMemWrite(mOperandAddress, mRegisterX);
 		return true;
 
 	case 1:
@@ -3021,13 +3109,19 @@ bool P6502CC::STXExecHdlr() {
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	zeropage		STY oper	84		2		3  
+//	zeropage,X		STY oper,X	94		2		4
+//	absolute		STY oper	8C		3		4
+//
 bool P6502CC::STYExecHdlr() {
 
 	switch (mExecMicroCycle++) {
 
 	case 0:
 
-		prepMemWrite(mOperandAddress, mAcc);
+		prepMemWrite(mOperandAddress, mRegisterY);
 		return true;
 
 	case 1:
@@ -3042,7 +3136,7 @@ bool P6502CC::STYExecHdlr() {
 
 
 //
-// TSX
+// TAX
 //
 // Transfer Accumulator to X
 // 
@@ -3071,7 +3165,7 @@ bool P6502CC::TAXExecHdlr()
 
 
 //
-// TSX
+// TAY
 //
 // Transfer Accumulator to Y
 // 
