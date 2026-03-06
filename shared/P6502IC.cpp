@@ -186,7 +186,7 @@ bool P6502IC::advanceInstr(uint64_t& endTick)
 
 	// Get mOpcode of next instruction
 	updatePort(SYNC, 0); // SYNC goes low at the start of the fetch phase of an instruction
-	mOpcodePC = mProgramCounter;
+	//mOpcodePC = mProgramCounter;
 	if (!readProgramMem(mProgramCounter++, mOpcode)) {
 		success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to read instruction!\n");
@@ -236,7 +236,8 @@ bool P6502IC::advanceInstr(uint64_t& endTick)
 		DBG_LOG(this, DBG_6502, sout.str());
 	}
 
-
+	pOpcodePC = mOpcodePC;
+	mOpcodePC = mProgramCounter;
 
 	// Always return true even if the instruction execution failed in some way in order
 	// not to terminate the simulation prematurely...

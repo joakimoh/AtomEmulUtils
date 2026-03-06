@@ -205,6 +205,8 @@ protected:
 	int mRAccAdr = -1;					// Memory address read by the instruction (if applicable) or -1 if no memory read is made or the instruction only reads from the accumulator
 	int mWAccAdr = -1;					// Memory address written to by the instruction (if applicable) or -1 if no memory write is made or the instruction only writes to the accumulator
 
+	uint16_t pOpcodePC = 0xffff;
+
 
 	DeviceManager* mDeviceManager = NULL;
 

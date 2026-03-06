@@ -349,7 +349,7 @@ bool Debugger::stepCmd(istream &sin, bool stepOver, ostream& sout)
 
 bool Debugger::printNextInstr(ostream& sout)
 {
-	uint16_t PC = mCPU->getPC();
+	uint16_t PC = mCPU->getOpcodePC();
 	sout << "NEXT INSTRUCTION ";
 	return printInstructions(PC, PC + 3, true, false, sout);
 }

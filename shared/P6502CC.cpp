@@ -44,10 +44,10 @@ bool P6502CC::advanceInstr(uint64_t& endTick)
 	int effective_cycles = 0; // safeguard to put an upper limit on the number of microcycles that can be executed for an instruction to prevent infinite loops in case of a bug in the code
 	CPUExecState prev_state = UNDEFINED;
 	mExecSuccess = true;
+	mPageBoundaryCrossed = false;
 
 	while (prev_state != FETCH_OPCODE && effective_cycles++ < 100) {
-
-		mPageBoundaryCrossed = false;
+		
 		mBranchTaken = false;
 
 		// Keep executing microcycles of the current instruction until the next instruction's opcode needs to be fetched
@@ -142,6 +142,7 @@ bool P6502CC::initFetch()
 
 	// Reset the CPU execution state and microcycle counters for the next instruction
 	mCPUExecState = FETCH_OPCODE; // Set the CPU execution state to (in the next cycle) fetch the opcode of the next instruction
+	pOpcodePC = mOpcodePC;
 	mOpcodePC = mProgramCounter;
 
 
@@ -716,7 +717,7 @@ bool P6502CC::absoluteAdrHdlr()
 //
 //	Operand Syntax		Bytes	Cycles
 //	==============		=====	=============================
-//	absolute,X			2		4 (WO) 3+ (R) 3 (RW)
+//	absolute,X			2		4 (WO) 4+ (R) 3 (RW)
 //
 // One micro cycle is added if the calculated address passes a page boundary
 //
@@ -1027,7 +1028,7 @@ bool P6502CC::preIndXAdrHdlr()
 //
 //	Operand Syntax		Bytes	Cycles
 //	==============		=====	=============================
-//	(indirect),Y		1		5 (write-only) 6 (read-only)
+//	(indirect),Y		1		5 (write-only) 5+ (read-only)
 //
 // Read-only and write-only use only.
 //
@@ -1073,21 +1074,14 @@ bool P6502CC::postIndYAdrHdlr()
 		// Save (final) calculated address for use by the instruction execution handler (and logging)
 		mOperandAddress = mTmpAddress + mRegisterY;
 
-		// (For read-only instructions) initialise a read at the operand address
-		if (pInstructionData->info.readsMem) {
-			initMemRead(mTmpAddress);
-			return true;
-		}
-
-		// (For write-only instructions) hand over directly to the instruction execution handler
-		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		// Make a read (even if it is a write-only instruction => dummy read!)
+		initMemRead(mTmpAddress);
 		return true;
 
 	case 4:
 
-		// For read-only instructions
-
-		if (pageBoundaryCrossed(mOperandAddress, mTmpAddress)) {
+		// For read-only instructions - add an extra read cycle (at the corrected address) if page boundary is crossed
+		if (pInstructionData->info.readsMem && pageBoundaryCrossed(mOperandAddress, mTmpAddress)) {
 			initMemRead(mEffectiveAddress);
 			return true;
 		}
@@ -1275,9 +1269,12 @@ bool P6502CC::BCCExecHdlr()
 		// Branch taken, so set the program counter to the branch target address and fetch the next instruction in one or two cycles (depending on if a page boundary is crossed or not)
 		switch (mExecMicroCycle++) {
 
-		case 0:	
+		case 0:
+			return true;
 
-			if (!pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
+		case 1:	
+
+			if (pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
 				initDummyOperandRead(); // A dummy read is always made
 				return true;
 			}
@@ -1285,7 +1282,7 @@ bool P6502CC::BCCExecHdlr()
 			initFetch();
 			return true;
 
-		case 1:
+		case 2:
 
 			mProgramCounter = mOperandAddress;
 			initFetch();
@@ -1332,8 +1329,11 @@ bool P6502CC::BCSExecHdlr() {
 		switch (mExecMicroCycle++) {
 
 		case 0:
+			return true;
 
-			if (!pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
+		case 1:
+
+			if (pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
 				initDummyOperandRead(); // A dummy read is always made
 				return true;
 			}
@@ -1341,7 +1341,7 @@ bool P6502CC::BCSExecHdlr() {
 			initFetch();
 			return true;
 
-		case 1:
+		case 2:
 
 			mProgramCounter = mOperandAddress;
 			initFetch();
@@ -1380,8 +1380,11 @@ bool P6502CC::BEQExecHdlr() {
 		switch (mExecMicroCycle++) {
 
 		case 0:
+			return true;
 
-			if (!pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
+		case 1:
+
+			if (pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
 				initDummyOperandRead(); // A dummy read is always made
 				return true;
 			}
@@ -1389,7 +1392,7 @@ bool P6502CC::BEQExecHdlr() {
 			initFetch();
 			return true;
 
-		case 1:
+		case 2:
 
 			mProgramCounter = mOperandAddress;
 			initFetch();
@@ -1471,8 +1474,11 @@ bool P6502CC::BMIExecHdlr() {
 		switch (mExecMicroCycle++) {
 
 		case 0:
+			return true;
 
-			if (!pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
+		case 1:
+
+			if (pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
 				initDummyOperandRead(); // A dummy read is always made
 				return true;
 			}
@@ -1480,7 +1486,7 @@ bool P6502CC::BMIExecHdlr() {
 			initFetch();
 			return true;
 
-		case 1:
+		case 2:
 
 			mProgramCounter = mOperandAddress;
 			initFetch();
@@ -1520,8 +1526,11 @@ bool P6502CC::BNEExecHdlr() {
 			mBranchTaken = true;
 
 		case 0:
+			return true;
 
-			if (!pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
+		case 1:
+
+			if (pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
 				initDummyOperandRead(); // A dummy read is always made
 				return true;
 			}
@@ -1529,7 +1538,7 @@ bool P6502CC::BNEExecHdlr() {
 			initFetch();
 			return true;
 
-		case 1:
+		case 2:
 
 			mProgramCounter = mOperandAddress;
 			initFetch();
@@ -1567,8 +1576,11 @@ bool P6502CC::BPLExecHdlr() {
 		switch (mExecMicroCycle++) {
 
 		case 0:
+			return true;
 
-			if (!pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
+		case 1:
+
+			if (pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
 				initDummyOperandRead(); // A dummy read is always made
 				return true;
 			}
@@ -1576,7 +1588,7 @@ bool P6502CC::BPLExecHdlr() {
 			initFetch();
 			return true;
 
-		case 1:
+		case 2:
 
 			mProgramCounter = mOperandAddress;
 			initFetch();
@@ -1721,8 +1733,11 @@ bool P6502CC::BVCExecHdlr() {
 		switch (mExecMicroCycle++) {
 
 		case 0:
+			return true;
 
-			if (!pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
+		case 1:
+
+			if (pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
 				initDummyOperandRead(); // A dummy read is always made
 				return true;
 			}
@@ -1730,7 +1745,7 @@ bool P6502CC::BVCExecHdlr() {
 			initFetch();
 			return true;
 
-		case 1:
+		case 2:
 
 			mProgramCounter = mOperandAddress;
 			initFetch();
@@ -1778,8 +1793,11 @@ bool P6502CC::BVSExecHdlr() {
 		switch (mExecMicroCycle++) {
 
 		case 0:
+			return true;
 
-			if (!pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
+		case 1:
+
+			if (pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
 				initDummyOperandRead(); // A dummy read is always made
 				return true;
 			}
@@ -1787,7 +1805,7 @@ bool P6502CC::BVSExecHdlr() {
 			initFetch();
 			return true;
 
-		case 1:
+		case 2:
 
 			mProgramCounter = mOperandAddress;
 			initFetch();
@@ -2514,8 +2532,6 @@ bool P6502CC::NOPExecHdlr() {
 
 	case 0:
 	{
-		mAcc &= mReadVal;
-		setNZflags(mAcc);
 		initFetch();
 		return true;
 	}
@@ -2697,7 +2713,7 @@ bool P6502CC::PLPExecHdlr() {
 
 	case 2:
 		mStatusRegister &= ~(N_set_mask | Z_set_mask | C_set_mask | I_set_mask | D_set_mask | V_set_mask);
-		mStatusRegister |= mDATA && ~(B_set_mask | b5_set_mask);
+		mStatusRegister |= mDATA & ~(B_set_mask | b5_set_mask);
 		initFetch();
 		return true;
 

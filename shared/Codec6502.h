@@ -67,23 +67,23 @@ public:
 
 	typedef struct ModeInfo_struct {
 		Mode				mode;
-		bool				addCycleAtPageBoundary; // whether an extra cycle is added if a page boundary is crossed when calculating the effective address for this addressing mode (applicable for some instructions but not all)
+		bool				addCycleAtPageBoundary; // whether an extra cycle is added if a page boundary is crossed when calculating the effective address for this addressing mode (applicable for some instructions and only for read-only operations)
 	} ModeInfo;
 
 	static inline vector<ModeInfo> MODE_INFO {
-		{ Accumulator, false },
-		{ Implied, false },
-		{ Relative, true },		// add one cycle if branch taken, add one more if page boundary crossed
-		{ Immediate, false },	
-		{ ZeroPage, false },
-		{ ZeroPage_X, false },
-		{ ZeroPage_Y, false },
-		{ Absolute, false },
-		{ Absolute_X, true },	// add one cycle if page boundary crossed for some instructions
-		{ Absolute_Y, true },	// add one cycle if page boundary crossed for some instructions
-		{ Indirect, false },	// add one cycle if page boundary crossed for CMOS JMP instruction only (not for NMOS 6502 where the page boundary crossing bug makes the instruction unusable)
-		{ PreInd_X, false },
-		{ PostInd_Y, true },	// add one cycle if page boundary crossed for some instructions
+		{ Accumulator,	false },
+		{ Implied,		false },
+		{ Relative,		true },		// add one cycle if branch taken, add one more if page boundary crossed
+		{ Immediate,	false },	
+		{ ZeroPage,		false },
+		{ ZeroPage_X,	false },
+		{ ZeroPage_Y,	false },
+		{ Absolute,		false },
+		{ Absolute_X,	true },		// add one cycle if page boundary crossed for some instructions: Read
+		{ Absolute_Y,	true },		// add one cycle if page boundary crossed for some instructions: Read
+		{ Indirect,		false },	// add one cycle if page boundary crossed for CMOS JMP instruction only (not for NMOS 6502 where the page boundary crossing bug makes the instruction unusable)
+		{ PreInd_X,		false },
+		{ PostInd_Y,	true },		// add one cycle if page boundary crossed for some instructions: Read
 	};
 
 	typedef struct InstructionInfo_struct {

@@ -534,7 +534,7 @@ string P6502::getCallStack()
 bool P6502::outputState(ostream& sout)
 {
 	uint16_t pc = mProgramCounter;
-	uint16_t a = pc;
+	uint16_t a = mOpcodePC;
 	string n_instr_s;
 
 	// Read up to three bytes, if possible
@@ -549,7 +549,7 @@ bool P6502::outputState(ostream& sout)
 	if (!mCodec.decodeInstrFromBytes(pc, bytes, n_instr_s, false)) {
 		return false;
 	}
-	string x_instr_s = mCodec.decode(mOpcodePC, mOpcode, mOperand16);
+	string x_instr_s = mCodec.decode(pOpcodePC, mOpcode, mOperand16);
 	
 	sout << "Executed instruction:    " << setfill(' ') << setw(30) << left << x_instr_s << "\n";
 	sout << "Resulting State:         " << getState() << "\n";
@@ -602,7 +602,8 @@ bool P6502::setInstrLogData() {
 	}
 
 	int expected_cycles = mInstrLogData.instr->cycles;
-	Codec6502::ModeInfo &mode_info = Codec6502::MODE_INFO[mInstrLogData.instr->mode];
+	Codec6502::InstructionInfo& instr_info = *mInstrLogData.instr;
+	Codec6502::ModeInfo &mode_info = Codec6502::MODE_INFO[instr_info.mode];
 	int extra_cycles = 0;
 	if (mPageBoundaryCrossed)
 		extra_cycles++;
@@ -610,7 +611,7 @@ bool P6502::setInstrLogData() {
 		extra_cycles++;
 
 	if (mInstrLogData.cycles != expected_cycles + extra_cycles) {
-		cout << "*** E" << expected_cycles + extra_cycles << " D" << mInstrLogData.cycles << " " << (mPageBoundaryCrossed ? " P" : "") << (mBranchTaken ? " B" : "") << " ";
+		cout << "*** E" << expected_cycles + extra_cycles << " X" << mInstrLogData.cycles << " " << (mPageBoundaryCrossed ? " P" : "") << (mBranchTaken ? " B" : "") << " ";
 		printInstrLogData(cout, mInstrLogData);
 		cout << "\n";
 	}
@@ -631,7 +632,7 @@ bool P6502::printInstrLogData(ostream& sout, InstrLogData& instrLogData)
 	string t_s = Utility::encodeCPUTime(instrLogData.logTime);
 
 	int expected_cycles = instrLogData.instr->cycles;
-	bool possible_extra_cycles = Codec6502::MODE_INFO[instr.mode].addCycleAtPageBoundary;
+	bool possible_extra_cycles = Codec6502::MODE_INFO[instr.mode].addCycleAtPageBoundary && instr.readsMem && !instr.writesMem;
 	string  expected_cycles_s = to_string(expected_cycles) + (possible_extra_cycles ? + "+": " ");
 	sout << t_s << " [" << instrLogData.cycles << "(" << expected_cycles_s << ")] " << setfill(' ') << setw(30) << left << instr_s << right <<
 		" " << hex << setfill('0') <<
