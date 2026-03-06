@@ -165,6 +165,7 @@ private:
 
 	int getWaitStates(MemoryMappedDevice* dev);
 	int mPendingWaitStates = 0; // Number of wait states that the CPU needs to wait to complete a memory access to a slow device
+	bool mPendingAccess = false; // True during wait state
 
 	bool mReadingOperandByte = true; // Whether the current memory access is for reading an operand byte (as opposed to for executing the instruction or for a dummy read)
 	uint8_t mOperandBytes[2] = { 0 }; // For instructions with operand fetch cycles, this is used to store the operand byte(s) read during these cycles

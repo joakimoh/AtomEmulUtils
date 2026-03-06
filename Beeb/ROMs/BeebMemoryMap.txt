@@ -31,7 +31,7 @@ ADD	VIA6522			USER_VIA	fe60	0020	1			1.0			// IC69	fe60 -	fe6f; 1 MHz Clock
 ADD	ADC7002			ADC			fec0	0003	1			1.0			// ADC Converter
 
 ADD	BEEBKB			KB			00										// startup options (DIP switches)
-ADD	CPU_6502		CPU										2.0			// Microprocessor 6502 running ay 2 MHz
+ADD	CPU_6502CC		CPU										2.0			// Microprocessor 6502 running ay 2 MHz
 ADD	TAPREC			TAPREC												// Standard Tape Recorder
 ADD	TI4689			SOUND
 ADD	BEEBVIALATCH	74LS259												// System VIA Latch with 8 outputs, each updated by writing to Port B bits 3:0

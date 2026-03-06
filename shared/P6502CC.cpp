@@ -45,22 +45,27 @@ bool P6502CC::advanceInstr(uint64_t& endTick)
 	CPUExecState prev_state = UNDEFINED;
 	mExecSuccess = true;
 	mPageBoundaryCrossed = false;
+	MemoryMappedDevice* dev = nullptr;
+	mBranchTaken = false;
 
 	while (prev_state != FETCH_OPCODE && effective_cycles++ < 100) {
 		
-		mBranchTaken = false;
+		
 
 		// Keep executing microcycles of the current instruction until the next instruction's opcode needs to be fetched
-		MemoryMappedDevice* dev;
-		if (mPendingWaitStates == 0) {
+
+		if (mPendingWaitStates == 0 && !mPendingAccess) {
 			// New memory acess - check if the address is mapped to a device and if so add wait states if applicable
 			if ((dev = mDeviceManager->getSelectedMemoryMappedDevice(mADDRESS)) != NULL)
 				mPendingWaitStates = getWaitStates(dev);
 			else {
 				mPendingWaitStates = 0; // No device mapped to the accessed address - no wait states
 			}
+			mPendingAccess = mPendingWaitStates > 0;
+
 		}
 		if (mPendingWaitStates == 0) {
+			mPendingAccess = false;
 			if (mRW == 0) {
 				// Write operation - write mDATA to the device at mADDRESS
 				if (dev != nullptr) {
@@ -558,7 +563,7 @@ bool P6502CC::zeroPageXAdrHdlr()
 	case 2:
 
 		// Calculate zero page address + X
-		mOperandAddress = mOperandAddress + mRegisterX;
+		mOperandAddress = (mOperandAddress + mRegisterX) & 0xff;
 
 		// For Read and Read-modify-Write instructions, add one micro cycle for reading at the calculated address
 		if (pInstructionData->info.readsMem) {
@@ -619,7 +624,7 @@ bool P6502CC::zeroPageYAdrHdlr()
 	case 2:
 
 		// Calculate zero page address + Y
-		mOperandAddress = mOperandAddress + mRegisterY;
+		mOperandAddress = (mOperandAddress + mRegisterY) & 0xff;
 
 		// For Read and Read-modify-Write instructions, add one micro cycle for reading at the calculated address
 		if (pInstructionData->info.readsMem) {
@@ -757,23 +762,34 @@ bool P6502CC::absoluteXAdrHdlr()
 
 		// All types of accesses (read-only, write-only and read-modify-write)
 
-		// Make a re-read if page boundary crossed for read-only accesses
+		// Read-only access
 		if (pInstructionData->info.readsMem && !pInstructionData->info.writesMem) {
+			// Make a re-read if page boundary crossed for read-only accesses
 			if (pageBoundaryCrossed(mOperandAddress, mOperand16)) {
 				initMemRead(mOperandAddress);
 				return true;
 			}
+			mReadVal = mDATA; // only used if the instruction actually reads data...
+			mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+			return true;
 		}
 
-		// Hand over to instruction execution directly
-		mReadVal = mDATA; // only used if the instruction actually reads data...
-		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		// Hrite-only access
+		if (!pInstructionData->info.readsMem && pInstructionData->info.writesMem) {
+			mReadVal = mDATA; // only used if the instruction actually reads data...
+			mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+			return true;
+		}
+
+		// Read-modify-Write access
+		initMemRead(mOperandAddress);
 		return true;
+
 
 
 	case 4:
 
-		// Read-only when page boundary crossed
+		// Read-only access when page boundary crossed OR Read-modify-Write access
 
 		// Hand over to instruction execution directly 
 		mReadVal = mDATA; // only used if the instruction actually reads data...
@@ -840,23 +856,34 @@ bool P6502CC::absoluteYAdrHdlr()
 
 		// All types of accesses (read-only, write-only and read-modify-write)
 
-		// Make a re-read if page boundary crossed for read-only accesses
+		// Read-only access
 		if (pInstructionData->info.readsMem && !pInstructionData->info.writesMem) {
+			// Make a re-read if page boundary crossed for read-only accesses
 			if (pageBoundaryCrossed(mOperandAddress, mOperand16)) {
 				initMemRead(mOperandAddress);
 				return true;
 			}
+			mReadVal = mDATA; // only used if the instruction actually reads data...
+			mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+			return true;
 		}
 
-		// Hand over to instruction execution directly
-		mReadVal = mDATA; // only used if the instruction actually reads data...
-		mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+		// Hrite-only access
+		if (!pInstructionData->info.readsMem && pInstructionData->info.writesMem) {
+			mReadVal = mDATA; // only used if the instruction actually reads data...
+			mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
+			return true;
+		}
+
+		// Read-modify-Write access
+		initMemRead(mOperandAddress);
 		return true;
+
 
 
 	case 4:
 
-		// Read-only when page boundary crossed
+		// Read-only access when page boundary crossed OR Read-modify-Write access
 
 		// Hand over to instruction execution directly 
 		mReadVal = mDATA; // only used if the instruction actually reads data...
@@ -1072,7 +1099,7 @@ bool P6502CC::postIndYAdrHdlr()
 		mTmpAddress = (mEffectiveAddress & 0xff00) | (mEffectiveAddress + mRegisterY) & 0xff;
 
 		// Save (final) calculated address for use by the instruction execution handler (and logging)
-		mOperandAddress = mTmpAddress + mRegisterY;
+		mOperandAddress = mEffectiveAddress + mRegisterY;
 
 		// Make a read (even if it is a write-only instruction => dummy read!)
 		initMemRead(mTmpAddress);
@@ -1082,7 +1109,7 @@ bool P6502CC::postIndYAdrHdlr()
 
 		// For read-only instructions - add an extra read cycle (at the corrected address) if page boundary is crossed
 		if (pInstructionData->info.readsMem && pageBoundaryCrossed(mOperandAddress, mTmpAddress)) {
-			initMemRead(mEffectiveAddress);
+			initMemRead(mOperandAddress);
 			return true;
 		}
 
