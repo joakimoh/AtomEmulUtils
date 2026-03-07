@@ -841,6 +841,11 @@ bool P6502IC::JMPExecHdlr()
 //
 bool P6502IC::JSRExecHdlr()
 {
+	// Make dummy reading at the stack pointer address
+	uint8_t dummy_byte;
+	if (!readMem(mStackPointer, dummy_byte))
+		return false;
+
 	pushWord(mOpcodePC + 2); // this is the same as PC after the opcode has been read + 2
 
 	mProgramCounter = mOperandAddress;
@@ -1122,6 +1127,11 @@ bool P6502IC::RTIExecHdlr()
 	uint8_t oStatusRegister = mStatusRegister;
 	uint16_t oProgramCounter = mProgramCounter;
 
+	// A dummy read at the stack pointer address is always made by NMOS 6502
+	uint8_t dummy_byte;
+	if (!readMem(mStackPointer, dummy_byte))
+		return false;
+
 	// Pull Status Register
 	uint8_t stack_val;
 	pull(stack_val);
@@ -1156,8 +1166,18 @@ bool P6502IC::RTIExecHdlr()
 bool P6502IC::RTSExecHdlr()
 {
 	uint16_t oPC = mProgramCounter;
+
+	// A dummy read at the stack pointer address is always made by NMOS 6502
+	uint8_t dummy_byte;
+	if (!readMem(mStackPointer, dummy_byte))
+		return false;
+
 	pullWord(mProgramCounter);
-	mProgramCounter++;
+
+	// A dummy read at the stack pointer address is always made by NMOS 6502 (this will also
+	// increase the program counter to point correctly)
+	if (!readMem(mProgramCounter++, dummy_byte))
+		return false;
 
 	return true;
 }
@@ -1808,6 +1828,10 @@ bool P6502IC::accAdrHdlr()
 //
 bool P6502IC::impliedAdrHdlr()
 {
+	// A dummy read at the program counter location is always made by NMOS 6502
+	uint8_t dummy_byte;
+	readProgramMem(mProgramCounter, dummy_byte);
+
 	return true;
 }
 
@@ -1842,8 +1866,16 @@ bool P6502IC::relativeAdrHdlr()
 bool P6502IC::addBranchTakenCycles()
 {
 	// Add two cycles if branch to other page; otherwise just one cycle
-	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mProgramCounter, mOperandAddress))
+	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mProgramCounter, mOperandAddress)) {
+
+		// Make dummy read at the program location
+		uint8_t dummy_byte;
+		if (!readProgramMem(mProgramCounter, dummy_byte))
+			return false;
+
+		// Advance 2 cycles
 		tick(2);
+	}
 	else
 		tick();
 	return true;
@@ -1886,6 +1918,10 @@ bool P6502IC::zeroPageAdrHdlr()
 	if (!readProgramMem(mProgramCounter++, zp_a))
 		return false;
 
+	// A dummy read at the zero page address is always made by NMOS 6502
+	uint8_t dummy_byte;
+	readProgramMem(zp_a, dummy_byte);
+
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
 	mOperand16 = zp_a;
 
@@ -1916,6 +1952,10 @@ bool P6502IC::zeroPageXAdrHdlr()
 	if (!readProgramMem(mProgramCounter++, zp_a))
 		return false;
 
+	// A dummy read at the zero page address is always made by NMOS 6502
+	uint8_t dummy_byte;
+	readProgramMem(zp_a, dummy_byte);
+
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
 	mOperand16 = zp_a;
 
@@ -1944,6 +1984,10 @@ bool P6502IC::zeroPageYAdrHdlr()
 	uint8_t zp_a;
 	if (!readProgramMem(mProgramCounter++, zp_a))
 		return false;
+
+	// A dummy read at the zero page address is always made by NMOS 6502
+	uint8_t dummy_byte;
+	readProgramMem(zp_a, dummy_byte);
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
 	mOperand16 = zp_a;
@@ -2012,19 +2056,16 @@ bool P6502IC::absoluteXAdrHdlr()
 	// Calculate address and save it for use when executing the specific instruction later on
 	mOperandAddress = mOperand16 + mRegisterX;
 
-	// Add one cycle if page boundary crossed and make dummy read
-	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16)) {
-		uint8_t dummy_byte;
-		readProgramMem(mOperandAddress & 0xff | mOperand16 & 0xff00, dummy_byte); // dummy read
-		tick();
-	}
-
-	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
-	// to make it available as 'mReadVal' later on when executing the instruction
-	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal))
+	// Always make a read at the non-page boundary compensated address (even for e.g. a STA instruction)
+	if (!readProgramMem(mOperandAddress & 0xff | mOperand16 & 0xff00, mReadVal))
 		return false;
 
-
+	// For read-only instruction like LDA, add one cycle if page boundary crossed and re-read the data at the corrected address
+	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16)) {
+		if (!readProgramMem(mOperandAddress, mReadVal))
+			return false;
+		tick();
+	}
 
 	return true;
 }
@@ -2053,17 +2094,16 @@ bool P6502IC::absoluteYAdrHdlr()
 	// Calculate address and save it for use when executing the specific instruction later on
 	mOperandAddress = mOperand16 + mRegisterY;
 
-	// Add one cycle if page boundary crossed and make dummy read
+	// Always make a read at the non-page boundary compensated address (even for e.g. a STA instruction)
+	if (!readProgramMem(mOperandAddress & 0xff | mOperand16 & 0xff00, mReadVal))
+		return false;
+
+	// For read-only instruction like LDA, add one cycle if page boundary crossed and re-read the data at the corrected address
 	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16)) {
-		uint8_t dummy_byte;
-		readProgramMem(mOperandAddress & 0xff | mOperand16 & 0xff00, dummy_byte); // dummy read
+		if (!readProgramMem(mOperandAddress, mReadVal))
+			return false;
 		tick();
 	}
-
-	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
-	// to make it available as 'mReadVal' later on when executing the instruction
-	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal))
-		return false;
 
 	return true;
 }
@@ -2121,6 +2161,11 @@ bool P6502IC::preIndXAdrHdlr()
 	if (!readProgramMem(mProgramCounter++, zp_a))
 		return false;
 
+	// Make dummy read at the zeropage address
+	uint8_t dummy_byte;
+	if (!readProgramMem(zp_a, dummy_byte))
+		return false;
+
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
 	mOperand16 = zp_a;
 
@@ -2171,14 +2216,17 @@ bool P6502IC::postIndYAdrHdlr()
 	// Calculate address and save it for use when executing the specific instruction later on
 	mOperandAddress = effective_address + mRegisterY;
 
-	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
-	// to make it available as 'mReadVal' later on when executing the instruction
-	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal))
+	// Read at the calculated address while ignoring crossing a page boundary (made also for write-only instructions like STA)
+	if (!readProgramMem((effective_address + mRegisterY) & 0xff | effective_address & 0xff00, mReadVal))
 		return false;
 
-	// Add one cycle if page boundary crossed
-	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(effective_address, mOperandAddress))
+
+	// Add one cycle if page boundary crossed and re-read at the corrected address
+	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(effective_address, mOperandAddress)) {
+		if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal))
+			return false;
 		tick();
+	}
 
 	return true;
 }

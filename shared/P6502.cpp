@@ -632,7 +632,7 @@ bool P6502::printInstrLogData(ostream& sout, InstrLogData& instrLogData)
 	string t_s = Utility::encodeCPUTime(instrLogData.logTime);
 
 	int expected_cycles = instrLogData.instr->cycles;
-	bool possible_extra_cycles = Codec6502::MODE_INFO[instr.mode].addCycleAtPageBoundary && instr.readsMem && !instr.writesMem;
+	bool possible_extra_cycles = Codec6502::MODE_INFO[instr.mode].addCycleAtPageBoundary && !instr.writesMem;
 	string  expected_cycles_s = to_string(expected_cycles) + (possible_extra_cycles ? + "+": " ");
 	sout << t_s << " [" << instrLogData.cycles << "(" << expected_cycles_s << ")] " << setfill(' ') << setw(30) << left << instr_s << right <<
 		" " << hex << setfill('0') <<

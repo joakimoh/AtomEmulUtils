@@ -754,7 +754,7 @@ bool P6502CC::absoluteXAdrHdlr()
 		uint16_t calc_adr_raw = (mOperand16 & 0xff00) | (mOperandAddress & 0xff);
 
 		// Initialise reading at the calculated address (page boundary cross ignored)
-		// Done even for a write-onlu instruction like STA abs,X...
+		// Done even for a write-only instruction like STA abs,X...
 		initMemRead(calc_adr_raw);
 		return true;
 	}
@@ -774,7 +774,7 @@ bool P6502CC::absoluteXAdrHdlr()
 			return true;
 		}
 
-		// Hrite-only access
+		// Write-only access
 		if (!pInstructionData->info.readsMem && pInstructionData->info.writesMem) {
 			mReadVal = mDATA; // only used if the instruction actually reads data...
 			mCPUExecState = EXECUTE_INSTRUCTION_DIRECTLY;
