@@ -386,6 +386,8 @@ public:
 
 #define P6502_JSR_OPCODE 0x20
 #define P6502_RTS_OPCODE 0x60
+
+enum InterruptState { NONE_PENDING = 0, NMI_PENDING = 0x1, IRQ_PENDING = 0x2, RESET_PENDING = 0x4 };
 	
 
 private:
@@ -411,7 +413,7 @@ public:
 
 	bool decode(int adr, string srcFileName, ostream &fout);
 
-	string decode(uint16_t PC, uint8_t opcode, uint16_t operand);
+	string decode(uint16_t PC, uint8_t opcode, uint16_t operand, InterruptState BRKType = NONE_PENDING);
 
 	bool decodeInstrFromBytes(uint16_t& pc, vector<uint8_t> bytes, string& decodedInstr);
 	bool decodeInstrFromBytes(uint16_t& pc, vector<uint8_t> bytes, string& decodedInstr, bool outputASCII);

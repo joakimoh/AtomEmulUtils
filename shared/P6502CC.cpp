@@ -68,23 +68,25 @@ bool P6502CC::advanceInstr(uint64_t& endTick)
 			mPendingAccess = false;
 			if (mRW == 0) {
 				// Write operation - write mDATA to the device at mADDRESS
-				if (dev != nullptr) {
-					dev->write(mADDRESS, mDATA);
+				if (dev != nullptr && dev->write(mADDRESS, mDATA)) {
 					mWrittenVal = mDATA;
 				}
+				else
+					mExecSuccess = false;
 			}
 			else {
 				// Read operation - read from the device at mADDRESS into mDATA
-				if (dev != nullptr) {
-					dev->read(mADDRESS, mDATA);
+				if (dev != nullptr && dev->read(mADDRESS, mDATA)) {
 					if (!mSYNC) {
 						mReadVal = mDATA;
 						if (mReadingOperandByte && mOperandByteCount < 2)
 							mOperandBytes[mOperandByteCount++] = mDATA;
 					}
 				}
-				else
-					mDATA = 0xff;
+				else {
+					mDATA = 0x00; // Provide value zero for unmapped devices to secure that a read of an unmapped device's status register will not return a '1' for any status bits
+					mExecSuccess = false;
+				}
 			}
 			if (!executeInstrMicroCycle()) {
 				mExecSuccess = false;
@@ -129,7 +131,8 @@ bool P6502CC::initFetch()
 		if (pInstructionInfo->writesMem)
 			mWAccAdr = mOperandAddress;
 	}	
-	setInstrLogData();
+	setInstrLogData(mBRKType);
+	mBRKType = Codec6502::NONE_PENDING;
 
 
 
@@ -258,6 +261,7 @@ bool P6502CC::executeInstrMicroCycle()
 			mCPUExecState = IN_RESET; // Set the CPU execution state to (in the next cycle) be in reset processing
 			mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the reset sequence
 			mExecMicroCycle = -1; // Reset the execution microcycle counter (even if not used for the reset sequence)
+			mBRKType = Codec6502::RESET_PENDING;
 			fakeBRKFetch(); // Make execution of the RESET sequency appear as that of a BRK instruction when logging
 		}
 
@@ -267,7 +271,8 @@ bool P6502CC::executeInstrMicroCycle()
 			mCPUExecState = IN_IRQ; // Set the CPU execution state to (in the next cycle) be in IRQ processing
 			mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the reset sequence
 			mExecMicroCycle = -1; // Reset the execution microcycle counter (even if not used for the reset sequence)
-			fakeBRKFetch(); // Make execution of the IRQ sequency appear as that of a BRK instruction when logging
+			mBRKType = Codec6502::IRQ_PENDING;
+			fakeBRKFetch(); // Make execution of the IRQ sequency appear as that of a BRK instruction when logging		
 		}
 
 		if (!mNMI && mNmiTransition  && !mPendingNMI)
@@ -277,6 +282,7 @@ bool P6502CC::executeInstrMicroCycle()
 			mCPUExecState = IN_NMI; // Set the CPU execution state to (in the next cycle) be in NMI processing
 			mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the reset sequence
 			mExecMicroCycle = -1; // Reset the execution microcycle counter (even if not used for the reset sequence)
+			mBRKType = Codec6502::NMI_PENDING;
 			fakeBRKFetch(); // Make execution of the NMI sequency appear as that of a BRK instruction when logging
 		}
 		else if (mNMI)
@@ -326,6 +332,7 @@ bool P6502CC::reset()
 	mCPUExecState = IN_RESET; // Set the CPU execution state to (in the next cycle) be in reset
 	mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the reset sequence
 	mExecMicroCycle = -1; // Reset the execution microcycle counter (even if not used for the reset sequence);
+	mBRKType = Codec6502::RESET_PENDING;
 	fakeBRKFetch(); // Make execution of the RESET sequency appear as that of a BRK instruction when logging
 
 	return true;
@@ -354,8 +361,8 @@ bool P6502CC::resetHdlr()
 }
 
 // Servicing of NMI and IRQ
-bool P6502CC::serveNMI() { mInterruptState = NMI_PENDING;  return BRKExecHdlr(); }
-bool P6502CC::serveIRQ() { mInterruptState = IRQ_PENDING;  return BRKExecHdlr(); }
+bool P6502CC::serveNMI() { mInterruptState = Codec6502::NMI_PENDING;  return BRKExecHdlr(); }
+bool P6502CC::serveIRQ() { mInterruptState = Codec6502::IRQ_PENDING;  return BRKExecHdlr(); }
 
 
 
@@ -1657,14 +1664,17 @@ bool P6502CC::BRKExecHdlr()
 	// is called (the speculative - and dummy - read of a potentially next instruction's opcode),
 	// so then we start with the second micro cycle. When servicing an NMI or an IRQ, there has
 	// been no opcode fetch, so we start with the first micro cycle instead.
-	int exec_cycle = (mInterruptState == NONE ? mExecMicroCycle++ + 1 : mExecMicroCycle++);
+	int exec_cycle = mExecMicroCycle;
+	if (mExecMicroCycle++ == 0) {
+		if (mInterruptState == Codec6502::NONE_PENDING)
+			exec_cycle = mExecMicroCycle++;
+	}
 
 	switch (exec_cycle) {
 
 	case 0:
 
 		initDummyOperandRead();  // dummy read at the current PC
-		mProgramCounter++;
 		return true;
 
 	case 1:
@@ -1682,17 +1692,20 @@ bool P6502CC::BRKExecHdlr()
 
 	case 3:
 
-		// Push the status register to the stack with the break flag (B) set
-		prepMemWrite(0x100 + (uint16_t)mStackPointer--, mStatusRegister | B_set_mask);
+		// Push the status register to the stack with the break flag (B) set if it is a  true BRK instruction; otheriwse (NMI and IRQ), hte break falg willo not be set
+		if (mCPUExecState == IN_IRQ || mCPUExecState == IN_NMI)
+			prepMemWrite(0x100 + (uint16_t)mStackPointer--, mStatusRegister);
+		else
+			prepMemWrite(0x100 + (uint16_t)mStackPointer--, mStatusRegister | B_set_mask);
 		return true;
 
 	case 4:
 
-		if (mInterruptState != NONE)
+		if (mInterruptState != Codec6502::NONE_PENDING)
 			mStatusRegister |= I_set_mask; // (For an NMI and an IRQ) set the interrupt disable flag to prevent further interrupts until the RTI instruction is executed
 
 		// Choose interrupt vector based on the type of interrupt (NMI or IRQ/BRK)
-		if (mInterruptState == NMI_PENDING)
+		if (mInterruptState & Codec6502::NMI_PENDING)
 			mInterruptVector = 0xfffa; // NMI
 		else 
 			mInterruptVector = 0xfffe; // IRQ or BRK
@@ -1709,20 +1722,22 @@ bool P6502CC::BRKExecHdlr()
 		return true; 
 
 	case 6:
-		
-		// Finish setting ut the service routine address by getting the high byte of the interrupt vector and combining it
+
+		// Finish setting up the service routine address by getting the high byte of the interrupt vector and combining it
 		// with the low byte to set the program counter to the address of the interrupt vector; reset the interrupt state
 		mProgramCounter = (mDATA << 8) | mVecLow;
 
 		// If the completion of servicing an NMI or an IRQ, then clear the associated pending status
-		if (mInterruptState == IRQ_PENDING)
+		if (mInterruptState & Codec6502::IRQ_PENDING)
 			mPendingIRQ = false; // reset pending IRQ (if it was an IRQ that is being serviced)
-		else if (mInterruptState == NMI_PENDING)
+		else if (mInterruptState & Codec6502::NMI_PENDING)
 			mPendingNMI = false; // reset pending NMI (if it was an NMI that is being serviced)
-		mInterruptState = NONE; // reset the interrupt state
 
 		// Prepare fetching of the first instruction of the BRK/IRQ/NMI service routine at the address of the interrupt vector
 		initFetch();
+
+		// Reset the interrupt state as the interrupt sequence is now completed
+		mInterruptState = Codec6502::NONE_PENDING;
 
 		return true;
 

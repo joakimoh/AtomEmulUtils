@@ -83,3 +83,11 @@ bool ROM::write(uint16_t adr, uint8_t data)
 {
 	return false; // ROM is read-only!
 }
+
+// Outputs the internal state of the device
+bool ROM::outputState(ostream & sout)
+{
+	sout << "CS = " << (int)mCS << "\n";
+
+	return true;
+}

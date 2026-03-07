@@ -95,3 +95,12 @@ bool RAM::read(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
 
 	return true;
 }
+
+
+// Outputs the internal state of the device
+bool RAM::outputState(ostream& sout)
+{
+	sout << "CS = " << (int)mCS << "\n";
+
+	return true;
+}

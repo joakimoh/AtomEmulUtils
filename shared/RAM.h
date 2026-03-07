@@ -24,6 +24,9 @@ public:
 	bool write(uint16_t adr, uint8_t data);
 	bool write(uint16_t adr, vector<uint8_t>& data, uint16_t sz);
 	bool read(uint16_t adr, vector<uint8_t>& data, uint16_t sz);
+
+	// Outputs the internal state of the device
+	bool outputState(ostream& sout) override;
 };
 
 #endif

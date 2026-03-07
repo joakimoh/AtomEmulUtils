@@ -139,89 +139,97 @@ bool Codec6502::decode(int adr, string srcFileName, ostream& fout)
 	return true;
 }
 
-string Codec6502::decode(uint16_t PC, uint8_t opcode, uint16_t operand)
+string Codec6502::decode(uint16_t PC, uint8_t opcode, uint16_t operand, InterruptState BRKType)
 {
 	stringstream sout;
 	
 	sout << word2str(PC) << " ";
 	sout << byte2str(opcode) << " ";
 
-
 	InstructionInfo instr = mOpcodeDict[opcode];
+	string mnemonic = instr2str[instr.instruction];
+
+	if (BRKType == IRQ_PENDING && mnemonic == "BRK")
+		mnemonic = "IRQ";
+	else if (BRKType == NMI_PENDING && mnemonic == "BRK")
+		mnemonic = "NMI";
+	else if (BRKType == RESET_PENDING && mnemonic == "BRK")
+		mnemonic = "RST";
+
 	switch (instr.mode) {
 		case Accumulator:		// OPC A
 			sout << "      ";
-			sout << instr2str[instr.instruction] << " A";
+			sout << mnemonic << " A";
 			break;
 		case Implied:		// 
 			sout << "      ";
-			sout << instr2str[instr.instruction] << "     ";
+			sout << mnemonic << "     ";
 			break;
 		case Relative:		// OPC <branch target>
 		{
 			uint16_t r_a = (PC + 2 + (int8_t) operand) & 0xffff;
 			sout << byte2str(operand + 0x100) << "    ";
-			sout << instr2str[instr.instruction] << " &" << word2str(r_a);
+			sout << mnemonic << " &" << word2str(r_a);
 			break;
 		}
 		case Immediate:		// OPC #&12
 		{
 			sout << byte2str(operand) << "    ";
-			sout << instr2str[instr.instruction] << " #&" << byte2str(operand);
+			sout << mnemonic << " #&" << byte2str(operand);
 			break;
 		}
 		case ZeroPage:		// OPC &12
 		{
 			sout << byte2str(operand) << "    ";
-			sout << instr2str[instr.instruction] << " &" << byte2str(operand);
+			sout << mnemonic << " &" << byte2str(operand);
 			break;
 		}
 		case ZeroPage_X:		// OPC &12,X
 		{;
 			sout << byte2str(operand) << "    ";
-			sout << instr2str[instr.instruction] << " &" << byte2str(operand) << ",X";
+			sout << mnemonic << " &" << byte2str(operand) << ",X";
 			break;
 		}
 		case ZeroPage_Y:		// OPC &12,Y
 		{
 			sout << byte2str(operand) << "    ";
-			sout << instr2str[instr.instruction] << " &" << byte2str(operand) << ",Y";
+			sout << mnemonic << " &" << byte2str(operand) << ",Y";
 			break;
 		}
 		case Absolute:		// OPC &1234
 		{
 			sout << word2strB(operand) << " ";
-			sout << instr2str[instr.instruction] << " &" << word2str(operand);
+			sout << mnemonic << " &" << word2str(operand);
 			break;
 		}
 		case Absolute_X:		// OPC &1234,X
 		{
 			sout << word2strB(operand) << " ";
-			sout << instr2str[instr.instruction] << " &" << word2str(operand) << ",X";
+			sout << mnemonic << " &" << word2str(operand) << ",X";
 			break;
 		}
 		case Absolute_Y:		// OPC &1234,Y
 		{
 			sout << word2strB(operand) << " ";
-			sout << instr2str[instr.instruction] << " &" << word2str(operand) << ",Y";
+			sout << mnemonic << " &" << word2str(operand) << ",Y";
 			break;
 		}
 		case Indirect:		// OPC (&1234)
 		{
 			sout << word2strB(operand) << " ";
-			sout << instr2str[instr.instruction] << " (&" << word2str(operand) << ")";
+			sout << mnemonic << " (&" << word2str(operand) << ")";
 			break;
 		}
 		case PreInd_X:		// OPC (&12,X)
 		{
 			sout << byte2str(operand) << "    ";
-			sout << instr2str[instr.instruction] << " (&" << byte2str(operand) << ";X)";
+			sout << mnemonic << " (&" << byte2str(operand) << ";X)";
 			break;
 		}
 		case PostInd_Y:		// OPC (&12),Y
 		{
 			sout << byte2str(operand) << "    ";
-			sout << instr2str[instr.instruction] << " (&" << byte2str(operand) << "),Y";
+			sout << mnemonic << " (&" << byte2str(operand) << "),Y";
 			break;
 		}
 		default:

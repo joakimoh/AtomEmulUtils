@@ -228,7 +228,7 @@ protected:
 	string getInterruptStack(uint16_t stackStart, uint16_t oStackPointer, uint16_t oProgramCounter, uint16_t oStatusRegister);
 	string getCallStack();
 
-	bool setInstrLogData();
+	bool setInstrLogData(Codec6502::InterruptState BRKType = Codec6502::NONE_PENDING);
 
 	bool ADCCalc();
 	bool SBCCalc();

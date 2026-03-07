@@ -568,7 +568,7 @@ bool P6502::getInstrLogData(InstrLogData& instrLogData) {
 	return true;
 }
 
-bool P6502::setInstrLogData() {
+bool P6502::setInstrLogData(Codec6502::InterruptState BRKType) {
 	mInstrLogData.logTime = getCycleCount() / (mTickRate * 1e6);
 	mInstrLogData.instr = pInstructionInfo;
 	mInstrLogData.A = mAcc;
@@ -586,6 +586,7 @@ bool P6502::setInstrLogData() {
 	mInstrLogData.execFailure = !mExecSuccess;
 	mInstrLogData.readVal = mReadVal;
 	mInstrLogData.writtenVal = mWrittenVal;
+	mInstrLogData.BRKType = BRKType;
 	uint16_t a = (0x100 + mStackPointer + 1) & 0x1ff;
 	uint8_t l, h;
 	readMem(a, l);
@@ -626,7 +627,7 @@ bool P6502::printInstrLogData(ostream& sout, InstrLogData& instrLogData)
 		return true;
 	}
 
-	string instr_s = mCodec.decode(instrLogData.opcodePC, instrLogData.opcode, instrLogData.operand);
+	string instr_s = mCodec.decode(instrLogData.opcodePC, instrLogData.opcode, instrLogData.operand, instrLogData.BRKType);
 	Codec6502::InstructionInfo instr = *instrLogData.instr;
 
 	string t_s = Utility::encodeCPUTime(instrLogData.logTime);

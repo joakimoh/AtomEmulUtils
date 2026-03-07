@@ -171,7 +171,7 @@ private:
 	uint8_t mOperandBytes[2] = { 0 }; // For instructions with operand fetch cycles, this is used to store the operand byte(s) read during these cycles
 	int mOperandByteCount = 0; // For instructions with operands, this is used to keep track of how many operand bytes have been read so far during these cycles
 
-	enum InterruptState { NONE, NMI_PENDING, IRQ_PENDING, RESET_PENDING } mInterruptState = NONE; // Whether a RESET, an NMI or an IRQ is pending
+	Codec6502::InterruptState mInterruptState = Codec6502::NONE_PENDING; // Whether a RESET, an NMI or an IRQ is pending
 	uint16_t mInterruptVector = 0; // The interrupt vector to jump to when the pending interrupt is executed
 	bool mPendingNMI = false;
 	bool mPendingIRQ = false;
@@ -183,6 +183,8 @@ private:
 	uint16_t mLookupAddress = 0x0;
 	uint16_t mEffectiveAddress = 0x0;
 	uint16_t mTmpAddress = 0x0;
+
+	Codec6502::InterruptState mBRKType = Codec6502::NONE_PENDING;
 
 public:
 
