@@ -40,18 +40,16 @@ P6502CC::~P6502CC()
 // The endTick parameter is set to the device time after the execution of the instruction
 bool P6502CC::advanceInstr(uint64_t& endTick)
 {
-	int micro_cycles = 0;
-	int effective_cycles = 0; // safeguard to put an upper limit on the number of microcycles that can be executed for an instruction to prevent infinite loops in case of a bug in the code
+	uint64_t start_ticks = mTicks;
 	CPUExecState prev_state = UNDEFINED;
 	mExecSuccess = true;
 	mPageBoundaryCrossed = false;
 	MemoryMappedDevice* dev = nullptr;
 	mBranchTaken = false;
+	uint64_t max_ticks = deviceCycles2Ticks(10);// safeguard to put an upper limit on time passed executing an instruction (if e.g RESET is low, don't spend more time than correspoding to 10 microcycles
 
-	while (prev_state != FETCH_OPCODE && effective_cycles++ < 100) {
+	while (prev_state != FETCH_OPCODE && mTicks - start_ticks < max_ticks) {
 		
-		
-
 		// Keep executing microcycles of the current instruction until the next instruction's opcode needs to be fetched
 
 		if (mPendingWaitStates == 0 && !mPendingAccess) {
@@ -90,8 +88,8 @@ bool P6502CC::advanceInstr(uint64_t& endTick)
 			}
 			if (!executeInstrMicroCycle()) {
 				mExecSuccess = false;
-			}; // Execute one microcycle
-			micro_cycles++;
+			}; // Execute one microcycle (if not in RESET in which case instruction execution start first when the RESET line goes high again)
+
 		}
 		else {
 			--mPendingWaitStates; // Decrease pending wait states until the memory access can be executed
@@ -99,10 +97,6 @@ bool P6502CC::advanceInstr(uint64_t& endTick)
 		}
 		prev_state = mCPUExecState;
 	}
-
-	if (micro_cycles > 10) {
-		cout << "Error: instruction at PC " << hex << mOpcodePC << " took more than 10 microcycles (" << micro_cycles << ") to execute. Possible infinite loop in code.\n";
-	} 
 
 	endTick = mTicks;
 
@@ -179,7 +173,7 @@ bool P6502CC::completeFetch()
 
 void P6502CC::fakeBRKFetch()
 {
-	mOpcode = 0x00;
+	mOpcode = 0x00; // BRK
 	pInstructionData = &(pInstrDataTbl->data[mOpcode]); // Execution info
 	pInstructionInfo = &(pInstructionData->info); // Opcode info only
 
@@ -257,7 +251,7 @@ bool P6502CC::executeInstrMicroCycle()
 
 	if (mRESET != 0) {
 
-		if (pRESET != mRESET /* positive edge */) {
+		if (mResetTransition /* positive edge */) {
 			mCPUExecState = IN_RESET; // Set the CPU execution state to (in the next cycle) be in reset processing
 			mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the reset sequence
 			mExecMicroCycle = -1; // Reset the execution microcycle counter (even if not used for the reset sequence)
@@ -275,7 +269,7 @@ bool P6502CC::executeInstrMicroCycle()
 			fakeBRKFetch(); // Make execution of the IRQ sequency appear as that of a BRK instruction when logging		
 		}
 
-		if (!mNMI && mNmiTransition  && !mPendingNMI)
+		if (!mNMI && mNmiTransition && !mPendingNMI)
 			mPendingNMI = true; // Set pending NMI to allow waiting for the current instruction to be completed before starting the interrupt sequence; reset when the interrupt serquence later on has completed
 		if (mPendingNMI && mCPUExecState == FETCH_OPCODE) {
 			mNmiTransition = true;
@@ -287,7 +281,7 @@ bool P6502CC::executeInstrMicroCycle()
 		}
 		else if (mNMI)
 			mNmiTransition = false;
-		
+
 		// Execute RESET sequence if in reset state (state will be changed to FETCH_OPCODE by reset() when the reset sequence is completed)
 		if (mCPUExecState == IN_RESET)
 			return resetHdlr();
@@ -306,7 +300,7 @@ bool P6502CC::executeInstrMicroCycle()
 		CPUExecState adjusted_CPU_exec_state = mCPUExecState;
 		if (adjusted_CPU_exec_state == FETCH_OPERAND)
 			return (this->*(pInstructionData->addrHdlr))(); // Fetch the operand bytes and perform any related read operations (or prepare fetching of the next opcode if there were no operand bytes)
-		
+
 		if (mCPUExecState == EXECUTE_INSTRUCTION_DIRECTLY) {
 			// The last operand micro cycle shall be interleaved with the first execution micro cycle (a trick to be able to share common micro cycle parts)
 			mOPerandMicroCycle--; // As the last operand and the first execution micro cycle is one and the same, the no of operand micro cycles is decremented to make the sum of these cycles correct
@@ -317,6 +311,9 @@ bool P6502CC::executeInstrMicroCycle()
 		if (adjusted_CPU_exec_state == EXECUTE_INSTRUCTION)
 			return (this->*(pInstructionData->execHdlr))(); // Execute the instruction - takes at least one cycle and the last cycle includes preparing for the fetching of the next instruction's opcode
 	}
+
+	else
+		advanceTimeOnly(1);
 
 	return true;
 }

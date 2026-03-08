@@ -39,6 +39,10 @@ public:
 
 	double getDeviceClockRate() { return mDeviceClockRate;  }
 
+	uint64_t tick2DeviceCycles(uint64_t ticks) {return  (uint64_t) round(ticks / mTicksPerDeviceCycle); }
+
+	uint64_t deviceCycles2Ticks(uint64_t deviceCycles) { return  (uint64_t)round(deviceCycles * mTicksPerDeviceCycle); }
+
 
 };
 
