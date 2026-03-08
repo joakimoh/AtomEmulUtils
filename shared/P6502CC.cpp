@@ -1729,6 +1729,7 @@ bool P6502CC::BRKExecHdlr()
 	case 0:
 
 		initDummyOperandRead();  // dummy read at the current PC
+		mProgramCounter--;		// Make sure the program counter points at the opcode location before saving it to stack (IRQ & NMI only - BRK shall still save the current programn counter)
 		return true;
 
 	case 1:
