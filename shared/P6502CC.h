@@ -95,19 +95,22 @@ private:
 	bool TXAExecHdlr() override;
 	bool TXSExecHdlr() override;
 	bool TYAExecHdlr() override;
-	bool LAXExecHdlr() override;
-	bool SBXExecHdlr() override;
-	bool ISCExecHdlr() override;
-	bool DCPExecHdlr() override;
-	bool ANCExecHdlr() override;
+
 	bool ALRExecHdlr() override;
+	bool ANCExecHdlr() override;
+	bool ANC2ExecHdlr() override;
 	bool ARRExecHdlr() override;
+	bool DCPExecHdlr() override;
+	bool ISCExecHdlr() override;
 	bool LASExecHdlr() override;
+	bool LAXExecHdlr() override;
 	bool RLAExecHdlr() override;
 	bool RRAExecHdlr() override;
 	bool SAXExecHdlr() override;
+	bool SBXExecHdlr() override;
 	bool SLOExecHdlr() override;
 	bool SREExecHdlr() override;
+
 	bool undefinedExecHdlr() override;
 
 	// Temp variables for the reset()

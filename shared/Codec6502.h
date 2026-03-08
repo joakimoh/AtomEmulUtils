@@ -25,11 +25,11 @@ public:
 		STX = 0x30, STY = 0x31, TAX = 0x32, TAY = 0x33, TSX = 0x34, TXA = 0x35, TXS = 0x36, TYA = 0x37,
 
 		// Undocumented - but still stable - NMOS instructions that are used by some programs although being illegal
-		LAX = 0x38, SBX = 0x39, ISC = 0x3a, DCP = 0x3b, ANC = 0x3c,
-		ALR = 0x3d, ARR = 0x3e, LAS = 0x3f, RLA = 0x40, RRA = 0x41, SAX = 0x42, SLO = 0x43, SRE = 0x44,
+		LAX = 0x38, SBX = 0x39, ISC = 0x3a, DCP = 0x3b, ANC = 0x3c, ANC2 = 0x3d,
+		ALR = 0x3e, ARR = 0x3f, LAS = 0x40, RLA = 0x41, RRA = 0x42, SAX = 0x43, SLO = 0x44, SRE = 0x45,
 
 		// Used when a non-existing instruction is encountered 
-		UNDEFINED_INSTRUCTION = 0x45
+		UNDEFINED_INSTRUCTION = 0x46
 	};
 
 	const vector<string> instr2str {
@@ -41,7 +41,7 @@ public:
 		"RTS", "SBC", "SEC", "SED", "SEI", "STA", "STX", "STY", "TAX", "TAY", "TSX", "TXA", "TXS", "TYA",
 
 		// Undocumented NMOS instructions that are used by some programs although being illegal
-		"LAX", "SBX", "ISC", "DCP", "ANC",
+		"LAX", "SBX", "ISC", "DCP", "ANC", "ANC2",
 		"ALR", "ARR", "LAS", "RLA", "RRA", "SAX", "SLO", "SRE",
 
 		// Used when a non-existing instruction is encountered 
@@ -316,6 +316,7 @@ public:
 		{ 0x4b, ALR, 					Immediate,		2, false,	false,	false, false },
 
 		{ 0x0b, ANC, 					Immediate,		2, false,	false,	false, true },
+		{ 0x2b, ANC2, 					Immediate,		2, false,	false,	false, true },
 
 		{ 0x6b, ARR, 					Immediate,		2, false,	false,	false,  true },
 

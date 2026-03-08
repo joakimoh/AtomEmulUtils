@@ -458,7 +458,7 @@ bool P6502CC::immediateAdrHdlr()
 //
 // Operand Syntax		Bytes	Cycles
 //	==============		=====	=============================
-//	branch adr			1		1 (RO)
+//	branch adr			1		2 (RO)
 //
 bool P6502CC::relativeAdrHdlr()
 {
@@ -820,7 +820,7 @@ bool P6502CC::absoluteXAdrHdlr()
 //
 //	Operand Syntax		Bytes	Cycles
 //	==============		=====	=============================
-//	absolute,Y			2		4 (WO) 3+ (R) [3 (RW)]*
+//	absolute,Y			2		4 (WO) 4+ (R) [3 (RW)]*
 //
 // One micro cycle is added if the calculated address passes a page boundary
 //
@@ -1168,6 +1168,17 @@ bool P6502CC::undefinedAdrHdlr()
 // N	Z	C	I	D	V
 // +	+	+	-	-	+
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	immediate		ADC #oper	69		2		2  
+//	zeropage		ADC oper	65		2		3
+//	zeropage,X		ADC oper,X	75		2		4
+//	absolute		ADC oper	6D		3		4
+//	absolute,X		ADC oper,X	7D		3		4+
+//	absolute,Y		ADC oper,Y	79		3		4+
+//	(indirect,X)	ADC(oper,X)	61		2		6
+//	(indirect),Y	ADC(oper),Y	71		2		5+
+//
 bool P6502CC::ADCExecHdlr() {
 
 	switch (mExecMicroCycle++) {
@@ -1197,6 +1208,17 @@ bool P6502CC::ADCExecHdlr() {
 // 
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	immediate		AND #oper	29		2		2  
+//	zeropage		AND oper	25		2		3
+//	zeropage,X		AND oper,X	35		2		4
+//	absolute		AND oper	2D		3		4
+//	absolute,X		AND oper,X	3D		3		4+
+//	absolute,Y		AND oper,Y	39		3		4+
+//	(indirect,X)	AND(oper,X)	21		2		6
+//	(indirect),Y	AND(oper),Y	31		2		5+
 //
 bool P6502CC::ANDExecHdlr() {
 
@@ -1404,6 +1426,15 @@ bool P6502CC::BCSExecHdlr() {
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	relative		BEQ oper	f0		2		2+
+// 
+// The branch is taken if the zero flag is set (Z = 1).
+// If the branch is taken, the program counter is set to the address of the branch target and the next instruction is fetched from there.
+// If the branch is not taken, the program counter is not modified and the next instruction is fetched from the next address after the branch instruction as usual.
+// The number of cycles taken by a branch instruction depends on whether the branch is taken (+1) or not (+0) and on whether a page boundary is crossed when branching (+1).
+//
 bool P6502CC::BEQExecHdlr() {
 
 	if (Z_flag) {
@@ -1453,6 +1484,11 @@ bool P6502CC::BEQExecHdlr() {
 // 
 // N	Z	C	I	D	V
 // M7	+	-	-	-	M6
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	zeropage		BIT oper	24		2		3  
+//	absolute		BIT oper	2C		3		4
 //
 bool P6502CC::BITExecHdlr()
 {
@@ -1548,6 +1584,15 @@ bool P6502CC::BMIExecHdlr() {
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	relative		BEQ oper	d0		2		2+
+// 
+// The branch is taken if the zero flag is clear (Z = 0).
+// If the branch is taken, the program counter is set to the address of the branch target and the next instruction is fetched from there.
+// If the branch is not taken, the program counter is not modified and the next instruction is fetched from the next address after the branch instruction as usual.
+// The number of cycles taken by a branch instruction depends on whether the branch is taken (+1) or not (+0) and on whether a page boundary is crossed when branching (+1).
+//
 bool P6502CC::BNEExecHdlr() {
 
 	if (!Z_flag) {
@@ -1599,6 +1644,15 @@ bool P6502CC::BNEExecHdlr() {
 // 
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	relative		BPL oper	10		2		2+
+//
+// The branch is taken if the negative flag is clear (N = 0).
+// If the branch is taken, the program counter is set to the address of the branch target and the next instruction is fetched from there.
+// If the branch is not taken, the program counter is not modified and the next instruction is fetched from the next address after the branch instruction as usual.
+// The number of cycles taken by a branch instruction depends on whether the branch is taken (+1) or not (+0) and on whether a page boundary is crossed when branching (+1).
 //
 bool P6502CC::BPLExecHdlr() {
 
@@ -2128,6 +2182,10 @@ bool P6502CC::DECExecHdlr()
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			DEX			CA		1		2 
+//
 bool P6502CC::DEXExecHdlr() {
 
 	switch (mExecMicroCycle++) {
@@ -2159,6 +2217,10 @@ bool P6502CC::DEXExecHdlr() {
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			DEY			88		1		2 
+//
 bool P6502CC::DEYExecHdlr() {
 
 	switch (mExecMicroCycle++) {
@@ -2189,6 +2251,17 @@ bool P6502CC::DEYExecHdlr() {
 // 
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	immediate		EOR #oper	49		2		2  
+//	zeropage		EOR oper	45		2		3
+//	zeropage,X		EOR oper, X	55		2		4
+//	absolute		EOR oper	4D		3		4
+//	absolute,X		EOR oper, X	5D		3		4+
+//	absolute,Y		EOR oper, Y	59		3		4+
+//	(indirect,X)	EOR(oper,X)	41		2		6
+//	(indirect),Y	EOR(oper),Y	51		2		5+
 //
 bool P6502CC::EORExecHdlr() {
 
@@ -2268,6 +2341,10 @@ bool P6502CC::INCExecHdlr()
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			INX			E8		1		2
+//
 bool P6502CC::INXExecHdlr() {
 
 	switch (mExecMicroCycle++) {
@@ -2295,6 +2372,10 @@ bool P6502CC::INXExecHdlr() {
 // 
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			INY			C8		1		2
 //
 bool P6502CC::INYExecHdlr() {
 
@@ -2435,7 +2516,7 @@ bool P6502CC::JSRExecHdlr()
 //	absolute,Y		LDA oper,Y	B9		3		4+
 //	(indirect,X)	LDA(oper,X)	A1		2		6
 //	(indirect),Y	LDA(oper),Y	B1		2		5+
-
+//
 bool P6502CC::LDAExecHdlr()
 {
 	switch (mExecMicroCycle++) {
@@ -2464,6 +2545,14 @@ bool P6502CC::LDAExecHdlr()
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	immediate		LDX #oper	A2		2		2  
+//	zeropage		LDX oper	A6		2		3
+//	zeropage,Y		LDX oper,Y	B6		2		4
+//	absolute		LDX oper	AE		3		4
+//	absolute,Y		LDX oper,Y	BE		3		4+
+//
 bool P6502CC::LDXExecHdlr()
 {
 	switch (mExecMicroCycle++) {
@@ -2489,6 +2578,14 @@ bool P6502CC::LDXExecHdlr()
 // 
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	immediate		LDY #oper	A0		2		2  
+//	zeropage		LDY oper	A4		2		3
+//	zeropage,X		LDY oper,X	B4		2		4
+//	absolute		LDY oper	AC		3		4
+//	absolute,X		LDY oper,X	BC		3		4+
 //
 bool P6502CC::LDYExecHdlr()
 {
@@ -2517,6 +2614,14 @@ bool P6502CC::LDYExecHdlr()
 // 
 // N	Z	C	I	D	V
 // 0	+	+	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	accumulator		LSR A		4A		1		2  
+//	zeropage		LSR oper	46		2		5
+//	zeropage,X		LSR oper,X	56		2		6
+//	absolute		LSR oper	4E		3		6
+//	absolute,X		LSR oper,X	5E		3		7
 //
 bool P6502CC::LSRExecHdlr()
 {
@@ -2568,6 +2673,10 @@ bool P6502CC::LSRExecHdlr()
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			NOP			EA		1		2
+//
 bool P6502CC::NOPExecHdlr() {
 
 	switch (mExecMicroCycle++) {
@@ -2593,6 +2702,17 @@ bool P6502CC::NOPExecHdlr() {
 // 
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	immediate		ORA #oper	09		2		2  
+//	zeropage		ORA oper	05		2		3
+//	zeropage,X		ORA oper,X	15		2		4
+//	absolute		ORA oper	0D		3		4
+//	absolute,X		ORA oper,X	1D		3		4+
+//	absolute,Y		ORA oper,Y	19		3		4+
+//	(indirect,X)	ORA(oper,X)	01		2		6
+//	(indirect),Y	ORA(oper),Y	11		2		5+
 //
 bool P6502CC::ORAExecHdlr() {
 
@@ -2775,6 +2895,14 @@ bool P6502CC::PLPExecHdlr() {
 // N	Z	C	I	D	V
 // +	+	+	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	accumulator		ROL A		2A		1		2  
+//	zeropage		ROL oper	26		2		5
+//	zeropage,X		ROL oper,X	36		2		6
+//	absolute		ROL oper	2E		3		6
+//	absolute,X		ROL oper,X	3E		3		7
+//
 bool P6502CC::ROLExecHdlr() {
 
 	switch (mExecMicroCycle++) {
@@ -2825,6 +2953,14 @@ bool P6502CC::ROLExecHdlr() {
 // 
 // N	Z	C	I	D	V
 // +	+	+	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	accumulator		ROR A		6A		1		2  
+//	zeropage		ROR oper	66		2		5
+//	zeropage,X		ROR oper,X	76		2		6
+//	absolute		ROR oper	6E		3		6
+//	absolute,X		ROR oper,X	7E		3		7
 //
 bool P6502CC::RORExecHdlr() {
 
@@ -3008,6 +3144,17 @@ bool P6502CC::RTSExecHdlr()
 // V is set if sign bit is incorrect
 // C is cleared if overflow in b7
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	immediate		SBC #oper	E9		2		2  
+//	zeropage		SBC oper	E5		2		3
+//	zeropage,X		SBC oper,X	F5		2		4
+//	absolute		SBC oper	ED		3		4
+//	absolute,X		SBC oper,X	FD		3		4+
+//	absolute,Y		SBC oper,Y	F9		3		4+
+//	(indirect,X)	SBC(oper,X)	E1		2		6
+//	(indirect),Y	SBC(oper),Y	F1		2		5+
+//
 bool P6502CC::SBCExecHdlr() {
 	switch (mExecMicroCycle++) {
 
@@ -3034,6 +3181,10 @@ bool P6502CC::SBCExecHdlr() {
 // N	Z	C	I	D	V
 // -	-	1	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			SEC			38		1		2
+//
 bool P6502CC::SECExecHdlr()
 {
 	mStatusRegister |= C_set_mask;
@@ -3052,6 +3203,10 @@ bool P6502CC::SECExecHdlr()
 // N	Z	C	I	D	V
 // -	-	-	-	1	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			SED			F8		1		2 
+//
 bool P6502CC::SEDExecHdlr()
 {
 	mStatusRegister |= D_set_mask;
@@ -3069,6 +3224,10 @@ bool P6502CC::SEDExecHdlr()
 // 
 // N	Z	C	I	D	V
 // -	-	-	1	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			SEI			78		1		2
 //
 bool P6502CC::SEIExecHdlr()
 {
@@ -3154,6 +3313,7 @@ bool P6502CC::STXExecHdlr() {
 	default:
 		return false;
 	}
+
 }
 
 
@@ -3203,6 +3363,10 @@ bool P6502CC::STYExecHdlr() {
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			TAX			AA		1		2 
+//
 bool P6502CC::TAXExecHdlr()
 {
 
@@ -3231,6 +3395,10 @@ bool P6502CC::TAXExecHdlr()
 // 
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			TAY			A8		1		2
 //
 bool P6502CC::TAYExecHdlr()
 {
@@ -3261,6 +3429,10 @@ bool P6502CC::TAYExecHdlr()
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			TSX			bA		1		2 
+//
 bool P6502CC::TSXExecHdlr()
 {
 
@@ -3288,6 +3460,10 @@ bool P6502CC::TSXExecHdlr()
 // 
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			TAX			8a		1		2 
 //
 bool P6502CC::TXAExecHdlr()
 {
@@ -3317,6 +3493,10 @@ bool P6502CC::TXAExecHdlr()
 // N	Z	C	I	D	V
 // -	-	-	-	-	-
 //
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			TXS			9A		1		2
+//
 bool P6502CC::TXSExecHdlr()
 {
 
@@ -3344,7 +3524,12 @@ bool P6502CC::TXSExecHdlr()
 // N	Z	C	I	D	V
 // +	+	-	-	-	-
 //
-bool P6502CC::TYAExecHdlr() {
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	implied			TYA			98		1		2 
+//
+bool P6502CC::TYAExecHdlr()
+{
 
 	switch (mExecMicroCycle++) {
 
@@ -3370,20 +3555,678 @@ bool P6502CC::TYAExecHdlr() {
 /////////////////////////////////////////////////////////////////////////
 
 
+//
+// ALR
+// 
+// AND followed by LSR
+// 
+// A AND oper, 0 -> [76543210] -> C
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	immediate		ALR #oper	4B		2		2
+//
+bool P6502CC::ALRExecHdlr()
+{
 
-bool P6502CC::LAXExecHdlr() { return true; }
-bool P6502CC::SBXExecHdlr() { return true; }
-bool P6502CC::ISCExecHdlr() { return true; }
-bool P6502CC::DCPExecHdlr() { return true; }
-bool P6502CC::ANCExecHdlr() { return true; }
-bool P6502CC::ALRExecHdlr() { return true; }
-bool P6502CC::ARRExecHdlr() { return true; }
-bool P6502CC::LASExecHdlr() { return true; }
-bool P6502CC::RLAExecHdlr() { return true; }
-bool P6502CC::RRAExecHdlr() { return true; }
-bool P6502CC::SAXExecHdlr() { return true; }
-bool P6502CC::SLOExecHdlr() { return true; }
-bool P6502CC::SREExecHdlr() { return true; }
+	switch (mExecMicroCycle++) {
+
+	case 0:
+	{
+		// AND
+		uint8_t val_before_shift = mAcc & mReadVal;
+
+		// N & Z flags set based on result
+		setNZflags(val_before_shift);
+
+		// LSR
+		mAcc = (val_before_shift >> 1) & 0x7f;
+
+		// Set C as for LSR
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((val_before_shift & 0x1) != 0 ? C_set_mask : 0);
+
+		initFetch();
+		return true;
+	}
+
+	default:
+		return false;
+	}
+}
+
+
+//
+// ANC
+//
+// AND Memory with Carry
+// 
+// A AND oper, b7 -> C
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	immediate		ANC #oper	0B		2		2
+//
+bool P6502CC::ANCExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+	{
+		mAcc &= mReadVal;
+
+		// N & Z flags set based on result
+		setNZflags(mAcc);
+
+		// C flag = b7 of A
+		mStatusRegister &= ~C_set_mask | ((mAcc & 0x80) != 0 ? C_set_mask : 0x0);
+
+		initFetch();
+		return true;
+	}
+	default:
+		return false;
+	}
+}
+
+//
+// ANC2
+//
+// AND Memory with Carry
+// 
+// A AND oper, b7 -> C
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	immediate		ANC #oper	2B		2		2
+//
+// Identical to ANC
+//
+bool P6502CC::ANC2ExecHdlr() { return ANCExecHdlr(); }
+
+
+
+//
+// ARR
+// 
+// AND followed by ROR
+// 
+// A AND oper, C -> [76543210] -> C
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	+
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	immediate		ARR #oper	6B		2		2
+//
+bool P6502CC::ARRExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+	{
+		// AND
+		uint8_t val_before_shift = mAcc & mReadVal;
+
+		// ROR
+		mAcc = ((val_before_shift >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
+
+		// N & Z flags set based on result
+		setNZflags(val_before_shift);
+
+		// Set C as for ROR
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((val_before_shift & 0x1) != 0 ? C_set_mask : 0);
+
+		initFetch();
+
+		return true;
+	}
+	default:
+		return false;
+	}
+}
+
+
+//
+// DCP
+// 
+// Decrement Memory by One
+// 
+// M - 1 -> M, A - M
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	zeropage		DCP oper	C7		2		5  	
+//	zeropage,X		DCP oper,X	D7		2		6
+//	absolute		DCP oper	CF		3		6
+//	absolute,X		DCP oper,X	DF		3		7
+//	absolute,Y		DCP oper,Y	DB		3		7
+//	(indirect,X)	DCP(oper,X)	C3		2		8
+//	(indirect),Y	DCP(oper),Y	D3		2		8
+//
+bool P6502CC::DCPExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		// Dummy write of previous value
+		prepMemWrite(mOperandAddress, mReadVal);
+		return true;
+
+	case 1:
+
+		// Write of the new value
+		mWrittenVal = mReadVal - 1;
+		prepMemWrite(mOperandAddress, mWrittenVal);
+		return true;
+
+	case 2:
+
+		// A - M; flags zet
+		setNZCflags(mAcc - mReadVal, mAcc >= mReadVal);
+
+		initFetch();
+		return true;
+
+	default:
+
+		return false;
+	}
+
+}
+
+
+//
+// ISC
+//
+// Increment and Subtract <=> INC <mem> + SBC <mem>
+// 
+// M + 1 -> M, A - M - C* -> A
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	+
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	zeropage		ISC oper	E7		2		5  	
+//	zeropage,X		ISC oper,X	F7		2		6
+//	absolute		ISC oper	EF		3		6
+//	absolute,X		ISC oper,X	FF		3		7
+//	absolute,Y		ISC oper,Y	FB		3		7
+//	(indirect,X)	ISC(oper,X)	E3		2		8
+//	(indirect),Y	ISC(oper),Y	F3		2		8
+//
+bool P6502CC::ISCExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		// Dummy write of previous value
+		prepMemWrite(mOperandAddress, mReadVal);
+		return true;
+
+	case 1:
+
+		// Write of the new value
+		mWrittenVal = mReadVal + 1;
+		prepMemWrite(mOperandAddress, mWrittenVal);
+		return true;
+
+	case 2:
+	{
+		// A - M - C* -> A flags zet
+		int16_t val_V = (int8_t)mAcc - (int8_t)mWrittenVal - (1 - C_flag);
+		int16_t val_C = mAcc - mWrittenVal - (1 - C_flag);
+		mAcc = val_C & 0xff;
+		setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, val_C >= 0, val_V < -128 || val_V > 127);
+
+		initFetch();
+		return true;
+	}
+
+	default:
+
+		return false;
+	}
+
+}
+
+
+//
+// LAS
+// 
+// Load Memory ANDed with SP into A, X & SP
+// 
+// M AND SP -> A, X, SP
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	absolute,Y		LAS oper,Y	BB		3		4+
+//
+bool P6502CC::LASExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		mAcc = mRegisterX = mStackPointer = mReadVal & mStackPointer;
+		setNZflags(mAcc);
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+
+//
+// LAX
+//
+// Load Accumulator and X with Memory
+// 
+// M -> A -> X
+// 
+// N	Z	C	I	D	V
+// +	+	-	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	zeropage		LAX oper	A7		2		3  	
+//	zeropage,Y		LAX oper,Y	B7		2		4
+//	absolute		LAX oper	AF		3		4
+//	absolute,Y		LAX oper,Y	BF		3		4+
+//	(indirect,X)	LAX(oper,X)	A3		2		6
+//	(indirect),Y	LAX(oper),Y	B3		2		5+
+//
+bool P6502CC::LAXExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		mAcc = mRegisterX = mReadVal;
+		setNZflags(mAcc);
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+
+//
+// RLA
+// 
+// ROL followed by AND
+// 
+// M = C <- [76543210] <- C, A AND M -> A
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	zeropage		RLA oper	27		2		5  	
+//	zeropage,X		RLA oper,X	37		2		6
+//	absolute		RLA oper	2F		3		6
+//	absolute,X		RLA oper,X	3F		3		7
+//	absolute,Y		RLA oper,Y	3B		3		7
+//	(indirect,X)	RLA(oper,X)	23		2		8
+//	(indirect),Y	RLA(oper),Y	33		2		8
+//
+bool P6502CC::RLAExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+	{
+		if (!pInstructionInfo->writesMem)
+			mReadVal = mAcc;
+		else
+			mReadVal = mDATA;
+
+		// ROL
+		mCalcVal = ((mReadVal << 1) & 0xfe) | C_flag;
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((mReadVal & 0x80) != 0 ? C_set_mask : 0);
+		setNZflags(mCalcVal);
+
+		// AND
+		mAcc &= mCalcVal;
+
+		if (!pInstructionInfo->writesMem) {
+			initFetch();
+		}
+		else
+			prepMemWrite(mOperandAddress, mReadVal); // dummy write always made by NMOS 6502
+
+		return true;
+	}
+	case 1:
+
+		prepMemWrite(mOperandAddress, mCalcVal);
+		return true;
+
+	case 2:
+
+
+
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+
+}
+
+
+//
+// RRA
+// 
+// ROR followed by ADC
+// 
+// M = C -> [76543210] -> C, A + M + C -> A, C
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	+
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	zeropage		RRA oper	67		2		5  	
+//	zeropage,X		RRA oper,X	77		2		6
+//	absolute		RRA oper	6F		3		6
+//	absolute,X		RRA oper,X	7F		3		7
+//	absolute,Y		RRA oper,Y	7B		3		7
+//	(indirect,X)	RRA(oper,X)	63		2		8
+//	(indirect),Y	RRA(oper),Y	73		2		8
+//
+bool P6502CC::RRAExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+	{
+		if (!pInstructionInfo->writesMem)
+			mReadVal = mAcc;
+		else
+			mReadVal = mDATA;
+
+		// ROR
+		mCalcVal = ((mReadVal >> 1) & 0x7f) | ((C_flag << 7) & 0x80);
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((mReadVal & 0x1) ? C_set_mask : 0);
+		setNZflags(mCalcVal);
+
+		// ADC
+		int16_t val_C, val_V;
+		val_V = (int8_t)mAcc + (int8_t)mCalcVal + C_flag;	// Add as signed no to determine overflow (V)
+		val_C = mAcc + mCalcVal + C_flag;					// Add as unsigned no to determine carry (C)
+		mAcc = val_C & 0xff;
+		setNZCVflags((mAcc & 0x80) != 0, mAcc == 0, (val_C & 0x100) != 0, val_V < -128 || val_V > 127);
+
+		if (!pInstructionInfo->writesMem) {
+			initFetch();
+		}
+		else
+			prepMemWrite(mOperandAddress, mReadVal); // dummy write always made by NMOS 6502
+
+		return true;
+	}
+	case 1:
+
+		prepMemWrite(mOperandAddress, mCalcVal);
+		return true;
+
+	case 2:
+
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+
+}
+
+
+//
+// SAX
+// 
+// Store A and X into Memory
+// 
+// A AND X -> M
+// 
+// N	Z	C	I	D	V
+// -	-	-	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	zeropage		SAX oper	87		2		3  	
+//	zeropage,Y		SAX oper,Y	97		2		4
+//	absolute		SAX oper	8F		3		4
+//	(indirect,X)	SAX(oper,X)	83		2		6
+//
+bool P6502CC::SAXExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		prepMemWrite(mOperandAddress, mRegisterX & mAcc);
+		return true;
+
+	case 1:
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+
+}
+
+
+//
+// SBX
+//
+// Subtract immnediate valu from Accumulator AND X
+// 
+// CMP and DEX at once, sets flags like CMP
+// 
+// (A AND X) - oper -> X
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	immediate	S	SBX #oper	CB		2		2
+//
+bool P6502CC::SBXExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		mRegisterX = (mAcc & mRegisterX) - mReadVal;
+		setNZCflags(mRegisterX, mRegisterX >= mReadVal);
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+
+//
+// SLO
+// 
+// ASL followed by OR
+// 
+// M = C <- [76543210] <- 0, A OR M -> A
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	zeropage		SLO oper	07		2		5  	
+//	zeropage,X		SLO oper,X	17		2		6
+//	absolute		SLO oper	0F		3		6
+//	absolute,X		SLO oper,X	1F		3		7
+//	absolute,Y		SLO oper,Y	1B		3		7
+//	(indirect,X)	SLO(oper,X)	03		2		8
+//	(indirect),Y	SLO(oper),Y	13		2		8
+//
+bool P6502CC::SLOExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		if (!pInstructionInfo->writesMem)
+			mReadVal = mAcc;
+
+		// ASL
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((mReadVal & 0x80) != 0 ? C_set_mask : 0);
+		mCalcVal = (mReadVal << 1) & 0xfe;
+		setNZflags(mCalcVal);
+
+		// OR
+		mAcc |= mCalcVal;
+		setNZflags(mCalcVal);
+
+		if (!pInstructionInfo->writesMem) {
+			initFetch();
+		}
+		else
+			prepMemWrite(mOperandAddress, mReadVal); // dummy write always made by NMOS 6502
+
+		return true;
+
+	case 1:
+
+		prepMemWrite(mOperandAddress, mCalcVal);
+		return true;
+
+	case 2:
+
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+
+}
+
+
+//
+// SRE
+// 
+// LSR followed by EOR
+// 
+// M = 0 ->[76543210]->C, A EOR M->A
+// 
+// N	Z	C	I	D	V
+// +	+	+	-	-	-
+//
+//	Mode			Syntax		Opcode	Bytes	Cycles
+//	===========		==========	======	=====	======
+//	zeropage		SRE oper	47		2		5  	
+//	zeropage,X		SRE oper,X	57		2		6
+//	absolute		SRE oper	4F		3		6
+//	absolute,X		SRE oper,X	5F		3		7
+//	absolute,Y		SRE oper,Y	5B		3		7
+//	(indirect,X)	SRE(oper,X)	43		2		8
+//	(indirect),Y	SRE(oper),Y	53		2		8
+//
+bool P6502CC::SREExecHdlr()
+{
+
+	switch (mExecMicroCycle++) {
+
+	case 0:
+
+		if (!pInstructionInfo->writesMem)
+			mReadVal = mAcc;
+		else
+			mReadVal = mDATA;
+
+		// LSR
+		mStatusRegister &= ~C_set_mask;
+		mStatusRegister |= ((mReadVal & 0x1) != 0 ? C_set_mask : 0);
+		mCalcVal = (mReadVal >> 1) & 0x7f;
+		setNZflags(mCalcVal);
+
+		// XOR
+		mAcc ^= mCalcVal;
+		setNZflags(mCalcVal);
+
+
+		if (!pInstructionInfo->writesMem) {
+			mAcc = mCalcVal;
+			initFetch();
+		}
+		else
+			prepMemWrite(mOperandAddress, mReadVal); // dummy write always made by NMOS 6502
+
+		return true;
+
+	case 1:
+
+		prepMemWrite(mOperandAddress, mCalcVal);
+		return true;
+
+	case 2:
+
+		initFetch();
+		return true;
+
+	default:
+		return false;
+	}
+
+}
+
+
+
+
 
 
 bool P6502CC::undefinedExecHdlr()
