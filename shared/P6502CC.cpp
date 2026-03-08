@@ -1717,8 +1717,10 @@ bool P6502CC::BRKExecHdlr()
 	// been no opcode fetch, so we start with the first micro cycle instead.
 	int exec_cycle = mExecMicroCycle;
 	if (mExecMicroCycle++ == 0) {
-		if (mInterruptState == Codec6502::NONE_PENDING)
+		if (mInterruptState == Codec6502::NONE_PENDING) {
 			exec_cycle = mExecMicroCycle++;
+			mProgramCounter++; // increase the program counter so it point at the BRK opcode location + 2 befor3 saving it to stack
+		}
 	}
 
 	switch (exec_cycle) {
@@ -1726,7 +1728,7 @@ bool P6502CC::BRKExecHdlr()
 	case 0:
 
 		initDummyOperandRead();  // dummy read at the current PC
-		mProgramCounter--;		// Make sure the program counter points at the opcode location before saving it to stack (IRQ & NMI only - BRK shall still save the current programn counter)
+		mProgramCounter--;		// Make sure the program counter points at the opcode location of the instruction being interrupted before saving it to stack (IRQ & NMI only - BRK shall still save the current programn counter)
 		return true;
 
 	case 1:
@@ -1785,8 +1787,15 @@ bool P6502CC::BRKExecHdlr()
 		else if (mInterruptState & Codec6502::NMI_PENDING)
 			mPendingNMI = false; // reset pending NMI (if it was an NMI that is being serviced)
 
+		// If it was a BRK (and not a servicing of an IRQ or an NMI), then correct the last micro cycle no
+		// - needed as the no of actually executed cycles is recorded by the initFetch() method 
+		if (mInterruptState == Codec6502::NONE_PENDING)
+			mExecMicroCycle--;
+
 		// Prepare fetching of the first instruction of the BRK/IRQ/NMI service routine at the address of the interrupt vector
 		initFetch();
+
+
 
 		// Reset the interrupt state as the interrupt sequence is now completed
 		mInterruptState = Codec6502::NONE_PENDING;
