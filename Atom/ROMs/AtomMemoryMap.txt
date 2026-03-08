@@ -41,7 +41,7 @@ ADD	ROM			FP			d000	1000 		0			Atom_FloatingPoint.rom	// Floating-point ROM
 ADD	ROM			KERNEL		f000	1000 		0			Atom_Kernel.rom			// CAS ROM
 ADD	ATOMKB		ATOMKB																// Acorn Atom keyboard
 ADD	ATOMCAS		CUTS																// CUTS Cassette Interface
-ADD	CPU_6502	CPU										1.0						// Microcontroller 6502 running at 1 MHz
+ADD	CPU_6502CC	CPU										1.0						// Microcontroller 6502 running at 1 MHz
 ADD	TAPREC		TAPREC																// Standard Tape Recorder
 ADD	ATOMSP		SPEAKER																// Acorn Atom Speaker
 //

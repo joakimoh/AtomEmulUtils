@@ -173,6 +173,9 @@ public:
 	// Advance one instruction if the stop cycle hasn't already been reached
 	bool advanceInstr(uint64_t& endTick) override;
 
+	// Advance the smallest step possible (will be a complete instruction for this implementation)
+	bool step(uint64_t& endCycle) override { return advanceInstr(endCycle); }
+
 };
 
 #endif

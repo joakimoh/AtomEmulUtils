@@ -42,196 +42,81 @@ bool P6502CC::advanceInstr(uint64_t& endTick)
 {
 	uint64_t start_ticks = mTicks;
 	CPUExecState prev_state = UNDEFINED;
-	mExecSuccess = true;
-	mPageBoundaryCrossed = false;
-	MemoryMappedDevice* dev = nullptr;
-	mBranchTaken = false;
 	uint64_t max_ticks = deviceCycles2Ticks(10);// safeguard to put an upper limit on time passed executing an instruction (if e.g RESET is low, don't spend more time than correspoding to 10 microcycles
 
-	while (prev_state != FETCH_OPCODE && mTicks - start_ticks < max_ticks) {
-		
-		// Keep executing microcycles of the current instruction until the next instruction's opcode needs to be fetched
-
-		if (mPendingWaitStates == 0 && !mPendingAccess) {
-			// New memory acess - check if the address is mapped to a device and if so add wait states if applicable
-			if ((dev = mDeviceManager->getSelectedMemoryMappedDevice(mADDRESS)) != NULL)
-				mPendingWaitStates = getWaitStates(dev);
-			else {
-				mPendingWaitStates = 0; // No device mapped to the accessed address - no wait states
-			}
-			mPendingAccess = mPendingWaitStates > 0;
-
-		}
-		if (mPendingWaitStates == 0) {
-			mPendingAccess = false;
-			if (mRW == 0) {
-				// Write operation - write mDATA to the device at mADDRESS
-				if (dev != nullptr && dev->write(mADDRESS, mDATA)) {
-					mWrittenVal = mDATA;
-				}
-				else
-					mExecSuccess = false;
-			}
-			else {
-				// Read operation - read from the device at mADDRESS into mDATA
-				if (dev != nullptr && dev->read(mADDRESS, mDATA)) {
-					if (!mSYNC) {
-						mReadVal = mDATA;
-						if (mReadingOperandByte && mOperandByteCount < 2)
-							mOperandBytes[mOperandByteCount++] = mDATA;
-					}
-				}
-				else {
-					mDATA = 0x00; // Provide value zero for unmapped devices to secure that a read of an unmapped device's status register will not return a '1' for any status bits
-					mExecSuccess = false;
-				}
-			}
-			if (!executeInstrMicroCycle()) {
-				mExecSuccess = false;
-			}; // Execute one microcycle (if not in RESET in which case instruction execution start first when the RESET line goes high again)
-
-		}
-		else {
-			--mPendingWaitStates; // Decrease pending wait states until the memory access can be executed
-			advanceTimeOnly(1); // Advance the device time (but not the cycle count!) while waiting for the memory access to complete
-		}
+	while (prev_state != FETCH_OPCODE && mTicks - start_ticks < max_ticks) {		
+		step(endTick);
 		prev_state = mCPUExecState;
 	}
 
-	endTick = mTicks;
-
 	return true;
 }
 
-
-// Initialise the CPU state for fetching the next instruction (fetching the opcode of the next instruction will be done in the next cycle by executeInstrMicroCycle)
-bool P6502CC::initFetch()
+// Advance one clock cycle
+bool P6502CC::step(uint64_t& endTick)
 {
-	// Advance device time and cycle count by the number of microcycles executed for the instruction
-	mExecutedCycles = mOPerandMicroCycle + mExecMicroCycle;
-	tick(mExecutedCycles);
 
-	// Save information about the executed instruction for debugging and tracing purposes
-	if (mOperandByteCount == 1)
-		mOperand16 = mOperandBytes[0];
-	else if (mOperandByteCount == 2)
-		mOperand16 = (mOperandBytes[1] << 8) | mOperandBytes[0];
-	else
-		mOperand16 = 0;
-	mRAccAdr = mWAccAdr = -1;
-	if (pInstructionInfo != nullptr) {
-		if (pInstructionInfo->readsMem)
-			mRAccAdr = mOperandAddress;
-		if (pInstructionInfo->writesMem)
-			mWAccAdr = mOperandAddress;
-	}	
-	setInstrLogData(mBRKType);
-	mBRKType = Codec6502::NONE_PENDING;
+	// Get the memory-mapped device for the current mADDR (if not in a wait state)
+	if (mPendingWaitStates == 0 && !mPendingAccess) {
+		// New memory acess - check if the address is mapped to a device and if so add wait states if applicable
+		if ((mMemoryDevice = mDeviceManager->getSelectedMemoryMappedDevice(mADDRESS)) != NULL)
+			mPendingWaitStates = getWaitStates(mMemoryDevice);
+		else {
+			mPendingWaitStates = 0; // No device mapped to the accessed address - no wait states
+		}
+		mPendingAccess = mPendingWaitStates > 0;
 
-
-
-	// Log the previously executed instruction if enabled
-	if (DBG_LEVEL_DEV(this, DBG_6502)) {
-		stringstream sout;
-		printInstrLogData(sout, mInstrLogData);
-		DBG_LOG(this, DBG_6502, sout.str());
 	}
 
-	// Uppdate the RW, SYNC & ADDRESS ports for the opcode fetch of the next instruction
-	updatePort(RW, 1); // Set R/W port to read mode
-	updatePort(SYNC, 1); // Set SYNC port to indicate an opcode read operation
-	update16BitPort(ADDRESS, mProgramCounter); // Set the address bus to the read address
+	
+	if (mPendingWaitStates == 0) {
 
-	// Reset the CPU execution state and microcycle counters for the next instruction
-	mCPUExecState = FETCH_OPCODE; // Set the CPU execution state to (in the next cycle) fetch the opcode of the next instruction
-	pOpcodePC = mOpcodePC;
-	mOpcodePC = mProgramCounter;
+		// Make a memory access and then execute one micro cycle of the current instruction
 
+		// Read or wite to the memory-mapped device (if not in a wait state)
+		mPendingAccess = false;
+		if (mRW == 0) {
+			// Write operation - write mDATA to the device at mADDRESS
+			if (mMemoryDevice != nullptr && mMemoryDevice->write(mADDRESS, mDATA)) {
+				mWrittenVal = mDATA;
+			}
+			else
+				mExecSuccess = false;
+		}
+		else {
+			// Read operation - read from the device at mADDRESS into mDATA
+			if (mMemoryDevice != nullptr && mMemoryDevice->read(mADDRESS, mDATA)) {
+				if (!mSYNC) {
+					mReadVal = mDATA;
+					if (mReadingOperandByte && mOperandByteCount < 2)
+						mOperandBytes[mOperandByteCount++] = mDATA;
+				}
+			}
+			else {
+				mDATA = 0x00; // Provide value zero for unmapped devices to secure that a read of an unmapped device's status register will not return a '1' for any status bits
+				mExecSuccess = false;
+			}
+		}
 
-	// Advance the program counter to point either to the first operand byte or (/if there are no operands) the next instruction's opcode 
-	mProgramCounter++;
+		// Execute one micro cycle of the current instruction
+		if (!executeInstrMicroCycle()) {
+			mExecSuccess = false;
+		}; // Execute one microcycle (if not in RESET in which case instruction execution start first when the RESET line goes high again)
 
+	}
+
+	else {
+
+		// In a wait state - just advance time
+		// Being in wait state correspond to the stretching of the micrprocessor's input clock cycle
+
+		--mPendingWaitStates; // Decrease pending wait states until the memory access can be executed
+		advanceTimeOnly(1); // Advance the device time (but not the cycle count!) while waiting for the memory access to complete
+	}
+
+	endTick = mTicks;
+	
 	return true;
-}
-
-
-bool P6502CC::completeFetch()
-{
-	mOpcode = mDATA;
-	pInstructionData = &(pInstrDataTbl->data[mOpcode]); // Execution info
-	pInstructionInfo = &(pInstructionData->info); // Opcode info only
-
-	mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the next instruction
-	mExecMicroCycle = 0; // Reset the execution microcycle counter for the next instruction
-
-	// Reset operand data (used for tracing only)
-	mOperandByteCount = 0;
-	mReadingOperandByte = false;
-
-	return true;
-}
-
-void P6502CC::fakeBRKFetch()
-{
-	mOpcode = 0x00; // BRK
-	pInstructionData = &(pInstrDataTbl->data[mOpcode]); // Execution info
-	pInstructionInfo = &(pInstructionData->info); // Opcode info only
-
-	mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the next instruction
-	mExecMicroCycle = 0; // Reset the execution microcycle counter for the next instruction
-
-	// Reset operand data (used for tracing only)
-	mOperandByteCount = 0;
-	mReadingOperandByte = false;
-}
-
-bool P6502CC::prepMemRead(uint16_t adr)
-{
-	updatePort(RW, 1); // Set R/W port to read mode
-	updatePort(SYNC, 0); // Clear SYNC port to indicate a non-opcode read operation
-	update16BitPort(ADDRESS, adr); // Set the address bus to the read address
-
-	return true;
-}
-
-
-bool P6502CC::prepMemWrite(uint16_t adr, uint8_t data)
-{
-	updatePort(RW, 0); // Set R/W port to read mode
-	updatePort(SYNC, 0); // Set SYNC port to indicate a non-opcode read operation
-	update16BitPort(ADDRESS, adr); // Set the address bus to the read address
-	updatePort(DATA, data); // Set the data bus to the value to be written
-
-	return true;
-}
-
-
-bool P6502CC::initMemRead(uint16_t adr)
-{
-	mReadingOperandByte = false;
-	return prepMemRead(adr);
-	return true;
-}
-
-
-bool P6502CC::initOperandByteRead()
-{
-	mReadingOperandByte = true;
-	return prepMemRead(mProgramCounter++);
-}
-
-
-bool P6502CC::initDummyOperandRead()
-{
-	mReadingOperandByte = false;
-	return prepMemRead(mProgramCounter);
-}
-
-
-bool P6502CC::initDummyRead(uint16_t adr)
-{
-	mReadingOperandByte = false;
-	return prepMemRead(adr);
 }
 
 
@@ -317,6 +202,145 @@ bool P6502CC::executeInstrMicroCycle()
 
 	return true;
 }
+
+
+// Initialise the CPU state for fetching the next instruction (fetching the opcode of the next instruction will be done in the next cycle by executeInstrMicroCycle)
+bool P6502CC::initFetch()
+{
+	// Advance device time and cycle count by the number of microcycles executed for the instruction
+	mExecutedCycles = mOPerandMicroCycle + mExecMicroCycle;
+	tick(mExecutedCycles);
+
+	// Save information about the executed instruction for debugging and tracing purposes
+	if (mOperandByteCount == 1)
+		mOperand16 = mOperandBytes[0];
+	else if (mOperandByteCount == 2)
+		mOperand16 = (mOperandBytes[1] << 8) | mOperandBytes[0];
+	else
+		mOperand16 = 0;
+	mRAccAdr = mWAccAdr = -1;
+	if (pInstructionInfo != nullptr) {
+		if (pInstructionInfo->readsMem)
+			mRAccAdr = mOperandAddress;
+		if (pInstructionInfo->writesMem)
+			mWAccAdr = mOperandAddress;
+	}	
+	setInstrLogData(mBRKType);
+	mBRKType = Codec6502::NONE_PENDING;
+
+
+
+	// Log the previously executed instruction if enabled
+	if (DBG_LEVEL_DEV(this, DBG_6502)) {
+		stringstream sout;
+		printInstrLogData(sout, mInstrLogData);
+		DBG_LOG(this, DBG_6502, sout.str());
+	}
+
+	// Uppdate the RW, SYNC & ADDRESS ports for the opcode fetch of the next instruction
+	updatePort(RW, 1); // Set R/W port to read mode
+	updatePort(SYNC, 1); // Set SYNC port to indicate an opcode read operation
+	update16BitPort(ADDRESS, mProgramCounter); // Set the address bus to the read address
+
+	// Reset the CPU execution state and microcycle counters for the next instruction
+	mCPUExecState = FETCH_OPCODE; // Set the CPU execution state to (in the next cycle) fetch the opcode of the next instruction
+	pOpcodePC = mOpcodePC;
+	mOpcodePC = mProgramCounter;
+
+
+	// Advance the program counter to point either to the first operand byte or (/if there are no operands) the next instruction's opcode 
+	mProgramCounter++;
+
+	// Reset instruction data for the next instruction to be executed
+	mExecSuccess = true;
+	mPageBoundaryCrossed = false;
+	MemoryMappedDevice* dev = nullptr;
+	mBranchTaken = false;
+
+	return true;
+}
+
+
+bool P6502CC::completeFetch()
+{
+	mOpcode = mDATA;
+	pInstructionData = &(pInstrDataTbl->data[mOpcode]); // Execution info
+	pInstructionInfo = &(pInstructionData->info); // Opcode info only
+
+	mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the next instruction
+	mExecMicroCycle = 0; // Reset the execution microcycle counter for the next instruction
+
+	// Reset operand data (used for tracing only)
+	mOperandByteCount = 0;
+	mReadingOperandByte = false;
+
+	return true;
+}
+
+void P6502CC::fakeBRKFetch()
+{
+	mOpcode = 0x00; // BRK
+	pInstructionData = &(pInstrDataTbl->data[mOpcode]); // Execution info
+	pInstructionInfo = &(pInstructionData->info); // Opcode info only
+
+	mOPerandMicroCycle = 0; // Reset the operand microcycle counter for the next instruction
+	mExecMicroCycle = 0; // Reset the execution microcycle counter for the next instruction
+
+	// Reset operand data (used for tracing only)
+	mOperandByteCount = 0;
+	mReadingOperandByte = false;
+}
+
+bool P6502CC::prepMemRead(uint16_t adr)
+{
+	updatePort(RW, 1); // Set R/W port to read mode
+	updatePort(SYNC, 0); // Clear SYNC port to indicate a non-opcode read operation
+	update16BitPort(ADDRESS, adr); // Set the address bus to the read address
+
+	return true;
+}
+
+
+bool P6502CC::prepMemWrite(uint16_t adr, uint8_t data)
+{
+	updatePort(RW, 0); // Set R/W port to read mode
+	updatePort(SYNC, 0); // Set SYNC port to indicate a non-opcode read operation
+	update16BitPort(ADDRESS, adr); // Set the address bus to the read address
+	updatePort(DATA, data); // Set the data bus to the value to be written
+
+	return true;
+}
+
+
+bool P6502CC::initMemRead(uint16_t adr)
+{
+	mReadingOperandByte = false;
+	return prepMemRead(adr);
+	return true;
+}
+
+
+bool P6502CC::initOperandByteRead()
+{
+	mReadingOperandByte = true;
+	return prepMemRead(mProgramCounter++);
+}
+
+
+bool P6502CC::initDummyOperandRead()
+{
+	mReadingOperandByte = false;
+	return prepMemRead(mProgramCounter);
+}
+
+
+bool P6502CC::initDummyRead(uint16_t adr)
+{
+	mReadingOperandByte = false;
+	return prepMemRead(adr);
+}
+
+
 
 //
 // Faking the detection of a RESET pulse by setting the CPU execution state to IN_RESET. This will

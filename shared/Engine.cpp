@@ -228,9 +228,9 @@ bool Engine::run()
                     // Remember the return address for a potential JSR instruction
                     mCPURetAdr = mMicroprocessor->getPC() + 3;
 
-                    // Execute one microprocessor instruction and advance time accordingly (mTicks updated)
+                    // Advance the microprocessor one step (could be a whole instruction or just a clock cycle depending on the implenentation) and advance time accordingly (mTicks updated)
                     uint64_t p_cycle_count = mTicks;
-                    if (!mMicroprocessor->advanceInstr(mTicks)) {
+                    if (!mMicroprocessor->step(mTicks)) {
                         // Execution stopped - exit
                         mExecMutex.unlock();
                         return false;

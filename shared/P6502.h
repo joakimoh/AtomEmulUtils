@@ -253,6 +253,9 @@ public:
 	// Advance one instruction if the stop cycle hasn't already been reached
 	virtual bool advanceInstr(uint64_t& endCycle) = 0;
 
+	// Advance the smallest step possible (could be a complete instruction or just one clock cycle depending on the implementation)
+	virtual bool step(uint64_t& endCycle) = 0;
+
 	int getPC() { return (int)mProgramCounter; }
 
 	int getOpcodePC() { return (int)mOpcodePC; }
