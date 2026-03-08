@@ -807,7 +807,7 @@ bool P6502CC::absoluteXAdrHdlr()
 
 
 //
-// Y-indexed addressing
+// Y-indexed addressingz
 //
 // Mnemonic <address>,X
 // 
@@ -1058,8 +1058,8 @@ bool P6502CC::preIndXAdrHdlr()
 // e.g., LDA ($12),Y
 //
 //	Operand Syntax		Bytes	Cycles
-//	==============		=====	=============================
-//	(indirect),Y		1		5 (write-only) 5+ (read-only)
+//	==============		=====	===================================================
+//	(indirect),Y		1		5 (write-only) 5+ (read-only) 6 (read-modify-write)
 //
 // Read-only and write-only use only.
 //
@@ -1113,6 +1113,12 @@ bool P6502CC::postIndYAdrHdlr()
 
 		// For read-only instructions - add an extra read cycle (at the corrected address) if page boundary is crossed
 		if (pInstructionData->info.readsMem && pageBoundaryCrossed(mOperandAddress, mTmpAddress)) {
+			initMemRead(mOperandAddress);
+			return true;
+		}
+
+		// For read-modify-write instructions (no offical instructions exist but unofficial ones like ISC exist)
+		if (pInstructionData->info.readsMem && pInstructionData->info.writesMem) {
 			initMemRead(mOperandAddress);
 			return true;
 		}
