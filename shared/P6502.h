@@ -17,6 +17,8 @@ class P6502 : public Device, public ClockedDevice {
 
 protected:
 
+	bool mClockStretchingEnabled = false;
+
 	int cPeriod = 1000; // clock period in ns
 
 	uint64_t cycleCount = 0; // #clock cycles passed since RESET
@@ -241,7 +243,7 @@ public:
 	MemoryMappedDevice* mZPMemDev = NULL;
 	MemoryMappedDevice* mStackMemDev = NULL;
 
-	P6502(string name, double deviceClockRate, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
+	P6502(string name, bool clockStretchingEnabled, double deviceClockRate, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~P6502();
 
 	// Reset device
@@ -282,6 +284,8 @@ public:
 	bool setSP(uint8_t val) { mStackPointer = val; return true; }
 	bool setSR(uint8_t val) { mStatusRegister = val; return true;}
 	bool setPC(uint16_t val) { mProgramCounter = val; return true;}
+
+	double getClockRate() { return mDeviceClockRate; }
 
 };
 

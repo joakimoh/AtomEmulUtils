@@ -26,19 +26,20 @@ EMU_HIGH_RATE		31250	// From the duration of a 1/2 scan line for NTSC (32us)
 //		ATOMCAS		An Acorn Atom Cassette Interface (NOT memory-mapped)
 //		TAPREC		A Tape Recorder emulation (CSW files read/written)
 //
-//	Device		Name		Addr	Size		Wait		Misc					Description
-//												States
-ADD	SRAM		BLOCK_ZERO	0000	0400		0									// Block Zero RAM
-ADD	VDU6847		VDU			0800	0100		0			8000					// VDU CRT Controller 6847
-ADD	SRAM		PROGRAM		2800	5800		0									// Program RAM - 22K
-ADD	SRAM		GRAPHICS	8000	1800		0									// Graphics RAM - 6K
-ADD	ROM			WILLOW		A000	1000 		0			Willow.rom				// Willow Utility ROM
-//ADD	ROM			MMC			a000	1000		0				ATMMC3A.rom				// AtoMMC2 ROM
-ADD	PIA8255		PIA			b000	0004 		0									// PIA 8255
-ADD	VIA6522		VIA			b800	0010		0			1.0						// VIA 6522
-ADD	ROM			BASIC		c000	1000 		0			Atom_Basic.rom			// BASIC ROM
-ADD	ROM			FP			d000	1000 		0			Atom_FloatingPoint.rom	// Floating-point ROM
-ADD	ROM			KERNEL		f000	1000 		0			Atom_Kernel.rom			// CAS ROM
+//	Device		Name		Addr	Size		Access		Misc					Description
+//												Speed
+//												[MHz]
+ADD	SRAM		BLOCK_ZERO	0000	0400		1									// Block Zero RAM
+ADD	VDU6847		VDU			0800	0100		1			8000					// VDU CRT Controller 6847
+ADD	SRAM		PROGRAM		2800	5800		1									// Program RAM - 22K
+ADD	SRAM		GRAPHICS	8000	1800		1									// Graphics RAM - 6K
+ADD	ROM			WILLOW		A000	1000 		1			Willow.rom				// Willow Utility ROM
+//ADD	ROM			MMC			a000	1000		1				ATMMC3A.rom				// AtoMMC2 ROM
+ADD	PIA8255		PIA			b000	0004 		1									// PIA 8255
+ADD	VIA6522		VIA			b800	0010		1			1.0						// VIA 6522
+ADD	ROM			BASIC		c000	1000 		1			Atom_Basic.rom			// BASIC ROM
+ADD	ROM			FP			d000	1000 		1			Atom_FloatingPoint.rom	// Floating-point ROM
+ADD	ROM			KERNEL		f000	1000 		1			Atom_Kernel.rom			// CAS ROM
 ADD	ATOMKB		ATOMKB																// Acorn Atom keyboard
 ADD	ATOMCAS		CUTS																// CUTS Cassette Interface
 ADD	CPU_6502CC	CPU										1.0						// Microcontroller 6502 running at 1 MHz

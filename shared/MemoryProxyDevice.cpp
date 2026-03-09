@@ -6,7 +6,7 @@ MemoryProxyDevice::MemoryProxyDevice(string name, uint16_t adr, uint16_t sz, Mem
 ConnectionManager* connectionManager, DeviceManager* deviceManager): mSpace(firstDevice->getClaimedAddressSpace()),
 	MemoryMappedDevice(
 		name, PROXY_MEM_MAPPED_DEV, DeviceCategory::OTHER_DEVICE,
-		0,	// Dummy wait states
+		0.0,	// Dummy access  rate
 		adr, sz, debugTracing, connectionManager, deviceManager)
 {
 	addDevice(firstDevice);

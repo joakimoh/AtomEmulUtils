@@ -44,8 +44,8 @@ public:
 		return false;
 	}
 
-	uint8_t getWaitStates() {
-		if (mSelectedDevice != NULL) return mSelectedDevice->getWaitStates();
+	uint8_t getAccessRatio() {
+		if (mSelectedDevice != NULL) return mSelectedDevice->getAccessRatio();
 		return 0;
 	}
 

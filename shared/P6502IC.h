@@ -150,7 +150,7 @@ private:
 	void pullWord(uint16_t& word);
 	
 
-	void  adjustForWaitStates(MemoryMappedDevice* dev);
+	void  adjustForClockStretching(MemoryMappedDevice* dev);
 
 	bool mExecSuccess = true;
 
@@ -161,7 +161,7 @@ private:
 
 public:
 
-	P6502IC(string name, double deviceClockRate, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
+	P6502IC(string name, bool clockStretchingEnabled, double deviceClockRate, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~P6502IC();
 
 	// Reset device

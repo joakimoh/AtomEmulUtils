@@ -1,21 +1,22 @@
 TICK_RATE	2.0	// Emulator's tick rate - must be >= the max clock rate of any device
 VIDEO		PAL	// Video Format
+CLOCK_STRETCHING ON
 
 // Emulation rates
 EMU_LOW_RATE	50		// PAL Field Rate
 EMU_HIGH_RATE	31250	// From the duration of a 1/2 scan line for PAL (32us)
 
-//	Device			Name		Addr	Size	Wait		Misc		Comment
-//												States		
-//												[CPU Cycles]
-ADD	DRAM			RAM32K		0000	8000	0						// 32kB RAM	0000 -	7fff
-ADD	ROM 			BASIC		8000	4000	0			BASIC2.rom	// 16kB Paged ROM #15 (IC101 SE)	8000 - bfff
-ADD	ROM				MMFS		8000	4000	0			MMFS.rom	// 16kB Paged ROM #13 (IC52 NW)		8000 - bfff
-ADD SRAM			SWRAM0		8000	4000	0						// 16kB Paged Sideways RAM #0		8000 - bfff
-ADD SRAM			SWRAM1		8000	4000	0						// 16kB Paged Sideways RAM #1		8000 - bfff
-ADD SRAM			SWRAM2		8000	4000	0						// 16kB Paged Sideways RAM #2		8000 - bfff
-ADD SRAM			SWRAM3		8000	4000	0						// 16kB Paged Sideways RAM #3		8000 - bfff
-ADD	ROM				OS			c000	4000	0			OS12.rom	// OS (IC51)		 				c000 - ffff
+//	Device			Name		Addr	Size	Access		Misc		Comment
+//												Speed		
+//												[mHz]
+ADD	DRAM			RAM32K		0000	8000	4						// 32kB RAM	0000 -	7fff
+ADD	ROM 			BASIC		8000	4000	2			BASIC2.rom	// 16kB Paged ROM #15 (IC101 SE)	8000 - bfff
+ADD	ROM				MMFS		8000	4000	2			MMFS.rom	// 16kB Paged ROM #13 (IC52 NW)		8000 - bfff
+ADD SRAM			SWRAM0		8000	4000	2						// 16kB Paged Sideways RAM #0		8000 - bfff
+ADD SRAM			SWRAM1		8000	4000	2						// 16kB Paged Sideways RAM #1		8000 - bfff
+ADD SRAM			SWRAM2		8000	4000	2						// 16kB Paged Sideways RAM #2		8000 - bfff
+ADD SRAM			SWRAM3		8000	4000	2						// 16kB Paged Sideways RAM #3		8000 - bfff
+ADD	ROM				OS			c000	4000	2			OS12.rom	// OS (IC51)		 				c000 - ffff
 GAP					OS			fc00	0300							// Gap in OS ROM space between		fc00 - ff00	
 //
 // SHEILA	fe00 -	feff
@@ -25,7 +26,7 @@ ADD	TT5050			TCG							1						// Teletext Character Generator
 ADD	ACIA6850		ACIA		fe08	0008	1			1.0			// ACIA 6850
 ADD	BeebSerULA		SerialULA	fe10	0010	1						// Beeb Serial ULA
 ADD	BeebVideoULA	VDU			fe20	0010	1						// Beeb Video ULA
-ADD	BeebRomSel		ROMSel		fe30	0001	0
+ADD	BeebRomSel		ROMSel		fe30	0001	2
 ADD	VIA6522			SYS_VIA		fe40	0020	1			1.0			// IC3	fe40 -	fe4f; 1 Mhz Clock
 ADD	VIA6522			USER_VIA	fe60	0020	1			1.0			// IC69	fe60 -	fe6f; 1 MHz Clock
 ADD	ADC7002			ADC			fec0	0003	1			1.0			// ADC Converter

@@ -87,6 +87,8 @@ DeviceManager::DeviceManager(
 	double speed, double& baseSchedulingRate, double& highSchedulingRate
 ) : mDM(debugTracing), mCM(mCM), mDisplay(display)
 {
+	double CPU_clock_rate = 0;
+	bool clock_stretching = false;
 
 	tickRate = 1.0; // Default 1 Mhz simulation clock
 
@@ -202,18 +204,18 @@ DeviceManager::DeviceManager(
 				//
 
 				else if (dev_type == "CPU_6502") {
-					double cpuClock;
-					sin >> cpuClock;
-					microprocessor = new P6502IC(dev_name, cpuClock, tickRate, mDM, mCM, this);
+
+					sin >> CPU_clock_rate;
+					microprocessor = new P6502IC(dev_name, clock_stretching, CPU_clock_rate, tickRate, mDM, mCM, this);
 					mDevices.push_back(microprocessor);
 					mMicroprocessor = microprocessor;
 
 				}
 
 				else if (dev_type == "CPU_6502CC") {
-					double cpuClock;
-					sin >> cpuClock;
-					microprocessor = new P6502CC(dev_name, cpuClock, tickRate, mDM, mCM, this);
+
+					sin >> CPU_clock_rate;
+					microprocessor = new P6502CC(dev_name, clock_stretching, CPU_clock_rate, tickRate, mDM, mCM, this);
 					mDevices.push_back(microprocessor);
 					mMicroprocessor = microprocessor;
 
@@ -227,8 +229,9 @@ DeviceManager::DeviceManager(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					RAM* ram = new RAM(dev_name, wait_states, false, dev_adr, dev_sz, mDM, mCM, this);
+					double access_speed;
+					sin >> access_speed;
+					RAM* ram = new RAM(dev_name, access_speed, false, dev_adr, dev_sz, mDM, mCM, this);
 					mDevices.push_back(ram);
 				}
 
@@ -236,8 +239,9 @@ DeviceManager::DeviceManager(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					RAM* ram = new RAM(dev_name, wait_states, true, dev_adr, dev_sz, mDM, mCM, this);
+					double access_speed;
+					sin >> access_speed;
+					RAM* ram = new RAM(dev_name, access_speed, true, dev_adr, dev_sz, mDM, mCM, this);
 					mDevices.push_back(ram);
 
 				}
@@ -246,9 +250,10 @@ DeviceManager::DeviceManager(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					double access_speed;
+					sin >> access_speed;
 					string ROM_file_path = getFileName(memMapFile, sin);
-					ROM* rom = new ROM(dev_name, wait_states, dev_adr, dev_sz, ROM_file_path, mDM, mCM, this);
+					ROM* rom = new ROM(dev_name, access_speed, dev_adr, dev_sz, ROM_file_path, mDM, mCM, this);
 					mDevices.push_back(rom);
 
 				}
@@ -257,8 +262,9 @@ DeviceManager::DeviceManager(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					BeebROMSel *paged_rom_sel = new BeebROMSel(dev_name, tickRate, wait_states, dev_adr, mDM, mCM, this);
+					double access_speed;
+					sin >> access_speed;
+					BeebROMSel *paged_rom_sel = new BeebROMSel(dev_name, tickRate, access_speed, dev_adr, mDM, mCM, this);
 					mDevices.push_back(paged_rom_sel);
 
 				}
@@ -271,8 +277,8 @@ DeviceManager::DeviceManager(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					BeebSerialULA* serial_ULA = new BeebSerialULA(dev_name, dev_adr, tickRate, wait_states, mDM, mCM, this);
+					uint8_t access_ratio = (uint8_t)(getIntVal(sin) & 0xff);
+					BeebSerialULA* serial_ULA = new BeebSerialULA(dev_name, dev_adr, tickRate, access_ratio, mDM, mCM, this);
 					mDevices.push_back(serial_ULA);
 
 				}
@@ -281,8 +287,9 @@ DeviceManager::DeviceManager(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
-					PIA8255* pia = new PIA8255(dev_name, tickRate, wait_states, dev_adr, mDM, mCM, this);
+					double access_speed;
+					sin >> access_speed;
+					PIA8255* pia = new PIA8255(dev_name, tickRate, access_speed, dev_adr, mDM, mCM, this);
 					mDevices.push_back(pia);
 
 				}
@@ -291,9 +298,10 @@ DeviceManager::DeviceManager(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					double access_speed;
+					sin >> access_speed;
 					double clk = getDoubleVal(sin);
-					VIA6522* via = new VIA6522(dev_name, dev_adr, clk, tickRate, wait_states, mDM, mCM, this);
+					VIA6522* via = new VIA6522(dev_name, dev_adr, clk, tickRate, access_speed, mDM, mCM, this);
 					mDevices.push_back(via);
 
 				}
@@ -302,9 +310,10 @@ DeviceManager::DeviceManager(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					double access_speed;
+					sin >> access_speed;
 					double clk = getDoubleVal(sin);
-					ACIA6850* acia = new ACIA6850(dev_name, dev_adr, clk, tickRate, wait_states, mDM, mCM, this);
+					ACIA6850* acia = new ACIA6850(dev_name, dev_adr, clk, tickRate, access_speed, mDM, mCM, this);
 					mDevices.push_back(acia);
 
 				}
@@ -317,10 +326,11 @@ DeviceManager::DeviceManager(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					double access_speed;
+					sin >> access_speed;
 					uint16_t video_mem_adr = getHexVal(sin);
 					if (!mDisplay->initialised()) mDisplay->init();
-					mainVDU = new VDU6847(dev_name, dev_adr, mDisplay, tickRate, wait_states, video_mem_adr, mDM, mCM, this);
+					mainVDU = new VDU6847(dev_name, dev_adr, mDisplay, tickRate, access_speed, video_mem_adr, mDM, mCM, this);
 					mDevices.push_back(mainVDU);
 				}
 
@@ -328,9 +338,10 @@ DeviceManager::DeviceManager(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					double access_speed;
+					sin >> access_speed;
 					if (!mDisplay->initialised()) mDisplay->init();
-					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, tickRate, wait_states, mDM, mCM, this);
+					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, tickRate, access_speed, mDM, mCM, this);
 					mDevices.push_back(crtc);
 				}
 
@@ -345,9 +356,10 @@ DeviceManager::DeviceManager(
 
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					double access_speed;
+					sin >> access_speed;
 					if (!mDisplay->initialised()) mDisplay->init();
-					mainVDU = new BeebVideoULA(dev_name, dev_adr, mDisplay, tickRate, wait_states, mDM, mCM, this);
+					mainVDU = new BeebVideoULA(dev_name, dev_adr, mDisplay, tickRate, access_speed, mDM, mCM, this);
 					mDevices.push_back(mainVDU);
 				}
 
@@ -370,9 +382,10 @@ DeviceManager::DeviceManager(
 				else if (dev_type == "ADC7002") {
 					uint16_t dev_adr = getHexVal(sin);
 					uint16_t dev_sz = getHexVal(sin);
-					uint8_t wait_states = (uint8_t)(getIntVal(sin) & 0xff);
+					double access_speed;
+					sin >> access_speed;
 					double clk = getDoubleVal(sin);
-					ADC7002* adc = new ADC7002(dev_name, tickRate, clk, dev_adr, dev_sz, wait_states, mDM, mCM, this);
+					ADC7002* adc = new ADC7002(dev_name, tickRate, clk, dev_adr, dev_sz, access_speed, mDM, mCM, this);
 					mDevices.push_back(adc);
 					}
 
@@ -532,6 +545,16 @@ DeviceManager::DeviceManager(
 				if (mDevices.size() > 0)
 					throw runtime_error("EMU_HIGH_RATE statement must come before adding any devices!");
 			}
+			else if (cmd == "CLOCK_STRETCHING") {
+				string state;
+				sin >> state;
+				if (mDevices.size() > 0)
+					throw runtime_error("CLOCK_STRETCHING statement must come before adding any devices!");
+				if (state != "ON" && state != "OFF")
+					throw runtime_error("CLOCK_STRETCHING statement can only have the value ON or OFF!");
+				if (state == "ON")
+					clock_stretching = true;
+			}
 			else if (cmd == "VIDEO") {
 				string video_fmt_s;
 				sin >> video_fmt_s;
@@ -631,6 +654,14 @@ DeviceManager::DeviceManager(
 		allDevices.push_back(d);
 		d->power();
 		d->updatePorts();
+
+		// Provide CPU clock speed to each memory-mapped device so that it can calculate
+		// the access ratio (1 for fast devices only)
+		if (d->memoryMapped()) {
+			MemoryMappedDevice *mm_dev = (MemoryMappedDevice*)d;
+			mm_dev->setCPUClockSpeed(CPU_clock_rate);
+		}
+
 		if (d->category == MICROROCESSOR_DEVICE || d->category == MEMORY_DEVICE) {
 			continue;
 		}

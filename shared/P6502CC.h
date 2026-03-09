@@ -166,9 +166,9 @@ private:
 	// State of the current instruction execution (in addition to what the base class holds)
 	uint8_t mCalcVal = 0;			// A value calculated as part of the instruction execution (e.g., the result of an addition in ADC) that will be written to memory or a register in a later micro cycle (if applicable)
 
-	int getWaitStates(MemoryMappedDevice* dev);
-	int mPendingWaitStates = 0; // Number of wait states that the CPU needs to wait to complete a memory access to a slow device
-	bool mPendingAccess = false; // True during wait state
+	int getClockStretching(MemoryMappedDevice* dev);
+	int mStretchedClockCycles = 0; // Number of stretched cycles that the CPU needs to implement to complete a memory access to a slow device
+	bool mPendingAccess = false; // True during clock stretching
 	MemoryMappedDevice* mMemoryDevice = nullptr;
 
 	bool mReadingOperandByte = true; // Whether the current memory access is for reading an operand byte (as opposed to for executing the instruction or for a dummy read)
@@ -192,7 +192,7 @@ private:
 
 public:
 
-	P6502CC(string name, double deviceClockRate, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
+	P6502CC(string name, bool clockStretchingEnabled, double deviceClockRate, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~P6502CC();
 
 	// Reset device

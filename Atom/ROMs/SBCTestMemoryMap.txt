@@ -1,4 +1,4 @@
 ADD	CPU_6502	CPU		1												// CPU
-ADD	SRAM		STACK	0100	0200	0								// Stack space
-ADD	SRAM		DATA	4000	0100	0								// Program data (256 bytes)
-ADD	ROM			PGM		f000	1000	0			SBC_test.rom		// Program (starts at f000;RESET vector points there)
+ADD	SRAM		STACK	0100	0200	1								// Stack space
+ADD	SRAM		DATA	4000	0100	1								// Program data (256 bytes)
+ADD	ROM			PGM		f000	1000	1			SBC_test.rom		// Program (starts at f000;RESET vector points there)

@@ -10,9 +10,9 @@
 using namespace std;
 
 MemoryMappedDevice::MemoryMappedDevice(
-	string name, DeviceId typ, DeviceCategory cat, uint8_t waitStates, uint16_t adr, uint16_t sz, DebugTracing  *debugTracing,
+	string name, DeviceId typ, DeviceCategory cat, double accessSpeed, uint16_t adr, uint16_t sz, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager
-): Device(name, typ, cat, debugTracing, connectionManager), mWaitStates(waitStates), mDeviceManager(deviceManager), mAddressSpace(adr, sz)
+): Device(name, typ, cat, debugTracing, connectionManager), mAccessSpeed(accessSpeed), mDeviceManager(deviceManager), mAddressSpace(adr, sz)
 {
 	mMemoryMapped = true;
 	string s1 = ""s + _DEVICE_ID(this->devType) + " '" + name + "' at address "s;

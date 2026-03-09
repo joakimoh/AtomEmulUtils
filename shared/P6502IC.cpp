@@ -13,8 +13,8 @@
 #include "ClockedDevice.h"
 
 
-P6502IC::P6502IC(string name, double deviceClockRate, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
-	P6502(name, deviceClockRate, tickRate, debugTracing, connectionManager, deviceManager)
+P6502IC::P6502IC(string name, bool clockStretchingEnabled, double deviceClockRate, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
+	P6502(name, clockStretchingEnabled, deviceClockRate, tickRate, debugTracing, connectionManager, deviceManager)
 {
 
 }
@@ -170,7 +170,6 @@ bool P6502IC::advanceInstr(uint64_t& endTick)
 		serveIRQ();
 	else if (!mSO && mSOTransition) {
 		mStatusRegister |= V_set_mask; // Set overflow flag on SO transition as per 6502 specification
-		cout << "Negative edge on SO inout pin!\n";
 	}
 	else if (mRDY == 0) {
 		// If RDY is low, the processor is paused and will not execute the next instruction until RDY goes high again.
@@ -2738,14 +2737,17 @@ bool P6502IC::undefinedAdrHdlr()
 }
 
 
-void  P6502IC::adjustForWaitStates(MemoryMappedDevice* dev)
+void  P6502IC::adjustForClockStretching(MemoryMappedDevice* dev)
 {
-	// Add wait states if applicable
-	int wait_states = dev->getWaitStates();
-	if (wait_states > 0) {
-		advanceTimeOnly(mCycle % 2); // synchronise with CPU Clock phase
-		advanceTimeOnly(wait_states); // add extra memory access cycles
+	if (!mClockStretchingEnabled)
+		return;
+
+	// Strech the CPU clock for slow devices
+	int access_ratio = dev->getAccessRatio();
+	if (access_ratio > 1) {
+		advanceTimeOnly(mCycle % 2 + access_ratio); // synchronise with CPU Clock phase and add extra memory access cycles
 	}
+
 }
 
 //
@@ -2754,7 +2756,7 @@ bool P6502IC::readDevice(uint16_t adr, uint8_t& data)
 
 	MemoryMappedDevice* mem_dev;
 	if ((mem_dev = mDeviceManager->getSelectedMemoryMappedDevice(adr)) != NULL) {
-		adjustForWaitStates(mem_dev);// Add wait states if applicable
+		adjustForClockStretching(mem_dev); // Strech CPU clock if applicable
 		bool success = mem_dev->read(adr, data);
 		return success;
 	}
@@ -2769,7 +2771,7 @@ bool P6502IC::readZP(uint8_t adr, uint8_t& data)
 {
 	data = 0xff;
 	if (mZPMemDev != NULL && mZPMemDev->selected(adr)) {
-		adjustForWaitStates(mZPMemDev);// Add wait states if applicable
+		adjustForClockStretching(mZPMemDev);// Strech CPU clock if applicable
 		return mZPMemDev->read(adr, data);
 	}
 	return false;
@@ -2785,7 +2787,7 @@ bool P6502IC::readProgramMem(uint16_t adr, uint8_t& data, bool adjustTiming)
 	MemoryMappedDevice* dev;
 	if ((dev = mDeviceManager->getSelectedMemoryMappedDevice(adr)) != NULL) {
 		if (adjustTiming)
-			adjustForWaitStates(dev);// Add wait states if applicable
+			adjustForClockStretching(dev);// Strech CPU clock if applicable
 		return dev->read(adr, data);
 	}
 
@@ -2798,7 +2800,7 @@ bool P6502IC::writeDevice(uint16_t adr, uint8_t data)
 
 	MemoryMappedDevice* dev;
 	if ((dev = mDeviceManager->getSelectedMemoryMappedDevice(adr)) != NULL) {
-		adjustForWaitStates(dev);// Add wait states if applicable
+		adjustForClockStretching(dev);// Strech CPU clock if applicable
 		return dev->write(adr, data);
 	}
 
@@ -2810,7 +2812,7 @@ void P6502IC::push(uint8_t v)
 {
 	uint16_t adr = 0x100 + (uint16_t)mStackPointer--;
 	if (mStackMemDev != NULL && mStackMemDev->selected(adr)) {
-		adjustForWaitStates(mStackMemDev);// Add wait states if applicable
+		adjustForClockStretching(mStackMemDev);// Strech CPU clock if applicable
 		mStackMemDev->write(adr, v);
 	}
 }
@@ -2819,7 +2821,7 @@ void P6502IC::pull(uint8_t& v)
 {
 	uint16_t adr = 0x100 + (uint16_t)++mStackPointer;
 	if (mStackMemDev != NULL && mStackMemDev->selected(adr)) {
-		adjustForWaitStates(mStackMemDev);// Add wait states if applicable
+		adjustForClockStretching(mStackMemDev);// Strech CPU clock if applicable
 		mStackMemDev->read(adr, v);
 	}
 }

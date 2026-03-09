@@ -31,13 +31,14 @@ protected:
 	vector<DeviceAccessScheduling> mScheduleOnRead;
 	vector<DeviceAccessScheduling> mScheduleOnWrite;
 
-	uint8_t mWaitStates = 0; // access speed in relation to CPU speed
+	double mAccessSpeed = 1.0;
+	uint8_t mAccessRatio = 0; // access speed in relation to the CPU speed
 
 	DeviceManager* mDeviceManager = NULL;
 
 public:
 
-	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, uint8_t waitStates, uint16_t adr, uint16_t sz,
+	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, double accessSpeed, uint16_t adr, uint16_t sz,
 		DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager *deviceManager);
 
 	// Intrusive read of a device's memory that could trigger actions on the device's side
@@ -59,9 +60,15 @@ public:
 	// Register a gap in the device's memory map
 	void registerMemoryGap(uint16_t adr, uint16_t sz);
 
-	uint8_t getWaitStates() { return mWaitStates; }
+	uint8_t getAccessRatio() { return mAccessRatio; }
 
 	AddressSpaceInfo getClaimedAddressSpace() { return mAddressSpace;  }
+
+	void setCPUClockSpeed(double cpuClockSpeed) {
+		mAccessRatio = (uint8_t)round(cpuClockSpeed / mAccessSpeed);
+		if (mAccessRatio == 0)
+			mAccessRatio = 1;
+	}
 
 };
 

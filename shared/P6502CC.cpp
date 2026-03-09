@@ -1,12 +1,16 @@
 
 #include "P6502CC.h"
 
-int  P6502CC::getWaitStates(MemoryMappedDevice* dev)
+int  P6502CC::getClockStretching(MemoryMappedDevice* dev)
 {
-	// Add wait states if applicable
-	int wait_states = dev->getWaitStates();
-	if (wait_states > 0)
-		return (mCycle % 2) + wait_states; // synchronise with CPU Clock phase and add extra memory access cycles
+	if (!mClockStretchingEnabled)
+		return 0;
+
+	// Calculate clock stretching, if applicable
+	int access_ratio = dev->getAccessRatio();
+	if (access_ratio > 1)
+		return (mCycle % 2) + access_ratio - 1; // synchronise with CPU Clock phase and add extra memory access cycles
+
 	return 0;
 }
 
@@ -19,8 +23,8 @@ bool P6502CC::pageBoundaryCrossed(uint16_t before, uint16_t after)
 }
 
 
-P6502CC::P6502CC(string name, double deviceClockRate, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
-	P6502(name, P6502_DEV, MICROROCESSOR_DEVICE, debugTracing, connectionManager, deviceManager)
+P6502CC::P6502CC(string name, bool clockStretchingEnabled, double deviceClockRate, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
+	P6502(name, clockStretchingEnabled, deviceClockRate, tickRate, debugTracing, connectionManager, deviceManager)
 {
 	
 
@@ -55,25 +59,25 @@ bool P6502CC::advanceInstr(uint64_t& endTick)
 // Advance one clock cycle
 bool P6502CC::step(uint64_t& endTick)
 {
-
-	// Get the memory-mapped device for the current mADDR (if not in a wait state)
-	if (mPendingWaitStates == 0 && !mPendingAccess) {
-		// New memory acess - check if the address is mapped to a device and if so add wait states if applicable
+	
+	// Get the memory-mapped device for the current mADDR (if not the clock is being stretched)
+	if (mStretchedClockCycles == 0 && !mPendingAccess) {
+		// New memory acess - check if the address is mapped to a device and if so add clock stretching if applicable
 		if ((mMemoryDevice = mDeviceManager->getSelectedMemoryMappedDevice(mADDRESS)) != NULL)
-			mPendingWaitStates = getWaitStates(mMemoryDevice);
+			mStretchedClockCycles = getClockStretching(mMemoryDevice);
 		else {
-			mPendingWaitStates = 0; // No device mapped to the accessed address - no wait states
+			mStretchedClockCycles = 0; // No device mapped to the accessed address - no clock stretching
 		}
-		mPendingAccess = mPendingWaitStates > 0;
+		mPendingAccess = mStretchedClockCycles > 0;
 
 	}
 
 	
-	if (mPendingWaitStates == 0) {
+	if (mStretchedClockCycles == 0) {
 
 		// Make a memory access and then execute one micro cycle of the current instruction
 
-		// Read or wite to the memory-mapped device (if not in a wait state)
+		// Read or wite to the memory-mapped device (if not the clock is being stretched)
 		mPendingAccess = false;
 		if (mRW == 0) {
 			// Write operation - write mDATA to the device at mADDRESS
@@ -83,7 +87,8 @@ bool P6502CC::step(uint64_t& endTick)
 			else
 				mExecSuccess = false;
 		}
-		else {
+		else {			
+
 			// Read operation - read from the device at mADDRESS into mDATA
 			if (mMemoryDevice != nullptr && mMemoryDevice->read(mADDRESS, mDATA)) {
 				if (!mSYNC) {
@@ -107,10 +112,9 @@ bool P6502CC::step(uint64_t& endTick)
 
 	else {
 
-		// In a wait state - just advance time
-		// Being in wait state correspond to the stretching of the micrprocessor's input clock cycle
+		// In a clock stretching phase - just advance time
 
-		--mPendingWaitStates; // Decrease pending wait states until the memory access can be executed
+		--mStretchedClockCycles; // Decrease the no of stretched cycles until the memory access can be executed
 		advanceTimeOnly(1); // Advance the device time (but not the cycle count!) while waiting for the memory access to complete
 	}
 
@@ -125,16 +129,27 @@ bool P6502CC::executeInstrMicroCycle()
 	mResetTransition = mRESET != pRESET;
 	pRESET = mRESET;
 
-	mIrqTransition = mIRQ != pIRQ;
-	pIRQ = mIRQ;
-
-	mNmiTransition = mNMI != pNMI;
-	pNMI = mNMI;
-
-	mSOTransition = mSO != pSO;
-	pSO = mSO;
-
 	if (mRESET != 0) {
+
+		mIrqTransition = mIRQ != pIRQ;
+		pIRQ = mIRQ;
+
+		mNmiTransition = mNMI != pNMI;
+		pNMI = mNMI;
+
+		mSOTransition = mSO != pSO;
+		pSO = mSO;
+
+		// If a read operation is ongoing and the RDY input is active (LOW), then halt the microprocessor
+		if (mRW && !mRDY && !mResetTransition) {
+			advanceTimeOnly(1);
+			return true;
+		}
+
+		// Set overflow flag on SO transition as per 6502 specification
+		if (!mSO && mSOTransition) {
+			mStatusRegister |= V_set_mask;
+		}
 
 		if (mResetTransition /* positive edge */) {
 			mCPUExecState = IN_RESET; // Set the CPU execution state to (in the next cycle) be in reset processing
@@ -227,8 +242,6 @@ bool P6502CC::initFetch()
 	}	
 	setInstrLogData(mBRKType);
 	mBRKType = Codec6502::NONE_PENDING;
-
-
 
 	// Log the previously executed instruction if enabled
 	if (DBG_LEVEL_DEV(this, DBG_6502)) {

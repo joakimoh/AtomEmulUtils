@@ -284,8 +284,8 @@ void P6502::initInstrTable()
 
 }
 
-P6502::P6502(string name, double deviceClockRate, double tickRate, DebugTracing  *debugTracing, ConnectionManager *connectionManager, DeviceManager* deviceManager):
-	Device(name, P6502_DEV, MICROROCESSOR_DEVICE, debugTracing, connectionManager), mDeviceManager(deviceManager),
+P6502::P6502(string name, bool clockStretchingEnabled, double deviceClockRate, double tickRate, DebugTracing  *debugTracing, ConnectionManager *connectionManager, DeviceManager* deviceManager):
+	Device(name, P6502_DEV, MICROROCESSOR_DEVICE, debugTracing, connectionManager), mDeviceManager(deviceManager), mClockStretchingEnabled(clockStretchingEnabled),
 	ClockedDevice(tickRate, deviceClockRate)
 {
 	cPeriod = (int) round(1000 / tickRate);
