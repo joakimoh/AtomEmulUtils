@@ -2745,7 +2745,7 @@ void  P6502IC::adjustForClockStretching(MemoryMappedDevice* dev)
 	// Strech the CPU clock for slow devices
 	int access_ratio = dev->getAccessRatio();
 	if (access_ratio > 1) {
-		advanceTimeOnly(mCycle % 2 + access_ratio); // synchronise with CPU Clock phase and add extra memory access cycles
+		advanceTimeOnly(mCycle % 2 + access_ratio - 1); // synchronise with CPU Clock phase and add extra memory access cycles
 	}
 
 }
