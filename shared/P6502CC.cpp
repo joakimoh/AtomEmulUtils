@@ -1,19 +1,6 @@
 
 #include "P6502CC.h"
 
-int  P6502CC::getClockStretching(MemoryMappedDevice* dev)
-{
-	if (!mClockStretchingEnabled)
-		return 0;
-
-	// Calculate clock stretching, if applicable
-	int access_ratio = dev->getAccessRatio();
-	if (access_ratio > 1)
-		return (mCycle % 2) + access_ratio - 1; // synchronise with CPU Clock phase and add extra memory access cycles
-
-	return 0;
-}
-
 
 // Check if a page boundary is crossed between two addresses (used for some instructions to determine if an extra cycle is required)
 bool P6502CC::pageBoundaryCrossed(uint16_t before, uint16_t after)

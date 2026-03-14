@@ -680,16 +680,6 @@ DeviceManager::DeviceManager(
 	if (VERBOSE_EXT_OUTPUT)
 		cout << "Each device now powered on (reset) and each of its port's output have been shared with the connected devices...\n";
 
-	if (!getPageMemDevice(microprocessor->mZPMemDev, 0)) {
-		cout << "Failed to get zero-page memory device!\n";
-		throw runtime_error("Failed to get zero-page memory device");
-	}
-
-	if (!getPageMemDevice(microprocessor->mStackMemDev, 1)) {
-		cout << "Failed to get page one memory device!\n";
-		throw runtime_error("Failed to get page one memory device");
-	}
-
 	if (VERBOSE_EXT_OUTPUT)
 		mCM->printRouting();
 
@@ -829,24 +819,6 @@ bool DeviceManager::getMemoryDevices(vector<MemoryMappedDevice*>& devices)
 	return true;
 }
 
-bool DeviceManager::getPageMemDevice(MemoryMappedDevice*& zpMem, uint8_t page)
-{
-	uint16_t low_adr = page << 8;
-	uint16_t high_adr = low_adr | 0xff;
-	for (int i = 0; i < mDevices.size(); i++) {
-		Device* dev = mDevices[i];
-		if (dev->category == MEMORY_DEVICE) {
-			MemoryMappedDevice* mdev = (MemoryMappedDevice*)dev;
-			if (mdev->selected(low_adr) && mdev->selected(high_adr)) {
-				if (VERBOSE_EXT_OUTPUT)
-					cout << "Adding page " << dec << (int) page << " memory device '" << mDevices[i]->name << "' of type " << _DEVICE_ID(mDevices[i]->devType) << "\n";
-				zpMem = mdev;
-			}
-			return true;
-		}
-	}
-	return false;
-}
 
 // Non-intrusive reading of the memory location of a device.
 // If no memory-mapped device exists at the specified address,

@@ -238,10 +238,9 @@ protected:
 	bool ADCCalc();
 	bool SBCCalc();
 
-public:
+	int  getClockStretching(MemoryMappedDevice* dev);
 
-	MemoryMappedDevice* mZPMemDev = NULL;
-	MemoryMappedDevice* mStackMemDev = NULL;
+public:
 
 	P6502(string name, bool clockStretchingEnabled, double deviceClockRate, double tickRate, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~P6502();

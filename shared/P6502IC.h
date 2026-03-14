@@ -140,10 +140,6 @@ private:
 	bool readDevice(uint16_t adr, uint8_t& data);
 	bool writeDevice(uint16_t adr, uint8_t data);
 
-	bool readProgramMem(uint16_t adr, uint8_t& data);
-	bool readProgramMem(uint16_t adr, uint8_t& data, bool adjustTiming);
-	bool readZP(uint8_t adr, uint8_t& data);
-
 	void push(uint8_t v);
 	void pull(uint8_t& v);
 	void pushWord(uint16_t word);

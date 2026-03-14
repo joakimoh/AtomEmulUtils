@@ -166,7 +166,6 @@ private:
 	// State of the current instruction execution (in addition to what the base class holds)
 	uint8_t mCalcVal = 0;			// A value calculated as part of the instruction execution (e.g., the result of an addition in ADC) that will be written to memory or a register in a later micro cycle (if applicable)
 
-	int getClockStretching(MemoryMappedDevice* dev);
 	int mStretchedClockCycles = 0; // Number of stretched cycles that the CPU needs to implement to complete a memory access to a slow device
 	bool mPendingAccess = false; // True during clock stretching
 	MemoryMappedDevice* mMemoryDevice = nullptr;

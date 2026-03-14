@@ -72,7 +72,6 @@ public:
 	bool getMemoryMappedDevices(vector<MemoryMappedDevice*>& devices);
 	bool getMemoryDevices(vector<MemoryMappedDevice*>& devices);
 	bool getRAMs(vector<RAM*>& devices);
-	bool getPageMemDevice(MemoryMappedDevice*& zpMem, uint8_t page);
 
 	bool loadData(Program data);
 

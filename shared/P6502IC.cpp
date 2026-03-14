@@ -40,7 +40,7 @@ bool P6502IC::serveNMI()
 
 	// Fetch break vector
 	uint8_t adr_L, adr_H;
-	if (!readProgramMem(0xfffa, adr_L) || !readProgramMem(0xfffb, adr_H))
+	if (!readDevice(0xfffa, adr_L) || !readDevice(0xfffb, adr_H))
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
 
@@ -79,7 +79,7 @@ bool P6502IC::serveIRQ()
 
 	// Fetch break vector
 	uint8_t adr_L, adr_H;
-	if (!readProgramMem(0xfffe, adr_L) || !readProgramMem(0xffff, adr_H))
+	if (!readDevice(0xfffe, adr_L) || !readDevice(0xffff, adr_H))
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
 
@@ -104,7 +104,7 @@ bool P6502IC::reset()
 
 	// Fetch RESET vector
 	uint8_t adr_L, adr_H;
-	if (!readProgramMem(0xfffc, adr_L) || !readProgramMem(0xfffd, adr_H))
+	if (!readDevice(0xfffc, adr_L) || !readDevice(0xfffd, adr_H))
 		return false;
 
 	mProgramCounter = adr_H * 256 + adr_L;
@@ -186,7 +186,7 @@ bool P6502IC::advanceInstr(uint64_t& endTick)
 	// Get mOpcode of next instruction
 	updatePort(SYNC, 0); // SYNC goes low at the start of the fetch phase of an instruction
 	//mOpcodePC = mProgramCounter;
-	if (!readProgramMem(mProgramCounter++, mOpcode)) {
+	if (!readDevice(mProgramCounter++, mOpcode)) {
 		success = false;
 		DBG_LOG(this, DBG_ERROR, "Failed to read instruction!\n");
 	}
@@ -592,7 +592,7 @@ bool P6502IC::BRKExecHdlr()
 
 	// Fetch return true vector
 	uint8_t adr_L, adr_H;
-	if (!readProgramMem(0xfffe, adr_L) || !readProgramMem(0xffff, adr_H))
+	if (!readDevice(0xfffe, adr_L) || !readDevice(0xffff, adr_H))
 		return false;
 	mProgramCounter = adr_H * 256 + adr_L;
 
@@ -2323,7 +2323,7 @@ bool P6502IC::impliedAdrHdlr()
 {
 	// A dummy read at the program counter location is always made by NMOS 6502
 	uint8_t dummy_byte;
-	readProgramMem(mProgramCounter, dummy_byte);
+	readDevice(mProgramCounter, dummy_byte);
 
 	return true;
 }
@@ -2341,7 +2341,7 @@ bool P6502IC::relativeAdrHdlr()
 {
 
 	uint8_t rel_a;
-	if (!readProgramMem(mProgramCounter++, rel_a))
+	if (!readDevice(mProgramCounter++, rel_a))
 		return false;
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -2363,7 +2363,7 @@ bool P6502IC::addBranchTakenCycles()
 
 		// Make dummy read at the program location
 		uint8_t dummy_byte;
-		if (!readProgramMem(mProgramCounter, dummy_byte))
+		if (!readDevice(mProgramCounter, dummy_byte))
 			return false;
 
 		// Advance 2 cycles
@@ -2386,7 +2386,7 @@ bool P6502IC::addBranchTakenCycles()
 bool P6502IC::immediateAdrHdlr()
 {
 
-	if (!readProgramMem(mProgramCounter++, mReadVal))
+	if (!readDevice(mProgramCounter++, mReadVal))
 		return false;
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -2408,12 +2408,12 @@ bool P6502IC::zeroPageAdrHdlr()
 
 	// Read address operand
 	uint8_t zp_a;
-	if (!readProgramMem(mProgramCounter++, zp_a))
+	if (!readDevice(mProgramCounter++, zp_a))
 		return false;
 
 	// A dummy read at the zero page address is always made by NMOS 6502
 	uint8_t dummy_byte;
-	readProgramMem(zp_a, dummy_byte);
+	readDevice(zp_a, dummy_byte);
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
 	mOperand16 = zp_a;
@@ -2423,7 +2423,7 @@ bool P6502IC::zeroPageAdrHdlr()
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal' later on when executing the instruction
-	if (pInstructionInfo->readsMem && !readZP(zp_a, mReadVal))
+	if (pInstructionInfo->readsMem && !readDevice(zp_a, mReadVal))
 		return false;
 
 	return true;
@@ -2442,12 +2442,12 @@ bool P6502IC::zeroPageXAdrHdlr()
 
 	// Read address operand
 	uint8_t zp_a;
-	if (!readProgramMem(mProgramCounter++, zp_a))
+	if (!readDevice(mProgramCounter++, zp_a))
 		return false;
 
 	// A dummy read at the zero page address is always made by NMOS 6502
 	uint8_t dummy_byte;
-	readProgramMem(zp_a, dummy_byte);
+	readDevice(zp_a, dummy_byte);
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
 	mOperand16 = zp_a;
@@ -2457,7 +2457,7 @@ bool P6502IC::zeroPageXAdrHdlr()
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal' later on when executing the instruction
-	if (pInstructionInfo->readsMem && !readZP(mOperandAddress, mReadVal))
+	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal))
 		return false;
 	return true;
 }
@@ -2475,12 +2475,12 @@ bool P6502IC::zeroPageYAdrHdlr()
 
 	// Read address operand
 	uint8_t zp_a;
-	if (!readProgramMem(mProgramCounter++, zp_a))
+	if (!readDevice(mProgramCounter++, zp_a))
 		return false;
 
 	// A dummy read at the zero page address is always made by NMOS 6502
 	uint8_t dummy_byte;
-	readProgramMem(zp_a, dummy_byte);
+	readDevice(zp_a, dummy_byte);
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
 	mOperand16 = zp_a;
@@ -2490,7 +2490,7 @@ bool P6502IC::zeroPageYAdrHdlr()
 
 	// If the instruction reads from the calculated memory address (e.g., LDA, INC but not STA), then pre-read it
 	// to make it available as 'mReadVal' later on when executing the instruction
-	if (pInstructionInfo->readsMem && !readZP(mOperandAddress, mReadVal))
+	if (pInstructionInfo->readsMem && !readDevice(mOperandAddress, mReadVal))
 		return false;
 
 
@@ -2509,7 +2509,7 @@ bool P6502IC::absoluteAdrHdlr()
 
 	// Read address operand
 	uint8_t a_L, a_H;
-	if (!readProgramMem(mProgramCounter++, a_L) || !readProgramMem(mProgramCounter++, a_H))
+	if (!readDevice(mProgramCounter++, a_L) || !readDevice(mProgramCounter++, a_H))
 		return false;
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -2540,7 +2540,7 @@ bool P6502IC::absoluteXAdrHdlr()
 
 	// Read address operand
 	uint8_t a_L, a_H;
-	if (!readProgramMem(mProgramCounter++, a_L) || !readProgramMem(mProgramCounter++, a_H))
+	if (!readDevice(mProgramCounter++, a_L) || !readDevice(mProgramCounter++, a_H))
 		return false;
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -2550,12 +2550,12 @@ bool P6502IC::absoluteXAdrHdlr()
 	mOperandAddress = mOperand16 + mRegisterX;
 
 	// Always make a read at the non-page boundary compensated address (even for e.g. a STA instruction)
-	if (!readProgramMem(mOperandAddress & 0xff | mOperand16 & 0xff00, mReadVal))
+	if (!readDevice(mOperandAddress & 0xff | mOperand16 & 0xff00, mReadVal))
 		return false;
 
 	// For read-only instruction like LDA, add one cycle if page boundary crossed and re-read the data at the corrected address
 	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16)) {
-		if (!readProgramMem(mOperandAddress, mReadVal))
+		if (!readDevice(mOperandAddress, mReadVal))
 			return false;
 		tick();
 	}
@@ -2576,9 +2576,9 @@ bool P6502IC::absoluteYAdrHdlr()
 
 	// Read address operand
 	uint8_t a_L, a_H;
-	if (!readProgramMem(mProgramCounter++, a_L))
+	if (!readDevice(mProgramCounter++, a_L))
 		return false;
-	if (!readProgramMem(mProgramCounter++, a_H))
+	if (!readDevice(mProgramCounter++, a_H))
 		return false;
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -2588,12 +2588,12 @@ bool P6502IC::absoluteYAdrHdlr()
 	mOperandAddress = mOperand16 + mRegisterY;
 
 	// Always make a read at the non-page boundary compensated address (even for e.g. a STA instruction)
-	if (!readProgramMem(mOperandAddress & 0xff | mOperand16 & 0xff00, mReadVal))
+	if (!readDevice(mOperandAddress & 0xff | mOperand16 & 0xff00, mReadVal))
 		return false;
 
 	// For read-only instruction like LDA, add one cycle if page boundary crossed and re-read the data at the corrected address
 	if (pInstructionInfo->addCycleAtPageBoundary && pageBoundaryCrossed(mOperandAddress, mOperand16)) {
-		if (!readProgramMem(mOperandAddress, mReadVal))
+		if (!readDevice(mOperandAddress, mReadVal))
 			return false;
 		tick();
 	}
@@ -2617,9 +2617,9 @@ bool P6502IC::indirectAdrHdlr()
 
 	// Read address operand
 	uint8_t lookup_address_L, lookup_address_H;
-	if (!readProgramMem(mProgramCounter++, lookup_address_L))
+	if (!readDevice(mProgramCounter++, lookup_address_L))
 		return false;
-	if (!readProgramMem(mProgramCounter++, lookup_address_H))
+	if (!readDevice(mProgramCounter++, lookup_address_H))
 		return false;
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -2651,12 +2651,12 @@ bool P6502IC::preIndXAdrHdlr()
 
 	// Read zero page address operand
 	uint8_t zp_a;
-	if (!readProgramMem(mProgramCounter++, zp_a))
+	if (!readDevice(mProgramCounter++, zp_a))
 		return false;
 
 	// Make dummy read at the zeropage address
 	uint8_t dummy_byte;
-	if (!readProgramMem(zp_a, dummy_byte))
+	if (!readDevice(zp_a, dummy_byte))
 		return false;
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -2665,7 +2665,7 @@ bool P6502IC::preIndXAdrHdlr()
 	// Read indirect address
 	uint8_t lookup_address = zp_a + mRegisterX;
 	uint8_t effective_address_L, effective_address_H;
-	if (!readZP(lookup_address, effective_address_L) || !readZP((lookup_address + 1) & 0xff, effective_address_H))
+	if (!readDevice(lookup_address, effective_address_L) || !readDevice((lookup_address + 1) & 0xff, effective_address_H))
 		return false;
 
 	// Calculate the effective address and save it for use when executing the specific instruction later on
@@ -2693,7 +2693,7 @@ bool P6502IC::postIndYAdrHdlr()
 
 	// Read zero page address operand (e.g. $12)
 	uint8_t zp_a;
-	if (!readProgramMem(mProgramCounter++, zp_a))
+	if (!readDevice(mProgramCounter++, zp_a))
 		return false;
 
 	// Save the constant numeric part of the operand for later use when executing the specific instruction
@@ -2702,7 +2702,7 @@ bool P6502IC::postIndYAdrHdlr()
 	// Read Indirect address -  e.g. ($12)
 	uint8_t effective_address_L, effective_address_H;
 	uint8_t zp_a_1 = zp_a + 1; // allow value to wrap around as for an actual NMOS 6502
-	if (!readZP((uint16_t)zp_a, effective_address_L) || !readZP((uint16_t)zp_a_1, effective_address_H))
+	if (!readDevice((uint16_t)zp_a, effective_address_L) || !readDevice((uint16_t)zp_a_1, effective_address_H))
 		return false;
 	uint16_t effective_address = (effective_address_H << 8) | effective_address_L;
 
@@ -2710,7 +2710,7 @@ bool P6502IC::postIndYAdrHdlr()
 	mOperandAddress = effective_address + mRegisterY;
 
 	// Read at the calculated address while ignoring crossing a page boundary (made also for write-only instructions like STA)
-	if (!readProgramMem((effective_address + mRegisterY) & 0xff | effective_address & 0xff00, mReadVal))
+	if (!readDevice((effective_address + mRegisterY) & 0xff | effective_address & 0xff00, mReadVal))
 		return false;
 
 
@@ -2736,18 +2736,13 @@ bool P6502IC::undefinedAdrHdlr()
 
 }
 
-
+// Strech the CPU clock for slow devices
 void  P6502IC::adjustForClockStretching(MemoryMappedDevice* dev)
 {
-	if (!mClockStretchingEnabled)
-		return;
+	int cycles = getClockStretching(dev);
 
-	// Strech the CPU clock for slow devices
-	int access_ratio = dev->getAccessRatio();
-	if (access_ratio > 1) {
-		advanceTimeOnly(mCycle % 2 + access_ratio - 1); // synchronise with CPU Clock phase and add extra memory access cycles
-	}
-
+	if (cycles > 0)
+		advanceTimeOnly(cycles);
 }
 
 //
@@ -2757,8 +2752,7 @@ bool P6502IC::readDevice(uint16_t adr, uint8_t& data)
 	MemoryMappedDevice* mem_dev;
 	if ((mem_dev = mDeviceManager->getSelectedMemoryMappedDevice(adr)) != NULL) {
 		adjustForClockStretching(mem_dev); // Strech CPU clock if applicable
-		bool success = mem_dev->read(adr, data);
-		return success;
+		return mem_dev->read(adr, data);
 	}
 
 	DBG_LOG(this, DBG_WARNING, "*Warning* Read at unmapped address 0x" + Utility::int2HexStr(adr, 4) + ". Returns 0x0 for all unmapped addresses...\n");
@@ -2767,33 +2761,6 @@ bool P6502IC::readDevice(uint16_t adr, uint8_t& data)
 	return true;
 }
 
-bool P6502IC::readZP(uint8_t adr, uint8_t& data)
-{
-	data = 0xff;
-	if (mZPMemDev != NULL && mZPMemDev->selected(adr)) {
-		adjustForClockStretching(mZPMemDev);// Strech CPU clock if applicable
-		return mZPMemDev->read(adr, data);
-	}
-	return false;
-}
-
-bool P6502IC::readProgramMem(uint16_t adr, uint8_t& data)
-{
-	return readProgramMem(adr, data, true);
-}
-
-bool P6502IC::readProgramMem(uint16_t adr, uint8_t& data, bool adjustTiming)
-{
-	MemoryMappedDevice* dev;
-	if ((dev = mDeviceManager->getSelectedMemoryMappedDevice(adr)) != NULL) {
-		if (adjustTiming)
-			adjustForClockStretching(dev);// Strech CPU clock if applicable
-		return dev->read(adr, data);
-	}
-
-	data = 0xff;
-	return true;
-}
 
 bool P6502IC::writeDevice(uint16_t adr, uint8_t data)
 {
@@ -2810,20 +2777,12 @@ bool P6502IC::writeDevice(uint16_t adr, uint8_t data)
 
 void P6502IC::push(uint8_t v)
 {
-	uint16_t adr = 0x100 + (uint16_t)mStackPointer--;
-	if (mStackMemDev != NULL && mStackMemDev->selected(adr)) {
-		adjustForClockStretching(mStackMemDev);// Strech CPU clock if applicable
-		mStackMemDev->write(adr, v);
-	}
+	writeDevice(0x100 + (uint16_t)mStackPointer--, v);
 }
 
 void P6502IC::pull(uint8_t& v)
 {
-	uint16_t adr = 0x100 + (uint16_t)++mStackPointer;
-	if (mStackMemDev != NULL && mStackMemDev->selected(adr)) {
-		adjustForClockStretching(mStackMemDev);// Strech CPU clock if applicable
-		mStackMemDev->read(adr, v);
-	}
+	readDevice(0x100 + (uint16_t)++mStackPointer, v);
 }
 
 void P6502IC::pushWord(uint16_t word)
