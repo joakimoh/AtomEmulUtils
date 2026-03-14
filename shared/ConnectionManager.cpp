@@ -92,14 +92,15 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 		// Get bit range (if present)
 		string hb_s, lb_s;
 		int lb = 0;
-		int hb = 7;
+		int hb_max = device_port->sz - 1;
+		int hb = hb_max;
 		if (port_tok.nextToken(hb_s)) {
 			hb = stoi(hb_s);
 			lb = hb;
 		}
 		if (port_tok.nextToken(lb_s))
 			lb = stoi(lb_s);
-		if (hb < 0 || hb > 7 || lb < 0 || hb > 7)
+		if (hb < 0 || hb > hb_max || lb < 0 || lb > hb_max)
 			return false;
 
 		// Create I/O port

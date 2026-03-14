@@ -179,9 +179,9 @@ private:
 
 	// Ports that can be connected to other devices
 	int KB_ROW, KB_COL_L, KB_COL_H;
-	uint8_t mSelectedRow = 0x0;
-	uint8_t mColumnL = 0xff;
-	uint8_t mColumnH = 0x3;
+	PortVal mSelectedRow = 0x0;
+	PortVal mColumnL = 0xff;
+	PortVal mColumnH = 0x3;
 
 	int mCtrlKeyCode = -1;
 	int mShiftKeyCodes[2] = { -1 };

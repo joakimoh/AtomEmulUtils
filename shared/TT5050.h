@@ -53,10 +53,10 @@ public:
 
 	// SA5050 Ports
 	int LOSE, CRS, DEW, GLR;
-	uint8_t mLOSE = 0x0;	// INPUT - Load Output Shift register: Start of visible part of line (i.e., the display line)
-	uint8_t mCRS = 0x0;		// INPUT - Indicates whether current field is even (CRS=1) or odd (CRS=0)
-	uint8_t mDEW = 0x1;		// INPUT - Data Entry Window - resets the row adr counter prior to the display period (active low)
-	uint8_t mGLR = 0x1;		// INPUT - General Line reset (active low)
+	PortVal mLOSE = 0x0;	// INPUT - Load Output Shift register: Start of visible part of line (i.e., the display line)
+	PortVal mCRS = 0x0;		// INPUT - Indicates whether current field is even (CRS=1) or odd (CRS=0)
+	PortVal mDEW = 0x1;		// INPUT - Data Entry Window - resets the row adr counter prior to the display period (active low)
+	PortVal mGLR = 0x1;		// INPUT - General Line reset (active low)
 
 
 

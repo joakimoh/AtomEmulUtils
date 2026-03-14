@@ -23,24 +23,24 @@ private:
 	// Ports
 	int RxD, TxD, RTSI, CTSO, CTSI, DCD, RxCLK, TxCLK;
 	int CASMO, CAS_IN, CAS_OUT, DIn, DOut, RTSO;
-	uint8_t mCASMO = 0;
-	uint8_t mCAS_IN = 0;
-	uint8_t mCAS_OUT = 0;
-	uint8_t mDIn = 1;
-	uint8_t mDOut = 0;
-	uint8_t mRTSO = 0;
-	uint8_t mRxD = 0x1;
-	uint8_t mTxD = 0x0;
-	uint8_t mRTSI = 0x1;
-	uint8_t mCTSI = 0x0;
-	uint8_t mCTSO = 0x0;
+	PortVal mCASMO = 0;
+	PortVal mCAS_IN = 0;
+	PortVal mCAS_OUT = 0;
+	PortVal mDIn = 1;
+	PortVal mDOut = 0;
+	PortVal mRTSO = 0;
+	PortVal mRxD = 0x1;
+	PortVal mTxD = 0x0;
+	PortVal mRTSI = 0x1;
+	PortVal mCTSI = 0x0;
+	PortVal mCTSO = 0x0;
 #define DCD_ACTIVE	0
 #define DCD_INACTIVE	1
 
-	uint8_t mDCD = DCD_ACTIVE;
-	uint8_t mRxCLK = 1;
-	uint8_t mTxCLK = 1;
-	uint8_t mIRQ = 1;
+	PortVal mDCD = DCD_ACTIVE;
+	PortVal mRxCLK = 1;
+	PortVal mTxCLK = 1;
+	PortVal mIRQ = 1;
 
 	bool mCarrierDetected = false;
 	int mLowerToneHalfCycles = 0;

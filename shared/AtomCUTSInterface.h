@@ -13,12 +13,12 @@ class AtomCUTSInterface : public Device, public TimedDevice {
 
 private:
 
-	uint8_t mTONE = 0x0;
-	uint8_t mENA_TONE = 0x0;
-	uint8_t mTAPE_OUT = 0x0;
-	uint8_t mTAPE_IN = 0x0;
-	uint8_t mCAS_IN = 0x0;
-	uint8_t mCAS_OUT = 0x0;
+	PortVal mTONE = 0x0;
+	PortVal mENA_TONE = 0x0;
+	PortVal mTAPE_OUT = 0x0;
+	PortVal mTAPE_IN = 0x0;
+	PortVal mCAS_IN = 0x0;
+	PortVal mCAS_OUT = 0x0;
 	int TONE, CAS_IN, ENA_TONE, TAPE_OUT, TAPE_IN, CAS_OUT;
 
 	int mToneHalfcycle = 0;

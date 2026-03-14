@@ -105,14 +105,14 @@ public:
 	int VDU_PORT_CSS, VDU_PORT_INT_EXT, VDU_PORT_INV;
 	int VDU_PORT_FS, VDU_PORT_DIN;
 	
-	uint8_t mAS = 0x0;		// input  - selects alphanumeric (LOW) or semigraphics (HIGH)
-	uint8_t mAG = 0x0;		// input  - selects alphanumeric/semigraphics (LOW) or graphics (HIGH)
-	uint8_t mGM = 0x0;		// input  - selects graphic mode (0-7)
-	uint8_t mCSS = 0x0;		// input  - selects colour palette
-	uint8_t mInv = 0x0;		// input  - when HIGH selects inverted character
-	uint8_t mIntExt = 0x0;	// input  - when HIGH selects external char ROM
-	uint8_t mFS = 1;		// output - The Field Sync (FS) signal goes Low at the end of the active display area and High at the end of the vertical synchronisation pulse
-	uint8_t mDin = 0x0;		// output - Data read from the graphics memory are provided as 'output' to be able to connect it directly to the inputs A/G, GM & CSS as required
+	PortVal mAS = 0x0;		// input  - selects alphanumeric (LOW) or semigraphics (HIGH)
+	PortVal mAG = 0x0;		// input  - selects alphanumeric/semigraphics (LOW) or graphics (HIGH)
+	PortVal mGM = 0x0;		// input  - selects graphic mode (0-7)
+	PortVal mCSS = 0x0;		// input  - selects colour palette
+	PortVal mInv = 0x0;		// input  - when HIGH selects inverted character
+	PortVal mIntExt = 0x0;	// input  - when HIGH selects external char ROM
+	PortVal mFS = 1;		// output - The Field Sync (FS) signal goes Low at the end of the active display area and High at the end of the vertical synchronisation pulse
+	PortVal mDin = 0x0;		// output - Data read from the graphics memory are provided as 'output' to be able to connect it directly to the inputs A/G, GM & CSS as required
 
 
 	int mN60HzCycles;

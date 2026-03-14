@@ -56,7 +56,7 @@ bool Device::connectDevice(Device* dev)
 }
 
 // Used by a device to make a port available for routing
-bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* val)
+bool Device::registerPort(string name, PortDirection dir, PortVal mask, int& index, PortVal* val)
 {
 	if (dir == IN_PORT)
 		registerPort(name, dir, mask, index, val, NULL);
@@ -68,35 +68,9 @@ bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int& ind
 	return true;
 }
 
-// Used by a device to make a port available for routing
-bool Device::registerPort(string name, PortDirection dir, int& index, uint16_t* val)
-{
-	index = mPortIndex++;
-	DevicePort* device_port = new DevicePort();
-	device_port->dev = this;
-	device_port->name = name;
-	device_port->dir = dir;
-	device_port->localIndex = index;
-	device_port->val16 = val;
-	device_port->sz = 16;
-
-	device_port->globalIndex = -1;
-	if (DBG_LEVEL_DEV(this, DBG_DEVICE))
-		cout << "DEVICE ADDS PORT " << mConnectionManager->printDevicePort(device_port) << "\n";
-
-	mPorts.push_back(device_port);
-
-	mConnectionManager->addDevicePort(this, device_port);
-
-	if (VERBOSE_EXT_OUTPUT)
-		cout << "ADDED " << this->name << " " << _PORT_DIR(dir) << " PORT '" << name << "' #" << dec << index << " (#" << device_port->globalIndex << ")\n";
-
-
-	return true;
-}
 
 // Used by a device to make a port available for routing
-bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &index, uint8_t *valIn, uint8_t *valOut)
+bool Device::registerPort(string name, PortDirection dir, PortVal mask, int &index, PortVal *valIn, PortVal *valOut)
 {
 	
 	index = mPortIndex++;
@@ -137,8 +111,9 @@ bool Device::registerPort(string name, PortDirection dir, uint8_t mask, int &ind
 	return true;
 }
 
+
 // Used to mark a bidirectional port as having changed its direction (reset by updatePort() later)
-bool Device::registerPortDirChange(int index, uint8_t mask)
+bool Device::registerPortDirChange(int index, PortVal mask)
 {
 	if (index < 0 && index >= mPorts.size())
 		return false;
@@ -164,8 +139,8 @@ void Device::getPortSelection(DevicePort *srcPort, InputReference & dstPort, str
 	int dst_sel_mask = dstPort.mask;
 	int dst_mask = dstPort.port->mask;
 
-	uint8_t src_bits_sel = (shifts > 0 ? (dst_sel_mask & dst_mask) << shifts : (dst_sel_mask & dst_mask) >> shifts) & src_mask;
-	uint8_t dst_bits_sel = dst_sel_mask & dst_mask;
+	PortVal src_bits_sel = (shifts > 0 ? (dst_sel_mask & dst_mask) << shifts : (dst_sel_mask & dst_mask) >> shifts) & src_mask;
+	PortVal dst_bits_sel = dst_sel_mask & dst_mask;
 	string src_sel = Utility::mask2Str(src_bits_sel);
 	string dst_sel = Utility::mask2Str(dst_bits_sel);
 	srcSel = srcPort->dev->name + ":" + srcPort->name + ";" + src_sel;
@@ -180,7 +155,7 @@ void Device::getPortSelection(DevicePort *srcPort, InputReference & dstPort, str
 // dst = dst & ~mask | ((src >> shifts) & mask) when shifts > 0
 // dst = dst & ~mask | ((src << -shifts) & mask) when shifts < 0
 //
-bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
+bool Device::updatePort(int index, PortVal val, bool forceUpdate)
 {
 	if (index < 0 || index >= mPorts.size())
 		return false;
@@ -195,7 +170,7 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 	}
 
 	// Get reference to the current source port value
-	uint8_t& port_val = *port.valOut;
+	PortVal& port_val = *port.valOut;
 	
 	// No need to propagate value if there are no connected ports...
 	if (port.fanOut < 1) {
@@ -231,85 +206,26 @@ bool Device::updatePort(int index, uint8_t val, bool forceUpdate)
 	return true;
 }
 
-bool Device::update16BitPort(int index, uint16_t val, bool forceUpdate)
-{
-	if(index < 0 || index >= mPorts.size())
-		return false;
-
-	// Get reference to the source port
-	DevicePort& port = *mPorts[index];
-
-	// Check that the source port is not an input port
-	if (port.dir == IN_PORT) {
-		cout << "INTERNAL ERROR - attempt to use the INPUT port '" << port.dev->name << ":" << port.name << "' as an output port!\n";
-		return false;
-	}
-
-	// Get reference to the current source port value
-	uint16_t& port_val = *port.val16;
-
-	// No need to propagate value if there are no connected ports...
-	if (port.fanOut < 1) {
-		port_val = val;
-		return true;
-	}
-
-	// Changes or enforced update?
-	bool changed = port_val != val || forceUpdate;
-
-	// Update the source port value with the new value
-	port_val = val;
-
-	// No need to progate value if the source port is unchanged unless an update is enforced
-	if (!changed)
-		return true;
-
-	// Update the destination ports based on the new value
-	for (int i = 0; i < port.inputs.size(); i++) {
-
-		InputReference& input = port.inputs[i];
-
-		if (updateDstPortValue(&port, input, val)) { // update destination port on change
-
-			// Call direct processing on the receiving device - if specified by configuration
-			if (input.process)
-				input.port->dev->processPortUpdate(input.port->localIndex);
-
-		}
-
-	}
-
-	return true;
-}
-
-bool Device::updateDstPortValue(DevicePort* srcPort, InputReference& dstPort, uint16_t srcVal)
-{
-	uint16_t* dst_val_p = dstPort.port->val16;
-	uint16_t pval = *dst_val_p;
-	*dst_val_p = srcVal;
-
-	return true;
-}
 
 //
 // Update a destination port based on a source port value
 //
 // Returns true if there was a change; otherwise false
 //
-bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal)
+bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, PortVal srcVal)
 {
-	uint8_t* dst_val_p = dstPort.port->valIn;
-	uint8_t pval = *dst_val_p;
+	PortVal* dst_val_p = dstPort.port->valIn;
+	PortVal pval = *dst_val_p;
 
 	// Calculate new port val based on source port value
 	int shifts = dstPort.shifts;
 	int dst_sel_mask = dstPort.mask;
 	int dst_mask = dstPort.port->mask;
-	uint8_t src_val = srcVal;
+	PortVal src_val = srcVal;
 	if (dstPort.invert)
 		src_val = ~srcVal;
-	uint8_t nval;
-	uint8_t nval_or;
+	PortVal nval;
+	PortVal nval_or;
 	if (shifts >= 0)
 		nval_or = (src_val >> shifts) & dst_sel_mask;
 	else
@@ -340,7 +256,7 @@ bool Device::updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, ui
 		//			one device requests the IRQ line to be low even if another device requests it to be high.
 		if (dstPort.port->arbitration) {
 
-			uint8_t aval = dst_mask; // initialise abritrated value with the destination port's mask <=> all bits set (High)
+			PortVal aval = dst_mask; // initialise abritrated value with the destination port's mask <=> all bits set (High)
 			
 			bool src_port_updated = false;
 			for (int i = 0; i < dst_port_sources_sz; i++) {
@@ -374,10 +290,7 @@ bool Device::updatePorts()
 {
 	for (int i = 0; i < mPorts.size(); i++) {
 		if ((mPorts[i]->dir == OUT_PORT || mPorts[i]->dir == IO_PORT)) {
-			if (
-				mPorts[i]->sz > 8 && !update16BitPort(i, *(mPorts[i]->val16),true) ||
-				mPorts[i]->sz  <= 8 && !updatePort(i, *(mPorts[i]->valOut), true)
-			) // force update of each connected output/bidirectional port
+			if (!updatePort(i, *(mPorts[i]->valOut), true)) // force update of each connected output/bidirectional port
 				return false;
 		}
 	}
@@ -398,13 +311,13 @@ bool Device::getPortIndex(string name, DevicePort * &port) {
 }
 
 // Get a port's current value
-uint8_t Device::getPortVal(DevicePort* port, int &sz, uint8_t& dir) {
-	uint8_t* in_val = port->valIn;
-	uint8_t* out_val = port->valOut;
+PortVal Device::getPortVal(DevicePort* port, int &sz, PortVal& dir) {
+	PortVal* in_val = port->valIn;
+	PortVal* out_val = port->valOut;
 	sz = port->sz;
-	uint8_t sz_mask = port->mask;
-	uint8_t io_mask = (port->ioDirMask) & sz_mask;
-	uint8_t val;
+	PortVal sz_mask = port->mask;
+	PortVal io_mask = (port->ioDirMask) & sz_mask;
+	PortVal val;
 	if (port->dir == IN_PORT) {
 		dir = 0;
 		val = *in_val;
@@ -421,7 +334,7 @@ uint8_t Device::getPortVal(DevicePort* port, int &sz, uint8_t& dir) {
 }
 
 // Get a port's current value
-uint8_t Device::getPortVal(int index, int& sz, uint8_t& dir)
+PortVal Device::getPortVal(int index, int& sz, PortVal& dir)
 {
 	DevicePort& port = *mPorts[index];
 	return getPortVal(&port, sz, dir);

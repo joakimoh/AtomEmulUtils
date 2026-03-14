@@ -90,7 +90,9 @@ bool P6502CC::step(uint64_t& endTick)
 		else {			
 
 			// Read operation - read from the device at mADDRESS into mDATA
-			if (mMemoryDevice != nullptr && mMemoryDevice->read(mADDRESS, mDATA)) {
+			uint8_t data = 0x0;
+			if (mMemoryDevice != nullptr && mMemoryDevice->read(mADDRESS, data)) {
+				mDATA = data;
 				if (!mSYNC) {
 					mReadVal = mDATA;
 					if (mReadingOperandByte && mOperandByteCount < 2)
@@ -253,7 +255,7 @@ bool P6502CC::initFetch()
 	// Uppdate the RW, SYNC & ADDRESS ports for the opcode fetch of the next instruction
 	updatePort(RW, 1); // Set R/W port to read mode
 	updatePort(SYNC, 1); // Set SYNC port to indicate an opcode read operation
-	update16BitPort(ADDRESS, mProgramCounter); // Set the address bus to the read address
+	updatePort(ADDRESS, mProgramCounter); // Set the address bus to the read address
 
 	// Reset the CPU execution state and microcycle counters for the next instruction
 	mCPUExecState = FETCH_OPCODE; // Set the CPU execution state to (in the next cycle) fetch the opcode of the next instruction
@@ -308,7 +310,7 @@ bool P6502CC::prepMemRead(uint16_t adr)
 {
 	updatePort(RW, 1); // Set R/W port to read mode
 	updatePort(SYNC, 0); // Clear SYNC port to indicate a non-opcode read operation
-	update16BitPort(ADDRESS, adr); // Set the address bus to the read address
+	updatePort(ADDRESS, adr); // Set the address bus to the read address
 
 	return true;
 }
@@ -318,7 +320,7 @@ bool P6502CC::prepMemWrite(uint16_t adr, uint8_t data)
 {
 	updatePort(RW, 0); // Set R/W port to read mode
 	updatePort(SYNC, 0); // Set SYNC port to indicate a non-opcode read operation
-	update16BitPort(ADDRESS, adr); // Set the address bus to the read address
+	updatePort(ADDRESS, adr); // Set the address bus to the read address
 	updatePort(DATA, data); // Set the data bus to the value to be written
 
 	return true;

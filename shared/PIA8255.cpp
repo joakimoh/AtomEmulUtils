@@ -458,7 +458,7 @@ bool PIA8255::outputState(ostream& sout)
 bool PIA8255::serialiseState(SerialisedState& serialisedState)
 {
 	int sz;
-	uint8_t dir;
+	PortVal dir;
 	serialisedState.at(0) = mCR;
 	serialisedState.at(1) = getPortVal(PIA_PORT_A, sz, dir);
 	serialisedState.at(2) = dir;

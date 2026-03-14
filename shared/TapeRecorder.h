@@ -12,10 +12,10 @@ class TapeRecorder : public Device, public TimedDevice {
 
 private:
 
-	uint8_t mCAS_IN = 0x0;
-	uint8_t mCAS_OUT = 0x0;
+	PortVal mCAS_IN = 0x0;
+	PortVal mCAS_OUT = 0x0;
 	int CAS_IN, CAS_OUT;
-	uint8_t pCAS_OUT = 0x0;
+	PortVal pCAS_OUT = 0x0;
 
 	vector<uint8_t> mCasInPulses;
 

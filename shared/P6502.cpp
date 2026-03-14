@@ -299,7 +299,7 @@ P6502::P6502(string name, bool clockStretchingEnabled, double deviceClockRate, d
 	registerPort("SYNC", OUT_PORT, 0x01, SYNC, &mSYNC);
 	registerPort("RW", OUT_PORT, 0x01, RW, &mRW);
 	registerPort("DATA", OUT_PORT, 0x01, DATA, &mDATA);
-	registerPort("ADDRESS", OUT_PORT, ADDRESS, &mADDRESS);
+	registerPort("ADDRESS", OUT_PORT, 0xffff, ADDRESS, &mADDRESS);
 
 	initInstrTable();
 

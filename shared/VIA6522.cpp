@@ -1391,7 +1391,7 @@ bool VIA6522::outputState(ostream& sout)
 bool VIA6522::serialiseState(SerialisedState& serialisedState)
 {
 	int sz;
-	uint8_t dir;
+	PortVal dir;
 	serialisedState.at(0) = mIER;
 	serialisedState.at(1) = mIFR;
 	serialisedState.at(2) = mACR;

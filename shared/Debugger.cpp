@@ -483,8 +483,8 @@ bool Debugger::setPortCmd(istream& sin)
 
 	uint8_t mask = bits.mask; // change mask
 	int low_bit = bits.lowBit; // first set bit in change mask
-	uint8_t& port_in_val = *(dev_port->valIn);
-	uint8_t& port_out_val = *(dev_port->valOut);
+	PortVal& port_in_val = *(dev_port->valIn);
+	PortVal& port_out_val = *(dev_port->valOut);
 
 	int val;
 	if (!readHexInt(sin, val) || val < 0 || (val << low_bit) > mask) {
@@ -521,9 +521,9 @@ bool Debugger::listPortsCmd(istream& sin)
 	}
 	for (int i = 0; i < ports->size(); i++) {
 		DevicePort* p = (*ports)[i];
-		uint8_t cur_dir;
+		PortVal cur_dir;
 		int sz;
-		uint8_t val = Device::getPortVal(p, sz, cur_dir);
+		PortVal val = Device::getPortVal(p, sz, cur_dir);
 		string dir = (p->dir == IN_PORT ? "IN" : (p->dir == OUT_PORT ? "OUT" : "INOUT"));
 		string cur_dir_s = Utility::mask2DirStr(cur_dir, sz);
 		string val_s = Utility::int2BinStr(val, sz);

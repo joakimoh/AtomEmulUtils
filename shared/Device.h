@@ -59,11 +59,14 @@ public:
 
 class DevicePort;
 
+typedef uint16_t PortVal;
+#define PORT_H_MASK 0xff
+
 // dst = dst & ~mask | ((src >> shifts) & mask)
 typedef struct InputReference_struct {
 	DevicePort *	port;
 	int				shifts = 0;				// no of steps to downshift src value to fit dst start bit
-	uint8_t			mask = 0xff;			// mask specifiyng the bits of the dst to be updated (set bit <= update)
+	PortVal			mask = PORT_H_MASK;			// mask specifiyng the bits of the dst to be updated (set bit <= update)
 	bool			invert = false;			// If true, the source port value will be inverted before fed to the destination port
 	bool			process = false;		// If true, the receiving device's process method will be called in addition to updating the port value
 } InputReference;
@@ -71,8 +74,8 @@ typedef struct InputReference_struct {
 // Reference to a source port by a destination port - only used for port arbitration
 typedef struct OutputReference_struct {
 	DevicePort* srcPort;			// Reference to a source port
-	uint8_t		dstVal = 0xff;		// Requested value for the destination port based on the source port value
-	uint8_t		dstMask = 0xff;		// Bit mask specifying the bits of the destination port connected to the source port (copy of InputReference:mask)
+	PortVal		dstVal = PORT_H_MASK;		// Requested value for the destination port based on the source port value
+	PortVal		dstMask = PORT_H_MASK;		// Bit mask specifying the bits of the destination port connected to the source port (copy of InputReference:mask)
 	int			srcShifts = 0;		// no of steps to downshift src value to fit dst start bit (copy of InputReference:shifts)
 } OutputReference;
 
@@ -86,12 +89,11 @@ public:
 	int						localIndex = -1;		// local device index for the I/O port
 	int						globalIndex = -1;		// unique global index for the port
 	PortDirection			dir = IO_PORT;			// I/O direction
-	uint8_t					ioDirMask = 0xff;		// I/O direction for the bits of a bidirectional port:a set bit indicates OUT, a cleared bit IN
-	uint8_t					mask = 0x1;				// mask to select only the implemented bits
+	PortVal					ioDirMask = PORT_H_MASK;		// I/O direction for the bits of a bidirectional port:a set bit indicates OUT, a cleared bit IN
+	PortVal					mask = 0x1;				// mask to select only the implemented bits
 	int						sz = 8;					// no of bits
-	uint8_t	*				valOut = NULL;			// pointer to variable holdding an input port's value (or a bidirectional port's input value)
-	uint16_t *				val16 = NULL;			// value of a 16-bit input/output port (e.g., the 16-bit address bus of the 6502 CPU) - cannot be of bidirectional type
-	uint8_t *				valIn = NULL;			// pointer to variabel holut ports wider than 8 bits (e.g., the 16-bit address bus of the 6502 CPU)
+	PortVal*				valOut = NULL;			// pointer to variable holdding an input port's value (or a bidirectional port's input value)
+	PortVal*				valIn = NULL;			// pointer to variabel holut ports wider than 8 bits (e.g., the 16-bit address bus of the 6502 CPU)
 	vector<InputReference>	inputs;					// connected inputs (used only if the port is an output port)
 	vector<OutputReference> portSources;			// Connected outputs - used if more than one device connects to a port (e.g., an IRQ input connected to many devices)
 	bool					arbitration = false;	// true if more than one device is connected to at least to one bit slice of the port (for a destination port)
@@ -105,8 +107,8 @@ public:
 #define _PORT_ID(x)	(x==NULL||x->dev==NULL?"???":(x->dev->name+":"+x->name))
 
 typedef struct BitsSelection_struct {
-	uint8_t mask = 0x0;	// specifies the bits of the I/O port to be connected
-	uint8_t lowBit = 0;	// specifies the lowest bit if the port I/O to be connected (already identified by the mask but pre-calculated for speed reasons)
+	PortVal mask = 0x0;	// specifies the bits of the I/O port to be connected
+	int lowBit = 0;	// specifies the lowest bit if the port I/O to be connected (already identified by the mask but pre-calculated for speed reasons)
 } BitsSelection;
 
 class PortSelection {
@@ -131,8 +133,7 @@ private:
 
 	bool mTracingEnabled = false;
 
-	bool updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, uint8_t srcVal);
-	bool updateDstPortValue(DevicePort* srcPort, InputReference& dstPort, uint16_t srcVal);
+	bool updateDstPortValue(DevicePort *srcPort, InputReference &dstPort, PortVal srcVal);
 
 	void getPortSelection(DevicePort* srcPort, InputReference& dstPort, string& srcSel, string& dstSel);
 
@@ -153,8 +154,8 @@ protected:
 	bool mMemoryMapped = false;
 
 	int RESET;
-	uint8_t mRESET = 0x1;
-	uint8_t pRESET = 0x1;
+	PortVal mRESET = 0x1;
+	PortVal pRESET = 0x1;
 
 
 	double mEmulationSpeed = 1.0;
@@ -199,13 +200,12 @@ public:
 	
 
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
-	bool updatePort(int index, uint8_t val, bool forceUpdate = false);
-	bool update16BitPort(int index, uint16_t val, bool forceUpdate = false);
+	bool updatePort(int index, PortVal val, bool forceUpdate = false);
 
 	
 
 	// Register that the direction of a bidirectional port (PORT_IO) has changed
-	bool registerPortDirChange(int index, uint8_t mask);
+	bool registerPortDirChange(int index, PortVal mask);
 
 	// In the case the port value need to be processed immediately (if the qualifier 'P' was added to 'CONNECT')
 	// then this method will be called for the device receiving the port update
@@ -222,18 +222,18 @@ public:
 	bool getPorts(vector<DevicePort*>* &ports) { return ports = &mPorts; }
 
 	// Get a port's current value
-	static uint8_t getPortVal(DevicePort* port, int &sz, uint8_t &dir);
-	static uint8_t getPortVal(DevicePort* port) { int sz; uint8_t dir; return  getPortVal(port, sz, dir); }
-	uint8_t getPortVal(int index, int& sz, uint8_t& dir);
-	uint8_t getPortVal(int index) { int sz; uint8_t dir; return  getPortVal(index, sz, dir); }
+	static PortVal getPortVal(DevicePort* port, int &sz, PortVal &dir);
+	static PortVal getPortVal(DevicePort* port) { int sz; PortVal dir; return  getPortVal(port, sz, dir); }
+	PortVal getPortVal(int index, int& sz, PortVal& dir);
+	PortVal getPortVal(int index) { int sz; PortVal dir; return  getPortVal(index, sz, dir); }
 
 	// Get local port index for a named I/O (used by connection manager at initialisation)
 	bool getPortIndex(string name, DevicePort * &port);
 
 	// Used by a device to make a port available for routing
-	bool registerPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* val);
+	bool registerPort(string name, PortDirection dir, PortVal mask, int& index, PortVal* val);
 	bool registerPort(string name, PortDirection dir, int& index, uint16_t* val);
-	bool registerPort(string name, PortDirection dir, uint8_t mask, int& index, uint8_t* valIn, uint8_t* valOut);
+	bool registerPort(string name, PortDirection dir, PortVal mask, int& index, PortVal* valIn, PortVal* valOut);
 
 	// Get pointer to other device to be able to call its methods
 	virtual bool connectDevice(Device* dev);
@@ -247,7 +247,7 @@ public:
 	virtual bool getMemFetchAdr(uint16_t& adr, uint16_t& cursor) { adr = 0xffff;  return false; }
 
 	// Called by a other device when the device is asked to process/transform data.
-	virtual bool getDeviceData(uint8_t dIn, uint8_t& dOut) { dOut = 0xff;  return false; }
+	virtual bool getDeviceData(PortVal dIn, PortVal& dOut) { dOut = PORT_H_MASK;  return false; }
 
 	// Called by debugger normally to dump a periphal device's register content
 	virtual bool outputState(ostream& sout) { return true; }

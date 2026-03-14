@@ -13,9 +13,9 @@ class AtomSpeaker : public SoundDevice, public TimedDevice {
 
 private:
 
-	uint8_t mOUT = 0x0;
+	PortVal mOUT = 0x0;
 	int OUT;
-	uint8_t pOUT = 0x0;
+	PortVal pOUT = 0x0;
 
 	int mSamplesPerFragment = 512;
 	int mNFragments = 8;

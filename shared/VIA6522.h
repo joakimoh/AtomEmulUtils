@@ -15,17 +15,17 @@ class VIA6522 : public MemoryMappedDevice, public ClockedDevice {
 private:
 
 	// Ports that can be connected to other devices
-	uint8_t mIRQ = 0x1;
-	uint8_t pIRQ = 0x1;
-	uint8_t mPAIn = 0, mPAOut = 0xff;
-	uint8_t mPBIn = 0, mPBOut = 0xff;
-	uint8_t mCAIn = 0, mCAOut = 0x3;
-	uint8_t mCBIn = 0, mCBOut = 0x3;
+	PortVal mIRQ = 0x1;
+	PortVal pIRQ = 0x1;
+	PortVal mPAIn = 0, mPAOut = 0xff;
+	PortVal mPBIn = 0, mPBOut = 0xff;
+	PortVal mCAIn = 0, mCAOut = 0x3;
+	PortVal mCBIn = 0, mCBOut = 0x3;
 	int IRQ, RESET, PA, PB, CA, CB;
-	uint8_t pPAIn = 0xff;
-	uint8_t pPBIn = 0xff;
-	uint8_t pCAIn = 0x3;
-	uint8_t pCBIn = 0x3;
+	PortVal pPAIn = 0xff;
+	PortVal pPBIn = 0xff;
+	PortVal pCAIn = 0x3;
+	PortVal pCBIn = 0x3;
 
 	// Latched content of PA & PB (when latching is enabled, PA/PB are latched by CA1/CB1
 	uint8_t mPA_latched = 0xff;

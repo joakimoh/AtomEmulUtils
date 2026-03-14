@@ -16,7 +16,7 @@ private:
 
 	// (Digital) Ports
 	int EOC;
-	uint8_t mEOC = 0x0; // End of Conversion IRQ output
+	PortVal mEOC = 0x0; // End of Conversion IRQ output
 
 	int mSpeed12 = 10000; // 12-bit conversion time in CLK units (e.g., CLK = 1 MHz => 10 ms)
 	int mSpeed8 = 4000;	// 8-bit conversion time in CLK units (e.g., CLK = 1 MHz => 4 ms)

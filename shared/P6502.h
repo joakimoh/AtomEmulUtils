@@ -185,18 +185,18 @@ protected:
 	// Ports that can be connected to other devices
 	int NMI = 0, IRQ = 0, SO = 0, RDY = 0, SYNC = 0, RW = 0;
 	int ADDRESS = 0, DATA = 0;
-	uint8_t mNMI = 0x1;
-	uint8_t mIRQ = 0x1;
-	uint8_t mSO = 0x1;
-	uint8_t mRDY = 0x1;
-	uint8_t mSYNC = 0x1;
-	uint8_t mRW = 0x1;// 1 for read, 0 for write
+	PortVal mNMI = 0x1;
+	PortVal mIRQ = 0x1;
+	PortVal mSO = 0x1;
+	PortVal mRDY = 0x1;
+	PortVal mSYNC = 0x1;
+	PortVal mRW = 0x1;// 1 for read, 0 for write
 	uint16_t mADDRESS = 0x0;
-	uint8_t mDATA = 0x0;
+	PortVal mDATA = 0x0;
 
-	uint8_t pNMI = 0x1;
-	uint8_t pIRQ = 0x1;
-	uint8_t pSO = 0x1;
+	PortVal pNMI = 0x1;
+	PortVal pIRQ = 0x1;
+	PortVal pSO = 0x1;
 
 	InstrLogData mInstrLogData; // Saved data about the last executed instruction - to be used for logging and debugging purposes
 	

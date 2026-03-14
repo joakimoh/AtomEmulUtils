@@ -175,20 +175,20 @@ private:
 
 	// Ports that can be connected to other devices
 	int  SW, ENA, COL_SEL, ROW_SEL, ROW, BREAK, PRESSED;
-	uint8_t mENA = 0x0;
-	uint8_t pENA = 0x0;
-	uint8_t mCOL_SEL = 0x0;			// Column Select: 0-9 BCD-coded;								connected to VIA 6522 (IC3) PA0:3 output
-	uint8_t mROW_SEL = 0x0;			// Row Select:  0-9 BCD-coded;									connected to VIA 6522 (IC3) PA4:6 output
-	uint8_t pCOL_SEL = 0x1;
-	uint8_t pROW_SEL = 0x1;
-	uint8_t mROW = 0x0;				// Value of selected row (HIGH if any key on row is pressed);	connected to VIA 6522 (IC3) PA7 input
-	uint8_t mBREAK = 0x1;			// BREAK key (LOW when pressed <=> RESET)
-	uint8_t mPRESSED = 0x0;			// HIGH when any key is pressed;								connected to VIA 6522 (IC3) CA2 input
+	PortVal mENA = 0x0;
+	PortVal pENA = 0x0;
+	PortVal mCOL_SEL = 0x0;			// Column Select: 0-9 BCD-coded;								connected to VIA 6522 (IC3) PA0:3 output
+	PortVal mROW_SEL = 0x0;			// Row Select:  0-9 BCD-coded;									connected to VIA 6522 (IC3) PA4:6 output
+	PortVal pCOL_SEL = 0x1;
+	PortVal pROW_SEL = 0x1;
+	PortVal mROW = 0x0;				// Value of selected row (HIGH if any key on row is pressed);	connected to VIA 6522 (IC3) PA7 input
+	PortVal mBREAK = 0x1;			// BREAK key (LOW when pressed <=> RESET)
+	PortVal mPRESSED = 0x0;			// HIGH when any key is pressed;								connected to VIA 6522 (IC3) CA2 input
 
 	// Keyboard DIP swithes (link 1 to 8)
 	// Mode 7 is set by having Links 6-8 OFF (LOW)
 	//
-	uint8_t mSW = 
+	PortVal mSW =
 		//												column		bit		LOW (OFF)					HIGH (ON)
 		(0 << 7) ||	// Link 1 Default filing system		2			b7		DFS							NFS
 		(0 << 6) ||	// Link 2 Not used					3			b6

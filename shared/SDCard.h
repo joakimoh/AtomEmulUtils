@@ -15,13 +15,13 @@ private:
 
 	int	CLK, MISO, MOSI, SEL;
 
-	uint8_t mSEL = 0x0;		// Select#// Select
-	uint8_t mCLK = 0x0;		// Clock#// Clock
-	uint8_t mMISO = 0x1;	// Data Out#// Data Out
-	uint8_t mMOSI = 0x1;	// Data In#// Data In
-	uint8_t pMOSI = 0x1;
+	PortVal mSEL = 0x0;		// Select#// Select
+	PortVal mCLK = 0x0;		// Clock#// Clock
+	PortVal mMISO = 0x1;	// Data Out#// Data Out
+	PortVal mMOSI = 0x1;	// Data In#// Data In
+	PortVal pMOSI = 0x1;
 
-	uint8_t pCLK = 0x0;
+	PortVal pCLK = 0x0;
 
 	// Data sent by the slace
 	vector <uint8_t> mSlaveResponse;

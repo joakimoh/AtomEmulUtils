@@ -22,13 +22,13 @@ private:
 
 	int NW, NE, SW, SE;
 	int B0, B1, B2;
-	uint8_t mB0 = 0x3;		// Selection of slots 0-3
-	uint8_t mB1 = 0x3;		// Selection of slots 4-7
-	uint8_t mB2 = 0x3;		// Selection of slots 8-11
-	uint8_t mNW = 0x1;		// Slot 12 Selection:	IC52	"DISC & NET ROM	- typically containing the DFS	(IC20 output #0)
-	uint8_t mNE = 0x1;		// Slot 13 Selection:	IC88	"AUX ROM"		- typically empty				(IC20 output #1)
-	uint8_t mSW = 0x1;		// Slot 14 Selection:	IC100	"AUX ROM"		- typically empty				(IC20 output #2)
-	uint8_t mSE = 0x1;		// Slot 15 Selection:	IC101	"BASIC ROM"		- typically containing BASIC	(IC20 output #3)
+	PortVal mB0 = 0x3;		// Selection of slots 0-3
+	PortVal mB1 = 0x3;		// Selection of slots 4-7
+	PortVal mB2 = 0x3;		// Selection of slots 8-11
+	PortVal mNW = 0x1;		// Slot 12 Selection:	IC52	"DISC & NET ROM	- typically containing the DFS	(IC20 output #0)
+	PortVal mNE = 0x1;		// Slot 13 Selection:	IC88	"AUX ROM"		- typically empty				(IC20 output #1)
+	PortVal mSW = 0x1;		// Slot 14 Selection:	IC100	"AUX ROM"		- typically empty				(IC20 output #2)
+	PortVal mSE = 0x1;		// Slot 15 Selection:	IC101	"BASIC ROM"		- typically containing BASIC	(IC20 output #3)
 
 	uint8_t mReg = 15;	// 4-bit ROM selection register; 15 <=> BBC BASIC ROM
 

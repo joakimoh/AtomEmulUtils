@@ -19,11 +19,11 @@ private:
 	uint8_t mCR = 0x1b;
 
 	// PIA ports
-	uint8_t pPortA = 0x0, pPortB = 0x0, pPortC = 0x0;
+	PortVal pPortA = 0x0, pPortB = 0x0, pPortC = 0x0;
 
 	// PIA port values (separate values for input and output configuration)
-	uint8_t mPAIn = 0, mPBIn = 0, mPCIn = 0;
-	uint8_t mPAOut = 0xff, mPBOut = 0xff, mPCOut = 0xff;
+	PortVal mPAIn = 0, mPBIn = 0, mPCIn = 0;
+	PortVal mPAOut = 0xff, mPBOut = 0xff, mPCOut = 0xff;
 	
 	// Ports that can be connected to other devices
 	int PIA_PORT_A, PIA_PORT_B, PIA_PORT_C;

@@ -20,7 +20,7 @@ protected:
 	uint16_t mStartOfSpace = 0;
 
 	int CS;
-	uint8_t mCS = 0x0;
+	PortVal mCS = 0x0;
 
 	bool mTriggerOnWrite = false;
 	bool mTriggerOnRead = false;

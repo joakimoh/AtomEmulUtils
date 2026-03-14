@@ -34,10 +34,10 @@ private:
 	int mCpuCyclesPerSample = 0;
 	int mSampleCount = 0;
 
-	uint8_t mCLK = 4;
-	uint8_t mD = 0x0;	// Data in
-	uint8_t mWE = 0x1;	// Write Enable (active low)
-	uint8_t pWE = 0x0;
+	PortVal mCLK = 4;
+	PortVal mD = 0x0;	// Data in
+	PortVal mWE = 0x1;	// Write Enable (active low)
+	PortVal pWE = 0x0;
 	int CLK, D, WE;
 
 #define TI4689_ATT_OFF(x) (x == 0xf)

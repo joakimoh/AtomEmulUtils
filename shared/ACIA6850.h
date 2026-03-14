@@ -23,14 +23,14 @@ private:
 
 	// Ports
 	int RxD, TxD, RTS, CTS, DCD, IRQ;
-	uint8_t mRxD = 0x1;
-	uint8_t mTxD = 0x1;
-	uint8_t mRTS = 0x1;
-	uint8_t mCTS = 0x1;
-	uint8_t mDCD = 0x1;
-	uint8_t mIRQ = 1;
-	uint8_t pDCD = 1;
-	uint8_t pCTS = 1;
+	PortVal mRxD = 0x1;
+	PortVal mTxD = 0x1;
+	PortVal mRTS = 0x1;
+	PortVal mCTS = 0x1;
+	PortVal mDCD = 0x1;
+	PortVal mIRQ = 1;
+	PortVal pDCD = 1;
+	PortVal pCTS = 1;
 
 	// Registers
 	uint8_t mCR = 0x0;	// base address + 0 - Write-only

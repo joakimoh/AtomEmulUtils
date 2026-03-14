@@ -64,7 +64,7 @@ typedef int DebugLevel;
 // Logging of devices' serial states
 #define ENGINE_SERIALISED_STATE_MAX 32
 #define ENGINE_SERIALISED_STATES_MAX 32
-typedef array<uint8_t, ENGINE_SERIALISED_STATE_MAX> SerialisedState;
+typedef array<uint16_t, ENGINE_SERIALISED_STATE_MAX> SerialisedState;
 typedef array<SerialisedState, ENGINE_SERIALISED_STATES_MAX> SerialisedStates;
 
 
