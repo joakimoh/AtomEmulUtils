@@ -4,17 +4,18 @@
 #include <vector>
 #include <iostream>
 #include <cstdint>
+#include "DeviceTypes.h"
 
 using namespace std;
 
 class AddressSpace {
 
-	uint16_t mAdr;
-	uint16_t mSz;
+	BusAddress mAdr;
+	BusAddress mSz;
 
 public:
 
-	AddressSpace(uint16_t adr, uint16_t sz);
+	AddressSpace(BusAddress adr, BusAddress sz);
 
 	bool operator==(AddressSpace& space) {
 		return mAdr == space.mAdr && mSz == space.mSz;
@@ -27,13 +28,13 @@ public:
 	friend string& operator+(string& sout, const AddressSpace& space);
 
 
-	bool contains(uint16_t adr);
+	bool contains(BusAddress adr);
 	bool contains(AddressSpace& space);
 	bool intersects(AddressSpace& space);
 
-	uint16_t getStartOfSpace() { return mAdr; }
-	uint16_t getSizeOfSpace() { return mSz; }
-	uint16_t getEndOfSpace() { return mAdr + mSz - 1; }
+	BusAddress getStartOfSpace() { return mAdr; }
+	BusAddress getSizeOfSpace() { return mSz; }
+	BusAddress getEndOfSpace() { return mAdr + mSz - 1; }
 };
 
 class AddressSpaceInfo {
@@ -43,9 +44,9 @@ private:
 
 public:
 
-	AddressSpaceInfo(uint16_t adr, uint16_t sz);
+	AddressSpaceInfo(BusAddress adr, BusAddress sz);
 
-	bool addGap(uint16_t adr, uint16_t sz);
+	bool addGap(BusAddress adr, BusAddress sz);
 
 	bool operator==(AddressSpaceInfo& memSpace);
 	bool operator!=(AddressSpaceInfo& memSpace);
@@ -53,14 +54,14 @@ public:
 	friend ostream& operator<<(ostream& sout, const AddressSpaceInfo& spaceInfo);
 	friend string& operator+(string& sout, const AddressSpaceInfo& spaceInfo);
 
-	bool contains(uint16_t adr);
+	bool contains(BusAddress adr);
 	bool contains(AddressSpace& space);
 	bool intersects(AddressSpaceInfo& space);
 
 	bool hasGaps() { return mSpaces.size() != 1; }
-	uint16_t getStartOfSpace() { return mSpaces[0].getStartOfSpace(); }
-	uint16_t getEndOfSpace() { return mSpaces[mSpaces.size()-1].getEndOfSpace(); }
-	uint16_t getSizeOfSpace() { return getEndOfSpace() - getStartOfSpace() + 1; }
+	BusAddress getStartOfSpace() { return mSpaces[0].getStartOfSpace(); }
+	BusAddress getEndOfSpace() { return mSpaces[mSpaces.size()-1].getEndOfSpace(); }
+	BusAddress getSizeOfSpace() { return getEndOfSpace() - getStartOfSpace() + 1; }
 	vector<AddressSpace> getAddressSpaces() { return mSpaces; }
 };
 

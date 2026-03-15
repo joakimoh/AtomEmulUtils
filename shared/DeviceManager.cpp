@@ -635,8 +635,8 @@ DeviceManager::DeviceManager(
 					cout << "Can't find any memory-mapped device '" << mem_dev_name << "' at line " << dec << line_no << ":\n\t" << line << "\n";
 					throw runtime_error("Syntax error");
 				}
-				uint16_t gap_adr = getHexVal(sin);
-				uint16_t gap_sz = getHexVal(sin);
+				BusAddress gap_adr = getHexVal(sin);
+				BusAddress gap_sz = getHexVal(sin);
 				MemoryMappedDevice* mem_dev = (MemoryMappedDevice*)dev;
 				mem_dev->registerMemoryGap(gap_adr, gap_sz);
 
@@ -763,7 +763,7 @@ DeviceManager::DeviceManager(
 						throw runtime_error("Syntax error");
 					}
 					sin >> accessed_adr_s;
-					uint16_t accessed_adr = stoi(accessed_adr_s, 0, 16);
+					BusAddress accessed_adr = stoi(accessed_adr_s, 0, 16);
 					((MemoryMappedDevice*)accessed_device)->registerAccess(triggered_device, accessed_adr, write);
 					if (VERBOSE_OUTPUT)
 						cout << "Device '" << triggered_device->name << "' triggered by memory access to device '" << accessed_device->name << "'\n";
@@ -841,7 +841,7 @@ DeviceManager::DeviceManager(
 			if (cmd == "INIT") {
 				string dst_port_s;
 				sin >> dst_port_s;
-				PortVal port_val = (PortVal)(getIntVal(sin) & PORT_H_MASK);
+				PortVal port_val = (PortVal)(getIntVal(sin) & PORT_MASK);
 				PortSelection dst_port_sel;
 				if (
 					!mCM->extractPort(dst_port_s, dst_port_sel) &&
@@ -851,10 +851,10 @@ DeviceManager::DeviceManager(
 				}
 				DevicePort* dst_port = dst_port_sel.port;
 				Device* dev = dst_port->dev;
-				uint8_t pval = *(dst_port->valIn);
-				uint8_t mask = dst_port_sel.bits.mask;
+				PortVal pval = *(dst_port->valIn);
+				PortVal mask = dst_port_sel.bits.mask;
 				uint8_t shifts = dst_port_sel.bits.lowBit;
-				uint8_t nval = ((pval & ~mask) | ((port_val << shifts) & mask)) & mask;
+				PortVal nval = ((pval & ~mask) | ((port_val << shifts) & mask)) & mask;
 				*(dst_port->valIn) = nval;
 				//cout << "INIT " << dst_port_s << " " << hex << (int)port_val << " => value change from 0x" << (int)pval << " to 0x" << (int)nval << "\n";
 			}
@@ -881,7 +881,7 @@ DeviceManager::DeviceManager(
 		// Get RAM address that matches the VDU's video memory address
 		// Get RAM device that matches the program load address
 		RAM* ram = NULL;
-		uint16_t video_mem_start_adr = mainVDU->getVideoMemAdr();
+		BusAddress video_mem_start_adr = mainVDU->getVideoMemAdr();
 		if (VERBOSE_EXT_OUTPUT)
 			cout << "Video Memory starts at address 0x" << hex << video_mem_start_adr << "\n";
 		for (int i = 0; i < mDevices.size(); i++) {
@@ -1008,7 +1008,7 @@ bool DeviceManager::loadData(Program data)
 			cout << "couldn't read all bytes from the data file '" + data.fileName + "'\n";
 			return false;
 		}
-		if (!ram->write(data.loadAdr, d, program_size)) {
+		if (!ram->writeBytes(data.loadAdr, d, program_size)) {
 			cout << "couldn't update a RAM with the data file '" + data.fileName + "\n'";
 			return false;
 		}
@@ -1088,7 +1088,7 @@ bool DeviceManager::getMemoryDevices(vector<MemoryMappedDevice*>& devices)
 // Non-intrusive reading of the memory location of a device.
 // If no memory-mapped device exists at the specified address,
 // the method will return false.
-bool DeviceManager::dumpDeviceMemory(uint16_t adr, uint8_t& data)
+bool DeviceManager::dumpDeviceMemory(BusAddress adr, uint8_t& data)
 {
 	for (int i = 0; i < mMemoryMappedDevices.size(); i++) {
 		MemoryMappedDevice* dev = mMemoryMappedDevices[i];
@@ -1134,12 +1134,12 @@ bool DeviceManager::getDevice(DeviceId id, Device*& device) {
 }
 
 // Write to a memory-mapped device (for debugger use only)
-bool DeviceManager::writeMemoryMappedDevice(uint16_t adr, uint8_t data)
+bool DeviceManager::writeMemoryMappedDevice(BusAddress adr, uint8_t data)
 {
 	for (int i = 0; i < mMemoryMappedDevices.size(); i++) {
 		MemoryMappedDevice* dev = mMemoryMappedDevices[i];
 		if (dev->selected(adr)) {
-			return dev->write(adr, data);
+			return dev->writeByte(adr, data);
 		}
 	}
 	return false;
@@ -1213,8 +1213,8 @@ bool DeviceManager::createMemoryMap()
 		vector<AddressSpace> dev_spaces = dev->getClaimedAddressSpace().getAddressSpaces();
 		for (int j = 0; j < dev_spaces.size(); j++) {
 			AddressSpace space = dev_spaces[j];
-			uint16_t a1 = space.getStartOfSpace();
-			uint16_t a2 = space.getEndOfSpace();
+			BusAddress a1 = space.getStartOfSpace();
+			BusAddress a2 = space.getEndOfSpace();
 			DeviceMemorySegment segment(a1, a2, dev);
 			mMemoryTree.insert(segment);
 		}
@@ -1228,8 +1228,8 @@ bool DeviceManager::createMemoryMap()
 		vector<AddressSpace> dev_spaces = dev->getClaimedAddressSpace().getAddressSpaces();
 		for (int j = 0; j < dev_spaces.size(); j++) {
 			AddressSpace space = dev_spaces[j];
-			uint16_t a1 = space.getStartOfSpace();
-			uint16_t a2 = space.getEndOfSpace();
+			BusAddress a1 = space.getStartOfSpace();
+			BusAddress a2 = space.getEndOfSpace();
 			DeviceMemorySegment segment(a1, a2, dev);
 			mMemoryTree.insert(segment);
 		}
@@ -1242,7 +1242,7 @@ bool DeviceManager::createMemoryMap()
 
 
 
-MemoryMappedDevice* DeviceManager::getSelectedMemoryMappedDevice(uint16_t adr)
+MemoryMappedDevice* DeviceManager::getSelectedMemoryMappedDevice(BusAddress adr)
 {
 	return mMemoryTree.find(adr);
 }

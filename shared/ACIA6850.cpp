@@ -16,7 +16,7 @@ ACIA6850::ACIA6850(string name, uint16_t adr, double deviceClockRate, double tic
 
 }
 
-bool ACIA6850::read(uint16_t adr, uint8_t& data)
+bool ACIA6850::readByte(BusAddress adr, BusByte& data)
 {
 	uint8_t p_SR = mSR;
 	uint8_t p_CR = mCR;
@@ -54,7 +54,7 @@ bool ACIA6850::read(uint16_t adr, uint8_t& data)
 	return true;
 }
 
-bool ACIA6850::dump(uint16_t adr, uint8_t& data)
+bool ACIA6850::dump(BusAddress adr, uint8_t& data)
 {
 	if (selected(adr)) {
 		if ((adr & 0x1) == 0)
@@ -66,7 +66,7 @@ bool ACIA6850::dump(uint16_t adr, uint8_t& data)
 	return false;
 }
 
-bool ACIA6850::write(uint16_t adr, uint8_t data)
+bool ACIA6850::writeByte(BusAddress adr, BusByte data)
 {
 	uint8_t p_SR = mSR;
 	uint8_t p_CR = mCR;

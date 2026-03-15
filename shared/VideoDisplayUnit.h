@@ -20,7 +20,7 @@ class VideoDisplayUnit : public MemoryMappedDevice {
 protected:
 
 	RAM* mVideoMem = nullptr;
-	uint16_t mVideoMemAdr = 0x0;
+	BusAddress mVideoMemAdr = 0x0;
 
 	ALLEGRO_BITMAP* mDisplayBitmap = nullptr;
 	ALLEGRO_DISPLAY* mAllegroDisplay = nullptr;
@@ -42,19 +42,19 @@ protected:
 
 public:
 
-	VideoDisplayUnit(string name, DeviceId devId, Display *display, uint8_t waitStates, uint16_t adr, uint16_t sz,
-		uint16_t videoMemAdr, DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
+	VideoDisplayUnit(string name, DeviceId devId, Display *display, uint8_t waitStates, BusAddress adr, BusAddress sz,
+		BusAddress videoMemAdr, DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
 	virtual ~VideoDisplayUnit() {};
 
 	bool setVideoRam(RAM* ram);
-	uint16_t getVideoMemAdr();
+	BusAddress getVideoMemAdr();
 	
 	// Read a VDU register (if applicable for the VDU type)
-	virtual bool read(uint16_t adr, uint8_t& data);
+	virtual bool readByte(BusAddress adr, BusByte& data);
 
 	// Write to a VDU register (if applicable for the VDU type)
-	virtual bool write(uint16_t adr, uint8_t data);
+	virtual bool writeByte(BusAddress adr, BusByte data);
 
 	//  Make sure the screen update rate is never higher than the field rate (normally 50 or 60 Hz), irrespectively of the emulation rate
 	void setEmulationSpeed(double emulationSpeed) override;

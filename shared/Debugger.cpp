@@ -349,19 +349,19 @@ bool Debugger::stepCmd(istream &sin, bool stepOver, ostream& sout)
 
 bool Debugger::printNextInstr(ostream& sout)
 {
-	uint16_t PC = mCPU->getOpcodePC();
+	BusAddress PC = mCPU->getOpcodePC();
 	sout << "NEXT INSTRUCTION ";
 	return printInstructions(PC, PC + 3, true, false, sout);
 }
 
-bool Debugger::printInstructions(uint16_t startAdr, uint16_t endAdr, bool printFirstOnly, bool ASCII, ostream& sout)
+bool Debugger::printInstructions(BusAddress startAdr, BusAddress endAdr, bool printFirstOnly, bool ASCII, ostream& sout)
 {
 	vector<uint8_t> bytes;
-	uint16_t pc = startAdr;
+	uint16_t pc = startAdr & 0xffff;
 	uint8_t data;
 
 	int i = 0;
-	for (int a = startAdr; a <= endAdr; a++) {
+	for (BusAddress a = startAdr; a <= endAdr; a++) {
 		string s;
 		if (!mDM->dumpDeviceMemory(a, data)) {
 			sout << "Next instruction is at an illegal address (0x" << hex << pc << ")\n";
@@ -428,7 +428,7 @@ bool Debugger::setRegCmd(istream& sin)
 	else if (reg == "SR" && val >= 0 && val <= 255)
 		mCPU->setSR((uint8_t)val);
 	else if (reg == "PC" && val >= 0 && val <= 65535)
-		mCPU->setPC((uint16_t)val);
+		mCPU->setPC((BusAddress)val);
 	else
 		return false;
 

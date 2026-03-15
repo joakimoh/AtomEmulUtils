@@ -483,7 +483,7 @@ bool P6502::readMem(uint16_t adr, uint8_t& data)
 {
 	MemoryMappedDevice* dev;
 	if ((dev = mDeviceManager->getSelectedMemoryMappedDevice(adr)) != NULL)
-		return dev->read(adr, data);
+		return dev->readByte(adr, data);
 	data = 0xff;
 	return true;
 }
@@ -492,7 +492,7 @@ bool P6502::writeMem(uint16_t adr, uint8_t data)
 {
 	MemoryMappedDevice* dev;
 	if ((dev = mDeviceManager->getSelectedMemoryMappedDevice(adr)) != NULL)
-		return dev->write(adr, data);
+		return dev->writeByte(adr, data);
 	return true;
 }
 
@@ -576,7 +576,7 @@ bool P6502::outputState(ostream& sout)
 	return true;
 }
 
-bool P6502::getInstrLogData(InstrLogData& instrLogData) {
+bool P6502::getInstrLogData(P6502InstrLogData& instrLogData) {
 	instrLogData = mInstrLogData;
 	return true;
 }
@@ -633,7 +633,7 @@ bool P6502::setInstrLogData(Codec6502::InterruptState BRKType) {
 	return true;
 }
 
-bool P6502::printInstrLogData(ostream& sout, InstrLogData& instrLogData)
+bool P6502::printInstrLogData(ostream& sout, P6502InstrLogData& instrLogData)
 {
 	if (instrLogData.instr == nullptr) {
 		sout << "???";

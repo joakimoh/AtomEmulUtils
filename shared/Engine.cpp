@@ -328,7 +328,7 @@ bool Engine::run()
 // then stop its wait and use the saved instruction data.
 void Engine::checkForBreakPoint()
 {
-    uint8_t read_data, written_data;
+    BusByte read_data, written_data;
     bool read_adr_triggered = mMicroprocessor->readAdr(read_data) == mBreakAdr;
     bool written_adr_triggered = mMicroprocessor->writtenAdr(written_data) == mBreakAdr;
     bool opcode_adr_triggered = mMicroprocessor->getOpcodePC() == mBreakAdr;
@@ -450,7 +450,7 @@ bool Engine::step(int n, bool step_over)
     return true;
 }
 
-bool Engine::setBreakPointAndWait(ostream& sout, RunState mode, uint16_t adr, uint8_t& readData, uint8_t& writtenData, uint16_t& operandAddress, bool repetition, bool enableTrace)
+bool Engine::setBreakPointAndWait(ostream& sout, RunState mode, BusAddress adr, BusByte& readData, BusByte& writtenData, BusAddress& operandAddress, bool repetition, bool enableTrace)
 {
     mBreakWindowEnabled = enableTrace;
     mBreakPoint = true;
@@ -587,7 +587,7 @@ void Engine::clrLogWindow()
 void Engine::updateLogWindow()
 {
     // Get instruction
-    InstrLogData instr_log_data;
+    P6502InstrLogData instr_log_data;
     mMicroprocessor->getInstrLogData(instr_log_data);
 
     // Update circular instruction buffer
@@ -618,7 +618,7 @@ void Engine::updateLogWindow()
 
 void Engine::logInstr()
 {
-    InstrLogData instr_log_data;
+    P6502InstrLogData instr_log_data;
     mMicroprocessor->getInstrLogData(instr_log_data);
     mInstrLogBuffer.push_back(instr_log_data);
 
@@ -667,7 +667,7 @@ void Engine::printInstrWindow(ostream& sout)
     }
     else {
         // Always print the last executed instruction even if no window was defined
-        InstrLogData instr_log_data;
+        P6502InstrLogData instr_log_data;
         mMicroprocessor->getInstrLogData(instr_log_data);
         mMicroprocessor->printInstrLogData(sout, instr_log_data);
         sout << "\n";

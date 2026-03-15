@@ -5,6 +5,7 @@
 #include "Device.h"
 #include "AddressSpaceInfo.h"
 #include "TimedDevice.h"
+#include "deviceTypes.h"
 
 class DeviceManager;
 
@@ -12,12 +13,12 @@ class MemoryMappedDevice : public Device {
 
 	typedef struct DeviceAccessScheduling_struct{
 		Device *	device;
-		uint16_t	triggeringAdr;
+		BusAddress	triggeringAdr;
 	} DeviceAccessScheduling;
 
 protected:
 
-	uint16_t mStartOfSpace = 0;
+	BusAddress mStartOfSpace = 0;
 
 	int CS;
 	PortVal mCS = 0x0;
@@ -38,27 +39,27 @@ protected:
 
 public:
 
-	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, double accessSpeed, uint16_t adr, uint16_t sz,
+	MemoryMappedDevice(string name, DeviceId typ, DeviceCategory cat, double accessSpeed, BusAddress adr, BusAddress sz,
 		DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager *deviceManager);
 
 	// Intrusive read of a device's memory that could trigger actions on the device's side
-	virtual bool read(uint16_t adr, uint8_t& data);
+	virtual bool readByte(BusAddress adr, BusByte& data);
 
 	// Non-intrusive read of a device's memory
-	virtual bool dump(uint16_t adr, uint8_t& data) { return read(adr,data); }
+	virtual bool dump(BusAddress adr, BusByte& data) { return readByte(adr,data); }
 
-	virtual bool write(uint16_t adr, uint8_t data);
+	virtual bool writeByte(BusAddress adr, BusByte data);
 
-	bool triggerBeforeRead(uint16_t adr, uint8_t data);
+	bool triggerBeforeRead(BusAddress adr, uint8_t data);
 
-	bool triggerAfterWrite(uint16_t adr, uint8_t data);
-	bool selected(uint16_t adr);
+	bool triggerAfterWrite(BusAddress adr, uint8_t data);
+	bool selected(BusAddress adr);
 
 	// Register that another device shall be triggered on R/W accesses to this device
-	bool registerAccess(Device* dev, uint16_t adr, bool writeAccess);
+	bool registerAccess(Device* dev, BusAddress adr, bool writeAccess);
 
 	// Register a gap in the device's memory map
-	void registerMemoryGap(uint16_t adr, uint16_t sz);
+	void registerMemoryGap(BusAddress adr, BusAddress sz);
 
 	uint8_t getAccessRatio() { return mAccessRatio; }
 

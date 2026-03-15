@@ -5,6 +5,7 @@
 #include "MemoryMappedDevice.h"
 #include <string>
 #include <vector>
+#include "DeviceTypes.h"
 
 
 using namespace std;
@@ -18,12 +19,12 @@ public:
 public:
 
 
-	ROM(string name, uint8_t waitStates, uint16_t adr, uint16_t sz, string binaryContent, DebugTracing  *debugTracing,
+	ROM(string name, uint8_t waitStates, BusAddress adr, BusAddress sz, string binaryContent, DebugTracing  *debugTracing,
 		ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
-	bool read(uint16_t adr, uint8_t& data);
-	bool dump(uint16_t adr, uint8_t& data) override;
-	bool write(uint16_t adr, uint8_t data);
+	bool readByte(BusAddress adr, BusByte& data);
+	bool dump(BusAddress adr, uint8_t& data) override;
+	bool writeByte(BusAddress adr, BusByte data);
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

@@ -36,11 +36,11 @@ private:
 public:
 
 
-	BeebROMSel(string name, double tickRate, uint8_t waitStates, uint16_t adr, DebugTracing  *debugTracing, ConnectionManager * connectionManager, DeviceManager* deviceManager);
+	BeebROMSel(string name, double tickRate, uint8_t waitStates, BusAddress adr, DebugTracing  *debugTracing, ConnectionManager * connectionManager, DeviceManager* deviceManager);
 
-	bool read(uint16_t adr, uint8_t& data);
-	bool dump(uint16_t adr, uint8_t& data) override;
-	bool write(uint16_t adr, uint8_t data);
+	bool readByte(BusAddress adr, BusByte& data);
+	bool dump(BusAddress adr, uint8_t& data) override;
+	bool writeByte(BusAddress adr, BusByte data);
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

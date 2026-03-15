@@ -68,7 +68,7 @@ bool P6502CC::step(uint64_t& endTick)
 		mPendingAccess = false;
 		if (mRW == 0) {
 			// Write operation - write mDATA to the device at mADDRESS
-			if (mMemoryDevice != nullptr && mMemoryDevice->write(mADDRESS, mDATA)) {
+			if (mMemoryDevice != nullptr && mMemoryDevice->writeByte(mADDRESS, mDATA)) {
 				mWrittenVal = mDATA;
 			}
 			else
@@ -78,7 +78,7 @@ bool P6502CC::step(uint64_t& endTick)
 
 			// Read operation - read from the device at mADDRESS into mDATA
 			uint8_t data = 0x0;
-			if (mMemoryDevice != nullptr && mMemoryDevice->read(mADDRESS, data)) {
+			if (mMemoryDevice != nullptr && mMemoryDevice->readByte(mADDRESS, data)) {
 				mDATA = data;
 				if (!mSYNC) {
 					mReadVal = mDATA;

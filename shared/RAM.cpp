@@ -3,7 +3,7 @@
 #include <iostream>
 #include <filesystem>
 
-RAM::RAM(string name, uint8_t waitStates, bool DRAM, uint16_t adr, uint16_t sz, DebugTracing  *debugTracing,
+RAM::RAM(string name, uint8_t waitStates, bool DRAM, BusAddress adr, BusAddress sz, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager) :
 	MemoryMappedDevice(name, RAM_DEV, MEMORY_DEVICE, waitStates, adr, sz, debugTracing, connectionManager, deviceManager)
 {
@@ -23,14 +23,14 @@ RAM::RAM(string name, uint8_t waitStates, bool DRAM, uint16_t adr, uint16_t sz, 
 		// Required for the Acorn Atom as its BASIC random no generator will fail
 		// otherwise (as the seed is coming from the RAM assuming it has an initial
 		// random content).
-		for (int i = 0; i < mAddressSpace.getSizeOfSpace(); i++)
+		for (BusAddress i = 0; i < mAddressSpace.getSizeOfSpace(); i++)
 			mMem[i] = rand() % 256;
 	}
 
 }
 
 
-bool RAM::read(uint16_t adr, uint8_t& data)
+bool RAM::readByte(BusAddress adr, BusByte& data)
 {
 
 	// Call parent class to trigger scheduling of other devices when applicable
@@ -45,7 +45,7 @@ bool RAM::read(uint16_t adr, uint8_t& data)
 
 }
 
-bool RAM::dump(uint16_t adr, uint8_t& data)
+bool RAM::dump(BusAddress adr, uint8_t& data)
 {
 	if (selected(adr))
 		data = mMem[adr - mStartOfSpace];
@@ -55,7 +55,7 @@ bool RAM::dump(uint16_t adr, uint8_t& data)
 	return true;
 }
 
-bool RAM::write(uint16_t adr, uint8_t data)
+bool RAM::writeByte(BusAddress adr, BusByte data)
 {
 
 	if (!selected(adr) || mCS != 0)
@@ -67,20 +67,20 @@ bool RAM::write(uint16_t adr, uint8_t data)
 	return !mTriggerOnWrite || MemoryMappedDevice::triggerAfterWrite(adr, data);
 }
 
-bool RAM::write(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
+bool RAM::writeBytes(BusAddress adr, vector<BusByte>& data, BusAddress sz)
 {
 	if (!mAddressSpace.contains(adr))
 		return false;
 
-	for (int a = adr; a < adr + sz; a++) {
-		if (!write(a, data[a - adr]))
+	for (BusAddress a = adr; a < adr + sz; a++) {
+		if (!writeByte(a, data[a - adr]))
 			return false;
 	}
 
 	return true;
 }
 
-bool RAM::read(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
+bool RAM::readBytes(BusAddress adr, vector<BusByte>& data, BusAddress sz)
 {
 	if (!mAddressSpace.contains(adr))
 		return false;
@@ -88,8 +88,8 @@ bool RAM::read(uint16_t adr, vector<uint8_t>& data, uint16_t sz)
 	if (data.size() < sz)
 		return false;
 
-	for (int a = adr; a < adr + sz; a++) {
-		if (!read(a, data[a - adr]))
+	for (BusAddress a = adr; a < adr + sz; a++) {
+		if (!readByte(a, data[a - adr]))
 			return false;
 	}
 

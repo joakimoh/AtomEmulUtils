@@ -21,7 +21,7 @@
 // pin (overflag pin) on the NMOS 6502 will be se by the hardware. This part is not emulated currently.
 //
 
-BeebROMSel::BeebROMSel(string name, double tickRate, uint8_t waitStates, uint16_t adr, DebugTracing  *debugTracing, ConnectionManager * connectionManager,
+BeebROMSel::BeebROMSel(string name, double tickRate, uint8_t waitStates, BusAddress adr, DebugTracing  *debugTracing, ConnectionManager * connectionManager,
 	DeviceManager *deviceManager) :
 	MemoryMappedDevice(name, BEEB_PAGED_ROM_SEL_DEV, OTHER_DEVICE, waitStates, adr, 1, debugTracing, connectionManager, deviceManager),
 	TimedDevice(tickRate)
@@ -37,7 +37,7 @@ BeebROMSel::BeebROMSel(string name, double tickRate, uint8_t waitStates, uint16_
 }
 
 
-bool BeebROMSel::read(uint16_t adr, uint8_t& data)
+bool BeebROMSel::readByte(BusAddress adr, BusByte& data)
 {
 
 	// Call parent class to trigger scheduling of other devices when applicable
@@ -50,7 +50,7 @@ bool BeebROMSel::read(uint16_t adr, uint8_t& data)
 
 }
 
-bool BeebROMSel::dump(uint16_t adr, uint8_t& data)
+bool BeebROMSel::dump(BusAddress adr, uint8_t& data)
 {
 	if (selected(adr)) {
 		data = mReg;
@@ -59,7 +59,7 @@ bool BeebROMSel::dump(uint16_t adr, uint8_t& data)
 	return false;
 }
 
-bool BeebROMSel::write(uint16_t adr, uint8_t data)
+bool BeebROMSel::writeByte(BusAddress adr, BusByte data)
 {
 	if (!selected(adr))
 		return false;

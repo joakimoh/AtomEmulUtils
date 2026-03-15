@@ -198,7 +198,7 @@ protected:
 	PortVal pIRQ = 0x1;
 	PortVal pSO = 0x1;
 
-	InstrLogData mInstrLogData; // Saved data about the last executed instruction - to be used for logging and debugging purposes
+	P6502InstrLogData mInstrLogData; // Saved data about the last executed instruction - to be used for logging and debugging purposes
 	
 	// State of the current instruction execution
 	uint8_t mOpcode = 0xff;			
@@ -273,8 +273,8 @@ public:
 		return *pInstructionInfo;
 	}
 
-	bool getInstrLogData(InstrLogData& instr_log_data);
-	bool printInstrLogData(ostream& sout, InstrLogData& instr_log_data);
+	bool getInstrLogData(P6502InstrLogData& instr_log_data);
+	bool printInstrLogData(ostream& sout, P6502InstrLogData& instr_log_data);
 	void setMemLogging(int memLogAdr) { mMemLogAdr = memLogAdr; }
 
 	bool setAcc(uint8_t val) { mAcc = val; return true; }

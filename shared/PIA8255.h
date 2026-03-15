@@ -31,11 +31,11 @@ private:
 
 public:
 
-	PIA8255(string name, double tickRate, uint8_t waitStates, uint16_t adr, DebugTracing  *debugTracing, ConnectionManager *connectionManager, DeviceManager* deviceManager);
+	PIA8255(string name, double tickRate, uint8_t waitStates, BusAddress adr, DebugTracing  *debugTracing, ConnectionManager *connectionManager, DeviceManager* deviceManager);
 
-	bool read(uint16_t adr, uint8_t& data);
-	bool dump(uint16_t adr, uint8_t& data) override;
-	bool write(uint16_t adr, uint8_t data);
+	bool readByte(BusAddress adr, BusByte& data);
+	bool dump(BusAddress adr, uint8_t& data) override;
+	bool writeByte(BusAddress adr, BusByte data);
 
 	// Reset device
 	bool reset();

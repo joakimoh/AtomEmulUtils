@@ -10,7 +10,7 @@
 using namespace std;
 
 MemoryMappedDevice::MemoryMappedDevice(
-	string name, DeviceId typ, DeviceCategory cat, double accessSpeed, uint16_t adr, uint16_t sz, DebugTracing  *debugTracing,
+	string name, DeviceId typ, DeviceCategory cat, double accessSpeed, BusAddress adr, BusAddress sz, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager
 ): Device(name, typ, cat, debugTracing, connectionManager), mAccessSpeed(accessSpeed), mDeviceManager(deviceManager), mAddressSpace(adr, sz)
 {
@@ -23,13 +23,13 @@ MemoryMappedDevice::MemoryMappedDevice(
 	mStartOfSpace = mAddressSpace.getStartOfSpace();
 }
 
-bool MemoryMappedDevice::selected(uint16_t adr)
+bool MemoryMappedDevice::selected(BusAddress adr)
 {
 	return mCS == 0 && mAddressSpace.contains(adr);
 }
 
 // Register a gap in the device's memory map
-void MemoryMappedDevice::registerMemoryGap(uint16_t adr, uint16_t sz)
+void MemoryMappedDevice::registerMemoryGap(BusAddress adr, BusAddress sz)
 {
 	mAddressSpace.addGap(adr, sz);
 
@@ -39,12 +39,12 @@ void MemoryMappedDevice::registerMemoryGap(uint16_t adr, uint16_t sz)
 
 }
 
-bool MemoryMappedDevice::read(uint16_t adr, uint8_t& data) {
+bool MemoryMappedDevice::readByte(BusAddress adr, BusByte& data) {
 	data = 0xff;
 	return selected(adr);
 }
 
-bool MemoryMappedDevice::triggerBeforeRead(uint16_t adr, uint8_t data)
+bool MemoryMappedDevice::triggerBeforeRead(BusAddress adr, uint8_t data)
 {
 	if (!mTriggerOnRead)
 		return true;
@@ -64,7 +64,7 @@ bool MemoryMappedDevice::triggerBeforeRead(uint16_t adr, uint8_t data)
 
 }
 
-bool MemoryMappedDevice::triggerAfterWrite(uint16_t adr, uint8_t data)
+bool MemoryMappedDevice::triggerAfterWrite(BusAddress adr, uint8_t data)
 {
 	if (!mTriggerOnWrite)
 		return true;
@@ -83,13 +83,13 @@ bool MemoryMappedDevice::triggerAfterWrite(uint16_t adr, uint8_t data)
 	return true;
 }
 
-bool MemoryMappedDevice::write(uint16_t adr, uint8_t data) {
+bool MemoryMappedDevice::writeByte(BusAddress adr, BusByte data) {
 
 	return selected(adr);
 }
 
 // Register that another device shall be triggered on R/W accesses to this device
-bool MemoryMappedDevice::registerAccess(Device* dev, uint16_t adr, bool writeAccess) {
+bool MemoryMappedDevice::registerAccess(Device* dev, BusAddress adr, bool writeAccess) {
 	DeviceAccessScheduling dev_sch = { dev, adr };
 	if (writeAccess) {
 		mTriggerOnWrite = true;

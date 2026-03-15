@@ -9,7 +9,7 @@
 
 using namespace std;
 
-DeviceMemorySegment::DeviceMemorySegment(uint16_t lowerAdr, uint16_t upperAdr, MemoryMappedDevice *dev) :
+DeviceMemorySegment::DeviceMemorySegment(BusAddress lowerAdr, BusAddress upperAdr, MemoryMappedDevice *dev) :
         lowerAdr(lowerAdr), upperAdr(upperAdr), dev(dev)
 {
 }

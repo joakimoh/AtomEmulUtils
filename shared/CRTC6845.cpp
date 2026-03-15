@@ -289,7 +289,7 @@ bool CRTC6845::advanceUntil(uint64_t stopTick)
 
 }
 
-bool CRTC6845::read(uint16_t adr, uint8_t& data)
+bool CRTC6845::readByte(BusAddress adr, BusByte& data)
 {
 	// Call parent class to trigger scheduling of other devices when applicable
 	if (!MemoryMappedDevice::triggerBeforeRead(adr, data))
@@ -304,7 +304,7 @@ bool CRTC6845::read(uint16_t adr, uint8_t& data)
 	return true;
 }
 
-bool CRTC6845::dump(uint16_t adr, uint8_t& data)
+bool CRTC6845::dump(BusAddress adr, uint8_t& data)
 {
 	if (selected(adr)) {
 		int16_t a = adr - mStartOfSpace;
@@ -329,7 +329,7 @@ bool CRTC6845::dump(uint16_t adr, uint8_t& data)
 // Writing into the start address registers for scrolling and paging should be
 // performed during the horizontal and vertical display period.
 //
-bool CRTC6845::write(uint16_t adr, uint8_t data)
+bool CRTC6845::writeByte(BusAddress adr, BusByte data)
 {
 
 	if (!selected(adr))

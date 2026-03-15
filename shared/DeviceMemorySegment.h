@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <cstdint>
+#include "DeviceTypes.h"
 
 
 using namespace std;
@@ -19,7 +20,7 @@ public:
     MemoryMappedDevice* dev;
 
     // Constructor to initialize the node with a value
-    DeviceMemorySegment(uint16_t lowerAdr, uint16_t upperAdr, MemoryMappedDevice* dev);
+    DeviceMemorySegment(BusAddress lowerAdr, BusAddress upperAdr, MemoryMappedDevice* dev);
 
     // Overload < operator
     bool operator<(const DeviceMemorySegment& segment);

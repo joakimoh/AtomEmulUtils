@@ -58,11 +58,11 @@ public:
 
 	bool advanceUntil(uint64_t stopTick);
 
-	bool read(uint16_t adr, uint8_t& data);
+	bool readByte(BusAddress adr, BusByte& data);
 
-	bool dump(uint16_t adr, uint8_t& data) override;
+	bool dump(BusAddress adr, uint8_t& data) override;
 
-	bool write(uint16_t adr, uint8_t data);
+	bool writeByte(BusAddress adr, BusByte data);
 
 	bool setChannelVoltage(int channel, double voltage);
 

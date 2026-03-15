@@ -189,7 +189,7 @@ bool PIA8255::advanceUntil(uint64_t tickTime)
 // At reset all ports will be set to input mode (Control Register becomes 10011011 = 0x9b)
 // All output registers will be reset when the mode is changed.
 //
-PIA8255::PIA8255(string name, double tickRate, uint8_t waitStates, uint16_t adr, DebugTracing  *debugTracing, ConnectionManager* connectionManager,
+PIA8255::PIA8255(string name, double tickRate, uint8_t waitStates, BusAddress adr, DebugTracing  *debugTracing, ConnectionManager* connectionManager,
 	DeviceManager *deviceManager) :
 	MemoryMappedDevice(name, PIA8255_DEV, PERIPHERAL, waitStates, adr, 4, debugTracing, connectionManager, deviceManager),
 	TimedDevice(tickRate)
@@ -212,7 +212,7 @@ PIA8255::PIA8255(string name, double tickRate, uint8_t waitStates, uint16_t adr,
 
 
 
-bool PIA8255::read(uint16_t adr, uint8_t& data)
+bool PIA8255::readByte(BusAddress adr, BusByte& data)
 {
 
 	// Call parent class to trigger scheduling of other devices when applicable
@@ -264,7 +264,7 @@ bool PIA8255::read(uint16_t adr, uint8_t& data)
 
 }
 
-bool PIA8255::dump(uint16_t adr, uint8_t& data)
+bool PIA8255::dump(BusAddress adr, uint8_t& data)
 {
 	if (selected(adr)) {
 		if (adr == PIA8255_PORT_A) {
@@ -287,7 +287,7 @@ bool PIA8255::dump(uint16_t adr, uint8_t& data)
 	return false;
 }
 
-bool PIA8255::write(uint16_t adr, uint8_t data)
+bool PIA8255::writeByte(BusAddress adr, BusByte data)
 {
 	if (!selected(adr))
 		return false;

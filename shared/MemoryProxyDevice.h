@@ -2,6 +2,7 @@
 #define PROXY_MEMORY_DEVICE_H
 
 #include "MemoryMappedDevice.h"
+#include "DeviceTypes.h"
 
 class MemoryProxyDevice : public MemoryMappedDevice {
 
@@ -20,7 +21,7 @@ private:
 
 public:
 
-	MemoryProxyDevice(string name, uint16_t adr, uint16_t sz, MemoryMappedDevice* firstDevice, DebugTracing* debugTracing,
+	MemoryProxyDevice(string name, BusAddress adr, BusAddress sz, MemoryMappedDevice* firstDevice, DebugTracing* debugTracing,
 		ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
 	~MemoryProxyDevice();
@@ -28,18 +29,18 @@ public:
 	bool addDevice(MemoryMappedDevice* dev);
 
 	// Intrusive read of a device's memory that could trigger actions on the device's side
-	bool read(uint16_t adr, uint8_t& data) {
-		if (mSelectedDevice != NULL) return mSelectedDevice->read(adr, data);
+	bool readByte(BusAddress adr, BusByte& data) {
+		if (mSelectedDevice != NULL) return mSelectedDevice->readByte(adr, data);
 		data = 0xff; // Return success and a tri-state value if no device is currently selected
 		return true; //
 	}
 
-	bool write(uint16_t adr, uint8_t data) {
-		if (mSelectedDevice != NULL) return mSelectedDevice->write(adr, data);
+	bool writeByte(BusAddress adr, BusByte data) {
+		if (mSelectedDevice != NULL) return mSelectedDevice->writeByte(adr, data);
 		return false; // Writing when no device is selected will always be an erroneous action
 	}
 
-	bool selected(uint16_t adr) {
+	bool selected(BusAddress adr) {
 		if (mSelectedDevice != NULL) return mSelectedDevice->selected(adr);
 		return false;
 	}

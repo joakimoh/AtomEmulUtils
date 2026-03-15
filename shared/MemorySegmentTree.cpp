@@ -172,7 +172,7 @@ MemorySegmentNode* MemorySegmentTree::insert(MemorySegmentNode* root, DeviceMemo
 }
 
 // Search the subtree for a memory segment containing a specific address
-MemoryMappedDevice* MemorySegmentTree::find(MemorySegmentNode* node, uint16_t adr)
+MemoryMappedDevice* MemorySegmentTree::find(MemorySegmentNode* node, BusAddress adr)
 {
     if (node == nullptr)
         return nullptr;
@@ -199,7 +199,7 @@ void MemorySegmentTree::insert(DeviceMemorySegment segment)
 }
 
 // Find the memory segment containing a specific address
-MemoryMappedDevice* MemorySegmentTree::find(uint16_t adr)
+MemoryMappedDevice* MemorySegmentTree::find(BusAddress adr)
 {
     return find(mRoot, adr);
 }

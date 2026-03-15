@@ -8,6 +8,7 @@
 #include <iostream>
 #include "DeviceMemorySegment.h"
 #include <vector>
+#include "DeviceTypes.h"
 
 using namespace std;
 
@@ -45,7 +46,7 @@ private:
     MemorySegmentNode* insert(MemorySegmentNode* node, DeviceMemorySegment segment);
 
     // Search the subtree for a memory segment containing a specific address
-    MemoryMappedDevice* find(MemorySegmentNode* node, uint16_t adr);
+    MemoryMappedDevice* find(MemorySegmentNode* node, BusAddress adr);
     
     // Depth of a subtree
     int getDepth(MemorySegmentNode* node);
@@ -71,7 +72,7 @@ public:
     void insert(DeviceMemorySegment segment);
 
     // Find the memory segment containing a specific address
-    MemoryMappedDevice* find(uint16_t adr);
+    MemoryMappedDevice* find(BusAddress adr);
 
     // Print the tree as a graph
     void print();

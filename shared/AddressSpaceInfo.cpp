@@ -5,12 +5,12 @@
 using namespace std;
 
 
-AddressSpace::AddressSpace(uint16_t adr, uint16_t sz) : mAdr(adr), mSz(sz)
+AddressSpace::AddressSpace(BusAddress adr, BusAddress sz) : mAdr(adr), mSz(sz)
 {
 
 }
 
-bool AddressSpace::contains(uint16_t adr)
+bool AddressSpace::contains(BusAddress adr)
 {
 	return adr >= mAdr && adr < mAdr + mSz;
 }
@@ -22,10 +22,10 @@ bool AddressSpace::contains(AddressSpace &space)
 
 bool AddressSpace::intersects(AddressSpace& space)
 {
-	uint16_t space_low = space.mAdr;
-	uint16_t space_high = space_low + space.mSz - 1;
-	uint16_t my_space_low = mAdr;
-	uint16_t my_space_high = mAdr + mSz - 1;
+	BusAddress space_low = space.mAdr;
+	BusAddress space_high = space_low + space.mSz - 1;
+	BusAddress my_space_low = mAdr;
+	BusAddress my_space_high = mAdr + mSz - 1;
 	return
 		space_low >= my_space_low && space_low <= my_space_high ||
 		space_high >= my_space_low && space_high <= my_space_high ||
@@ -45,7 +45,7 @@ string& operator+(string& sout, const AddressSpace& space)
 	return  sout;
 }
 
-AddressSpaceInfo::AddressSpaceInfo(uint16_t adr, uint16_t sz)
+AddressSpaceInfo::AddressSpaceInfo(BusAddress adr, BusAddress sz)
 {
 	mSpaces.push_back(AddressSpace(adr, sz));
 }
@@ -74,7 +74,7 @@ string& operator+(string& sout, const AddressSpaceInfo& spaceInfo)
 
 
 
-bool AddressSpaceInfo::addGap(uint16_t adr, uint16_t sz)
+bool AddressSpaceInfo::addGap(BusAddress adr, BusAddress sz)
 {
 	AddressSpace gap(adr, sz);
 
@@ -110,10 +110,10 @@ bool AddressSpaceInfo::addGap(uint16_t adr, uint16_t sz)
 	// | space 1         |      | space 2            |
 	// +-----------------+      +--------------------+
 	//
-	uint16_t a1 = space.getStartOfSpace();
-	uint16_t a2 = gap.getStartOfSpace();
-	uint16_t a3 = gap.getEndOfSpace();
-	uint16_t a4 = space.getEndOfSpace();
+	BusAddress a1 = space.getStartOfSpace();
+	BusAddress a2 = gap.getStartOfSpace();
+	BusAddress a3 = gap.getEndOfSpace();
+	BusAddress a4 = space.getEndOfSpace();
 	if (a4 < a3 || a3 < a2 || a2 < a1) // Check that the gap is within the original space
 		return false;
 	AddressSpace space_1(a1, a2 - a1);
@@ -144,7 +144,7 @@ bool AddressSpaceInfo::operator!=(AddressSpaceInfo& memSpace) {
 	return !(*this == memSpace);
 }
 
-bool AddressSpaceInfo::contains(uint16_t adr)
+bool AddressSpaceInfo::contains(BusAddress adr)
 {
 	if (mSpaces.size() == 1)
 		return mSpaces[0].contains(adr);

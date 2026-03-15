@@ -86,12 +86,12 @@ public:
 	// Non-intrusive reading of the memory location of a device.
 	// If no memory-mapped device exists at the specified address,
 	// the method will return false.
-	bool dumpDeviceMemory(uint16_t adr, uint8_t& data);
+	bool dumpDeviceMemory(BusAddress adr, uint8_t& data);
 
 	// Write to a memory-mapped device (for debugger use only)
-	bool writeMemoryMappedDevice(uint16_t adr, uint8_t data);
+	bool writeMemoryMappedDevice(BusAddress adr, uint8_t data);
 
-	MemoryMappedDevice* getSelectedMemoryMappedDevice(uint16_t adr);
+	MemoryMappedDevice* getSelectedMemoryMappedDevice(BusAddress adr);
 	void printMemoryMap();
 	void printMemoryTree();
 

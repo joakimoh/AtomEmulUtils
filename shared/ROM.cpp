@@ -6,7 +6,7 @@
 
 using namespace std;
 
-ROM::ROM(string name, uint8_t waitStates, uint16_t adr, uint16_t sz, string binaryContent, DebugTracing  *debugTracing,
+ROM::ROM(string name, uint8_t waitStates, BusAddress adr, BusAddress sz, string binaryContent, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager) :
 	MemoryMappedDevice(name, ROM_DEV, MEMORY_DEVICE, waitStates, adr, sz, debugTracing, connectionManager, deviceManager)
 {
@@ -24,13 +24,13 @@ ROM::ROM(string name, uint8_t waitStates, uint16_t adr, uint16_t sz, string bina
 	streamsize file_sz = fin.tellg();
 	fin.seekg(0);
 
-	uint16_t upper_sz = mAddressSpace.getSizeOfSpace();
+	BusAddress upper_sz = mAddressSpace.getSizeOfSpace();
 	if (file_sz < (streamsize)sz) {
 		DBG_LOG(
 			this, DBG_WARNING, "Warning - size of ROM file " + binaryContent + " (" + to_string(file_sz) +
 			" ) is smaller than the expected one(" + to_string(sz) + ") => filling up with zeros..."
 		);
-		upper_sz = (uint16_t)file_sz;
+		upper_sz = (BusAddress)file_sz;
 	}
 	else if (file_sz > (streamsize)sz) {
 		DBG_LOG(
@@ -58,7 +58,7 @@ ROM::ROM(string name, uint8_t waitStates, uint16_t adr, uint16_t sz, string bina
 
 }
 
-bool ROM::read(uint16_t adr, uint8_t& data)
+bool ROM::readByte(BusAddress adr, BusByte& data)
 {
 	// Call parent class to trigger scheduling of other devices when applicable
 	if (!MemoryMappedDevice::triggerBeforeRead(adr, data) || mCS != 0)
@@ -70,7 +70,7 @@ bool ROM::read(uint16_t adr, uint8_t& data)
 
 }
 
-bool ROM::dump(uint16_t adr, uint8_t& data)
+bool ROM::dump(BusAddress adr, uint8_t& data)
 {
 	if (selected(adr)) {
 		data = mMem[adr - mStartOfSpace];
@@ -79,7 +79,7 @@ bool ROM::dump(uint16_t adr, uint8_t& data)
 	return false;
 }
 
-bool ROM::write(uint16_t adr, uint8_t data)
+bool ROM::writeByte(BusAddress adr, BusByte data)
 {
 	return false; // ROM is read-only!
 }

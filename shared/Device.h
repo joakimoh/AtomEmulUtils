@@ -9,6 +9,7 @@
 #include <allegro5/allegro_primitives.h>
 #include <iostream>
 #include "VideoSettings.h"
+#include "DeviceTypes.h"
 
 
 using namespace std;
@@ -59,14 +60,11 @@ public:
 
 class DevicePort;
 
-typedef uint16_t PortVal;
-#define PORT_H_MASK 0xff
-
 // dst = dst & ~mask | ((src >> shifts) & mask)
 typedef struct InputReference_struct {
 	DevicePort *	port;
 	int				shifts = 0;				// no of steps to downshift src value to fit dst start bit
-	PortVal			mask = PORT_H_MASK;			// mask specifiyng the bits of the dst to be updated (set bit <= update)
+	PortVal			mask = PORT_MASK;			// mask specifiyng the bits of the dst to be updated (set bit <= update)
 	bool			invert = false;			// If true, the source port value will be inverted before fed to the destination port
 	bool			process = false;		// If true, the receiving device's process method will be called in addition to updating the port value
 } InputReference;
@@ -74,8 +72,8 @@ typedef struct InputReference_struct {
 // Reference to a source port by a destination port - only used for port arbitration
 typedef struct OutputReference_struct {
 	DevicePort* srcPort;			// Reference to a source port
-	PortVal		dstVal = PORT_H_MASK;		// Requested value for the destination port based on the source port value
-	PortVal		dstMask = PORT_H_MASK;		// Bit mask specifying the bits of the destination port connected to the source port (copy of InputReference:mask)
+	PortVal		dstVal = PORT_MASK;		// Requested value for the destination port based on the source port value
+	PortVal		dstMask = PORT_MASK;		// Bit mask specifying the bits of the destination port connected to the source port (copy of InputReference:mask)
 	int			srcShifts = 0;		// no of steps to downshift src value to fit dst start bit (copy of InputReference:shifts)
 } OutputReference;
 
@@ -89,7 +87,7 @@ public:
 	int						localIndex = -1;		// local device index for the I/O port
 	int						globalIndex = -1;		// unique global index for the port
 	PortDirection			dir = IO_PORT;			// I/O direction
-	PortVal					ioDirMask = PORT_H_MASK;		// I/O direction for the bits of a bidirectional port:a set bit indicates OUT, a cleared bit IN
+	PortVal					ioDirMask = PORT_MASK;		// I/O direction for the bits of a bidirectional port:a set bit indicates OUT, a cleared bit IN
 	PortVal					mask = 0x1;				// mask to select only the implemented bits
 	int						sz = 8;					// no of bits
 	PortVal*				valOut = NULL;			// pointer to variable holdding an input port's value (or a bidirectional port's input value)
@@ -246,7 +244,7 @@ public:
 	virtual bool getMemFetchAdr(uint16_t& adr, uint16_t& cursor) { adr = 0xffff;  return false; }
 
 	// Called by a other device when the device is asked to process/transform data.
-	virtual bool getDeviceData(PortVal dIn, PortVal& dOut) { dOut = PORT_H_MASK;  return false; }
+	virtual bool getDeviceData(PortVal dIn, PortVal& dOut) { dOut = PORT_MASK;  return false; }
 
 	// Called by debugger normally to dump a periphal device's register content
 	virtual bool outputState(ostream& sout) { return true; }

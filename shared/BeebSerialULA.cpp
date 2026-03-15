@@ -53,13 +53,13 @@ BeebSerialULA::BeebSerialULA(
 	mMinCarrierHalfCycles = (int)round(0.5 * 2400 * 2);
 }
 
-bool BeebSerialULA::read(uint16_t adr, uint8_t& data)
+bool BeebSerialULA::readByte(BusAddress adr, BusByte& data)
 {
 	data = 0xff; // Control Register is write-only!
 	return true;
 }
 
-bool  BeebSerialULA::dump(uint16_t adr, uint8_t& data)
+bool  BeebSerialULA::dump(BusAddress adr, uint8_t& data)
 {
 	data = 0xff;
 	return false;
@@ -106,7 +106,7 @@ bool  BeebSerialULA::dump(uint16_t adr, uint8_t& data)
 *  1  1	 1		256				4.8 kHz					75 baud
 * 
 */
-bool BeebSerialULA::write(uint16_t adr, uint8_t data)
+bool BeebSerialULA::writeByte(BusAddress adr, BusByte data)
 {
 	mCR = data;
 	switch (SER_ULA_CR_RxRate) {

@@ -19,6 +19,7 @@
 #include <fstream>
 #include <array>
 #include "TimedDevice.h"
+#include "DeviceTypes.h"
 
 class SoundDevice;
 class Debugmanager;
@@ -31,6 +32,8 @@ using namespace std;
 class Engine {
 
 public:
+
+
 
 	enum RunState {
 		ENG_TBD = 0x000,		// 0000 0000 0000	Only used intially to indicate that the user hasn't specified an initial mode
@@ -115,14 +118,14 @@ private:
 	RunState mState = ENG_RUN;
 	int mSteps = 0;
 	int mBreakAdr = -1;
-	uint8_t mReadData = 0xff;
-	uint8_t mWrittenData = 0xff;
-	uint16_t mOperandAddress = 0xffff;
+	BusByte mReadData = BUS_BYTE_MASK;
+	BusByte mWrittenData = BUS_BYTE_MASK;
+	BusAddress mOperandAddress = BUS_ADDRESS_MASK;
 
 	bool mBreakPoint = false;
 	RunState mBreakPointMode = ENG_TBD;
 
-	uint16_t mRetAdr = 0x0;
+	BusAddress mRetAdr = 0x0;
 
 	// Create mutex for debug purpose
 	mutex mExecMutex;
@@ -145,7 +148,7 @@ private:
 
 	int mEmulationCycle = 0;
 
-	uint16_t mCPURetAdr = 0x0;
+	BusAddress mCPURetAdr = 0x0;
 
 	bool allegroInit();
 
@@ -170,9 +173,9 @@ private:
 
 
 
-	vector<InstrLogData> mInstrLogBuffer;
+	vector<P6502InstrLogData> mInstrLogBuffer;
 #define ENGINE_BUF_WINDOW_SZ	100
-	vector<InstrLogData> mInstrBufferWindow = vector<InstrLogData>(ENGINE_BUF_WINDOW_SZ);
+	vector<P6502InstrLogData> mInstrBufferWindow = vector<P6502InstrLogData>(ENGINE_BUF_WINDOW_SZ);
 
 	vector<DevicePort*> mLoggedPorts;
 #define ENGINE_LOGGED_PORTS_MAX 25
@@ -213,7 +216,7 @@ public:
 	bool step(int n, bool stepOver);
 	bool step(int n);
 
-	bool setBreakPointAndWait(ostream& sout, RunState mode, uint16_t adr, uint8_t& readData, uint8_t& writtenData, uint16_t& operandAdr, bool repetition, bool enableTrace);
+	bool setBreakPointAndWait(ostream& sout, RunState mode, BusAddress adr, BusByte& readData, BusByte& writtenData, BusAddress& operandAdr, bool repetition, bool enableTrace);
 
 	bool clrBreakPoint();
 

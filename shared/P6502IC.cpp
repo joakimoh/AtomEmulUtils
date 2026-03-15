@@ -2752,7 +2752,7 @@ bool P6502IC::readDevice(uint16_t adr, uint8_t& data)
 	MemoryMappedDevice* mem_dev;
 	if ((mem_dev = mDeviceManager->getSelectedMemoryMappedDevice(adr)) != NULL) {
 		adjustForClockStretching(mem_dev); // Strech CPU clock if applicable
-		return mem_dev->read(adr, data);
+		return mem_dev->readByte(adr, data);
 	}
 
 	DBG_LOG(this, DBG_WARNING, "*Warning* Read at unmapped address 0x" + Utility::int2HexStr(adr, 4) + ". Returns 0x0 for all unmapped addresses...\n");
@@ -2768,7 +2768,7 @@ bool P6502IC::writeDevice(uint16_t adr, uint8_t data)
 	MemoryMappedDevice* dev;
 	if ((dev = mDeviceManager->getSelectedMemoryMappedDevice(adr)) != NULL) {
 		adjustForClockStretching(dev);// Strech CPU clock if applicable
-		return dev->write(adr, data);
+		return dev->writeByte(adr, data);
 	}
 
 

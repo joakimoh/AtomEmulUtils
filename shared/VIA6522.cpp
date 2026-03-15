@@ -558,7 +558,7 @@ void VIA6522::setIFR(uint8_t mask)
 	pIFR = mIFR;
 }
 
-bool VIA6522::read(uint16_t adr, uint8_t &data)
+bool VIA6522::readByte(BusAddress adr, BusByte &data)
 {
 	// Call parent class to trigger scheduling of other devices when applicable
 	if (!MemoryMappedDevice::triggerBeforeRead(adr, data))
@@ -727,7 +727,7 @@ bool VIA6522::read(uint16_t adr, uint8_t &data)
 
 }
 
-bool VIA6522::dump(uint16_t adr, uint8_t& data)
+bool VIA6522::dump(BusAddress adr, uint8_t& data)
 {
 	if (selected(adr)) {
 		uint16_t a = (adr - mStartOfSpace) & 0xf;
@@ -847,7 +847,7 @@ bool VIA6522::dump(uint16_t adr, uint8_t& data)
 	return false;
 }
 
-bool VIA6522::write(uint16_t adr, uint8_t data)
+bool VIA6522::writeByte(BusAddress adr, BusByte data)
 {
 
 	if (!selected(adr))

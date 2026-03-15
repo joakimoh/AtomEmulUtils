@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "MemoryMappedDevice.h"
 #include <vector>
+#include "DeviceTypes.h"
 
 
 using namespace std;
@@ -16,14 +17,14 @@ private:
 public:
 
 
-	RAM(string name, uint8_t waitStates, bool DRAM, uint16_t adr, uint16_t sz, DebugTracing  *debugTracing,
+	RAM(string name, uint8_t waitStates, bool DRAM, BusAddress adr, BusAddress sz, DebugTracing  *debugTracing,
 		ConnectionManager * connectionManager, DeviceManager* deviceManager);
 
-	bool read(uint16_t adr, uint8_t& data);
-	bool dump(uint16_t adr, uint8_t& data) override;
-	bool write(uint16_t adr, uint8_t data);
-	bool write(uint16_t adr, vector<uint8_t>& data, uint16_t sz);
-	bool read(uint16_t adr, vector<uint8_t>& data, uint16_t sz);
+	bool readByte(BusAddress adr, BusByte& data);
+	bool dump(BusAddress adr, uint8_t& data) override;
+	bool writeByte(BusAddress adr, BusByte data);
+	bool writeBytes(BusAddress adr, vector<BusByte>& data, BusAddress sz);
+	bool readBytes(BusAddress adr, vector<BusByte>& data, BusAddress sz);
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

@@ -4,7 +4,7 @@
 
 VideoDisplayUnit::VideoDisplayUnit(
 	string name, DeviceId devId, Display *display, uint8_t waitStates, 
-	uint16_t adr, uint16_t sz, uint16_t videoMemAdr, DebugTracing  *debugTracing,
+	BusAddress adr, BusAddress sz, BusAddress videoMemAdr, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager
 ) :
 	MemoryMappedDevice(name, devId, VDU_DEVICE, waitStates, adr, sz, debugTracing, connectionManager, deviceManager),
@@ -22,17 +22,17 @@ bool VideoDisplayUnit::setVideoRam(RAM* ram)
 	return true;
 }
 
-uint16_t VideoDisplayUnit::getVideoMemAdr() {
+BusAddress VideoDisplayUnit::getVideoMemAdr() {
 	return mVideoMemAdr;
 }
 
-bool VideoDisplayUnit::read(uint16_t adr, uint8_t& data)
+bool VideoDisplayUnit::readByte(BusAddress adr, BusByte& data)
 {
 	data = 0xff;
 	return selected(adr);
 }
 
-bool VideoDisplayUnit::write(uint16_t adr, uint8_t data)
+bool VideoDisplayUnit::writeByte(BusAddress adr, BusByte data)
 {
 	return selected(adr);
 }

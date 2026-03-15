@@ -80,7 +80,7 @@ using namespace std;
 //						 -´     `-´     `-´     `-´     `-´     `-´
 
 BeebVideoULA::BeebVideoULA(
-	string name, uint16_t adr, Display* display, double tickRate, uint8_t waitStates,
+	string name, BusAddress adr, Display* display, double tickRate, uint8_t waitStates,
 	DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager
 ) : VideoDisplayUnit(name, BEEB_VDU_DEV, display, waitStates, adr, 0x10, 0x0 /* dummy adr */, debugTracing, connectionManager,
 	deviceManager), TimedDevice(tickRate)
@@ -294,7 +294,7 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	//
 
 	uint8_t screen_data;
-	if (!mVideoMem->read(screen_adr, screen_data)) {
+	if (!mVideoMem->readByte(screen_adr, screen_data)) {
 		DBG_LOG(this, DBG_ERROR, "Failed to read video memory at address 0x" + Utility::int2HexStr(screen_adr,4));
 		mTicks = endCycle; // Ensure time still advances
 		return false;
@@ -465,7 +465,7 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 }
 
 
-bool BeebVideoULA::read(uint16_t adr, uint8_t& data)
+bool BeebVideoULA::readByte(BusAddress adr, BusByte& data)
 {
 	// Call parent class to trigger scheduling of other devices when applicable
 	if (!VideoDisplayUnit::triggerBeforeRead(adr, data))
@@ -477,14 +477,14 @@ bool BeebVideoULA::read(uint16_t adr, uint8_t& data)
 	return true;
 }
 
-bool BeebVideoULA::dump(uint16_t adr, uint8_t& data)
+bool BeebVideoULA::dump(BusAddress adr, uint8_t& data)
 {
 	data = 0xff;
 	return false;
 }
 
 
-bool BeebVideoULA::write(uint16_t adr, uint8_t data)
+bool BeebVideoULA::writeByte(BusAddress adr, BusByte data)
 {
 
 	if (!VideoDisplayUnit::selected(adr))
@@ -508,7 +508,7 @@ bool BeebVideoULA::write(uint16_t adr, uint8_t data)
 	return VideoDisplayUnit::triggerAfterWrite(adr, data);
 }
 
-bool BeebVideoULA::readGraphicsMem(uint16_t adr, uint8_t& data)
+bool BeebVideoULA::readGraphicsMem(BusAddress adr, uint8_t& data)
 {
 	return true;
 }

@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <cstdint>
+#include "DeviceTypes.h"
 
 using namespace std;
 
@@ -31,9 +32,9 @@ private:
 	GUI* mGUI = nullptr;
 
 	int mAccessMode = -1;
-	uint8_t mReadData = 0xff;
-	uint8_t mWrittenData = 0xff;
-	uint16_t  mOperandAdr = 0xffff;
+	BusByte mReadData = 0xff;
+	BusByte mWrittenData = 0xff;
+	BusAddress mOperandAdr = 0xffff;
 
 	bool readString(istream& sin, string& s);
 	bool readOptString(istream& sin, string& s);
@@ -107,7 +108,7 @@ private:
 
 	Codec6502 *mCodec = nullptr;
 
-	bool printInstructions(uint16_t startAdr, uint16_t endAdr, bool printFirstOnly, bool ASCII, ostream& sout);
+	bool printInstructions(BusAddress startAdr, BusAddress endAdr, bool printFirstOnly, bool ASCII, ostream& sout);
 	bool printNextInstr(ostream& sout);
 
 public:

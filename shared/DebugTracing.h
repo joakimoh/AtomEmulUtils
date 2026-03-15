@@ -69,7 +69,7 @@ typedef array<SerialisedState, ENGINE_SERIALISED_STATES_MAX> SerialisedStates;
 
 
 
-typedef struct InstrLogData_struct {
+typedef struct P6502InstrLogData_struct {
 	double logTime = 0;
 	Codec6502::InstructionInfo *instr = nullptr;
 	uint8_t A = 0x0;
@@ -91,7 +91,7 @@ typedef struct InstrLogData_struct {
 	int memContent = -1;
 	int cycles = -1; // No of cycles the instruction took to execute
 	Codec6502::InterruptState BRKType = Codec6502::NONE_PENDING;
-} InstrLogData;
+} P6502InstrLogData;
 
 
 class DebugTracing {

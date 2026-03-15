@@ -442,7 +442,7 @@ void VDU6847::unlockDisplay()
 	al_restore_state(&mAllegroState);
 }
 
-bool VDU6847::read(uint16_t adr, uint8_t& data)
+bool VDU6847::readByte(BusAddress adr, BusByte& data)
 {
 
 	// Call parent class to trigger scheduling of other devices when applicable
@@ -455,7 +455,7 @@ bool VDU6847::read(uint16_t adr, uint8_t& data)
 
 }
 
-bool VDU6847::dump(uint16_t adr, uint8_t& data)
+bool VDU6847::dump(BusAddress adr, uint8_t& data)
 {
 	if (selected(adr)) {
 		data = mMem[adr - mStartOfSpace];
@@ -464,7 +464,7 @@ bool VDU6847::dump(uint16_t adr, uint8_t& data)
 	return false;
 }
 
-bool VDU6847::write(uint16_t adr, uint8_t data)
+bool VDU6847::writeByte(BusAddress adr, BusByte data)
 {
 	if (!selected(adr))
 		return false;
@@ -477,7 +477,7 @@ bool VDU6847::write(uint16_t adr, uint8_t data)
 
 inline bool VDU6847::readGraphicsMem(uint16_t adr, uint8_t& data)
 {
-	return mVideoMem->read(adr, data) && updatePort(VDU_PORT_DIN, data);
+	return mVideoMem->readByte(adr, data) && updatePort(VDU_PORT_DIN, data);
 }
 
 

@@ -42,7 +42,7 @@ bool ADC7002::advanceUntil(uint64_t stopTick)
 	return true;
 }
 
-bool ADC7002::read(uint16_t adr, uint8_t& data) {
+bool ADC7002::readByte(BusAddress adr, BusByte& data) {
 
 	// Call parent class to trigger scheduling of other devices when applicable
 	if (!MemoryMappedDevice::triggerBeforeRead(adr, data))
@@ -82,7 +82,7 @@ bool ADC7002::read(uint16_t adr, uint8_t& data) {
 	return true;
 }
 
-bool ADC7002::dump(uint16_t adr, uint8_t& data)
+bool ADC7002::dump(BusAddress adr, uint8_t& data)
 {
 	data = 0xff;
 	switch (adr & 0x3) {
@@ -108,7 +108,7 @@ bool ADC7002::dump(uint16_t adr, uint8_t& data)
 	return true;
 }
 
-bool ADC7002::write(uint16_t adr, uint8_t data)
+bool ADC7002::writeByte(BusAddress adr, BusByte data)
 {
 	switch (adr & 0x3) {
 	case 0x0:

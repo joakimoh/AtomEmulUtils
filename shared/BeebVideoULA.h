@@ -156,7 +156,7 @@ public:
 	TT5050::ScreenDataType* mNewTgcData = nullptr;
 	bool mValidTgcData = false;
 
-	bool readGraphicsMem(uint16_t adr, uint8_t& data);
+	bool readGraphicsMem(BusAddress adr, uint8_t& data);
 
 	void lockDisplay();
 	void unlockDisplay();
@@ -173,13 +173,13 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	BeebVideoULA(string name, uint16_t adr, Display *display, double tickRate, uint8_t waitStates, 
+	BeebVideoULA(string name, BusAddress adr, Display *display, double tickRate, uint8_t waitStates,
 		DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~BeebVideoULA();
 
-	bool read(uint16_t adr, uint8_t& data);
-	bool dump(uint16_t adr, uint8_t& data) override;
-	bool write(uint16_t adr, uint8_t data);
+	bool readByte(BusAddress adr, BusByte& data);
+	bool dump(BusAddress adr, uint8_t& data) override;
+	bool writeByte(BusAddress adr, BusByte data);
 
 	// Device power on
 	bool power();
