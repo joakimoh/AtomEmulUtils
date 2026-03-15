@@ -23,9 +23,16 @@ int main(int argc, const char* argv[])
 
     string gen_dir = filesystem::current_path().string();
     
-    Engine *engine = new Engine(
-        arg_parser.mapFileName, arg_parser.videoFormat, arg_parser.hwAcc, &arg_parser.debugTracing, gen_dir, arg_parser.initialState
-    );
+    Engine* engine = nullptr;
+    try {
+        engine = new Engine(
+            arg_parser.mapFileName, arg_parser.videoFormat, arg_parser.hwAcc, &arg_parser.debugTracing, gen_dir, arg_parser.initialState
+        );
+    }
+    catch (...) {
+        cout << "Engine couldn't be properly initialised!\n";
+        return -1;
+    }
 
     engine->run();
 

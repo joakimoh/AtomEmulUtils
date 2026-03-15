@@ -187,7 +187,7 @@ bool ConnectionManager::connect(string srcName, string dstName, bool invert, boo
 	// Only pure output ports are considered (and not bidirectional ports)
 	bool arbitration = false;
 	if (dst_port.port->portSources.size() > 1) {
-		uint8_t dst_mask = 0xff;
+		PortVal dst_mask = 0xffff;
 		int cnt = 0;
 		for (int i = 0; i < dst_port.port->portSources.size(); i++) {
 			if (dst_port.port->portSources[i].srcPort->dir == OUT_PORT) {

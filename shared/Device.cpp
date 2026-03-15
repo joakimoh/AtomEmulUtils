@@ -328,7 +328,7 @@ PortVal Device::getPortVal(DevicePort* port, int &sz, PortVal& dir) {
 	}
 	else { //port->dir == IO_PORT
 		dir = io_mask;
-		val = (io_mask & (*out_val)) | (~io_mask & (*in_val) & 0xff);
+		val = (io_mask & (*out_val)) | (~io_mask & (*in_val) & sz_mask);
 	}
 	return val;
 }

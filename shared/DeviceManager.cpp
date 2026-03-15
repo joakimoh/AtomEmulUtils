@@ -30,7 +30,6 @@
 #include "Device.h"
 #include "ConnectionManager.h"
 #include "DeviceManager.h"
-#include "Device.h"
 #include "SDCard.h"
 #include "ADC7002.h"
 #include "MemoryProxyDevice.h"
@@ -87,10 +86,10 @@ DeviceManager::DeviceManager(
 	double speed, double& baseSchedulingRate, double& highSchedulingRate
 ) : mDM(debugTracing), mCM(mCM), mDisplay(display)
 {
-	double CPU_clock_rate = 0;
-	bool clock_stretching = false;
-
-	tickRate = 1.0; // Default 1 Mhz simulation clock
+	
+	if (display == nullptr || debugTracing == nullptr || mCM == nullptr) {
+		throw runtime_error("At leas one parameter to DeviceManager was a null pointer!");
+	}
 
 
 	mainVDU = NULL;
@@ -105,11 +104,17 @@ DeviceManager::DeviceManager(
 		throw runtime_error("couldn't open memory map file");
 	}
 
-	fin.seekg(0);
+	
 
 	string line;
-	int line_no = 1;
+	int line_no;
 
+
+	//
+	// Check that the map file contains valid commands
+	//
+	line_no = 1;
+	fin.seekg(0);
 	while (getline(fin, line)) {
 
 		try {
@@ -118,15 +123,269 @@ DeviceManager::DeviceManager(
 
 			sin >> cmd;
 
-			if (cmd.substr(0, 2) == "//" || cmd == "") {
-				// Commment
+			if(
+				!(
+					cmd.substr(0, 2) == "//" || cmd == "" || 
+					cmd == "TICK_RATE" ||
+					cmd == "ADD" ||
+					cmd == "GAP" ||
+					cmd.length() >= 7 && cmd.substr(0, 7) == "CONNECT" ||
+					cmd == "TRIGGER" ||
+					cmd == "SCHED" ||
+					cmd == "EMU_LOW_RATE" ||
+					cmd == "EMU_HIGH_RATE" ||
+					cmd == "CLOCK_STRETCHING" ||
+					cmd == "VIDEO" ||
+					cmd == "INIT"
+				)
+			) {
+				cout << "Unknown command '" << cmd << "' found in the memory map file:\n\t" << line << "\n";
+				throw runtime_error("Syntax error");
 			}
+		}
+		catch (...) {
+			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
+			throw runtime_error("Syntax error");
+		}
 
-			else if (cmd == "TICK_RATE") {
+		line_no++;
+	}
+
+
+	//
+	// Scan the map file for constants
+	//
+	bool clock_stretching = false;
+	line_no = 1;
+	fin.clear();
+	fin.seekg(0);
+	tickRate = 1.0;					// Default 1 Mhz simulation clock
+	baseSchedulingRate = 50;		// Default 50 Hz low rate (base) scheduling
+	highSchedulingRate = 31250;		// Default 31.25 kHz high rate scheduling
+	clock_stretching = false;		// Default NO clock stretching
+	VideoFormat video_format = VideoFormat::NO_FMT;
+	while (getline(fin, line)) {
+
+		try {
+
+			string cmd;
+			stringstream sin(line);
+
+			sin >> cmd;
+
+			if (cmd == "TICK_RATE")
 				sin >> tickRate;
+
+			else if (cmd == "EMU_LOW_RATE")
+				sin >> baseSchedulingRate;
+
+			else if (cmd == "EMU_HIGH_RATE")
+				sin >> highSchedulingRate;
+
+			else if (cmd == "CLOCK_STRETCHING") {
+				string state;
+				sin >> state;
+				if (state != "ON" && state != "OFF")
+					throw runtime_error("CLOCK_STRETCHING statement can only have the value ON or OFF!");
+				if (state == "ON")
+					clock_stretching = true;
 			}
 
-			else if (cmd == "ADD") {
+			else if (cmd == "VIDEO") {
+				string video_fmt_s;
+				sin >> video_fmt_s;
+				if (video_fmt_s == "PAL")
+					video_format = VideoFormat::PAL_FMT;
+				else if (video_fmt_s == "NTSC")
+					video_format = VideoFormat::NTSC_FMT;
+				else
+					throw runtime_error("Illegal video format '" + video_fmt_s + "'");
+			}
+
+		}
+
+		catch (...) {
+			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
+			throw runtime_error("Syntax error");
+		}
+
+		line_no++;
+	}
+
+	// Initialise the display with the selected video format (defaults to NO_FMT if no format was selected)
+	mDisplay->init(video_format);
+
+
+	//
+	// Scan the map file for microprocessor definitions
+	// 
+	// Also check that all devices are valid
+	//
+	line_no = 1;
+	fin.clear();
+	fin.seekg(0);
+	double CPU_clock_rate = 0;
+	while (getline(fin, line)) {
+
+		try {
+			string cmd;
+			stringstream sin(line);
+
+			sin >> cmd;
+
+			if (cmd == "ADD") {
+
+				string dev_name, dev_type;
+				sin >> dev_type;
+				sin >> dev_name;
+
+				//
+				// Microprocessors
+				//
+
+				if (dev_type == "CPU_6502") {
+
+					sin >> CPU_clock_rate;
+					microprocessor = new P6502IC(dev_name, clock_stretching, CPU_clock_rate, tickRate, mDM, mCM, this);
+					mDevices.push_back(microprocessor);
+					mMicroprocessor = microprocessor;
+
+				}
+
+				else if (dev_type == "CPU_6502CC") {
+
+					sin >> CPU_clock_rate;
+					microprocessor = new P6502CC(dev_name, clock_stretching, CPU_clock_rate, tickRate, mDM, mCM, this);
+					mDevices.push_back(microprocessor);
+					mMicroprocessor = microprocessor;
+
+				}
+
+				else if (!(
+					cmd.substr(0, 2) == "//" || cmd == "" ||
+					dev_type == "ATOMKB" ||
+					dev_type == "BEEBKB" ||
+					dev_type == "ATOMSP" ||
+					dev_type == "TI4689" ||
+					(dev_type == "TAPREC") ||
+					dev_type == "ATOMCAS" ||
+					dev_type == "SRAM" ||
+					dev_type == "DRAM" ||
+					dev_type == "ROM" ||
+					dev_type == "BeebRomSel" ||
+					dev_type == "BeebSerULA" ||
+					dev_type == "PIA8255" ||
+					dev_type == "VIA6522" ||
+					dev_type == "ACIA6850" ||
+					dev_type == "VDU6847" ||
+					dev_type == "CRTC6845" ||
+					dev_type == "TT5050" ||
+					dev_type == "BeebVideoULA" ||
+					dev_type == "BEEBVIALATCH" ||
+					dev_type == "SD_CARD" ||
+					dev_type == "ADC7002"
+					)) {
+					cout << "Unknown device '" << dev_type << "' found at line " << line_no << " in the memory map file : \n\t" << line << "\n";
+					throw runtime_error("Syntax error");
+				}
+			}
+		}
+		catch (...) {
+			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
+			throw runtime_error("Syntax error");
+		}
+
+		line_no++;
+	}
+	
+	if (microprocessor == nullptr) {
+		cout << "No microprocessor device specified!\n";
+		throw runtime_error("No microprocessor device specified");
+	}
+
+
+	//
+	// Scan the map file for a main Video Display Unit
+	// 
+	//
+	line_no = 1;
+	fin.clear();
+	fin.seekg(0);
+	
+	while (getline(fin, line)) {
+
+		try {
+			string cmd;
+			stringstream sin(line);
+
+			sin >> cmd;
+
+			if (cmd == "ADD") {
+
+				//
+				// Add a device
+				//
+
+				string dev_name, dev_type;
+				sin >> dev_type;
+				sin >> dev_name;
+
+				//
+				// Video Display Unit
+				//
+
+				if (dev_type == "VDU6847") {
+
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
+					double access_speed;
+					sin >> access_speed;
+					uint16_t video_mem_adr = getHexVal(sin);
+					mainVDU = new VDU6847(dev_name, dev_adr, mDisplay, tickRate, access_speed, video_mem_adr, mDM, mCM, this);
+					mDevices.push_back(mainVDU);
+				}
+
+				else if (dev_type == "BeebVideoULA") {
+
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
+					double access_speed;
+					sin >> access_speed;
+					mainVDU = new BeebVideoULA(dev_name, dev_adr, mDisplay, tickRate, access_speed, mDM, mCM, this);
+					mDevices.push_back(mainVDU);
+				}
+
+			}
+		}
+		catch (...) {
+			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
+			throw runtime_error("Syntax error");
+		}
+
+		line_no++;
+	}
+
+	if (mainVDU == NULL) {
+		cout << "Warning: No video display unit specified - will run headless!\n";
+	}
+
+
+	//
+	// Scan the map file for remaining devices
+	// 
+	//
+	line_no = 1;
+	fin.clear();
+	fin.seekg(0);
+	while (getline(fin, line)) {
+
+		try {
+			string cmd;
+			stringstream sin(line);
+
+			sin >> cmd;
+
+			if (cmd == "ADD") {
 
 				//
 				// Add a device
@@ -200,28 +459,6 @@ DeviceManager::DeviceManager(
 				}
 
 				//
-				// Microprocessors
-				//
-
-				else if (dev_type == "CPU_6502") {
-
-					sin >> CPU_clock_rate;
-					microprocessor = new P6502IC(dev_name, clock_stretching, CPU_clock_rate, tickRate, mDM, mCM, this);
-					mDevices.push_back(microprocessor);
-					mMicroprocessor = microprocessor;
-
-				}
-
-				else if (dev_type == "CPU_6502CC") {
-
-					sin >> CPU_clock_rate;
-					microprocessor = new P6502CC(dev_name, clock_stretching, CPU_clock_rate, tickRate, mDM, mCM, this);
-					mDevices.push_back(microprocessor);
-					mMicroprocessor = microprocessor;
-
-				}
-
-				//
 				// Memory DeviceManager
 				//
 
@@ -264,7 +501,7 @@ DeviceManager::DeviceManager(
 					uint16_t dev_sz = getHexVal(sin);
 					double access_speed;
 					sin >> access_speed;
-					BeebROMSel *paged_rom_sel = new BeebROMSel(dev_name, tickRate, access_speed, dev_adr, mDM, mCM, this);
+					BeebROMSel* paged_rom_sel = new BeebROMSel(dev_name, tickRate, access_speed, dev_adr, mDM, mCM, this);
 					mDevices.push_back(paged_rom_sel);
 
 				}
@@ -319,20 +556,8 @@ DeviceManager::DeviceManager(
 				}
 
 				//
-				// Video DeviceManager
+				// Video Display Unit (except for the main one)
 				//
-
-				else if (dev_type == "VDU6847") {
-
-					uint16_t dev_adr = getHexVal(sin);
-					uint16_t dev_sz = getHexVal(sin);
-					double access_speed;
-					sin >> access_speed;
-					uint16_t video_mem_adr = getHexVal(sin);
-					if (!mDisplay->initialised()) mDisplay->init();
-					mainVDU = new VDU6847(dev_name, dev_adr, mDisplay, tickRate, access_speed, video_mem_adr, mDM, mCM, this);
-					mDevices.push_back(mainVDU);
-				}
 
 				else if (dev_type == "CRTC6845") {
 
@@ -340,27 +565,14 @@ DeviceManager::DeviceManager(
 					uint16_t dev_sz = getHexVal(sin);
 					double access_speed;
 					sin >> access_speed;
-					if (!mDisplay->initialised()) mDisplay->init();
 					CRTC6845* crtc = new CRTC6845(dev_name, dev_adr, tickRate, access_speed, mDM, mCM, this);
 					mDevices.push_back(crtc);
 				}
 
 				else if (dev_type == "TT5050") {
 
-					if (!mDisplay->initialised()) mDisplay->init();
 					TT5050* tcg = new TT5050(dev_name, 0x0, tickRate, 0x0, mDM, mCM);
 					mDevices.push_back(tcg);
-				}
-
-				else if (dev_type == "BeebVideoULA") {
-
-					uint16_t dev_adr = getHexVal(sin);
-					uint16_t dev_sz = getHexVal(sin);
-					double access_speed;
-					sin >> access_speed;
-					if (!mDisplay->initialised()) mDisplay->init();
-					mainVDU = new BeebVideoULA(dev_name, dev_adr, mDisplay, tickRate, access_speed, mDM, mCM, this);
-					mDevices.push_back(mainVDU);
 				}
 
 				//
@@ -387,16 +599,35 @@ DeviceManager::DeviceManager(
 					double clk = getDoubleVal(sin);
 					ADC7002* adc = new ADC7002(dev_name, tickRate, clk, dev_adr, dev_sz, access_speed, mDM, mCM, this);
 					mDevices.push_back(adc);
-					}
-
-				else {
-					cout << "Syntax error at line " << dec << line_no << ":\n\t" << line << "\n";
-					throw runtime_error("Syntax error");
 				}
 
 			}
 
-			else if (cmd == "GAP") {
+		}
+		catch (...) {
+			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
+			throw runtime_error("Syntax error");
+		}
+
+		line_no++;
+	}
+
+
+	//
+	// Scan the map file for gaps in the memory map
+	//
+	line_no = 1;
+	fin.clear();
+	fin.seekg(0);
+	while (getline(fin, line)) {
+
+		try {
+			string cmd;
+			stringstream sin(line);
+
+			sin >> cmd;
+
+			if (cmd == "GAP") {
 				string mem_dev_name;
 				sin >> mem_dev_name;
 				Device* dev = NULL;
@@ -411,7 +642,31 @@ DeviceManager::DeviceManager(
 
 			}
 
-			else if (cmd.length() >= 7 && cmd.substr(0, 7) == "CONNECT") {
+		}
+		catch (...) {
+			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
+			throw runtime_error("Syntax error");
+		}
+
+		line_no++;
+	}
+
+
+	//
+	// Scan the map file for connections
+	//
+	line_no = 1;
+	fin.clear();
+	fin.seekg(0);
+	while (getline(fin, line)) {
+
+		try {
+			string cmd;
+			stringstream sin(line);
+
+			sin >> cmd;
+
+			if (cmd.length() >= 7 && cmd.substr(0, 7) == "CONNECT") {
 
 				//
 				// Connect Device ports
@@ -427,7 +682,7 @@ DeviceManager::DeviceManager(
 				if (cmd.length() == 7) {
 				}
 				else if (cmd.length() >= 9 && cmd.length() <= 10 && cmd.substr(7, 1) == ":") {
-					for (int i = 0; i < cmd.length() - 8; i++) {
+					for (int i = 0; i < (int)cmd.length() - 8; i++) {
 						if (cmd.substr(8 + i) == "I")
 							invert = true;
 						else if (cmd.substr(8 + i) == "P")
@@ -450,7 +705,31 @@ DeviceManager::DeviceManager(
 
 			}
 
-			else if (cmd == "TRIGGER") {
+		}
+		catch (...) {
+			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
+			throw runtime_error("Syntax error");
+		}
+
+		line_no++;
+	}
+
+
+	//
+	// Scan the map file for scheduling
+	//
+	line_no = 1;
+	fin.clear();
+	fin.seekg(0);
+	while (getline(fin, line)) {
+
+		try {
+			string cmd;
+			stringstream sin(line);
+
+			sin >> cmd;
+
+			if (cmd == "TRIGGER") {
 
 				//
 				// Define triggering of device execution based on memory access (MEM), port changes (PORT) or  explicit call by another device (CALL)
@@ -535,42 +814,34 @@ DeviceManager::DeviceManager(
 					throw runtime_error("Syntax error");
 				}
 			}
-			else if (cmd == "EMU_LOW_RATE") {
-				sin >> baseSchedulingRate;
-				if (mDevices.size() > 0)
-					throw runtime_error("EMU_LOW_RATE statement must come before adding any devices!");
-			}
-			else if (cmd == "EMU_HIGH_RATE") {
-				sin >> highSchedulingRate;
-				if (mDevices.size() > 0)
-					throw runtime_error("EMU_HIGH_RATE statement must come before adding any devices!");
-			}
-			else if (cmd == "CLOCK_STRETCHING") {
-				string state;
-				sin >> state;
-				if (mDevices.size() > 0)
-					throw runtime_error("CLOCK_STRETCHING statement must come before adding any devices!");
-				if (state != "ON" && state != "OFF")
-					throw runtime_error("CLOCK_STRETCHING statement can only have the value ON or OFF!");
-				if (state == "ON")
-					clock_stretching = true;
-			}
-			else if (cmd == "VIDEO") {
-				string video_fmt_s;
-				sin >> video_fmt_s;
-				if (mDisplay->initialised())
-					throw runtime_error("VIDEO statement must come before adding any video display unit!");
-				if (video_fmt_s == "PAL")
-					mDisplay->init(VideoFormat::PAL_FMT);
-				else if (video_fmt_s == "NTSC")
-					mDisplay->init(VideoFormat::NTSC_FMT);
-				else
-					throw runtime_error("Illegal video format '" + video_fmt_s + "'");
-			}
-			else if (cmd == "INIT") {
+
+		}
+		catch (...) {
+			throw runtime_error("Syntax error");
+		}
+
+		line_no++;
+	}
+
+
+	//
+	// Scan the map file for initialisations
+	//
+	line_no = 1;
+	fin.clear();
+	fin.seekg(0);
+	while (getline(fin, line)) {
+
+		try {
+			string cmd;
+			stringstream sin(line);
+
+			sin >> cmd;
+
+			if (cmd == "INIT") {
 				string dst_port_s;
 				sin >> dst_port_s;
-				uint8_t port_val = (uint8_t)(getIntVal(sin) & 0xff);
+				PortVal port_val = (PortVal)(getIntVal(sin) & PORT_H_MASK);
 				PortSelection dst_port_sel;
 				if (
 					!mCM->extractPort(dst_port_s, dst_port_sel) &&
@@ -588,9 +859,6 @@ DeviceManager::DeviceManager(
 				//cout << "INIT " << dst_port_s << " " << hex << (int)port_val << " => value change from 0x" << (int)pval << " to 0x" << (int)nval << "\n";
 			}
 
-			else {
-				throw runtime_error("Syntax error");
-			}
 		}
 		catch (...) {
 			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
@@ -600,19 +868,15 @@ DeviceManager::DeviceManager(
 		line_no++;
 	}
 
-	if (mainVDU == NULL) {
-		cout << "Warning: No video display unit specified - will run headless!\n";
-		//throw runtime_error("No video data unit device specified");
-	}
 
-	if (microprocessor == NULL) {
-		cout << "No microprocessor device specified!\n";
-		throw runtime_error("No microprocessor device specified");
-	}
 
-	// Update the video data unit with graphics memory data
+	// Close the map file
+	fin.close();
+
+	
+
+	// Update the Video Display Unit with graphics memory data
 	if (mainVDU != nullptr) {
-
 
 		// Get RAM address that matches the VDU's video memory address
 		// Get RAM device that matches the program load address
@@ -651,6 +915,7 @@ DeviceManager::DeviceManager(
 	// Also power on (reset) each device and propagate its ports' values to connected devices
 	for (int i = 0; i < mDevices.size(); i++) {
 		Device* d = mDevices[i];
+		assert(d != nullptr);
 		allDevices.push_back(d);
 		d->power();
 		d->updatePorts();

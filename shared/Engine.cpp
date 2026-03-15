@@ -90,22 +90,24 @@ Engine::Engine(string mapFileName, VideoFormat videoFormat, bool enableHWAcc,
 
     // Set up devices
     mConnectionManager = new ConnectionManager(mDT);
-    mDeviceManager = new DeviceManager(
-        mapFileName,
-        mTickRate,            // CPU Clock frequency in MHz
-        mDisplay,
-        mDT, mConnectionManager, mMicroprocessor, mVDU, mSoundDevice, mDevices,
-        mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices,
-        mSpeedFactor, mLowEmulationRate, mHighEmulationRate
-    );
+
+    try {
+        mDeviceManager = new DeviceManager(
+            mapFileName,
+            mTickRate,            // CPU Clock frequency in MHz
+            mDisplay,
+            mDT, mConnectionManager, mMicroprocessor, mVDU, mSoundDevice, mDevices,
+            mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices,
+            mSpeedFactor, mLowEmulationRate, mHighEmulationRate
+        );
+    }
+    catch (...) {
+        delete mDisplay;
+        throw runtime_error("Engine initialisation failed");
+    }
 
     mDisplay->setTickRate(mTickRate);
     mDisplay->setCPUClockRate(mMicroprocessor->getDeviceClockRate());
-
-    if (mMicroprocessor == NULL) {
-        cout << "No microprocessor defined!\n";
-        throw runtime_error("No microprocessor defined!");
-    }
 
     // If headless emulation (i.e. no VDU), then as a default have the microprocessor halted
     if (mVDU == NULL) {

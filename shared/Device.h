@@ -48,7 +48,7 @@ enum DeviceCategory {
 	SOUND_DEVICE, MICROROCESSOR_DEVICE, VDU_DEVICE, KEYBOARD_DEVICE, PERIPHERAL, MEMORY_DEVICE, OTHER_DEVICE
 };
 #define _DEVICE_CATEGORY(x) (\
-	x==MICROROCESSOR_DEVICE?"Microprocessor":(x== PERIPHERAL?"Peripheral":(x==MEMORY_DEVICE?"Memory":(x==VDU_DEVICE?"Video Data Unit":(x==SOUND_DEVICE?"Sound Device":(x==KEYBOARD_DEVICE?"Keyboard":"Other Device"))))))
+	x==MICROROCESSOR_DEVICE?"Microprocessor":(x== PERIPHERAL?"Peripheral":(x==MEMORY_DEVICE?"Memory":(x==VDU_DEVICE?"Video Display Unit":(x==SOUND_DEVICE?"Sound Device":(x==KEYBOARD_DEVICE?"Keyboard":"Other Device"))))))
 
 class Program {
 public:
@@ -113,7 +113,7 @@ typedef struct BitsSelection_struct {
 
 class PortSelection {
 public:
-	DevicePort* port;	// port identity
+	DevicePort* port = nullptr;	// port identity
 	BitsSelection	bits;	// bits selection
 };
 
@@ -232,7 +232,6 @@ public:
 
 	// Used by a device to make a port available for routing
 	bool registerPort(string name, PortDirection dir, PortVal mask, int& index, PortVal* val);
-	bool registerPort(string name, PortDirection dir, int& index, uint16_t* val);
 	bool registerPort(string name, PortDirection dir, PortVal mask, int& index, PortVal* valIn, PortVal* valOut);
 
 	// Get pointer to other device to be able to call its methods
