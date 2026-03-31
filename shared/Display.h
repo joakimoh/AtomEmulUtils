@@ -68,8 +68,13 @@ class Display {
 
 	double mTickRate = 1.0;
 	double mCPUClockRate = 1.0;
-	
 
+	
+	vector<string> mClipboard;
+	string mNewLineChars = "\r";
+	int mClipBoardRow = 0;
+	int mClipBoardCol = 0;
+	int mNewLineCharPos = -1;
 public:
 	Display(ALLEGRO_EVENT_QUEUE* queue, VideoFormat& videoFormat, bool EnableHwAcc, double speedFactor, DebugTracing* debugTracing);
 	~Display();
@@ -89,6 +94,9 @@ public:
 
 	void setTickRate(double tickRate);
 	void setCPUClockRate(double clockRate);
+
+	bool getClipboard();
+	bool nextClipboardChar(char &c);
 };
 
 #endif

@@ -75,6 +75,119 @@ private:
 
 	int mKeyboardRefreshCycles = 1;
 
+	vector<KeyboardKey> mPasteKeyMap = {
+
+		{' ', {"SPACE"}},
+		{'\r', {"RETURN"}},
+		{'\t', {"TAB"}},
+
+		{'@', {"@"}},
+		{'A', {"Aa"}},
+		{'B', {"Bb"}},
+		{'C', {"Cc"}},
+		{'D', {"Dd"}},
+		{'E', {"Ee"}},
+		{'F', {"Ff"}},
+		{'G', {"Gg"}},
+		{'H', {"Hh"}},
+		{'I', {"Ii"}},
+		{'J', {"Jj"}},
+		{'K', {"Kk"}},
+		{'L', {"Ll"}},
+		{'M', {"Mm"}},
+		{'N', {"Nn"}},
+		{'O', {"Oo"}},
+		{'P', {"Pp"}},
+		{'Q', {"Qq"}},
+		{'R', {"Rr"}},
+		{'S', {"Ss"}},
+		{'T', {"Tt"}},
+		{'U', {"Uu"}},
+		{'V', {"Vv"}},
+		{'W', {"Ww"}},
+		{'X', {"Xx"}},
+		{'Y', {"Yy"}},
+		{'Z', {"Zz"}},
+
+		{'a', {"Aa", "SHIFT"}},
+		{'b', {"Bb", "SHIFT"}},
+		{'c', {"Cc", "SHIFT"}},
+		{'d', {"Dd", "SHIFT"}},
+		{'e', {"Ee", "SHIFT"}},
+		{'f', {"Ff", "SHIFT"}},
+		{'g', {"Gg", "SHIFT"}},
+		{'h', {"Hh", "SHIFT"}},
+		{'i', {"Ii", "SHIFT"}},
+		{'j', {"Jj", "SHIFT"}},
+		{'k', {"Kk", "SHIFT"}},
+		{'l', {"Ll", "SHIFT"}},
+		{'m', {"Mm", "SHIFT"}},
+		{'n', {"Nn", "SHIFT"}},
+		{'o', {"Oo", "SHIFT"}},
+		{'p', {"Pp", "SHIFT"}},
+		{'q', {"Qq", "SHIFT"}},
+		{'r', {"Rr", "SHIFT"}},
+		{'s', {"Ss", "SHIFT"}},
+		{'t', {"Tt", "SHIFT"}},
+		{'u', {"Uu", "SHIFT"}},
+		{'v', {"Vv", "SHIFT"}},
+		{'w', {"Ww", "SHIFT"}},
+		{'x', {"Xx", "SHIFT"}},
+		{'y', {"Yy", "SHIFT"}},
+		{'z', {"Zz", "SHIFT"}},
+
+		{'0', {"0"}},
+		{'1', {"1!"}},
+		{'2', {"2\""}},
+		{'3', {"3#"}},
+		{'4', {"4$"}},
+		{'5', {"5%"}},
+		{'6', {"6&"}},
+		{'7', {"7'"}},
+		{'8', {"8("}},
+		{'9', {"9)"}},
+
+		{'!', {"1!", "SHIFT"}},
+		{'"', {"2\"", "SHIFT"}},
+		{'#', {"3#", "SHIFT"}},
+		{'$', {"4$", "SHIFT"}},
+		{'%', {"5%", "SHIFT"}},
+		{'&', {"6&", "SHIFT"}},
+		{'\'', {"7'", "SHIFT"}},
+		{'(', {"8(", "SHIFT"}},
+		{')', {"9)", "SHIFT"}},
+
+		{'-', {"-="}},
+		{':', {":*"}},
+		{';', {";+"}},
+		{',', {",<"}},
+		{'.', {".>"}},
+
+		{'=', {"-=", "SHIFT"}},
+		{'*', {":*", "SHIFT"}},
+		{'+', {";+", "SHIFT"}},
+		{'<', {",<", "SHIFT"}},
+		{'>', {".>", "SHIFT"}},
+
+		{'^', {"^~"}},
+		{'~', {"^~", "SHIFT"}},
+
+		{'\\', {"\\|"}},
+		{'|', {"\\|", "SHIFT"}},
+
+		{'[', {"[{"}},
+		{'{', {"[{", "SHIFT"}},
+		{']', {"]}"} },
+		{'}', {"]}", "SHIFT"} },
+
+		{'£', {"£_"} },
+		{'_', {"£_", "SHIFT"} },
+
+		{'/', {"/?"}},
+		{'?', {"/?", "SHIFT"} }
+
+	};
+
 	vector<vector<Key>> mKeyboardMatrix = {
 		{
 			{ALLEGRO_KEY_LSHIFT,	"SHIFT"},				// 0,  0
@@ -89,70 +202,70 @@ private:
 			{-1,  					"START UP OPTION 1"}	// 0,  9
 		},
 		{
-			{ALLEGRO_KEY_Q,			"Q"},					// 1,  0
-			{ALLEGRO_KEY_3,			"3"},					// 1,  1
-			{ALLEGRO_KEY_4,			"4"},					// 1,  2
-			{ALLEGRO_KEY_5,			"5"},					// 1,  3
+			{ALLEGRO_KEY_Q,			"Qq"},					// 1,  0
+			{ALLEGRO_KEY_3,			"3#"},					// 1,  1
+			{ALLEGRO_KEY_4,			"4$"},					// 1,  2
+			{ALLEGRO_KEY_5,			"5%"},					// 1,  3
 			{ALLEGRO_KEY_F4,		"F4"},					// 1,  4
-			{ALLEGRO_KEY_8,			"8"},					// 1,  5
+			{ALLEGRO_KEY_8,			"8("},					// 1,  5
 			{ALLEGRO_KEY_F7,		"F7"},					// 1,  6
-			{ALLEGRO_KEY_MINUS,		"=-"},					// 1,  7
+			{ALLEGRO_KEY_MINUS,		"-="},					// 1,  7
 			{ALLEGRO_KEY_TILDE,		"~^"},					// 1,  8
 			{ALLEGRO_KEY_LEFT,		"LEFT ARROW"}			// 1,  9
 		},
 		{
 			{-1,				    "F0"},					// 2,  0	-  Not supported!
-			{ALLEGRO_KEY_W,			"W"},					// 2,  1
-			{ALLEGRO_KEY_E,			"E"},					// 2,  2
-			{ALLEGRO_KEY_T,			"T"},					// 2,  3
-			{ALLEGRO_KEY_7,			"7"},					// 2,  4
-			{ALLEGRO_KEY_I,			"I"},					// 2,  5
-			{ALLEGRO_KEY_9,			"9"},					// 2,  6
+			{ALLEGRO_KEY_W,			"Ww"},					// 2,  1
+			{ALLEGRO_KEY_E,			"Ee"},					// 2,  2
+			{ALLEGRO_KEY_T,			"Tt"},					// 2,  3
+			{ALLEGRO_KEY_7,			"7'"},					// 2,  4
+			{ALLEGRO_KEY_I,			"Ii"},					// 2,  5
+			{ALLEGRO_KEY_9,			"9)"},					// 2,  6
 			{ALLEGRO_KEY_0,			"0"},					// 2,  7
-			{ALLEGRO_KEY_ALTGR,		"POUND"},				// 2,  8
+			{ALLEGRO_KEY_ALTGR,		"£"}	,				// 2,  8
 			{ALLEGRO_KEY_DOWN,		"DOWN ARROW"}			// 2,  9
 		},{
-			{ALLEGRO_KEY_1,			"1"},					// 3,  0
-			{ALLEGRO_KEY_2,			"2"},					// 3,  1
-			{ALLEGRO_KEY_D,			"D"},					// 3,  2
-			{ALLEGRO_KEY_R,			"R"},					// 3,  3
-			{ALLEGRO_KEY_6,			"6"},					// 3,  4
-			{ALLEGRO_KEY_U,			"U"},					// 3,  5
-			{ALLEGRO_KEY_O,			"O"},					// 3,  6
-			{ALLEGRO_KEY_P,			"P"},					// 3,  7
+			{ALLEGRO_KEY_1,			"1!"},					// 3,  0
+			{ALLEGRO_KEY_2,			"2\""},					// 3,  1
+			{ALLEGRO_KEY_D,			"Dd"},					// 3,  2
+			{ALLEGRO_KEY_R,			"Rr"},					// 3,  3
+			{ALLEGRO_KEY_6,			"6&"},					// 3,  4
+			{ALLEGRO_KEY_U,			"Uu"},					// 3,  5
+			{ALLEGRO_KEY_O,			"Oo"},					// 3,  6
+			{ALLEGRO_KEY_P,			"Pp"},					// 3,  7
 			{ALLEGRO_KEY_PGUP,		"{["},					// 3,  8
 			{ALLEGRO_KEY_UP,		"UP ARROW"}				// 3,  9
 		},
 		{
 			{ALLEGRO_KEY_CAPSLOCK,  "CAPS LOCK"},			// 4,  0
-			{ALLEGRO_KEY_A,			"A"},					// 4,  1
-			{ALLEGRO_KEY_X,			"X"},					// 4,  2
-			{ALLEGRO_KEY_F,			"F"},					// 4,  3
-			{ALLEGRO_KEY_Y,			"Y"},					// 4,  4
-			{ALLEGRO_KEY_J,			"J"},					// 4,  5
-			{ALLEGRO_KEY_K,			"K"},					// 4,  6
+			{ALLEGRO_KEY_A,			"Aa"},					// 4,  1
+			{ALLEGRO_KEY_X,			"Xx"},					// 4,  2
+			{ALLEGRO_KEY_F,			"Ff"},					// 4,  3
+			{ALLEGRO_KEY_Y,			"Yy"},					// 4,  4
+			{ALLEGRO_KEY_J,			"Jj"},					// 4,  5
+			{ALLEGRO_KEY_K,			"Kk"},					// 4,  6
 			{ALLEGRO_KEY_RSHIFT,	"@"},					// 4,  7
-			{ALLEGRO_KEY_DELETE,	"*:"},					// 4,  8
+			{ALLEGRO_KEY_DELETE,	":*"},					// 4,  8
 			{ALLEGRO_KEY_ENTER,		"RETURN"}				// 4,  9
 		},
 		{
 			{ALLEGRO_KEY_ALT,		"SHIFT LOCK"},			// 5,  0
-			{ALLEGRO_KEY_S,			"S"},					// 5,  1
-			{ALLEGRO_KEY_C,			"C"},					// 5,  2
-			{ALLEGRO_KEY_G,			"G"},					// 5,  3
-			{ALLEGRO_KEY_H,			"H"},					// 5,  4
-			{ALLEGRO_KEY_N,			"N"},					// 5,  5
-			{ALLEGRO_KEY_L,			"L"},					// 5,  6
+			{ALLEGRO_KEY_S,			"Ss"},					// 5,  1
+			{ALLEGRO_KEY_C,			"Cc"},					// 5,  2
+			{ALLEGRO_KEY_G,			"Gg"},					// 5,  3
+			{ALLEGRO_KEY_H,			"Hh"},					// 5,  4
+			{ALLEGRO_KEY_N,			"Nn"},					// 5,  5
+			{ALLEGRO_KEY_L,			"Ll"},					// 5,  6
 			{ALLEGRO_KEY_RCTRL,		"+;"},					// 5,  7
 			{ALLEGRO_KEY_PGDN,		")}"},					// 5,  8
 			{ALLEGRO_KEY_BACKSPACE,	"DELETE"}				// 5,  9
 		},{
 			{ALLEGRO_KEY_TAB,		"TAB"},					// 6,  0
-			{ALLEGRO_KEY_Z,			"Z"},					// 6,  1
-			{ALLEGRO_KEY_SPACE,		" "},					// 6,  2
-			{ALLEGRO_KEY_V,			"V"},					// 6,  3
-			{ALLEGRO_KEY_B,			"B"},					// 6,  4
-			{ALLEGRO_KEY_M,			"M"},					// 6,  5
+			{ALLEGRO_KEY_Z,			"Zz"},					// 6,  1
+			{ALLEGRO_KEY_SPACE,		"SPACE"},				// 6,  2
+			{ALLEGRO_KEY_V,			"Vv"},					// 6,  3
+			{ALLEGRO_KEY_B,			"Bb"},					// 6,  4
+			{ALLEGRO_KEY_M,			"Mm"},					// 6,  5
 			{ALLEGRO_KEY_COMMA,		"<,"},					// 6,  6
 			{ALLEGRO_KEY_FULLSTOP,	">."},					// 6,  7
 			{ALLEGRO_KEY_END,		"?/"},					// 6,  8
@@ -234,6 +347,9 @@ public:
 
 	// Set emulation speed
 	void setEmulationSpeed(double speed) override;
+
+	// Check if the minimum key down time has passed (for the paste function)
+	bool minKeyDownTimePassed() override;
 
 };
 

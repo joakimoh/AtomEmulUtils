@@ -72,6 +72,44 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double tickRate, DebugTracin
 	registerPort("COL_L", OUT_PORT, 0xff, KB_COL_L, &mColumnL);
 	registerPort("COL_H", OUT_PORT, 0x03, KB_COL_H, &mColumnH);
 
+	// Minimum key down time of 50 ms for the paste function
+	mMinKeyDownTicks = ms2Ticks(50);
+
+	// Create map from ASCII characters to key codes (including modifiers)
+	for(int i = 0; i < mPasteKeyMap.size(); i++) {
+		KeyboardKey& key = mPasteKeyMap[i];
+		bool found = false;
+		vector <string> keys;
+		for (int j = 0; j < key.keys.size(); j++) {
+			string keyName = key.keys[j];
+			map<int, AtomKey>::iterator keys_it;
+			for (keys_it = mKeycodes.begin(); keys_it != mKeycodes.end(); keys_it++) {
+				AtomKey* atomKey = &(keys_it->second);
+				if (atomKey->atomKeyName == keyName) {
+					mASCII2KeyCodesMap[key.ASCII].push_back(atomKey->keyCode);
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				cout << "Failed to find keycode for key name '" << keyName << "' for ASCII character '" << string(1, key.ASCII) << "'\n";
+				throw runtime_error("Error in AtomKeyboardDevice constructor: no keycode found for key name '" + keyName + "' for ASCII character '" + string(1, key.ASCII) + "'");
+			}
+			keys.push_back(keyName);
+		}
+		
+		cout << "Mapped ASCII character '" << key.ASCII << "' to key codes ";
+		for (int i = 0; i < mASCII2KeyCodesMap[key.ASCII].size(); i++) {
+			cout << mASCII2KeyCodesMap[key.ASCII][i] << " ";
+		}
+		cout << " <=> ";
+		for (int i = 0; i < keys.size(); i++) {
+			cout <<  keys[i] << " ";
+		}
+		cout << "\n";
+		
+	}
+
 	// Create 10 rows by 6 columns vector with key data
 	// Also get keycodes for SHIFT, CTRL & REPEAT keys
 	map<int, AtomKey>::iterator keys_it;
@@ -93,8 +131,7 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double tickRate, DebugTracin
 		else if (key->atomKeyName == "BREAK")
 			mBreakKeyCode = key->keyCode;
 	}
-
-	al_get_keyboard_state(&mKeyboardState);
+	pollKeyboardState();
 
 	// Make sure Keyboard refresh rate always is 60 Hz (or less) - add a 10% margin
 	mKeyboardRefreshCycles = max(1, (int)round(1.1 * tickRate * 1e6 * mEmulationSpeed / 60));
@@ -115,7 +152,7 @@ bool AtomKeyboardDevice::advanceUntil(uint64_t stopTick)
 bool AtomKeyboardDevice::checkKeyBoard()
 {
 
-	al_get_keyboard_state(&mKeyboardState);
+	pollKeyboardState();
 
 	uint8_t column_L = 0xff;
 	uint8_t column_H = 0x03;
@@ -130,7 +167,7 @@ bool AtomKeyboardDevice::checkKeyBoard()
 				int key_state_index = mSelectedRow * ATOM_COLS + c;
 				bool key_depressed_state = keyDepressedState[key_state_index];
 				keyDepressedState[key_state_index] = false;
-				if (al_key_down(&mKeyboardState, key->keyCode)) {
+				if (keyDown(key->keyCode)) {
 					column_L &= ~(0x1 << c);
 					keyDepressedState[key_state_index] = true;
 					DBG_LOG_COND(!key_depressed_state, this, DBG_KEYBOARD, "Key " + key->atomKeyName + " depressed\n");
@@ -141,20 +178,20 @@ bool AtomKeyboardDevice::checkKeyBoard()
 	}
 
 	// Get CTRL key
-	if (al_key_down(&mKeyboardState, mCtrlKeyCode))
+	if (keyDown(mCtrlKeyCode))
 		column_L &= ~0x40;
 
 	// Get SHIFT keys
-	if (al_key_down(&mKeyboardState, mShiftKeyCodes[0]) || al_key_down(&mKeyboardState, mShiftKeyCodes[1]))
+	if (keyDown(mShiftKeyCodes[0]) || keyDown(mShiftKeyCodes[1]))
 		column_L &= ~0x80;
 
 	// Get REPEAT key
-	if (al_key_down(&mKeyboardState, mRepeatKeyCode))
+	if (keyDown(mRepeatKeyCode))
 		column_H &= ~0x1;
 
 
 	// Get BREAK key
-	if (al_key_down(&mKeyboardState, mBreakKeyCode))  
+	if (keyDown(mBreakKeyCode))
 		column_H &= ~0x2;
 
 	// Update outputs "COL" and "RPT"
@@ -199,4 +236,11 @@ void AtomKeyboardDevice::setEmulationSpeed(double speed)
 	// Make sure Keyboard refresh rate always is 60 Hz (or less) - add a 10% margin
 	mKeyboardRefreshCycles = max(1, (int)round(1.1*mTickRate * 1e6 * mEmulationSpeed / 60));
 
+}
+
+
+// Check if the minimum key down time has passed (for the paste function)
+bool AtomKeyboardDevice::minKeyDownTimePassed()
+{
+	return ticksPassed(mMinKeyDownTicks);
 }

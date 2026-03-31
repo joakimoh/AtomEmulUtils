@@ -12,12 +12,14 @@ Display::Display(ALLEGRO_EVENT_QUEUE* queue, VideoFormat& videoFormat, bool Enab
 
 }
 
+
 Display::~Display()
 {
     al_unregister_event_source(mQueue, al_get_display_event_source(mDisplay));
     al_destroy_display(mDisplay);
     
 }
+
 
 const char* Display::get_format_name(int format)
 {
@@ -33,9 +35,10 @@ bool Display::init()
     return init(mVideoFmt);
 }
 
+
 bool Display::init(VideoFormat videoFormat)
 {
- 
+
 #ifdef ALLEGRO_GTK_TOPLEVEL
     //al_set_new_display_flags(ALLEGRO_RESIZABLE | ALLEGRO_GTK_TOPLEVEL | ALLEGRO_WINDOWED);
     al_set_new_display_flags(ALLEGRO_GTK_TOPLEVEL | ALLEGRO_WINDOWED);
@@ -75,6 +78,74 @@ bool Display::init(VideoFormat videoFormat)
 
     return true;
 }
+
+
+bool Display::getClipboard()
+{
+    char* clipboard_content = al_get_clipboard_text(mDisplay);
+
+    if (clipboard_content == nullptr)
+        return false;
+
+    stringstream clipboard(clipboard_content);
+    al_free(clipboard_content);
+    bool stop = false;
+
+	// Clear previous clipboard content
+    mClipboard.clear();
+    mClipBoardRow = mClipBoardCol = 0;
+    mNewLineCharPos = -1;
+
+    int row = 0;
+    while (!stop) {
+        string line, l;
+        if (clipboard.eof())
+            break;
+        getline(clipboard, line);
+        for (int i = 0; i < line.size(); i++) {
+            if (line[i] >= 32 && line[i] <= 126)
+                l += line[i];
+            else if (line[i] == '\n' || line[i] == '\r')
+                break;
+        }
+        mClipboard.push_back(l);
+    }
+
+    return true;
+}
+
+
+bool Display::nextClipboardChar(char& c)
+{
+    // Make sure c always get a value
+    c = 0;
+
+	// Check if we are in the middle of outputting the new line characters
+    if (mNewLineCharPos >= 0) {
+        c = mNewLineChars[mNewLineCharPos++];
+        if (mNewLineCharPos == mNewLineChars.size())
+            mNewLineCharPos = -1;
+        return true;
+	}
+
+    // Check for end of line
+    if (mClipBoardCol == mClipboard[mClipBoardRow].size()) {
+        mClipBoardCol = 0;
+        mClipBoardRow++;
+        mNewLineCharPos = 0;      
+		return nextClipboardChar(c); // Output the first new line character
+	}
+
+    // Check for last line
+    if (mClipBoardRow >= mClipboard.size() || mClipBoardCol >= mClipboard[mClipBoardRow].size())
+        return false;
+
+	// Output the next character in the current line
+	c = mClipboard[mClipBoardRow][mClipBoardCol++];
+ 
+	return true;
+}
+
 
 void Display::updateWindowTitle()
 {
@@ -119,11 +190,13 @@ void Display::updateWindowTitle()
         );
 }
 
+
 void Display::setTickRate(double tickRate)
 {
     mTickRate = tickRate;
 
 }
+
 
 void Display::setCPUClockRate(double clockRate)
 {

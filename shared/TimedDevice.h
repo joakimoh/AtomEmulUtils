@@ -18,6 +18,8 @@ protected:
 	double mTickRate = 2.0;
 
 	uint64_t mTicks = 0;
+	uint64_t mRefTicks = 0;
+	uint64_t mTicksPerMs = 0;
 
 public:
 
@@ -34,6 +36,16 @@ public:
 	void timeTick(int ticks) { mTicks += ticks; }
 
 	double getTickRate() { return mTickRate; }
+
+	uint64_t ms2Ticks(int ms) { return ms * mTicksPerMs; }
+
+	bool ticksPassed(uint64_t n) {
+		if (mTicks - mRefTicks >= n) {
+			mRefTicks = 0;
+			return true;
+		}
+		return false;
+	}
 
 
 };

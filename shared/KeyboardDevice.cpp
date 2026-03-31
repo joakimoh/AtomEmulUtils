@@ -4,6 +4,7 @@
 #include <map>
 #include <chrono>
 #include "Utility.h"
+#include "Display.h"
 
 using namespace std;
 
@@ -11,11 +12,47 @@ using namespace std;
 KeyboardDevice::KeyboardDevice(string name, DeviceId typ, DebugTracing* debugTracing, ConnectionManager* connectionManager) :
 	Device(name, typ, KEYBOARD_DEVICE, debugTracing, connectionManager)
 {
-	al_get_keyboard_state(&mKeyboardState);
+	pollKeyboardState();
 }
+
 
 // Set emulation speed
 void KeyboardDevice::setEmulationSpeed(double speed)
 {
 	Device::setEmulationSpeed(speed);
+}
+
+
+bool KeyboardDevice::keyDown(int keyCode)
+{
+	if (mPasting) {
+		char c;
+		if (minKeyDownTimePassed()) {
+			if (mDisplay->nextClipboardChar(c)) {
+				if (mASCII2KeyCodesMap.find(c) != mASCII2KeyCodesMap.end()) {
+					vector<int>& keyCodes = mASCII2KeyCodesMap[c];
+					if (keyCodes.size() == 1) {
+						return keyCodes[0] == keyCode;
+					}
+					else {
+						for (int i = 0; i < keyCodes.size(); i++) {
+							if (keyCodes[i] == keyCode)
+								return true;
+						}
+					}
+					return false;
+				}
+				return false;
+			}
+		mPasting = false;
+		return false;
+	}
+	}
+	return al_key_down(&mKeyboardState, keyCode);
+}
+
+
+void KeyboardDevice::pollKeyboardState()
+{
+	al_get_keyboard_state(&mKeyboardState);
 }
