@@ -89,7 +89,6 @@ bool Display::getClipboard()
 
     stringstream clipboard(clipboard_content);
     al_free(clipboard_content);
-    bool stop = false;
 
 	// Clear previous clipboard content
     mClipboard.clear();
@@ -97,7 +96,7 @@ bool Display::getClipboard()
     mNewLineCharPos = -1;
 
     int row = 0;
-    while (!stop) {
+    while (true) {
         string line, l;
         if (clipboard.eof())
             break;
@@ -120,6 +119,10 @@ bool Display::nextClipboardChar(char& c)
     // Make sure c always get a value
     c = 0;
 
+    // Check for passed last line
+    if (mClipBoardRow >= mClipboard.size())
+        return false;
+
 	// Check if we are in the middle of outputting the new line characters
     if (mNewLineCharPos >= 0) {
         c = mNewLineChars[mNewLineCharPos++];
@@ -132,16 +135,12 @@ bool Display::nextClipboardChar(char& c)
     if (mClipBoardCol == mClipboard[mClipBoardRow].size()) {
         mClipBoardCol = 0;
         mClipBoardRow++;
-        mNewLineCharPos = 0;      
+        mNewLineCharPos = 0;    
 		return nextClipboardChar(c); // Output the first new line character
 	}
 
-    // Check for last line
-    if (mClipBoardRow >= mClipboard.size() || mClipBoardCol >= mClipboard[mClipBoardRow].size())
-        return false;
-
 	// Output the next character in the current line
-	c = mClipboard[mClipBoardRow][mClipBoardCol++];
+    c = mClipboard[mClipBoardRow][mClipBoardCol++];
  
 	return true;
 }

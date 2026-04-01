@@ -75,6 +75,7 @@ class Display {
 	int mClipBoardRow = 0;
 	int mClipBoardCol = 0;
 	int mNewLineCharPos = -1;
+
 public:
 	Display(ALLEGRO_EVENT_QUEUE* queue, VideoFormat& videoFormat, bool EnableHwAcc, double speedFactor, DebugTracing* debugTracing);
 	~Display();

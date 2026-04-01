@@ -14,8 +14,10 @@ class KeyboardDevice : public Device {
 
 private:
 	bool mPasting = false;
-	bool mKeyDown = false;
-	Display* mDisplay = nullptr;	
+	bool mKeyDown = true;
+	Display* mDisplay = nullptr;
+	char mPastedChar = 0;
+	vector<int> mPastedkeyCodes;
 
 protected:
 
@@ -47,6 +49,8 @@ public:
 
 	// Check if the minimum key down time has passed (for the paste function)
 	virtual bool minKeyDownTimePassed() = 0;
+
+	virtual uint64_t getTicks() = 0;
 
 };
 

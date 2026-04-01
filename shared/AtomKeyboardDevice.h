@@ -327,6 +327,9 @@ public:
 	// Check if the minimum key down time has passed (for the paste function)
 	bool minKeyDownTimePassed() override;
 
+	// Get current device time in emulation ticks
+	uint64_t getTicks() { return mTicks; }
+
 };
 
 #endif

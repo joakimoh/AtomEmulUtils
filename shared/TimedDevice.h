@@ -41,7 +41,7 @@ public:
 
 	bool ticksPassed(uint64_t n) {
 		if (mTicks - mRefTicks >= n) {
-			mRefTicks = 0;
+			mRefTicks = mTicks;
 			return true;
 		}
 		return false;

@@ -25,42 +25,54 @@ void KeyboardDevice::setEmulationSpeed(double speed)
 
 // Switch to paste mode in which characters are picked from the clipboard instead of from the keyboard.
 bool KeyboardDevice::startPasting() {
+
 	if (mDisplay == nullptr)
 		return false;
 
 	mPasting = true;
-	cout << "PASTING!\n";
 	return true;
 }
 
 
 bool KeyboardDevice::keyDown(int keyCode)
 {
+
 	if (mPasting) {
-		char c;
+
+		// Pasting mode
+
+		// Get a new pasted character if the minimum key down time has passed.
 		if (minKeyDownTimePassed()) {
-			if (!mKeyDown || mDisplay->nextClipboardChar(c)) {
-				mKeyDown = !mKeyDown;
-				if (!mKeyDown && mASCII2KeyCodesMap.find(c) != mASCII2KeyCodesMap.end()) {
-					vector<int>& keyCodes = mASCII2KeyCodesMap[c];
-					if (keyCodes.size() == 1) {
-						return keyCodes[0] == keyCode;
-					}
-					else {
-						for (int i = 0; i < keyCodes.size(); i++) {
-							if (keyCodes[i] == keyCode)
-								return true;
-						}
-					}
-					return false;
+
+			// Toggle between a pasted character and no character to emulate a key being pressed and then realeased.
+			if (mKeyDown) {
+				if (mDisplay->nextClipboardChar(mPastedChar)) {
+					mPastedkeyCodes.clear();
+					mPastedkeyCodes = mASCII2KeyCodesMap[mPastedChar];
 				}
-				return false;
+				else {
+					// No more characters to paste => stop pasting
+					mPasting = false;
+				}
+			} else {
+				mPastedkeyCodes.clear();
+				mPastedChar = 0;
 			}
-		mPasting = false;
-		cout << "DONE PASTING!\n";
+
+			mKeyDown = !mKeyDown;
+		}
+
+		// Compare the pasted character's key codes with the given key code
+		for (int i = 0; i < mPastedkeyCodes.size(); i++) {
+			if (mPastedkeyCodes[i] == keyCode)
+				return true;
+		}
+
+		// No mtaching key code found for the pasted character
 		return false;
 	}
-	}
+
+	// Not in pasting mode => check the keyboard state for the given key code
 	return al_key_down(&mKeyboardState, keyCode);
 }
 
