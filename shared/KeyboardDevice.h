@@ -14,6 +14,7 @@ class KeyboardDevice : public Device {
 
 private:
 	bool mPasting = false;
+	bool mKeyDown = false;
 	Display* mDisplay = nullptr;	
 
 protected:
@@ -42,13 +43,7 @@ public:
 	bool setDisplay(Display* display) { mDisplay = display; return true; }
 
 	// Switch to paste mode in which characters are picked from the clipboard instead of from the keyboard.
-	bool startPasting() {
-		if (mDisplay == nullptr)
-			return false;
-
-		mPasting = true; 
-		return true;
-	}
+	bool startPasting();
 
 	// Check if the minimum key down time has passed (for the paste function)
 	virtual bool minKeyDownTimePassed() = 0;

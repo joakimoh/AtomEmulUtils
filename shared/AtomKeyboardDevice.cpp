@@ -97,7 +97,7 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double tickRate, DebugTracin
 			}
 			keys.push_back(keyName);
 		}
-		
+		/*
 		cout << "Mapped ASCII character '" << key.ASCII << "' to key codes ";
 		for (int i = 0; i < mASCII2KeyCodesMap[key.ASCII].size(); i++) {
 			cout << mASCII2KeyCodesMap[key.ASCII][i] << " ";
@@ -107,7 +107,7 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double tickRate, DebugTracin
 			cout <<  keys[i] << " ";
 		}
 		cout << "\n";
-		
+		*/
 	}
 
 	// Create 10 rows by 6 columns vector with key data

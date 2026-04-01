@@ -23,13 +23,25 @@ void KeyboardDevice::setEmulationSpeed(double speed)
 }
 
 
+// Switch to paste mode in which characters are picked from the clipboard instead of from the keyboard.
+bool KeyboardDevice::startPasting() {
+	if (mDisplay == nullptr)
+		return false;
+
+	mPasting = true;
+	cout << "PASTING!\n";
+	return true;
+}
+
+
 bool KeyboardDevice::keyDown(int keyCode)
 {
 	if (mPasting) {
 		char c;
 		if (minKeyDownTimePassed()) {
-			if (mDisplay->nextClipboardChar(c)) {
-				if (mASCII2KeyCodesMap.find(c) != mASCII2KeyCodesMap.end()) {
+			if (!mKeyDown || mDisplay->nextClipboardChar(c)) {
+				mKeyDown = !mKeyDown;
+				if (!mKeyDown && mASCII2KeyCodesMap.find(c) != mASCII2KeyCodesMap.end()) {
 					vector<int>& keyCodes = mASCII2KeyCodesMap[c];
 					if (keyCodes.size() == 1) {
 						return keyCodes[0] == keyCode;
@@ -45,6 +57,7 @@ bool KeyboardDevice::keyDown(int keyCode)
 				return false;
 			}
 		mPasting = false;
+		cout << "DONE PASTING!\n";
 		return false;
 	}
 	}

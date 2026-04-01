@@ -210,7 +210,7 @@ private:
 			{ALLEGRO_KEY_8,			"8("},					// 1,  5
 			{ALLEGRO_KEY_F7,		"F7"},					// 1,  6
 			{ALLEGRO_KEY_MINUS,		"-="},					// 1,  7
-			{ALLEGRO_KEY_TILDE,		"~^"},					// 1,  8
+			{ALLEGRO_KEY_TILDE,		"^~"},					// 1,  8
 			{ALLEGRO_KEY_LEFT,		"LEFT ARROW"}			// 1,  9
 		},
 		{
@@ -222,7 +222,7 @@ private:
 			{ALLEGRO_KEY_I,			"Ii"},					// 2,  5
 			{ALLEGRO_KEY_9,			"9)"},					// 2,  6
 			{ALLEGRO_KEY_0,			"0"},					// 2,  7
-			{ALLEGRO_KEY_ALTGR,		"£"}	,				// 2,  8
+			{ALLEGRO_KEY_ALTGR,		"£_"}	,				// 2,  8
 			{ALLEGRO_KEY_DOWN,		"DOWN ARROW"}			// 2,  9
 		},{
 			{ALLEGRO_KEY_1,			"1!"},					// 3,  0
@@ -233,7 +233,7 @@ private:
 			{ALLEGRO_KEY_U,			"Uu"},					// 3,  5
 			{ALLEGRO_KEY_O,			"Oo"},					// 3,  6
 			{ALLEGRO_KEY_P,			"Pp"},					// 3,  7
-			{ALLEGRO_KEY_PGUP,		"{["},					// 3,  8
+			{ALLEGRO_KEY_PGUP,		"[{"},					// 3,  8
 			{ALLEGRO_KEY_UP,		"UP ARROW"}				// 3,  9
 		},
 		{
@@ -256,8 +256,8 @@ private:
 			{ALLEGRO_KEY_H,			"Hh"},					// 5,  4
 			{ALLEGRO_KEY_N,			"Nn"},					// 5,  5
 			{ALLEGRO_KEY_L,			"Ll"},					// 5,  6
-			{ALLEGRO_KEY_RCTRL,		"+;"},					// 5,  7
-			{ALLEGRO_KEY_PGDN,		")}"},					// 5,  8
+			{ALLEGRO_KEY_RCTRL,		";+"},					// 5,  7
+			{ALLEGRO_KEY_PGDN,		"]}"},					// 5,  8
 			{ALLEGRO_KEY_BACKSPACE,	"DELETE"}				// 5,  9
 		},{
 			{ALLEGRO_KEY_TAB,		"TAB"},					// 6,  0
@@ -266,9 +266,9 @@ private:
 			{ALLEGRO_KEY_V,			"Vv"},					// 6,  3
 			{ALLEGRO_KEY_B,			"Bb"},					// 6,  4
 			{ALLEGRO_KEY_M,			"Mm"},					// 6,  5
-			{ALLEGRO_KEY_COMMA,		"<,"},					// 6,  6
-			{ALLEGRO_KEY_FULLSTOP,	">."},					// 6,  7
-			{ALLEGRO_KEY_END,		"?/"},					// 6,  8
+			{ALLEGRO_KEY_COMMA,		",<"},					// 6,  6
+			{ALLEGRO_KEY_FULLSTOP,	".>"},					// 6,  7
+			{ALLEGRO_KEY_END,		"/?"},					// 6,  8
 			{ALLEGRO_KEY_HOME,		"COPY"}					// 6,  9
 		},{
 			{ALLEGRO_KEY_ESCAPE,	"ESC"},					// 7,  0
@@ -279,7 +279,7 @@ private:
 			{ALLEGRO_KEY_F6,		"F6"},					// 7,  5
 			{ALLEGRO_KEY_F8,		"F8"},					// 7,  6
 			{ALLEGRO_KEY_F9,		"F9"},					// 7,  7
-			{ALLEGRO_KEY_BACKSLASH,	"\\"},					// 7,  8
+			{ALLEGRO_KEY_BACKSLASH,	"\\|"},					// 7,  8
 			{ALLEGRO_KEY_RIGHT,		"RIGHT ARROW"}			// 7,  9
 		}
 	};

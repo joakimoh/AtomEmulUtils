@@ -60,7 +60,7 @@ BeebKeyboard::BeebKeyboard(string name, double tickRate, double deviceClockRate,
 			}
 			keys.push_back(keyName);
 		}
-		
+		/*
 		cout << "Mapped ASCII character '" << key.ASCII << "' to key codes ";
 		for (int i = 0; i < mASCII2KeyCodesMap[key.ASCII].size(); i++) {
 			cout << mASCII2KeyCodesMap[key.ASCII][i] << " ";
@@ -70,7 +70,7 @@ BeebKeyboard::BeebKeyboard(string name, double tickRate, double deviceClockRate,
 			cout <<  keys[i] << " ";
 		}
 		cout << "\n";
-		
+		*/
 	}
 
 	// Make sure Keyboard refresh rate always is 50 Hz (or less)

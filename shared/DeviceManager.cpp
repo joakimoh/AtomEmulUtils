@@ -81,7 +81,7 @@ string DeviceManager::getFileName(string& path, stringstream& sin)
 
 DeviceManager::DeviceManager(
 	string memMapFile, double& tickRate, Display* display, DebugTracing* debugTracing,
-	ConnectionManager* mCM, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device, vector<Device*>& allDevices,
+	ConnectionManager* mCM, P6502*& microprocessor, VideoDisplayUnit*& mainVDU, SoundDevice* &sound_device, KeyboardDevice* &keyboard, vector<Device*>& allDevices,
 	vector<TimedDevice*>& baseRateScheduledDevices, vector<TimedDevice*>& subRateScheduledDevices, vector<TimedDevice*>& instructionRateScheduledDevices,
 	double speed, double& baseSchedulingRate, double& highSchedulingRate
 ) : mDM(debugTracing), mCM(mCM), mDisplay(display)
@@ -92,8 +92,9 @@ DeviceManager::DeviceManager(
 	}
 
 
-	mainVDU = NULL;
-	sound_device = NULL;
+	mainVDU = nullptr;
+	sound_device = nullptr;
+	keyboard = nullptr;
 
 	mCM->setDeviceManager(this);
 
@@ -403,6 +404,7 @@ DeviceManager::DeviceManager(
 
 					AtomKeyboardDevice* kb = new AtomKeyboardDevice(dev_name, tickRate, mDM, mCM);
 					mDevices.push_back(kb);
+					keyboard = kb;
 
 				}
 
@@ -411,6 +413,7 @@ DeviceManager::DeviceManager(
 					uint8_t startup_options = getHexVal(sin) & 0xff;
 					BeebKeyboard* kb = new BeebKeyboard(dev_name, tickRate, 1.0, startup_options, mDM, mCM);
 					mDevices.push_back(kb);
+					keyboard = kb;
 
 				}
 

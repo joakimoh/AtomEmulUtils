@@ -97,6 +97,7 @@ private:
 
 	VideoDisplayUnit* mVDU = NULL;
 	SoundDevice* mSoundDevice = NULL;
+	KeyboardDevice* mKeyboard = nullptr;
 	vector<TimedDevice*> mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices;
 	vector<Device*> mDevices;
 	P6502* mMicroprocessor = NULL;

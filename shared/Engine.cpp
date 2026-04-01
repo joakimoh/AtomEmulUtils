@@ -96,7 +96,7 @@ Engine::Engine(string mapFileName, VideoFormat videoFormat, bool enableHWAcc,
             mapFileName,
             mTickRate,            // CPU Clock frequency in MHz
             mDisplay,
-            mDT, mConnectionManager, mMicroprocessor, mVDU, mSoundDevice, mDevices,
+            mDT, mConnectionManager, mMicroprocessor, mVDU, mSoundDevice, mKeyboard, mDevices,
             mEmulationPeriodScheduledDevices, mHighRateScheduledDevices, mInstrScheduledDevices,
             mSpeedFactor, mLowEmulationRate, mHighEmulationRate
         );
@@ -121,8 +121,12 @@ Engine::Engine(string mapFileName, VideoFormat videoFormat, bool enableHWAcc,
     if (initialState != ENG_TBD)
         mState = initialState;
 
+	// Connect the display to the keyboard if it exists so that it can provide pasting
+    if (mKeyboard != nullptr)
+        mKeyboard->setDisplay(mDisplay);
+
     // Create GUI with menu and callbacks
-    mGUI = new GUI(this, mQueue, mDisplay, mDeviceManager, mVDU , mMicroprocessor , &mSpeedFactor, mDT, mConnectionManager, mOutDir);
+    mGUI = new GUI(this, mQueue, mDisplay, mKeyboard, mDeviceManager, mVDU , mMicroprocessor , &mSpeedFactor, mDT, mConnectionManager, mOutDir);
 
     // Get debugger instance
     mDebugger = mGUI->getDebugger();

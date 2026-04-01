@@ -13,12 +13,13 @@
 #include "Display.h"
 #include "Engine.h"
 #include "VideoDisplayUnit.h"
+#include "KeyboardDevice.h"
 
 using namespace std;
 
-GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, Display* display, DeviceManager * devices, VideoDisplayUnit *vdu, P6502 *cpu,
+GUI::GUI(Engine *engine, ALLEGRO_EVENT_QUEUE* queue, Display* display, KeyboardDevice* keyboard, DeviceManager * devices, VideoDisplayUnit *vdu, P6502 *cpu,
     double *speed, DebugTracing* dt, ConnectionManager *cm, string outDir):
-    mDevices(devices), mDisplay(display), mEmulationSpeed(speed), mDT(dt), mEngine(engine), mOutDir(outDir), mQueue(queue),
+    mDevices(devices), mDisplay(display), mEmulationSpeed(speed), mDT(dt), mEngine(engine), mOutDir(outDir), mQueue(queue),mKeyboard(keyboard),
     mVDU(vdu), mCPU(cpu), mCM(cm)
 {
 
@@ -122,6 +123,14 @@ bool GUI::itemSelected(ALLEGRO_EVENT* event)
         return false;
 
     switch (event->user.data1) {
+
+    case FILE_PASTE_ID:
+    {
+        if (mDisplay->getClipboard() && mKeyboard != nullptr) {
+            mKeyboard->startPasting();
+        }
+        break;
+	}
 
     case FILE_RESET_ID:
         mEngine->reset();

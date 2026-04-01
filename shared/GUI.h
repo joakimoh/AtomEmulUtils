@@ -21,6 +21,7 @@ class ConnectionManager;
 class Display;
 class Engine;
 class VideoDisplayUnit;
+class KeyboardDevice;
 
 using namespace std;
 
@@ -30,6 +31,7 @@ enum {
     LOAD_INTO_RAM,
     SAVE_FROM_RAM,
 	FILE_RESET_ID,
+	FILE_PASTE_ID,
     FILE_EXIT_ID,
 
     DBG_ID,
@@ -88,7 +90,7 @@ private:
 	ALLEGRO_EVENT_QUEUE* mQueue = NULL;
 #define MY_ALLEGRO_MENU_SEPARATOR {NULL, (uint16_t)-1,0, NULL}
 
-	ALLEGRO_MENU_INFO mMainMenu[54] = {
+	ALLEGRO_MENU_INFO mMainMenu[56] = {
 
 		ALLEGRO_START_OF_MENU("&File", FILE_ID),
 			{ "&Load data into RAM",   LOAD_INTO_RAM,  0,  NULL },
@@ -96,6 +98,8 @@ private:
 			{ "&Save memory data to file",   SAVE_FROM_RAM,  0,  NULL },
 		MY_ALLEGRO_MENU_SEPARATOR,
 			{ "Reset",                 FILE_RESET_ID,   0,  NULL },
+		MY_ALLEGRO_MENU_SEPARATOR,
+			{ "Paste",                 FILE_PASTE_ID,   0,  NULL },
 		MY_ALLEGRO_MENU_SEPARATOR,
 			{ "E&xit",                 FILE_EXIT_ID,   0,  NULL },
 		ALLEGRO_END_OF_MENU,
@@ -176,10 +180,11 @@ private:
 
 	VideoSettings mVideoSettings;
 	VideoDisplayUnit* mVDU = nullptr;
+	KeyboardDevice* mKeyboard = nullptr;
 
 public:
 
-    GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, Display* display, DeviceManager * devices, VideoDisplayUnit* vdu, P6502 *cpu, double *emulationSpeed, 
+    GUI(Engine *engine, ALLEGRO_EVENT_QUEUE *queue, Display* display, KeyboardDevice *keyboard, DeviceManager * devices, VideoDisplayUnit* vdu, P6502 *cpu, double *emulationSpeed,
 		DebugTracing *dm, ConnectionManager* cm, string outDir);
     ~GUI();
 
