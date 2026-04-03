@@ -37,41 +37,8 @@ BeebKeyboard::BeebKeyboard(string name, double tickRate, double deviceClockRate,
 	// Minimum key down time of 50 ms for the paste function
 	mMinKeyDownTicks = ms2Ticks(50);
 
-	// Create map from ASCII characters to key codes (including modifiers)
-	for (int i = 0; i < mPasteKeyMap.size(); i++) {
-		KeyboardKey& key = mPasteKeyMap[i];
-		bool found = false;
-		vector <string> keys;
-		for (int j = 0; j < key.keys.size(); j++) {
-			string keyName = key.keys[j];
-			for (int row = 0; row < mKeyboardMatrix.size(); row++) {
-				for (int col = 0; col < mKeyboardMatrix[row].size(); col++) {
-					Key& k = mKeyboardMatrix[row][col];
-					if (k.keyName == keyName) {
-						mASCII2KeyCodesMap[key.ASCII].push_back(k.keyCode);
-						found = true;
-						break;
-					}
-				}
-			}
-			if (!found) {
-				cout << "Failed to find keycode for key name '" << keyName << "' for ASCII character '" << string(1, key.ASCII) << "'\n";
-				throw runtime_error("Error in BeebKeyboard constructor: no keycode found for key name '" + keyName + "' for ASCII character '" + string(1, key.ASCII) + "'");
-			}
-			keys.push_back(keyName);
-		}
-		/*
-		cout << "Mapped ASCII character '" << key.ASCII << "' to key codes ";
-		for (int i = 0; i < mASCII2KeyCodesMap[key.ASCII].size(); i++) {
-			cout << mASCII2KeyCodesMap[key.ASCII][i] << " ";
-		}
-		cout << " <=> ";
-		for (int i = 0; i < keys.size(); i++) {
-			cout <<  keys[i] << " ";
-		}
-		cout << "\n";
-		*/
-	}
+	// Call base class init to set up the key code maps
+	init(mPasteKeyMap, mKeyboardMatrix);
 
 	// Make sure Keyboard refresh rate always is 50 Hz (or less)
 	mKeyboardRefreshCycles = max(1, (int) round(1.1 * tickRate * 1e6 * mEmulationSpeed/ 50));
@@ -111,11 +78,11 @@ void BeebKeyboard::processPortUpdate(int index)
 		{
 			for (int row = 1; row <= 7; row++) {
 
-				Key& key = mKeyboardMatrix[row][mCOL_SEL];
+				KeyCodeMapping& key = mKeyboardMatrix[row][mCOL_SEL];
 				if (key.keyCode != -1 && keyDown(key.keyCode)) {
 					column_key_pressed = true;
-					//cout << "Key " << key.keyName << " pressed - any row for column " << (int) mCOL_SEL << "!\n";
-					DBG_LOG(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!");
+					//cout << "KeyCodeMapping " << key.keyName << " pressed - any row for column " << (int) mCOL_SEL << "!\n";
+					DBG_LOG(this, DBG_KEYBOARD, "KeyCodeMapping " + key.keyName + " pressed!");
 					break;
 				}
 			}
@@ -123,10 +90,10 @@ void BeebKeyboard::processPortUpdate(int index)
 
 		// Check for key at the selected row and column being pressed as well as DIP switches being ON <=> LOW
 		if (mCOL_SEL <= 9 && mROW_SEL <= 7) {
-			vector<Key>& key_vec = mKeyboardMatrix[mROW_SEL];
-			Key& key = key_vec[mCOL_SEL];
+			vector<KeyCodeMapping>& key_vec = mKeyboardMatrix[mROW_SEL];
+			KeyCodeMapping& key = key_vec[mCOL_SEL];
 			if (key.keyCode != -1 && keyDown(key.keyCode) || (mROW_SEL == 0 && linkSet(mCOL_SEL))) {
-				//cout << "Key " << key.keyName << " pressed - for selected row " << (int)mROW_SEL << " and column " << (int)mCOL_SEL << "!\n";
+				//cout << "KeyCodeMapping " << key.keyName << " pressed - for selected row " << (int)mROW_SEL << " and column " << (int)mCOL_SEL << "!\n";
 				selected_key_pressed = true;
 			}
 		}
@@ -159,7 +126,7 @@ bool BeebKeyboard::advanceUntil(uint64_t tickTime)
 	pollKeyboardState();
 
 	// Check BREAK key
-	if (keyDown(mBreakKey.keyCode)) {
+	if (keyDown(mBreakKeyCode)) {
 		DBG_LOG_COND(mBREAK == 1, this, DBG_RESET, "BREAK key pressed\n");
 		updatePort(BREAK, 0x0);
 	}
@@ -192,10 +159,10 @@ bool BeebKeyboard::scanColumn(int col)
 	bool column_key_pressed = false;
 
 	for (int row = 1; row <= 7; row++) {
-		Key& key = mKeyboardMatrix[row][col];
+		KeyCodeMapping& key = mKeyboardMatrix[row][col];
 		if (key.keyCode != -1 && keyDown(key.keyCode)) {
 			column_key_pressed = true;
-			DBG_LOG(this, DBG_KEYBOARD, "Key " + key.keyName + " pressed!");
+			DBG_LOG(this, DBG_KEYBOARD, "KeyCodeMapping " + key.keyName + " pressed!");
 			break;
 		}
 	}

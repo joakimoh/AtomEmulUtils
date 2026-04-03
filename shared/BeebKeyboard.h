@@ -64,10 +64,7 @@
 
 
 
-typedef struct Key_struct {
-	int		keyCode;
-	string	keyName; // e.g, "COPY", "ESC" and "A"
-}  Key;
+
 
 class BeebKeyboard : public KeyboardDevice, public ClockedDevice {
 
@@ -75,7 +72,7 @@ private:
 
 	int mKeyboardRefreshCycles = 1;
 
-	vector<KeyboardKey> mPasteKeyMap = {
+	vector<KeyPastingInfo> mPasteKeyMap = {
 
 		{' ', {"SPACE"}},
 		{'\r', {"RETURN"}},
@@ -188,7 +185,7 @@ private:
 
 	};
 
-	vector<vector<Key>> mKeyboardMatrix = {
+	vector<vector<KeyCodeMapping>> mKeyboardMatrix = {
 		{
 			{ALLEGRO_KEY_LSHIFT,	"SHIFT"},				// 0,  0
 			{ALLEGRO_KEY_LCTRL,		"CTRL"},				// 0,  1
@@ -284,7 +281,7 @@ private:
 		}
 	};
 
-	Key mBreakKey = { ALLEGRO_KEY_PAUSE, "BREAK" };
+	int mBreakKeyCode = ALLEGRO_KEY_PAUSE;
 
 	// Ports that can be connected to other devices
 	int  SW, ENA, COL_SEL, ROW_SEL, ROW, BREAK, PRESSED;
@@ -351,8 +348,9 @@ public:
 	// Check if the minimum key down time has passed (for the paste function)
 	bool minKeyDownTimePassed() override;
 
-	// Get current device time in emulation ticks
-	uint64_t getTicks() { return mTicks; }
+	// Get the key name from the keyboard matrix
+	string getKeyName(int keyCode) override { return KeyboardDevice::getKeyName(keyCode, mKeyboardMatrix); }
+
 };
 
 #endif

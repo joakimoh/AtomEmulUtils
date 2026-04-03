@@ -11,8 +11,51 @@ using namespace std;
 
 KeyboardDevice::KeyboardDevice(string name, DeviceId typ, DebugTracing* debugTracing, ConnectionManager* connectionManager) :
 	Device(name, typ, KEYBOARD_DEVICE, debugTracing, connectionManager)
-{
+{	
+
 	pollKeyboardState();
+}
+
+// Must be called from the derived class constructor to set up the key code maps
+bool KeyboardDevice::init(vector<KeyPastingInfo>& pasteKeyMap, vector<vector<KeyCodeMapping>>& keyboardMatrix)
+{
+	// Create map from ASCII characters to key codes (including modifiers)
+	for (int i = 0; i < pasteKeyMap.size(); i++) {
+		KeyPastingInfo& key = pasteKeyMap[i];
+		bool found = false;
+		vector <string> keys;
+		for (int j = 0; j < key.keys.size(); j++) {
+			string keyName = key.keys[j];
+			for (int row = 0; row < keyboardMatrix.size(); row++) {
+				for (int col = 0; col < keyboardMatrix[row].size(); col++) {
+					KeyCodeMapping& k = keyboardMatrix[row][col];
+					if (k.keyName == keyName) {
+						mASCII2KeyCodesMap[key.ASCII].push_back(k.keyCode);
+						found = true;
+						break;
+					}
+				}
+			}
+			if (!found) {
+				cout << "Failed to find keycode for key name '" << keyName << "' for ASCII character '" << string(1, key.ASCII) << "'\n";
+				throw runtime_error("Error in AtomKeyboardDevice constructor: no keycode found for key name '" + keyName + "' for ASCII character '" + string(1, key.ASCII) + "'");
+			}
+			keys.push_back(keyName);
+		}
+		/*
+		cout << "Mapped ASCII character '" << key.ASCII << "' to key codes ";
+		for (int i = 0; i < mASCII2KeyCodesMap[key.ASCII].size(); i++) {
+			cout << mASCII2KeyCodesMap[key.ASCII][i] << " ";
+		}
+		cout << " <=> ";
+		for (int i = 0; i < keys.size(); i++) {
+			cout << keys[i] << " ";
+		}
+		cout << "\n";
+		*/
+	}
+
+	return true;
 }
 
 
@@ -30,12 +73,18 @@ bool KeyboardDevice::startPasting() {
 		return false;
 
 	mPasting = true;
+	mKeyDown = true;
 	return true;
 }
 
-
+// 
+// Check if a certain key is being pressed
+//
+// In pasting mode, the given key code is instead compared with the key codes for the current pasted character.
+//
 bool KeyboardDevice::keyDown(int keyCode)
 {
+	bool pressed = false;
 
 	if (mPasting) {
 
@@ -64,16 +113,27 @@ bool KeyboardDevice::keyDown(int keyCode)
 
 		// Compare the pasted character's key codes with the given key code
 		for (int i = 0; i < mPastedkeyCodes.size(); i++) {
-			if (mPastedkeyCodes[i] == keyCode)
-				return true;
+			if (mPastedkeyCodes[i] == keyCode) {
+				pressed = true;
+				break;
+			}
 		}
 
-		// No mtaching key code found for the pasted character
-		return false;
 	}
 
-	// Not in pasting mode => check the keyboard state for the given key code
-	return al_key_down(&mKeyboardState, keyCode);
+	else
+
+		// Not in pasting mode => check the keyboard state for the given key code
+		pressed = al_key_down(&mKeyboardState, keyCode);
+
+	if (pressed) {
+		if (keyCode != mLastPressedKeyCode) {
+			mLastPressedKeyCode = keyCode;
+			//cout << getKeyCodeName(keyCode) << " (0X" << setw(2) << setfill('0') << hex << (int)keyCode << ")" << " <=> " << getKeyName(keyCode) << "\n";
+		}
+	}		
+
+	return pressed;
 }
 
 

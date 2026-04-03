@@ -64,8 +64,8 @@ CONNECT		VDU:Din;6		VDU:INT/EXT
 CONNECT:P	PIA:PortA;7;5	VDU:GM			// Used to update graphic mode only on change (and not continuously which would steal performance)
 
 // ATOMKB <=> PIA Connections
-CONNECT ATOMKB:COL_L	PIA:PortB			// non-modifiers keys + SHIFT + CTRL
-CONNECT ATOMKB:COL_H;0	PIA:PortC;6			// REPEAT key
+CONNECT ATOMKB:COL;7;0	PIA:PortB			// non-modifiers keys + SHIFT + CTRL
+CONNECT ATOMKB:COL;8	PIA:PortC;6			// REPEAT key
 CONNECT:P PIA:PortA;3;0	ATOMKB:ROW			// Used to force update of the keyboard state when the ROW is updated by the PIA
 											// (otherwise the column state would indicate 'key pressed' for several consecutive rows
 											//  leading to a false positive detection of 'key pressed' for the first selected row. E.g.,
@@ -73,9 +73,9 @@ CONNECT:P PIA:PortA;3;0	ATOMKB:ROW			// Used to force update of the keyboard sta
 											//  leading to the Atom software incorrectly seeing this as "Q" pressed rather than "A".)
 
 // ATOMKB BREAK key <=> device RESET Connections
-CONNECT ATOMKB:COL_H;1	CPU:RESET	// BREAK key => RESET of microprocessor
-CONNECT ATOMKB:COL_H;1	PIA:RESET	// BREAK key => RESET of PIA 8255
-CONNECT ATOMKB:COL_H;1	VIA:RESET	// BREAK key => RESET of VIA 6522
+CONNECT ATOMKB:COL;9	CPU:RESET	// BREAK key => RESET of microprocessor
+CONNECT ATOMKB:COL;9	PIA:RESET	// BREAK key => RESET of PIA 8255
+CONNECT ATOMKB:COL;9	VIA:RESET	// BREAK key => RESET of VIA 6522
 
 // VIA <=> Microcontroller Connections
 CONNECT VIA:IRQ		CPU:IRQ

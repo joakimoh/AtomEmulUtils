@@ -25,18 +25,22 @@ using namespace std;
 // A Column is HIGH unless driven LOW by the related PIA's output pin
 // 
 // The PIA connected to the Keyboard in the Atom is located at addresses
-// 0xb000 to 0xb003. The ROW is selected by the PIA by writing to Port A at address 0xb000,
-// bits b3:b0 and the value of the columms - COL_L + COL_H are read by
-// reading from PIA port B, bits b0:b7 at address 0xb001. The REPEAT key is read by
-// reading from PIA port C at address 0xb002, bit b7. The BREAK key should be connected to
-// the RESET input pins of devices (including the PIA).
+// 0xb000 to 0xb003.
+// The row (ROW) is selected by the PIA by writing to
+//		bits b3:b0 of Port A at address 0xb000 (rows 0 to 9)
+// 
+// The column (COL) state is read by reading
+//		bits b0:b7 of port B at address 0xb001 (columns 0 to 7) - here also the CTRL and SHIFT keys are connected
+//		bits b6 of port C at address 0xb002 (column 8) - here only the REPEAT (RPT) key is connected
+// 
+// The BREAK key should be connected to the RESET input pins of devices (including the PIA).
 // 
 // |		             IC25 PIA 8255 (not part of emulation)               |
 // |                                                                         |
 // |   PA0:3      PB0   PB1   PB2   PB3   PB4   PB5   PB6   PB7   PC6  RESET |
 // |_________________________________________________________________________|
 //      |          |     |     |     |     |     |     |     |     |     |
-//    "ROW"       .........."COL_L"...........................     "COL_H"     <= Keyboard Interface
+//    "ROW"       .........."COL"........................... ........    |		<= Keyboard Interface
 // _____|_____     |     |     |     |     |     |     |     |     |     |
 // |          |    |     |     |     |     |     |     |     |     |     |
 // |        0 +----+----"3"---"-"---"G"---"Q"--"ESC    |     |     |     |
@@ -69,69 +73,13 @@ AtomKeyboardDevice::AtomKeyboardDevice(string name, double tickRate, DebugTracin
 {
 	// Specify ports that can be connected to other devices	
 	registerPort("ROW", IN_PORT, 0x0f, KB_ROW, &mSelectedRow);
-	registerPort("COL_L", OUT_PORT, 0xff, KB_COL_L, &mColumnL);
-	registerPort("COL_H", OUT_PORT, 0x03, KB_COL_H, &mColumnH);
+	registerPort("COL", OUT_PORT, 0x3ff, KB_COL, &mColumn);
 
 	// Minimum key down time of 50 ms for the paste function
 	mMinKeyDownTicks = ms2Ticks(50);
 
-	// Create map from ASCII characters to key codes (including modifiers)
-	for(int i = 0; i < mPasteKeyMap.size(); i++) {
-		KeyboardKey& key = mPasteKeyMap[i];
-		bool found = false;
-		vector <string> keys;
-		for (int j = 0; j < key.keys.size(); j++) {
-			string keyName = key.keys[j];
-			map<int, AtomKey>::iterator keys_it;
-			for (keys_it = mKeycodes.begin(); keys_it != mKeycodes.end(); keys_it++) {
-				AtomKey* atomKey = &(keys_it->second);
-				if (atomKey->atomKeyName == keyName) {
-					mASCII2KeyCodesMap[key.ASCII].push_back(atomKey->keyCode);
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				cout << "Failed to find keycode for key name '" << keyName << "' for ASCII character '" << string(1, key.ASCII) << "'\n";
-				throw runtime_error("Error in AtomKeyboardDevice constructor: no keycode found for key name '" + keyName + "' for ASCII character '" + string(1, key.ASCII) + "'");
-			}
-			keys.push_back(keyName);
-		}
-		/*
-		cout << "Mapped ASCII character '" << key.ASCII << "' to key codes ";
-		for (int i = 0; i < mASCII2KeyCodesMap[key.ASCII].size(); i++) {
-			cout << mASCII2KeyCodesMap[key.ASCII][i] << " ";
-		}
-		cout << " <=> ";
-		for (int i = 0; i < keys.size(); i++) {
-			cout <<  keys[i] << " ";
-		}
-		cout << "\n";
-		*/
-	}
-
-	// Create 10 rows by 6 columns vector with key data
-	// Also get keycodes for SHIFT, CTRL & REPEAT keys
-	map<int, AtomKey>::iterator keys_it;
-	for (keys_it = mKeycodes.begin(); keys_it != mKeycodes.end(); keys_it++) {
-		AtomKey* key = &(keys_it->second);
-		if (key->row >= 0 && key->row < ATOM_KB_ROWS && key->col >= 0 && key->col < ATOM_COLS)
-			mKeyboardMatrix[key->row][key->col] = key;
-		else if (key->atomKeyName == "SHIFT") {
-			if (mShiftKeyCodes[0] == -1)
-				mShiftKeyCodes[0] = key->keyCode;
-			else
-				mShiftKeyCodes[1] = key->keyCode;
-		}
-		else if (key->atomKeyName == "CTRL") {
-			mCtrlKeyCode = key->keyCode;
-		}
-		else if (key->atomKeyName == "REPEAT")
-			mRepeatKeyCode = key->keyCode;
-		else if (key->atomKeyName == "BREAK")
-			mBreakKeyCode = key->keyCode;
-	}
-	pollKeyboardState();
+	// Call base class init to set up the key code maps
+	init(mPasteKeyMap, mKeyboardMatrix);
 
 	// Make sure Keyboard refresh rate always is 60 Hz (or less) - add a 10% margin
 	mKeyboardRefreshCycles = max(1, (int)round(1.1 * tickRate * 1e6 * mEmulationSpeed / 60));
@@ -154,23 +102,21 @@ bool AtomKeyboardDevice::checkKeyBoard()
 
 	pollKeyboardState();
 
-	uint8_t column_L = 0xff;
-	uint8_t column_H = 0x03;
+	uint16_t column = 0x3ff;
 
 	if (mSelectedRow < ATOM_KB_ROWS) {
 
 		// Get non-modifier keys
-		vector<AtomKey*> &key_vec = mKeyboardMatrix[mSelectedRow];
 		for (uint8_t c = 0; c < ATOM_COLS; c++) {
-			AtomKey* key = key_vec[c];
-			if (key != nullptr) {		
+			KeyCodeMapping& key = mKeyboardMatrix[mSelectedRow][c];
+			if (key.keyCode != -1) {
 				int key_state_index = mSelectedRow * ATOM_COLS + c;
 				bool key_depressed_state = keyDepressedState[key_state_index];
 				keyDepressedState[key_state_index] = false;
-				if (keyDown(key->keyCode)) {
-					column_L &= ~(0x1 << c);
+				if (keyDown(key.keyCode)) {
+					column &= ~(0x1 << c);
 					keyDepressedState[key_state_index] = true;
-					DBG_LOG_COND(!key_depressed_state, this, DBG_KEYBOARD, "Key " + key->atomKeyName + " depressed\n");
+					DBG_LOG_COND(!key_depressed_state, this, DBG_KEYBOARD, "KeyCodeMapping " + key->atomKeyName + " depressed\n");
 				}
 			}
 		}
@@ -179,29 +125,26 @@ bool AtomKeyboardDevice::checkKeyBoard()
 
 	// Get CTRL key
 	if (keyDown(mCtrlKeyCode))
-		column_L &= ~0x40;
+		column &= ~0x40;
 
 	// Get SHIFT keys
 	if (keyDown(mShiftKeyCodes[0]) || keyDown(mShiftKeyCodes[1]))
-		column_L &= ~0x80;
+		column &= ~0x80;
 
 	// Get REPEAT key
 	if (keyDown(mRepeatKeyCode))
-		column_H &= ~0x1;
-
+		column &= ~0x100;
 
 	// Get BREAK key
 	if (keyDown(mBreakKeyCode))
-		column_H &= ~0x2;
+		column &= ~0x200;
 
-	// Update outputs "COL" and "RPT"
-	if (!updatePort(KB_COL_L, column_L) || !updatePort(KB_COL_H, column_H))
+	// Update output "COL"
+	if (!updatePort(KB_COL, column))
 		return false;
 
 
-	DBG_LOG_COND(column_L != 0xff || column_H != 0x3, this, DBG_KEYBOARD | DBG_EXTENSIVE,
-		"column L = 0x" + Utility::int2HexStr(column_L,2) + ", column H = 0x" + Utility::int2HexStr(column_H,2)
-		);
+	DBG_LOG_COND(column != 0x3ff, this, DBG_KEYBOARD | DBG_EXTENSIVE, "column = 0x" + Utility::int2HexStr(column,3));
 	
 	return true;
 }
@@ -222,8 +165,8 @@ void AtomKeyboardDevice::processPortUpdate()
 // Outputs the internal state of the device
 bool AtomKeyboardDevice::outputState(ostream& sout)
 {
-	sout << "COL_L = " << (int)KB_COL_L << "\n";
-	sout << "COL_H = " << (int)KB_COL_H << "\n";
+	sout << "ROW = " << (int) KB_ROW << "\n";
+	sout << "COL = " << (int) KB_COL<< "\n";
 
 	return true;
 }
