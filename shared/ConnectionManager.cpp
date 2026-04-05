@@ -20,6 +20,18 @@ void ConnectionManager::setDeviceManager(DeviceManager* devices)
 	mDevices = devices;
 }
 
+
+// Used by a device to make an analogue port available externally (e.g., to the debugger)
+bool ConnectionManager::addAnaloguePort(Device* dev, AnaloguePort* localPort)
+{
+	localPort->globalIndex = mAnaloguePortIndex++;
+
+	mAnaloguePorts[dev][localPort->localIndex] = localPort;
+
+	return true;
+}
+
+
 // Used by a device to tell the availability of a port for routing
 bool ConnectionManager::addDevicePort(Device* dev, DevicePort *localPort)
 {
@@ -57,6 +69,39 @@ Device *ConnectionManager::getDevice(string name)
 	
 }
 
+bool ConnectionManager::extractAnaloguePort(string name, AnaloguePort *&port)
+{
+	try {
+		// Get device
+		Tokeniser dev_tok(name, ':');
+		string dev_name;
+		if (!dev_tok.nextToken(dev_name))
+			return false;
+		Device* dev;
+		if (!mDevices->getDevice(dev_name, dev))
+			return false;
+		// Get port reference
+		string port_ref;
+		if (!dev_tok.nextToken(port_ref))
+			return false;
+		// Get port name
+		Tokeniser port_tok(port_ref, ';');
+		string port_name;
+		if (!port_tok.nextToken(port_name))
+			return false;
+		// Get port
+		if (!dev->getAnaloguePort(port_name, port)) {
+			cout << "Failed to find analogue port '" << port_name << "' for device '" << dev->name << "'!\n";
+			return false;
+		}
+		return true;
+	}
+	catch (...) {
+		return false;
+	}
+}
+
+
 bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 {
 	try {
@@ -84,7 +129,7 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 
 		// Get port
 		DevicePort * device_port;
-		if (!dev->getPortIndex(port_name, device_port)) {
+		if (!dev->getPort(port_name, device_port)) {
 			cout << "Failed to find port '" << port_name << "' for device '" << dev->name << "'!\n";
 			return false;
 		}
@@ -235,6 +280,20 @@ void ConnectionManager::printRouting()
 	}
 
 
+}
+
+string ConnectionManager::printAnaloguePort(AnaloguePort* device_port)
+{
+	if (device_port == NULL || device_port->dev == NULL) {
+		return "";
+	}
+
+	stringstream sout;
+	sout << device_port->dev->name << ":" << device_port->name << " " << _PORT_DIR(device_port->dir) << device_port->globalIndex << " (" << device_port->localIndex << ")";
+	sout << device_port->val;
+
+
+	return sout.str();
 }
 
 string ConnectionManager::printDevicePort(DevicePort * device_port)

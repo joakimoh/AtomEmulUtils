@@ -16,7 +16,11 @@ private:
 
 	// (Digital) Ports
 	int EOC;
-	PortVal mEOC = 0x0; // End of Conversion IRQ output
+	PortVal mEOC = 0x1; // End of Conversion IRQ output
+
+	// Analogue ports (values held by mCHInput[0:3] and mVREF)
+	int CH0, CH1, CH2, CH3; 
+	int VREF; // Reference voltage input
 
 	int mSpeed12 = 10000; // 12-bit conversion time in CLK units (e.g., CLK = 1 MHz => 10 ms)
 	int mSpeed8 = 4000;	// 8-bit conversion time in CLK units (e.g., CLK = 1 MHz => 4 ms)
@@ -31,11 +35,11 @@ private:
 
 
 	// Registers
-	uint8_t mCR;	// Base address +  0x0		Control Register	Write-only	b1b0 = MPX adr, b2 = flag input, b3 = 8/12-bit conversion (Low:8,High:12)
-	uint8_t mSR;	// Base address +  0x0		Status Register		Read-Only	b7=EOC, b6=Busy, b5=MSB, b4=2nd MSB, b3=8/12-bit, b2=flag output, b1b0=MPX adr
-	uint8_t mDataH;	// Base address +  0x1		Data High			Read-only	b7:b0 = MSB - 8-bit
-	uint8_t mDataL;	// Based address + 0x2/0x3	Data Low			Read-only	(12-bit only) b7:b4 = 9th-12th bit
-	uint8_t mTest;	// Based address + 0x3		Test mode			Write-only
+	uint8_t mCR = 0x0;		// Base address +  0x0		Control Register	Write-only	b1b0 = MPX adr, b2 = flag input, b3 = 8/12-bit conversion (Low:8,High:12)
+	uint8_t mSR = 0x0;		// Base address +  0x0		Status Register		Read-Only	b7=EOC, b6=Busy, b5=MSB, b4=2nd MSB, b3=8/12-bit, b2=flag output, b1b0=MPX adr
+	uint8_t mDataH = 0x0;	// Base address +  0x1		Data High			Read-only	b7:b0 = MSB - 8-bit
+	uint8_t mDataL = 0x0;	// Based address + 0x2/0x3	Data Low			Read-only	(12-bit only) b7:b4 = 9th-12th bit
+	uint8_t mTest = 0x0;	// Based address + 0x3		Test mode			Write-only
 
 #define ADC_7002_CR_CH		(mCR & 0x3)
 #define ADC_7002_CR_FLAG	((mCR >> 2) & 0x1)
@@ -45,6 +49,9 @@ private:
 #define ADC_7002_SR_MSB		((mCR >> 4) & 0x3)
 #define ADC_7002_SR_FLAG	((mCR >> 2) & 0x1)
 #define ADC_7002_SR_CH		(mCR & 0x3)
+
+#define ADC_7002_SR_BUSY_MASK	(0x1 << 6)
+#define ADC_7002_SR_MPX_MASK	(0x3)
 #define ADC_7002_DATA_12_BIT		(ADC_7002_CR_12_BIT?(mDataH|(((uint16_t)mDataL<<4) & 0x300)):mDataH)
 #define ADC_7002_CR_EOC_BIT_MASK	(0x1 << 7)
 

@@ -204,6 +204,8 @@ private:
 
 	bool shifting_active = false;
 
+	uint8_t pCB1_IRQ = 1;
+
 public:
 
 	VIA6522(string name, uint16_t adr, double deviceClockRate, double tickRate, uint8_t waitStates, DebugTracing  *debugTracing, ConnectionManager* connectionManager,

@@ -25,8 +25,8 @@ class RAM;
 class DebugTracing;
 
 
-enum Scheduling {LOW_RATE, HIGH_RATE, INSTR_RATE, NONE};
-#define _SCHEDULING(x) (x==LOW_RATE?"Low Rate":(x==HIGH_RATE?"High Rate":(x==INSTR_RATE?"Instruction":"None")))
+enum Scheduling {LOW_RATE, HIGH_RATE, MICROPROCESSOR_RATE, NONE};
+#define _SCHEDULING(x) (x==LOW_RATE?"Low Rate":(x==HIGH_RATE?"High Rate":(x==MICROPROCESSOR_RATE?"Microprocessor Rate":"None")))
 
 enum DeviceId {
 	ADC_7002_DEV, SD_CARD, LATCH_74LS259, TI4689_DEV, BEEB_SERIAL_ULA_DEV,
@@ -64,7 +64,7 @@ class DevicePort;
 typedef struct InputReference_struct {
 	DevicePort *	port;
 	int				shifts = 0;				// no of steps to downshift src value to fit dst start bit
-	PortVal			mask = PORT_MASK;			// mask specifiyng the bits of the dst to be updated (set bit <= update)
+	PortVal			mask = PORT_MASK;		// mask specifiyng the bits of the dst to be updated (set bit <= update)
 	bool			invert = false;			// If true, the source port value will be inverted before fed to the destination port
 	bool			process = false;		// If true, the receiving device's process method will be called in addition to updating the port value
 } InputReference;
@@ -100,6 +100,19 @@ public:
 	bool					dstFanIn = 0;			// True if more than one source port is connected to the destination port (for a source port)
 	bool					conToBiDirP = false;	// True if at least one bidirectional destination port is connected
 	bool					portDirChanged = false;	// True if the direction of a bidirectional port has been changed from IN to OUT since the last call of portUpdate()
+};
+
+// Used for analogue I/O ports (e.g., the 4 channel analog input of the ADC7002) that are not connected to other devices but
+// instead to an external signal source (i.e., input to the computer system) or sink (i.e., output from the computer system)
+// The port value currently only be accessed by the debugger.
+class AnaloguePort {
+public:
+	Device*			dev = NULL;				// name of the device
+	string			name = "";				// name of the I/O port
+	int				localIndex = -1;		// local device index for the I/O port
+	int				globalIndex = -1;		// unique global index for the port
+	PortDirection	dir = IO_PORT;			// I/O direction
+	double*			val = nullptr;			// pointer to variable holding the port's value
 };
 
 #define _PORT_ID(x)	(x==NULL||x->dev==NULL?"???":(x->dev->name+":"+x->name))
@@ -143,9 +156,12 @@ protected:
 	
 	vector<DevicePort*> mPorts; // the device's ports that can be connected to by other devices
 
+	vector<AnaloguePort*> mAnaloguePorts; // the device's analogue ports that are externally accessible (e.g., by the debugger)(
+
 	ConnectionManager* mConnectionManager;
 
 	int mPortIndex = 0;
+	int mAnaloguePortIndex = 0;
 
 	vector<Device*> mConnectedDevices;
 
@@ -160,7 +176,7 @@ protected:
 
 public:
 
-	Scheduling scheduling = INSTR_RATE; // default scheduling if nothing specified
+	Scheduling scheduling = MICROPROCESSOR_RATE; // default scheduling if nothing specified
 
 	string name;
 
@@ -200,6 +216,9 @@ public:
 	// Update an output and propagate it to inputs of potentially connected other devices via the connection manager
 	bool updatePort(int index, PortVal val, bool forceUpdate = false);
 
+	// Update an analogue output port
+	bool updateAnaloguePort(int index, double val);
+
 	
 
 	// Register that the direction of a bidirectional port (PORT_IO) has changed
@@ -216,8 +235,11 @@ public:
 	// Should be made after all device's have been connected. No triggering of connected devices are made.
 	bool updatePorts();
 
-	// Get a reference to the device's list of ports
-	bool getPorts(vector<DevicePort*>* &ports) { return ports = &mPorts; }
+	// Get a reference to the device's list of (digital) ports
+	bool getPorts(vector<DevicePort*>*& ports) { ports = &mPorts; return true; }
+
+	// Get a reference to the device's list of analogue ports
+	bool getAnaloguePorts(vector<AnaloguePort*>*& ports) { ports = &mAnaloguePorts; return true; }
 
 	// Get a port's current value
 	static PortVal getPortVal(DevicePort* port, int &sz, PortVal &dir);
@@ -225,12 +247,18 @@ public:
 	PortVal getPortVal(int index, int& sz, PortVal& dir);
 	PortVal getPortVal(int index) { int sz; PortVal dir; return  getPortVal(index, sz, dir); }
 
-	// Get local port index for a named I/O (used by connection manager at initialisation)
-	bool getPortIndex(string name, DevicePort * &port);
+	// Get local port for a named I/O (used by connection manager at initialisation)
+	bool getPort(string name, DevicePort * &port);
+
+	// Get local analogue port for a named I/O (used by connection manager at initialisation)
+	bool getAnaloguePort(string name, AnaloguePort*& port);
 
 	// Used by a device to make a port available for routing
 	bool registerPort(string name, PortDirection dir, PortVal mask, int& index, PortVal* val);
 	bool registerPort(string name, PortDirection dir, PortVal mask, int& index, PortVal* valIn, PortVal* valOut);
+
+	// Used by a device to make an analogue port available to the debugger
+	bool registerAnaloguePort(string name, PortDirection dir, int& index, double* val);
 
 	// Get pointer to other device to be able to call its methods
 	virtual bool connectDevice(Device* dev);

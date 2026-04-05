@@ -23,7 +23,7 @@ bool MemoryProxyDevice::addDevice(MemoryMappedDevice* dev)
 
 	// Get reference to the device's CS port
 	DevicePort *CS_dst_port = NULL;
-	if (!dev->getPortIndex("CS", CS_dst_port)) {
+	if (!dev->getPort("CS", CS_dst_port)) {
 		return false;
 	}
 
@@ -54,7 +54,7 @@ bool MemoryProxyDevice::addDevice(MemoryMappedDevice* dev)
 	string port_name = "CS" + to_string(mCSPortIndex++);
 	registerPort(port_name, IN_PORT, 0x1, dev_info->CSPortindex, &(dev_info->CS));
 	DevicePort* proxy_dst_port = NULL;
-	if (!getPortIndex(port_name, proxy_dst_port))
+	if (!getPort(port_name, proxy_dst_port))
 		return false;
 
 	// Modify the connection info to fit this proxy device's CS port entry for the concerned device

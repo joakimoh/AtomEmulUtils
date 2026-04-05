@@ -13,6 +13,7 @@
 #include "Device.h"
 #include "Codec6502.h"
 #include "TimedDevice.h"
+#include "Tokeniser.h"
 
 using namespace std;
 
@@ -435,6 +436,38 @@ bool Debugger::setRegCmd(istream& sin)
 	return true;
 }
 
+
+bool Debugger::readAnaloguePortSel(istream& sin, AnaloguePort * &port)
+{
+	string port_s;
+	if (!readString(sin, port_s))
+		return false;
+
+	// Get device
+	Tokeniser dev_tok(port_s, ':');
+	string dev_name;
+	if (!dev_tok.nextToken(dev_name))
+		return false;
+	Device* dev;
+	if ((dev = mCM->getDevice(dev_name)) == nullptr)
+		return false;
+
+	// Get port reference
+	string port_name;
+	if (!dev_tok.nextToken(port_name))
+		return false;
+
+	
+	// Get port
+	if (!dev->getAnaloguePort(port_name, port)) {
+		cout << "Failed to find port '" << port_name << "' for device '" << dev->name << "'!\n";
+		return false;
+	}
+
+	return true;
+}
+
+
 bool Debugger::readPortSel(istream& sin, PortSelection &portSel)
 {
 	string port_s;
@@ -448,6 +481,7 @@ bool Debugger::readPortSel(istream& sin, PortSelection &portSel)
 
 	return true;
 }
+
 
 Device* Debugger::readDevice(istream& sin)
 {
@@ -464,14 +498,43 @@ Device* Debugger::readDevice(istream& sin)
 	return dev;
 }
 
-bool Debugger::setPortCmd(istream& sin)
+
+bool Debugger::readAnaloguePortCmd(istream& sin)
 {
-	/*
-	if (mEngine->isRunning()) {
-		cout << "The micoprocessor is running - it needs to be halted before changing any port value!\n";
-		return true;
+
+	AnaloguePort *port;
+	if (!readAnaloguePortSel(sin, port))
+		return false;
+
+	cout << "Value of analogue port '" << port->name << "' of device '" << port->dev->name << "' is: " << *(port->val) << "\n";
+	return true;
+}
+
+
+bool Debugger::writeAnaloguePortCmd(istream& sin)
+{
+
+	AnaloguePort *port;
+	if (!readAnaloguePortSel(sin, port))
+		return false;
+	if (port->val == nullptr) {
+		cout << "Selected port is not an analogue port!\n";
+		return false;
 	}
-	*/
+
+	double val;
+	if (!(sin >> val)) {
+		cout << "Failed to read a value for the analogue port!\n";
+		return false;
+	}
+	*(port->val) = val;
+
+	return true;
+}
+
+
+bool Debugger::writePortCmd(istream& sin)
+{
 
 	PortSelection port_sel;
 	if (!readPortSel(sin, port_sel))
@@ -503,6 +566,26 @@ bool Debugger::setPortCmd(istream& sin)
 }
 
 
+bool Debugger::readPortCmd(istream& sin)
+{
+	PortSelection port_sel;
+	if (!readPortSel(sin, port_sel))
+		return false;
+
+	DevicePort* p = port_sel.port;
+	PortVal cur_dir;
+	int sz;
+	PortVal val = Device::getPortVal(p, sz, cur_dir);
+	string dir = (p->dir == IN_PORT ? "IN" : (p->dir == OUT_PORT ? "OUT" : "INOUT"));
+	string cur_dir_s = Utility::mask2DirStr(cur_dir, sz);
+	string val_s = Utility::int2BinStr(val, sz);
+	cout << setfill(' ') << setw(10) << p->name << setw(7) << dir << setw(9) << "DIR " << cur_dir_s << setw(2) << " SZ " <<
+		setw(2) << sz << setw(sz + 1) << " VAL 0b" << val_s << "\n";
+	
+	return true;
+}
+
+
 bool Debugger::listPortsCmd(istream& sin)
 {
 	string dev_name;
@@ -514,22 +597,33 @@ bool Debugger::listPortsCmd(istream& sin)
 		cout << "Non-existing device '" << dev_name << "!\n";
 		return true;
 	}
+
+	// Check for digital ports
 	vector<DevicePort*>* ports = nullptr;
-	if (!dev->getPorts(ports) || ports == nullptr) {
-		cout << "Failed to get port info for device " << dev->name << "!\n";
-		return true;
+	if (dev->getPorts(ports)) {
+		for (int i = 0; i < ports->size(); i++) {
+			DevicePort* p = (*ports)[i];
+			PortVal cur_dir;
+			int sz;
+			PortVal val = Device::getPortVal(p, sz, cur_dir);
+			string dir = (p->dir == IN_PORT ? "IN" : (p->dir == OUT_PORT ? "OUT" : "INOUT"));
+			string cur_dir_s = Utility::mask2DirStr(cur_dir, sz);
+			string val_s = Utility::int2BinStr(val, sz);
+			cout << setfill(' ') << setw(10) << p->name << " DIGITAL " << setw(7) << dir << setw(9) << "DIR " << cur_dir_s << setw(2) << " SZ " <<
+				setw(2) << sz << setw(sz + 1) << " VAL 0b" << val_s << "\n";
+		}
 	}
-	for (int i = 0; i < ports->size(); i++) {
-		DevicePort* p = (*ports)[i];
-		PortVal cur_dir;
-		int sz;
-		PortVal val = Device::getPortVal(p, sz, cur_dir);
-		string dir = (p->dir == IN_PORT ? "IN" : (p->dir == OUT_PORT ? "OUT" : "INOUT"));
-		string cur_dir_s = Utility::mask2DirStr(cur_dir, sz);
-		string val_s = Utility::int2BinStr(val, sz);
-		cout << setfill(' ') << setw(10) << p->name << setw(7) << dir << setw(9) << "DIR " << cur_dir_s << setw(2) << " SZ " <<
-			setw(2) << sz << setw(sz + 1) << " VAL 0b" << val_s << "\n";
+
+	// Check for analogue ports
+	vector<AnaloguePort*>* a_ports = nullptr;
+	if (dev->getAnaloguePorts(a_ports)) {
+		for (int i = 0; i < a_ports->size(); i++) {
+			AnaloguePort* p = (*a_ports)[i];
+			string dir = (p->dir == IN_PORT ? "IN" : (p->dir == OUT_PORT ? "OUT" : "INOUT"));
+			cout << setfill(' ') << setw(10) << p->name << setw(7) << " ANALOGUE " << dir << " " << setw(9) << "VAL " << *(p->val) << "\n";
+		}
 	}
+
 	return true;
 }
 
@@ -735,8 +829,12 @@ void Debugger::help()
 	cout << "halt:                                               stop execution\n";
 	cout << "mlog (set <adr> | clr):                             add logging of a specific memory address to instruction log\n";
 	cout << "rset (A|X|Y|SP|SR|PC) <hex val>:                    set a register value\n";
-	cout << "pset <dev name>:<port name>[<qualifier>] <hex val>: set a device's input port's value. <qualifier> ::= <bit no> | [<high bit no>;<low bit no>\n";
+	cout << "pwrite <dev name>:<port name>[<qualifier>]<hex val>:set a device's input port value. <qualifier> ::= <bit no> | [<high bit no>;<low bit no>\n";
+	cout << "pread <dev name>:<port name>:                       get a device's port value\n";
+	cout << "ports <device name>:		                         list the ports of a device\n";
 	cout << "reset:                                              reset the microprocessor\n";
+	cout << "awrite <dev name>:<port name>:                      set a device's analogue input port's value\n";
+	cout << "aread <dev name>:<port name>:                       get a device's analogue port's value\n";
 	cout << "twin (set <sz> | clr):                              enable trace window of a certain size or disable it\n";
 	cout << "plog (set <port> {,...<port>} | clr):               add logging of specific device ports to the trace\n";
 	cout << "dlog (set <device> {,...<device>} | clr):           add logging of specific devices' states to the trace\n";
@@ -807,8 +905,14 @@ void Debugger::run()
 				success = listPortsCmd(sin);
 			else if (cmd == "rset")
 				success = setRegCmd(sin);
-			else if (cmd == "pset")
-				success = setPortCmd(sin);
+			else if (cmd == "pwrite")
+				success = writePortCmd(sin);
+			else if (cmd == "pread")
+				success = readPortCmd(sin);
+			else if (cmd == "awrite")
+				success = writeAnaloguePortCmd(sin);
+			else if (cmd == "aread")
+				success = readAnaloguePortCmd(sin);
 			else if (cmd == "reset")
 				success = resetCmd(sin);
 			else if (cmd == "read")

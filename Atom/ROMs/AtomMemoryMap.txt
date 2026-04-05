@@ -34,7 +34,6 @@ ADD	VDU6847		VDU			0800	0100		1			8000					// VDU CRT Controller 6847
 ADD	SRAM		PROGRAM		2800	5800		1									// Program RAM - 22K
 ADD	SRAM		GRAPHICS	8000	1800		1									// Graphics RAM - 6K
 ADD	ROM			WILLOW		A000	1000 		1			Willow.rom				// Willow Utility ROM
-//ADD	ROM			MMC			a000	1000		1				ATMMC3A.rom				// AtoMMC2 ROM
 ADD	PIA8255		PIA			b000	0004 		1									// PIA 8255
 ADD	VIA6522		VIA			b800	0010		1			1.0						// VIA 6522
 ADD	ROM			BASIC		c000	1000 		1			Atom_Basic.rom			// BASIC ROM
@@ -45,6 +44,7 @@ ADD	ATOMCAS		CUTS																// CUTS Cassette Interface
 ADD	CPU_6502CC	CPU										1.0						// Microcontroller 6502 running at 1 MHz
 ADD	TAPREC		TAPREC																// Standard Tape Recorder
 ADD	ATOMSP		SPEAKER																// Acorn Atom Speaker
+
 //
 //	Device connections
 //
@@ -99,9 +99,9 @@ CONNECT	PIA:PortC;2		SPEAKER:OUT
 // the access of that peripheral's register). The device being triggered should be
 // a non-memory mapped device (like a keyboard, tape recorder, speaker etc.).
 // Default (when no triggering is specified) is to schedule each device periodically
-// synchronised with the microprocessor instruction execution (INSTR_RATE)
+// synchronised with the microprocessor instruction execution (MICROPROCESSOR_RATE)
 //
-// SCHEDULING IS ONE OF LOW_RATE, HIGH_RATE, INSTR_RATE, NONE
+// SCHEDULING IS ONE OF LOW_RATE, HIGH_RATE, MICROPROCESSOR_RATE, NONE
 //
 SCHED	ATOMKB	LOW_RATE
 SCHED	SPEAKER	HIGH_RATE

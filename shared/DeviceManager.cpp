@@ -137,7 +137,8 @@ DeviceManager::DeviceManager(
 					cmd == "EMU_HIGH_RATE" ||
 					cmd == "CLOCK_STRETCHING" ||
 					cmd == "VIDEO" ||
-					cmd == "INIT"
+					cmd == "INIT" ||
+					cmd == "AINIT"
 				)
 			) {
 				cout << "Unknown command '" << cmd << "' found in the memory map file:\n\t" << line << "\n";
@@ -807,8 +808,8 @@ DeviceManager::DeviceManager(
 				else if (sch_s == "HIGH_RATE") {
 					sch_dev->scheduling = HIGH_RATE;
 				}
-				else if (sch_s == "INSTR_RATE") {
-					sch_dev->scheduling = INSTR_RATE;
+				else if (sch_s == "MICROPROCESSOR_RATE") {
+					sch_dev->scheduling = MICROPROCESSOR_RATE;
 				}
 				else if (sch_s == "NONE")
 					sch_dev->scheduling = NONE;
@@ -847,8 +848,8 @@ DeviceManager::DeviceManager(
 				PortVal port_val = (PortVal)(getIntVal(sin) & PORT_MASK);
 				PortSelection dst_port_sel;
 				if (
-					!mCM->extractPort(dst_port_s, dst_port_sel) &&
-					!(dst_port_sel.port->dir == IN_PORT || dst_port_sel.port->dir == IO_PORT)) {
+					!mCM->extractPort(dst_port_s, dst_port_sel) ||
+					!(dst_port_sel.port->dir == IN_PORT || dst_port_sel.port->dir == IO_PORT) || dst_port_sel.port == nullptr || dst_port_sel.port->dev == nullptr || dst_port_sel.port->valIn == nullptr) {
 					cout << "Invalid port '" << dst_port_s << "' in INIT statement!\n";
 					throw runtime_error("Syntax error");
 				}
@@ -860,6 +861,24 @@ DeviceManager::DeviceManager(
 				PortVal nval = ((pval & ~mask) | ((port_val << shifts) & mask)) & mask;
 				*(dst_port->valIn) = nval;
 				//cout << "INIT " << dst_port_s << " " << hex << (int)port_val << " => value change from 0x" << (int)pval << " to 0x" << (int)nval << "\n";
+			}
+			else if (cmd == "AINIT") {
+				string dst_port_s;
+				sin >> dst_port_s;
+				double port_val;
+				sin >> port_val;
+				AnaloguePort *dst_port;
+				if (
+					!mCM->extractAnaloguePort(dst_port_s, dst_port) ||
+					!(dst_port->dir == IN_PORT || dst_port->dir == IO_PORT) || dst_port->dev == nullptr || dst_port->val == nullptr) {
+					cout << "Invalid port '" << dst_port_s << "' in AINIT statement!\n";
+					throw runtime_error("Syntax error");
+				}
+				Device* dev = dst_port->dev;
+				double pval = *(dst_port->val);
+				*(dst_port->val) = port_val;
+				//cout << "AINIT " << dst_port_s << " " << hex << (int)port_val << " => value change from " << pval << " to " << *(dst_port->val) << "\n";
+
 			}
 
 		}
@@ -935,7 +954,7 @@ DeviceManager::DeviceManager(
 		}
 		else if (dynamic_cast<TimedDevice*>(d) != nullptr) {
 			TimedDevice* td = dynamic_cast<TimedDevice*>(d);
-			if (d->scheduling == INSTR_RATE)
+			if (d->scheduling == MICROPROCESSOR_RATE)
 				instructionRateScheduledDevices.push_back(td);
 			else if (d->scheduling == HIGH_RATE)
 				subRateScheduledDevices.push_back(td);

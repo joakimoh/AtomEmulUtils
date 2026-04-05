@@ -18,6 +18,7 @@ class GUI;
 class P6502;
 class Codec6502;
 class PortSelection;
+class AnaloguePort;
 
 class Debugger {
 
@@ -90,12 +91,18 @@ private:
 	bool resetCmd(istream& sin);
 
 	bool setRegCmd(istream& sin);
-	bool setPortCmd(istream& sin);
+	bool writePortCmd(istream& sin);
+	bool readPortCmd(istream& sin);
 	bool listPortsCmd(istream& sin);
+
+	bool readAnaloguePortCmd(istream& sin);
+	bool writeAnaloguePortCmd(istream& sin);
 
 	bool logWinCmd(istream& sin);
 
 	bool readPortSel(istream& sin, PortSelection& portSel);
+	bool readAnaloguePortSel(istream& sin, AnaloguePort * &port);
+
 	Device *readDevice(istream& sin);
 	bool logPortsCmd(istream& sin);
 	bool logDevicesCmd(istream& sin);

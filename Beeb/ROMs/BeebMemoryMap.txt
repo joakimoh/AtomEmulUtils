@@ -49,7 +49,7 @@ ADD SD_CARD			MMFS_CARD								MMC.img		// FAT32 SD Card image
 //
 
 // ADC 7002 Connections - ADC is connected to the System VIA
-CONNECT:P	ADC:EOC				SYS_VIA:CB;0	// ADC EOC output => SYS_VIA CB1 input
+CONNECT		ADC:EOC				SYS_VIA:CB;0	// ADC EOC output => SYS_VIA CB1 input
 
 // Sound chip connections
 CONNECT:P 	SYS_VIA:PB;3;0		74LS259:CTRL	// PB3:0 => CTRL
@@ -147,17 +147,24 @@ TRIGGER	CRTC		CALL	VDU							//
 SCHED	TCG			NONE								// Trigger the TCG only on VDU function calls (to emulate a CRTC data transfer to the TCG and the resulting RGB signal back to the VDU)
 TRIGGER	TCG			CALL	VDU							// 
 TRIGGER ACIA		CALL	SerialULA					// Trigger the ACIA on Serial ULA function calls (to update the ACIA's Rx/Tx CLK rates)
-SCHED	ACIA		INSTR_RATE							// as well as on instruction basis.
-SCHED	SerialULA	INSTR_RATE
+SCHED	ACIA		MICROPROCESSOR_RATE							// as well as on instruction basis.
+SCHED	SerialULA	MICROPROCESSOR_RATE
 SCHED	74LS259		NONE								// The VIA latch is driven only by changes in the I/O pins
 SCHED	SOUND		HIGH_RATE
 SCHED	MMFS_CARD	NONE								// The SC Card is driven only by changes in the I/O pins
+SCHED	ADC			MICROPROCESSOR_RATE
 
 //
-// Initialisation of external ports
+// Initialisation of ports
 //
-INIT	KB:SW			0									// Keyboard switches; set to start with Mode 7 (value 0)
-INIT	VDU:INV			1									// Inverted screen for non-teletext modes OFF (value 1) or ON (value 0)
-INIT	SYS_VIA:PB;5;4	3									// Set System VIA PB5:PB4 High (as they should be when not connected to a game pad)
+INIT	KB:SW			0								// Keyboard switches; set to start with Mode 7 (value 0)
+INIT	VDU:INV			1								// Inverted screen for non-teletext modes OFF (value 1) or ON (value 0)
+INIT	SYS_VIA:PB;5;4	3								// Set System VIA PB5:PB4 High (as they should be when not connected to a game pad)
+AINIT	ADC:VREF		1.8								// Set ADC reference voltage to 1.8V (value 1.8) which is the expected voltage for the ADC reference voltage pin (REF) on the Beeb 
+AINIT	ADC:CH0			0.8
+AINIT	ADC:CH1			0.9
+AINIT	ADC:CH2			1.1
+AINIT	ADC:CH3			1.2
+INIT	SYS_VIA:PB;7	1								// VSPRDY = 1 <=> No speech circuit fitted
 
 

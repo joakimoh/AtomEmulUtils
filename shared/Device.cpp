@@ -35,16 +35,19 @@ using namespace std;
 // Device class
 //
 
+
 Device::Device(string n, DeviceId typ, DeviceCategory cat, DebugTracing  *debugTracing, ConnectionManager *connectionManager) :
 	devType(typ), mConnectionManager(connectionManager), mDM(debugTracing), name(n), category(cat)
 {
 }
+
 
 Device::~Device()
 {
 	for (int i = 0; i < mPorts.size(); i++)
 		delete mPorts[i];
 }
+
 
 // Get pointer to other device to be able to call its methods
 bool Device::connectDevice(Device* dev)
@@ -54,6 +57,33 @@ bool Device::connectDevice(Device* dev)
 	mConnectedDevices.push_back(dev);
 	return true;
 }
+
+
+// Used by a device to make an analogue port available to the debugger
+bool Device::registerAnaloguePort(string name, PortDirection dir, int& index, double* val)
+{
+	index = mAnaloguePortIndex++;
+	AnaloguePort* device_port = new AnaloguePort();
+	device_port->dev = this;
+	device_port->name = name;
+	device_port->dir = dir;
+	device_port->localIndex = index;
+	device_port->val = val;
+
+
+	device_port->globalIndex = -1;
+	if (DBG_LEVEL_DEV(this, DBG_DEVICE))
+		cout << "DEVICE ADDS PORT " << mConnectionManager->printAnaloguePort(device_port) << "\n";
+	mAnaloguePorts.push_back(device_port);
+
+	mConnectionManager->addAnaloguePort(this, device_port);
+
+	if (VERBOSE_EXT_OUTPUT)
+		cout << "ADDED " << this->name << " " << _PORT_DIR(dir) << " PORT '" << name << "' #" << dec << index << " (#" << device_port->globalIndex << ")\n";
+
+	return true;
+}
+
 
 // Used by a device to make a port available for routing
 bool Device::registerPort(string name, PortDirection dir, PortVal mask, int& index, PortVal* val)
@@ -147,6 +177,28 @@ void Device::getPortSelection(DevicePort *srcPort, InputReference & dstPort, str
 	dstSel = dstPort.port->dev->name + ":" + dstPort.port->name + ";" + dst_sel;
 
 }
+
+// Update an analogue output port
+bool Device::updateAnaloguePort(int index, double val)
+{
+	if (index < 0 || index >= mAnaloguePorts.size())
+		return false;
+
+	// Get reference to the source port
+	AnaloguePort &port = *mAnaloguePorts[index];
+
+	// Check that the source port is not an input port
+	if (port.dir == IN_PORT) {
+		cout << "INTERNAL ERROR - attempt to use the INPUT analogue port '" << port.dev->name << ":" << port.name << "' as an output port!\n";
+		return false;
+	}
+
+	// Update the source port value with the new value
+	*port.val = val;
+
+	return true;
+}
+
 
 //
 // Update each connected input port (dst) based on the output port (src)
@@ -300,7 +352,20 @@ bool Device::updatePorts()
 	return true;
 }
 
-bool Device::getPortIndex(string name, DevicePort * &port) {
+
+// Get local analogue port for a named I/O (used by connection manager at initialisation)
+bool Device::getAnaloguePort(string name, AnaloguePort*& port) {
+	for (int i = 0; i < mAnaloguePorts.size(); i++) {
+		if (mAnaloguePorts[i]->name == name) {
+			port = mAnaloguePorts[i];
+			return true;
+		}
+	}
+	return false;
+}
+
+// Get local port for a named I/O (used by connection manager at initialisation)
+bool Device::getPort(string name, DevicePort * &port) {
 	for (int i = 0; i < mPorts.size(); i++) {
 		if (mPorts[i]->name == name) {
 			port = mPorts[i];

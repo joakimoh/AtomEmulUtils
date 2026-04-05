@@ -353,9 +353,6 @@ void VIA6522::checkForHandShaking()
 	// CA2 (Data Taken/Data Ready - output) and PA (Data - input/output).
 	//
 
-
-
-
 	// Check for "Data Ready"/"Data Taken" input CA1. 
 	// Generate IRQ if enabled.
 	bool CA1_edge = false;
@@ -387,13 +384,12 @@ void VIA6522::checkForHandShaking()
 		}
 	}
 
+
 	//
 	// Check for write handshaking using CB2 (Data Ready - output),
 	// CB1 (Data Taken - input) and PB (Data - output).
-	//
-
-
-
+	//"
+	
 	// Check for "Data Taken" input CB1. 
 	bool CB1_edge = false;
 	if (CB1_mode == 0x0) { // Interrupt input, negative edge
@@ -401,7 +397,6 @@ void VIA6522::checkForHandShaking()
 			setIFR(IFR_CB1_MASK);
 			CB1_edge = true;
 		}
-
 	}
 	else { // Interrupt input, positive edge
 		if (CB1_In && CB1_In != pCB1_In) {
@@ -498,7 +493,6 @@ bool VIA6522::advanceUntil(uint64_t stopTick)
 			pPAIn = mPAIn;
 			pPBIn = mPBIn;
 
-
 			pCB1ShiftPulseLevel = mCB1ShiftPulseLevel;
 
 			pTimer1Counter = mTimer1Counter;
@@ -522,19 +516,23 @@ bool VIA6522::advanceUntil(uint64_t stopTick)
 
 void VIA6522::updateIRQ()
 {
+	uint8_t CB1_IRQ = ((mIFR & IFR_CB1_MASK) && (mIER & IER_CB1_MASK) ? 1 : 0);
 	if ((mIFR & mIER & 0x7f) == 0) { // No pending interrupts
 		updatePort(IRQ, 0x1);
 		if (DBG_LEVEL_DEV(this,DBG_INTERRUPTS) && mIRQ != pIRQ) {
 			DBG_LOG(this, DBG_INTERRUPTS, "VIA deactivates the IRQ line (makes it HIGH)\n\tIFR = " + IFR2Str() + "\n\tIER = " + IER2Str() + "\n\tACR = " + ACR2Str() + "\n\tPCR = " + PCR2Str() + "\n\n");
 		}
 		pIRQ = mIRQ;
+		pCB1_IRQ = 0;
 	}
 	else { // Pending interrupts
 		updatePort(IRQ, 0x0);
+		
 		if (DBG_LEVEL_DEV(this,DBG_INTERRUPTS) && mIRQ != pIRQ) {
 			DBG_LOG(this, DBG_INTERRUPTS, "Via activates the IRQ line (makes it LOW)\n\tIFR = " + IFR2Str() + "\n\tIER = " + IER2Str() + "\n\tACR = " + ACR2Str() + "\n\tPCR = " + PCR2Str() + "\n\n");
 		}
 		pIRQ = mIRQ;
+		pCB1_IRQ = ((mIFR & IFR_CB1_MASK) && (mIER & IER_CB1_MASK) ? 1 : 0);
 	}
 }
 
@@ -579,6 +577,20 @@ bool VIA6522::readByte(BusAddress adr, BusByte &data)
 			data = (mPBOut & mDDRB) | (mPBIn & ~mDDRB);
 		break;
 
+		// Clear IFR's CB2 active edge bit if CB2 is configured as negative or positive edge input without indepdent interrupt
+		uint8_t CB2_mode = (mPCR >> 5) & 0x7;
+		switch (CB2_mode) {
+		case 0x0:	// Input, negative edge
+		case 0x2:	// Input, positive edge
+			clearIFR(IFR_CB2_MASK);
+			break;
+		default:
+			break;
+		}
+
+		// Clear IFR's CB1 active edge bit on read
+		clearIFR(IFR_CB1_MASK);
+
 	}
 
 	case IRA:
@@ -590,13 +602,13 @@ bool VIA6522::readByte(BusAddress adr, BusByte &data)
 		else
 			data = (mPAOut & mDDRA) | (mPAIn & ~mDDRA);
 
-		// Clear IFR's CA2 active edge bit if read handshaking (without interrupt) was configured
+		// Clear IFR's CA2 active edge bit if CA2 is configured as negative or positive edge input without indepdent interrupt
 		uint8_t CA2_mode = (mPCR >> 1) & 0x7;
 		switch (CA2_mode) {
-		case 0x4:	// Handshake output
-		case 0x5:	// Pulse output
+		case 0x0:	// Input, negative edge
+		case 0x2:	// Input, positive edge
 			clearIFR(IFR_CA2_MASK);
-			break;
+		break;
 		default:
 			break;
 		}
@@ -860,16 +872,20 @@ bool VIA6522::writeByte(BusAddress adr, BusByte data)
 	case ORB:
 		// Output Register B - when PB acts as output, the bit value in ORB will be output on PB; otherwise the "old" value of PB will be kept
 	{
-		// Clear IFR's CB2 active edge bit if write handshaking (without interrupt) was configured
+
+		// Clear IFR's CB2 active edge bit if CB2 is configured as negative or positive edge input without indepdent interrupt
 		uint8_t CB2_mode = (mPCR >> 5) & 0x7;
 		switch (CB2_mode) {
-		case 0x4:	// Handshake output
-		case 0x5:	// Pulse output
+		case 0x0:	// Input, negative edge
+		case 0x2:	// Input, positive edge
 			clearIFR(IFR_CB2_MASK);
 			break;
 		default:
 			break;
 		}
+
+		// Clear IFR's CB1 active edge bit on write
+		clearIFR(IFR_CB1_MASK);
 
 		uint8_t oPB = mPBOut;
 		// PB 0x2
@@ -889,12 +905,11 @@ bool VIA6522::writeByte(BusAddress adr, BusByte data)
 		if (!updatePort(PA, (mPAOut & ~mDDRA) | (data & mDDRA)))
 			return false;
 		
-
-		// Clear IFR's CA2 active edge bit if write handshaking (without interrupt) was configured
+		// Clear IFR's CA2 active edge bit if CA2 is configured as negative or positive edge input without indepdent interrupt
 		uint8_t CA2_mode = (mPCR >> 1) & 0x7;
 		switch (CA2_mode) {
-		case 0x4:	// Handshake output
-		case 0x5:	// Pulse output
+		case 0x0:	// Input, negative edge
+		case 0x2:	// Input, positive edge
 			clearIFR(IFR_CA2_MASK);
 			break;
 		default:
