@@ -161,10 +161,9 @@ INIT	KB:SW			0								// Keyboard switches; set to start with Mode 7 (value 0)
 INIT	VDU:INV			1								// Inverted screen for non-teletext modes OFF (value 1) or ON (value 0)
 INIT	SYS_VIA:PB;5;4	3								// Set System VIA PB5:PB4 High (as they should be when not connected to a game pad)
 AINIT	ADC:VREF		1.8								// Set ADC reference voltage to 1.8V (value 1.8) which is the expected voltage for the ADC reference voltage pin (REF) on the Beeb 
-AINIT	ADC:CH0			0.8
-AINIT	ADC:CH1			0.9
-AINIT	ADC:CH2			1.1
-AINIT	ADC:CH3			1.2
-INIT	SYS_VIA:PB;7	1								// VSPRDY = 1 <=> No speech circuit fitted
+AINIT	ADC:CH0			0.8								// Test input voltage for ADC channel 0 (value 0.8) - this is an arbitrary value for testing purposes only as there is no known input to this ADC channel on the Beeb
+AINIT	ADC:CH1			0.9								// Test input voltage for ADC channel 1 (value 0.9) - this is an arbitrary value for testing purposes only as there is no known input to this ADC channel on the Beeb
+AINIT	ADC:CH2			1.1								// Test input voltage for ADC channel 2 (value 1.1) - this is an arbitrary value for testing purposes only as there is no known input to this ADC channel on the Beeb
+AINIT	ADC:CH3			1.2								// test input voltage for ADC channel 3 (value 1.2) - this is an arbitrary value for testing purposes only as there is no known input to this ADC channel on the Beeb
 
 

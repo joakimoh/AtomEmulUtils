@@ -172,6 +172,9 @@ public:
 	// Advance the smallest step possible (will be a complete instruction for this implementation)
 	bool step(uint64_t& endCycle) override { return advanceInstr(endCycle); }
 
+	// Tells whether an opcode fetch is in progress
+	bool fetchingOpcode() override { return true; } // as the micro cycles are not emulated separately, we are always fetching the opcode of the next instruction to be executed
+
 };
 
 #endif

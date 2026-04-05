@@ -286,6 +286,9 @@ public:
 
 	double getClockRate() { return mDeviceClockRate; }
 
+	// Tells whether an opcode fetch is in progress
+	bool virtual fetchingOpcode() = 0;
+
 };
 
 #endif

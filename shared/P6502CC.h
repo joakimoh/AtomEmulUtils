@@ -203,6 +203,9 @@ public:
 	// Advance the smallest step possible (will be one clock cycle for this implementation)
 	bool step(uint64_t& endCycle) override;
 
+	// Tells whether an opcode fetch is in progress
+	bool fetchingOpcode() override { return mCPUExecState == FETCH_OPCODE; }
+
 };
 
 #endif

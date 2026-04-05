@@ -332,6 +332,10 @@ bool Engine::run()
 // then stop its wait and use the saved instruction data.
 void Engine::checkForBreakPoint()
 {
+	// Only check for a break point if the microprocessor is currently fetching an opcode 
+    if (!mMicroprocessor->fetchingOpcode())
+        return;
+
     BusByte read_data, written_data;
     bool read_adr_triggered = mMicroprocessor->readAdr(read_data) == mBreakAdr;
     bool written_adr_triggered = mMicroprocessor->writtenAdr(written_data) == mBreakAdr;
