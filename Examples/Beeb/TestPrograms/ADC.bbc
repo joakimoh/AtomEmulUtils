@@ -1,0 +1,6 @@
+10 FOR C = 1 TO 4
+20 B = ADVAL(C)
+30 V = 1.8 * B / 65520
+40 PRINT "CH "; C;" ";B;"(";~B;") <=> "; V ;" V"
+50 NEXT C
+60 END
