@@ -31,17 +31,17 @@ There are also a few devices that are not part of the computer system that emula
 All the devices are usually 'stepped' one by one in rounds.
 The microcontroller can be stepped a complete instruction (NMOS 6502 Instruction-stepped) or a micro cycle (NMOS 6502 Micro cycle-stepped)
 at a time.
-In each round (that starts with stepping the microprocessor - either  a complete instruciton or one micro cycle), each other device will be stepped as many steps it takes to
+In each round (that starts with stepping the microprocessor), each other device will be stepped as many steps it takes to
 match the time of the microprocessor. 
 Stepping is made in 'ticks' where one tick defaults to one microprocessor micro cycle unless specfied to be different.
-'tick time' is synchronised with real time usually on a low rate basis (EMU_LOW_RATE), ususally 50-60 Hz
+'tick time' is synchronised with real time on a low rate basis (EMU_LOW_RATE), ususally 50-60 Hz
 (default is derived from the frame rate of the TV system standard chosen but can also be specified to be different).
 It is also possible to specify that a device shall be stepped at a different rate than the microprocessor step rate (one to a few micro cycles).
-This rate could be the low rate (50-60 Hz as specified above) or a high rate (EMU_HIGH_RATE) specified by configuration (usually a rate corresponding to a half TV scan line is used, e.g., 31 250 Hz).
-The low rate is sutiable fopr keyboard devices wheras the high rate works well for sound devices.
+This rate could be the low rate (EMU_LOW_RATE) or a high rate (EMU_HIGH_RATE) specified by configuration (usually a rate corresponding to a half TV scan line is used, e.g., 31 250 Hz).
+The low rate is suitable fopr keyboard devices wheras the high rate works well for sound devices.
 
 ## Headless operation vs display operation
-If no video display device (either a MC6847 or a BBC Micro Video ULA) is specied, the emulator will run in 'headless' mode. In headless mode the only way to
+If no video display device (either a MC6847 or a BBC Micro Video ULA) is specified, the emulator will run in 'headless' mode. In headless mode the only way to
 interact with the emulated computer system is via the debugger interface (see below). If a video display device is specified, a display with a resolution
 matching that of the TV standard supported by the device will be shown.
 
