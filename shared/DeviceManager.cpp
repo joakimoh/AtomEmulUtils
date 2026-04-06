@@ -145,6 +145,10 @@ DeviceManager::DeviceManager(
 				throw runtime_error("Syntax error");
 			}
 		}
+		catch (runtime_error& e) {
+			// runtime errors are already logged, so just rethrow them to be handled at a higher level
+			throw e;
+		}
 		catch (...) {
 			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
 			throw runtime_error("Syntax error");
@@ -205,7 +209,10 @@ DeviceManager::DeviceManager(
 			}
 
 		}
-
+		catch (runtime_error& e) {
+			// runtime errors are already logged, so just rethrow them to be handled at a higher level
+			throw e;
+		}
 		catch (...) {
 			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
 			throw runtime_error("Syntax error");
@@ -291,6 +298,10 @@ DeviceManager::DeviceManager(
 					throw runtime_error("Syntax error");
 				}
 			}
+		}
+		catch (runtime_error& e) {
+			// runtime errors are already logged, so just rethrow them to be handled at a higher level
+			throw e;
 		}
 		catch (...) {
 			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
@@ -647,6 +658,10 @@ DeviceManager::DeviceManager(
 			}
 
 		}
+		catch (runtime_error& e) {
+			// runtime errors are already logged, so just rethrow them to be handled at a higher level
+			throw e;
+		}
 		catch (...) {
 			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
 			throw runtime_error("Syntax error");
@@ -709,6 +724,10 @@ DeviceManager::DeviceManager(
 
 			}
 
+		}
+		catch (runtime_error& e) {
+			// runtime errors are already logged, so just rethrow them to be handled at a higher level
+			throw e;
 		}
 		catch (...) {
 			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";
@@ -820,6 +839,10 @@ DeviceManager::DeviceManager(
 			}
 
 		}
+		catch (runtime_error& e) {
+			// runtime errors are already logged, so just rethrow them to be handled at a higher level
+			throw e;
+		}
 		catch (...) {
 			throw runtime_error("Syntax error");
 		}
@@ -881,6 +904,10 @@ DeviceManager::DeviceManager(
 
 			}
 
+		}
+		catch (runtime_error& e) {
+			// runtime errors are already logged, so just rethrow them to be handled at a higher level
+			throw e;
 		}
 		catch (...) {
 			cout << "Error found at line " << dec << line_no << " of the memory map file:\n\t" << line << "\n";

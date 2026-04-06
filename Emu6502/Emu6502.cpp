@@ -30,7 +30,7 @@ int main(int argc, const char* argv[])
         );
     }
     catch (...) {
-        cout << "Engine couldn't be properly initialised!\n";
+        cout << "Emulation Engine couldn't be properly initialised!\n";
         return -1;
     }
 

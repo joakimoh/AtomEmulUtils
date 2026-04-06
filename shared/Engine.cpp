@@ -102,6 +102,9 @@ Engine::Engine(string mapFileName, VideoFormat videoFormat, bool enableHWAcc,
         );
     }
     catch (...) {
+        cout << "***\n";
+        if (mVDU != nullptr)
+            delete mVDU;
         delete mDisplay;
         throw runtime_error("Engine initialisation failed");
     }

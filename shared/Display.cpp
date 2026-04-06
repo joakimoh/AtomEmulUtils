@@ -15,8 +15,10 @@ Display::Display(ALLEGRO_EVENT_QUEUE* queue, VideoFormat& videoFormat, bool Enab
 
 Display::~Display()
 {
-    al_unregister_event_source(mQueue, al_get_display_event_source(mDisplay));
-    al_destroy_display(mDisplay);
+    if (mDisplay != nullptr) {
+        al_unregister_event_source(mQueue, al_get_display_event_source(mDisplay));
+        al_destroy_display(mDisplay);
+    }
     
 }
 
