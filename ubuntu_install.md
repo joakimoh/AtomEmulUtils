@@ -1,5 +1,5 @@
 # Install instructions for Ubuntu
-Depending in the libraries previously installed on your computer you might get error messages about missng header files when building. You could try to run all (or just a few) of the commands below to remedy this:
+Depending on the libraries previously installed on your computer you might get error messages about missng header files when building. You could try to run all (or just a few) of the commands below to remedy this:
 ```
 > sudo apt-get install libxi-dev
 
