@@ -1,5 +1,5 @@
 # AtomEmulUtils
-AtomEmulUtils is a emulation framework that makes it possible to "build" a 6502-based computer system from a set of predefined hardware devices. Devices are selected and "connected" using a configuration file.
+AtomEmulUtils is an emulation framework that makes it possible to "build" a 6502-based computer system from a set of predefined hardware devices. Devices are selected and "connected" using a configuration file.
 The following hardware devices are currently supported:
 - ADC 7002 12-bit Analogue-to-Digital Converter (used in e.g., the BBC Micro)
 - M6850 ACIA
