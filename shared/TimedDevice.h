@@ -2,6 +2,7 @@
 #define TIMED_DEVICE_H
 
 #include <cstdint>
+#include <cmath>
 #include <iostream>
 
 

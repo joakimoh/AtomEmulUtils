@@ -2,6 +2,7 @@
 #define CLOCKED_DEVICE_H
 
 #include <cstdint>
+#include <cmath>
 #include "TimedDevice.h"
 
 

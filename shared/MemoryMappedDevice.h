@@ -2,10 +2,11 @@
 #define MEMORY_MAPPED_DEVICE_H
 
 #include <iostream>
+#include <cmath>
 #include "Device.h"
 #include "AddressSpaceInfo.h"
 #include "TimedDevice.h"
-#include "deviceTypes.h"
+#include "DeviceTypes.h"
 
 class DeviceManager;
 

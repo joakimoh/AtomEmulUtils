@@ -1631,8 +1631,6 @@ bool P6502CC::BNEExecHdlr() {
 		// Branch taken, so set the program counter to the branch target address and fetch the next instruction in one or two cycles (depending on if a page boundary is crossed or not)
 		switch (mExecMicroCycle++) {
 
-			mBranchTaken = true;
-
 		case 0:
 			return true;
 
