@@ -32,6 +32,8 @@ private:
 
 	int mBitMapFlags = 0;
 
+	bool readGraphicsMem(BusAddress adr, uint8_t& data) override;
+
 public:
 
 	//
@@ -156,7 +158,7 @@ public:
 	TT5050::ScreenDataType* mNewTgcData = nullptr;
 	bool mValidTgcData = false;
 
-	bool readGraphicsMem(BusAddress adr, uint8_t& data);
+	
 
 	void lockDisplay();
 	void unlockDisplay();

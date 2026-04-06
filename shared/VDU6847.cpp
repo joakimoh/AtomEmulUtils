@@ -475,7 +475,7 @@ bool VDU6847::writeByte(BusAddress adr, BusByte data)
 	return MemoryMappedDevice::triggerAfterWrite(adr, data);
 }
 
-inline bool VDU6847::readGraphicsMem(uint16_t adr, uint8_t& data)
+inline bool VDU6847::readGraphicsMem(BusAddress adr, uint8_t& data)
 {
 	return mVideoMem->readByte(adr, data) && updatePort(VDU_PORT_DIN, data);
 }

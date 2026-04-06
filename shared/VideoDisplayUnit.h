@@ -40,6 +40,8 @@ protected:
 	int mAccRefreshCount = 0;
 	int mRefreshedFieldsPerSecond = 50;
 
+	virtual bool readGraphicsMem(BusAddress adr, uint8_t& data)  = 0;
+
 public:
 
 	VideoDisplayUnit(string name, DeviceId devId, Display *display, uint8_t waitStates, BusAddress adr, BusAddress sz,

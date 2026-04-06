@@ -294,7 +294,7 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 	//
 
 	uint8_t screen_data;
-	if (!mVideoMem->readByte(screen_adr, screen_data)) {
+	if (!readGraphicsMem(screen_adr, screen_data)) {
 		DBG_LOG(this, DBG_ERROR, "Failed to read video memory at address 0x" + Utility::int2HexStr(screen_adr,4));
 		mTicks = endCycle; // Ensure time still advances
 		return false;
@@ -508,9 +508,9 @@ bool BeebVideoULA::writeByte(BusAddress adr, BusByte data)
 	return VideoDisplayUnit::triggerAfterWrite(adr, data);
 }
 
-bool BeebVideoULA::readGraphicsMem(BusAddress adr, uint8_t& data)
+inline bool BeebVideoULA::readGraphicsMem(BusAddress adr, uint8_t& data)
 {
-	return true;
+	return mVideoMem->readByte(adr, data);
 }
 
 void BeebVideoULA::lockDisplay()

@@ -18,23 +18,6 @@ void  ArgParser::printInfo()
 	cout << "\nAny microprocessor system that uses the emulated hardware devices should in theory be possible\n";
 	cout << "to support. The system of concern is specified by a configuration file that specifies the\n";
 	cout << "used devices, their memory mapping, and how they are connected.\n\n";
-	cout << "Currently the following hardware devices are supported:\n";
-	cout << "\t- R6502 NMOS Microcontroller (used in the BBC Micro e.g.)\n";
-	cout << "\t- Static RAM\n";
-	cout << "\t- Dynamic RAM\n";
-	cout << "\t- ROM\n";
-	cout << "\t- NEC PD7002 ADC\n";
-	cout << "\t- MC6850 Asynchronous Communications Interface Adapter (ACIA)\n";
-	cout << "\t- SY6522 Versatile Interface Adapter (VIA)\n";
-	cout << "\t- 8255 Programmable Peripheral Interface (PIA)\n";
-	cout << "\t- HD6845 CRTC Controller\n";
-	cout << "\t- MC6847 Video Display Generator\n";
-	cout << "\t- SAA5050 Teletext Character Generator\n";
-	cout << "\t- SD Card with SPI interface\n";
-	cout << "\t- 8-bit addressable latch 74LS259 (used in e.g., the BBC Micro)\n";
-	cout << "\t- Standard Tape Recorder: Emulates the tape recorder you connect to the computer\n";
-	cout << "\t- Custom Acorn Atom hardware: Cassette Interface, Keyboard amd Speaker\n";
-	cout << "\t- Custom BBC Micro hardware: Serial ULA, Keyboard, ROM Selection and Video ULA\n";
 	cout << "\n";
 }
 

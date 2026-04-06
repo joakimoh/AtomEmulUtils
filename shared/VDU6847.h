@@ -10,6 +10,9 @@
 
 class VDU6847 : public VideoDisplayUnit, public TimedDevice {
 
+private:
+	bool readGraphicsMem(BusAddress adr, uint8_t& data) override;
+
 public:
 
 	typedef struct CharDef_struct {
@@ -187,7 +190,7 @@ public:
 						}
 	};
 
-	bool readGraphicsMem(uint16_t adr, uint8_t& data);
+	
 
 	// Data related to the rendering of a single 'character'
 	int mLineRenderedPixels = 0;
