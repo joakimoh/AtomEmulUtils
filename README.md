@@ -28,6 +28,8 @@ There are also a few devices that are not part of the computer system that emula
 - Tape Recorder (allows for tape audio files to be streamed to and from the computer system)
   
 ## How the emulator works
+
+### Scheduling
 All the devices are usually 'stepped' one by one in rounds.
 The microcontroller can be stepped a complete instruction (NMOS 6502 Instruction-stepped) or a micro cycle (NMOS 6502 Micro cycle-stepped)
 at a time.
@@ -38,7 +40,35 @@ Stepping is made in 'ticks' where one tick defaults to one microprocessor micro 
 (default is derived from the frame rate of the TV system standard chosen but can also be specified to be different).
 It is also possible to specify that a device shall be stepped at a different rate than the microprocessor step rate (one to a few micro cycles).
 This rate could be the low rate (EMU_LOW_RATE) or a high rate (EMU_HIGH_RATE) specified by configuration (usually a rate corresponding to a half TV scan line is used, e.g., 31 250 Hz).
-The low rate is suitable fopr keyboard devices wheras the high rate works well for sound devices.
+The low rate is suitable for keyboard devices whereas the high rate works well for sound devices.
+
+### Interaction between devices
+Devices have ports that correspond to pins on the real-life components. A memory device (like a DRAM or a ROM) has a chip select (CS) port and an
+8-bit latch has data outputs Q0 to Q7 e.g. Not all real-life pins are available as ports though - the data and address bus pins of memory-mapped devices and
+the microprocessor as well as clock pins are in general not represented as ports. The reason for the latter is that it would be too time-consuming to emulate
+data, address and clock pins transitions. See [Link Text](#memory-accesses-and-clocking) below about memory addressing and clocks.
+
+Pins are also grouped into a single port for pins that are strongly couple, e.g., the output pins Q0 to Q7 of the 8-bit latch is represented as a 8-bit single port. Pins are either
+of type INPUT, OUTPUT or BI-DIRECTIONAL. A port is digital and can have up to 16 bits. (There are also analogue ports, see [Link Text](analogue-ports) below.)
+
+Each device registers its ports at initialisation (start up) to make them known. Below is shown a couple of ports  registred by the 6502 micrprocessor:
+```
+	registerPort("RDY", IN_PORT, 0x01, RDY, &mRDY);
+	registerPort("SYNC", OUT_PORT, 0x01, SYNC, &mSYNC);
+```
+
+In the configuration file (a k a map file) that specifies the emulated computer system, an output port on one device can be connected to an input port of another device.
+It is possible to specify that only a few bits of one device's port shall be connected to a few bits of another device's port.
+Below is shown an example where the device _VDU_'s port _FS_ is connected to bit 7 of the device PIA's port _PortC_:
+```
+CONNECT		VDU:FS			PIA:PortC;7			
+CONNECT:P	PIA:PortA;4		VDU:A/G	
+```
+
+### Memory accesses and clocking
+TBD
+
+### Analogue ports
 
 ## Headless operation vs display operation
 If no video display device (either a MC6847 or a BBC Micro Video ULA) is specified, the emulator will run in 'headless' mode. In headless mode the only way to
