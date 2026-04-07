@@ -31,7 +31,7 @@ There are also a few devices that are not part of the computer system that emula
 
 ### Scheduling
 All the devices are usually 'stepped' one by one in rounds.
-The microcontroller can be stepped a complete instruction (NMOS 6502 Instruction-stepped) or a micro cycle (NMOS 6502 Micro cycle-stepped)
+The 6502 microcontroller can be stepped a complete instruction (Instruction-stepped) or a micro cycle (Micro cycle-stepped)
 at a time.
 In each round (that starts with stepping the microprocessor), each other device will be stepped as many steps it takes to
 match the time of the microprocessor. 
@@ -42,6 +42,36 @@ It is also possible to specify that a device shall be stepped at a different rat
 This rate could be the low rate (EMU_LOW_RATE) or the high rate (EMU_HIGH_RATE) specified by configuration (usually a rate corresponding to a half TV scan line is used, e.g., 31 250 Hz).
 The low rate is suitable for keyboard devices whereas the high rate works well for sound devices.
 
+Scheduling of a device is specified by confguration:
+```
+SCHED	ATOMKB		LOW_RATE
+SCHED	SPEAKER		HIGH_RATE
+SCHED	ADC			MICROPROCESSOR_RATE
+```
+
+It is also possible to specify that a device shall be 'triggered' for certain memory accesses:
+```
+TRIGGER ATOMKB		MEM		READ	b002 
+```
+In those cases it is common to not schedule the device according to a rate at all as the triggering will be sufficient to advance time for the device. Then
+it is possible to specify no rate-based scheduling:
+```
+SCHED	ATOMKB		NONE
+```
+
+In some cases - especially when several video devices work together to produce vido output - it makes sense
+to rate schedule only one device (e.g., the BBC Micro Vide ULA) and let that device 'tick' other devices
+(e.g., the H6845 and the SAA5050) by repetetive calls to those devices. This will make synchronisation
+between those devices simpler. This is specified using the 'call' trigger directive. The rate-based
+scheduling of those devices shall then be disabled. Below is an example in which the BBC Micro Video ULA
+'ticks' the  H6846 CRTC as well as the SA5050 TGC using 'calls':
+```
+SCHED	CRTC		NONE								// Trigger the CRTC only on VDU function calls (to emulate a CRTC data transfer to the VDU)
+TRIGGER	CRTC		CALL	VDU							// 
+SCHED	TCG			NONE								// Trigger the TCG only on VDU function calls (to emulate a CRTC data transfer to the TCG and the resulting RGB signal back to the VDU)
+TRIGGER	TCG			CALL	VDU							// 
+```
+
 ### Interaction between devices
 
 #### Ports
@@ -50,7 +80,7 @@ Devices have ports that correspond to pins on the real-life components. A memory
 the microprocessor as well as clock pins are in general not represented as ports. The reason for the latter is that it would be too time-consuming to emulate
 data, address and clock pins transitions. See [Memory accesses and clocking](#memory-accesses-and-clocking) below.
 
-Pins are also grouped into a single port for pins that are strongly couple, e.g., the output pins Q0 to Q7 of the 8-bit latch is represented as a 8-bit single port. Pins are either
+Pins are also grouped into a single port for pins that are strongly coupled, e.g., the output pins Q0 to Q7 of the 8-bit latch is represented as a single 8-bit port. Ports are either
 of type INPUT, OUTPUT or BI-DIRECTIONAL. A port is digital and can have up to 16 bits. (There are also analogue ports, see [Analogue ports](analogue-ports) below.)
 
 Each device registers its ports at initialisation (start up) to make them known. Below is shown a couple of one-bit ports registered by the 6502 microprocessor:
@@ -58,7 +88,7 @@ Each device registers its ports at initialisation (start up) to make them known.
 	registerPort("RDY", IN_PORT, 0x01, RDY, &mRDY);
 	registerPort("SYNC", OUT_PORT, 0x01, SYNC, &mSYNC);
 ```
-(_"RDY"_ is the name of the port to be referenced in the configration file, _RDY_ is a unique port index, _0x1_ is a mask specifying the port's bit-size and _mRDY_ is the variable holding the value of the port.)
+(_"RDY"_ is the name of the port to be referenced in the configuration file, _RDY_ is a unique port index, _0x1_ is a mask specifying the port's bit-size and _mRDY_ is the variable holding the value of the port.)
 
 In the configuration file (a k a map file) that specifies the emulated computer system, a port of one device can be connected to a port of another device.
 It is possible to specify that only a few bits of one device's port shall be connected to a few bits of another device's port.
@@ -72,8 +102,12 @@ port has a new value (0):
 ```
 updatePort(HS, 0);
 ```
-The emulation engine will act upon this and inform all connected receiving devices (as specified by the configuration file _CONNECT_ statements) by updating the value of the receiving device's input port.
+The emulation engine will act upon this and update all connected receiving devices's input ports (as specified by the configuration file _CONNECT_ statements).
 The receving device will then always have an updated value of its connected input ports.
+It is also possible to explictly notify a device that its input port has a new value. This is specified by a suffix 'P' (standing for 'process directly') added to the connect statement:
+```
+CONNECT:P		VDU:FS			PIA:PortC;7			
+```
 
 #### Memory accesses and clocking
 As mentioned above, data and address bus pins of memory-mapped devices are in general not represented as ports. Instead each memory-mapped device that can be accessed by the microprocessor
@@ -90,7 +124,7 @@ ADD	DRAM			RAM32K		0000	8000	4						// 32kB RAM	0000 -	7fff
 ```
 
 Video devices will use the read/write interface of memory devies (DRAM or RAM) in a similar way as the microprocessor but there is usually no routing to be made as
-the memory device used by a video device is identified when processing the configuration file. Below is shown how the device _VDU' (of device type _VDU6847_)
+the memory device used by a video device is identified when processing the configuration file. Below is shown how the device _VDU_ (of device type _VDU6847_)
 is specified to occupy the memory space 0x800 to 0x8ff (for access of  its internal registers) while accessing video RAM located at address 0x8000.
 ```
 ADD	VDU6847		VDU			0800	0100		1			8000					// VDU CRT Controller 6847

@@ -755,7 +755,7 @@ DeviceManager::DeviceManager(
 			if (cmd == "TRIGGER") {
 
 				//
-				// Define triggering of device execution based on memory access (MEM), port changes (PORT) or  explicit call by another device (CALL)
+				// Define triggering of device execution based on memory access (MEM) or  explicit call by another device (CALL)
 				//
 
 				string triggered_device_name, access, accessed_device_name, accessed_adr_s;
