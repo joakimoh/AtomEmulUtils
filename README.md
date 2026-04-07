@@ -48,10 +48,10 @@ The low rate is suitable for keyboard devices whereas the high rate works well f
 Devices have ports that correspond to pins on the real-life components. A memory device (like a DRAM or a ROM) has a chip select (CS) port and an
 8-bit latch has data outputs Q0 to Q7 e.g. Not all real-life pins are available as ports though - the data and address bus pins of memory-mapped devices and
 the microprocessor as well as clock pins are in general not represented as ports. The reason for the latter is that it would be too time-consuming to emulate
-data, address and clock pins transitions. See [Link Text](#memory-accesses-and-clocking) below about memory accessed and clocking.
+data, address and clock pins transitions. See [Memory accesses and clocking](#memory-accesses-and-clocking) below.
 
 Pins are also grouped into a single port for pins that are strongly couple, e.g., the output pins Q0 to Q7 of the 8-bit latch is represented as a 8-bit single port. Pins are either
-of type INPUT, OUTPUT or BI-DIRECTIONAL. A port is digital and can have up to 16 bits. (There are also analogue ports, see [Link Text](analogue-ports) below.)
+of type INPUT, OUTPUT or BI-DIRECTIONAL. A port is digital and can have up to 16 bits. (There are also analogue ports, see [Analogue ports](analogue-ports) below.)
 
 Each device registers its ports at initialisation (start up) to make them known. Below is shown a couple of one-bit ports registered by the 6502 microprocessor:
 ```
@@ -89,7 +89,14 @@ labeled 'RAM32K' which occupies the memory space 0x000 to 0x7fff. (The '4' speci
 ADD	DRAM			RAM32K		0000	8000	4						// 32kB RAM	0000 -	7fff
 ```
 
-The clock port of a device (if it is a clocked device) doesn't have to represented by a port simpply becasue the 'clocking' is implemented by the scheduling described above ([Text Link](#scheduling)).
+Video devices will use the read/write interface of memory devies (DRAM or RAM) in a similar way as the microprocessor but there is usually no routing to be made as
+the memory device used by a video device is identified when processing the configuration file. Below is shown how the device _VDU' (of device type _VDU6847_)
+is specified to occupy the memory space 0x800 to 0x8ff (for access of  its internal registers) while accessing video RAM located at address 0x8000.
+```
+ADD	VDU6847		VDU			0800	0100		1			8000					// VDU CRT Controller 6847
+```
+
+The clock port of a device (if it is a clocked device) doesn't have to be represented by a port simply becasue the 'clocking' is implemented by the scheduling described above ([Scheduling](#scheduling)).
 
 #### Analogue ports
 
