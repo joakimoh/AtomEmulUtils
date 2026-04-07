@@ -59,7 +59,7 @@ it is possible to specify no rate-based scheduling:
 SCHED	ATOMKB		NONE
 ```
 
-In some cases - especially when several video devices work together to produce vido output - it makes sense
+In some cases - especially when several video devices work together to produce video output - it makes sense
 to rate schedule only one device (e.g., the BBC Micro Vide ULA) and let that device 'tick' other devices
 (e.g., the H6845 and the SAA5050) by repetetive calls to those devices. This will make synchronisation
 between those devices simpler. This is specified using the 'call' trigger directive. The rate-based
@@ -133,6 +133,8 @@ ADD	VDU6847		VDU			0800	0100		1			8000					// VDU CRT Controller 6847
 The clock port of a device (if it is a clocked device) doesn't have to be represented by a port simply becasue the 'clocking' is implemented by the scheduling described above ([Scheduling](#scheduling)).
 
 #### Analogue ports
+A device can also register an analogue port. Such ports are usually associted with Analuge-to-Digital converters or similar. It is not (yet) possible to connect such ports but their values
+can be accessed and modified by the debugger. So e.g., it is possible to change the voltage of a port connected to an ADC.
 
 ## Headless operation vs display operation
 If no video display device (either a MC6847 or a BBC Micro Video ULA) is specified, the emulator will run in 'headless' mode. In headless mode the only way to
