@@ -39,36 +39,59 @@ Stepping is made in 'ticks' where one tick defaults to one microprocessor micro 
 'tick time' is synchronised with real time on a low rate basis (EMU_LOW_RATE), ususally 50-60 Hz
 (default is derived from the frame rate of the TV system standard chosen but can also be specified to be different).
 It is also possible to specify that a device shall be stepped at a different rate than the microprocessor step rate (one to a few micro cycles).
-This rate could be the low rate (EMU_LOW_RATE) or a high rate (EMU_HIGH_RATE) specified by configuration (usually a rate corresponding to a half TV scan line is used, e.g., 31 250 Hz).
+This rate could be the low rate (EMU_LOW_RATE) or the high rate (EMU_HIGH_RATE) specified by configuration (usually a rate corresponding to a half TV scan line is used, e.g., 31 250 Hz).
 The low rate is suitable for keyboard devices whereas the high rate works well for sound devices.
 
 ### Interaction between devices
+
+#### Ports
 Devices have ports that correspond to pins on the real-life components. A memory device (like a DRAM or a ROM) has a chip select (CS) port and an
 8-bit latch has data outputs Q0 to Q7 e.g. Not all real-life pins are available as ports though - the data and address bus pins of memory-mapped devices and
 the microprocessor as well as clock pins are in general not represented as ports. The reason for the latter is that it would be too time-consuming to emulate
-data, address and clock pins transitions. See [Link Text](#memory-accesses-and-clocking) below about memory addressing and clocks.
+data, address and clock pins transitions. See [Link Text](#memory-accesses-and-clocking) below about memory accessed and clocking.
 
 Pins are also grouped into a single port for pins that are strongly couple, e.g., the output pins Q0 to Q7 of the 8-bit latch is represented as a 8-bit single port. Pins are either
 of type INPUT, OUTPUT or BI-DIRECTIONAL. A port is digital and can have up to 16 bits. (There are also analogue ports, see [Link Text](analogue-ports) below.)
 
-Each device registers its ports at initialisation (start up) to make them known. Below is shown a couple of ports  registred by the 6502 micrprocessor:
+Each device registers its ports at initialisation (start up) to make them known. Below is shown a couple of one-bit ports registered by the 6502 microprocessor:
 ```
 	registerPort("RDY", IN_PORT, 0x01, RDY, &mRDY);
 	registerPort("SYNC", OUT_PORT, 0x01, SYNC, &mSYNC);
 ```
+(_"RDY"_ is the name of the port to be referenced in the configration file, _RDY_ is a unique port index, _0x1_ is a mask specifying the port's bit-size and _mRDY_ is the variable holding the value of the port.)
 
-In the configuration file (a k a map file) that specifies the emulated computer system, an output port on one device can be connected to an input port of another device.
+In the configuration file (a k a map file) that specifies the emulated computer system, a port of one device can be connected to a port of another device.
 It is possible to specify that only a few bits of one device's port shall be connected to a few bits of another device's port.
 Below is shown an example where the device _VDU_'s port _FS_ is connected to bit 7 of the device PIA's port _PortC_:
 ```
 CONNECT		VDU:FS			PIA:PortC;7			
-CONNECT:P	PIA:PortA;4		VDU:A/G	
 ```
 
-### Memory accesses and clocking
-TBD
+At run time, each device will inform that an (output or bi-directional) port is updated. Below shows how a VDU device informs that the horizontal sync (HS)
+port has a new value (0):
+```
+updatePort(HS, 0);
+```
+The emulation engine will act upon this and inform all connected receiving devices (as specified by the configuration file _CONNECT_ statements) by updating the value of the receiving device's input port.
+The receving device will then always have an updated value of its connected input ports.
 
-### Analogue ports
+#### Memory accesses and clocking
+As mentioned above, data and address bus pins of memory-mapped devices are in general not represented as ports. Instead each memory-mapped device that can be accessed by the microprocessor
+defines a read/write interface which can be called by the microprocessor:
+```
+virtual bool writeByte(BusAddress adr, BusByte data);
+virtual bool readByte(BusAddress adr, BusByte& data);
+```
+A memory map (actually a balanced binary tree) maintained by the emulator engine will route all memory accesses made by the microprocessor to the correct device's read/write
+interface. The memory space occupied by one device is specified when the decice is 'added' to the system in the configuration file. Below shows the addition of a DRAM memory
+labeled 'RAM32K' which occupies the memory space 0x000 to 0x7fff. (The '4' specifies the access rate supported by the memory in MHz.)
+```
+ADD	DRAM			RAM32K		0000	8000	4						// 32kB RAM	0000 -	7fff
+```
+
+The clock port of a device (if it is a clocked device) doesn't have to represented by a port simpply becasue the 'clocking' is implemented by the scheduling described above ([Text Link](#scheduling)).
+
+#### Analogue ports
 
 ## Headless operation vs display operation
 If no video display device (either a MC6847 or a BBC Micro Video ULA) is specified, the emulator will run in 'headless' mode. In headless mode the only way to
