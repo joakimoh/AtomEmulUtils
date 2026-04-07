@@ -28,6 +28,10 @@ There are also a few devices that are not part of the computer system that emula
 - Tape Recorder (allows for tape audio files to be streamed to and from the computer system)
   
 ## How the emulator works
+To use the emulator and understand the related configuration used to 'build' your computer system it is necessary to understand a bit about
+how the emulator operates. Especially how time is advanced for the devices, how devices interact and how memory accesses are emulated. 
+It is a bit technical and refers both the the configuration of the system (by a map file) and some actual c++ code used to implement
+the emulator. But I think it should be understandable by most people with some basic experience in programming.
 
 ### Scheduling
 All the devices are usually 'stepped' one by one in rounds.
@@ -133,7 +137,7 @@ ADD	VDU6847		VDU			0800	0100		1			8000					// VDU CRT Controller 6847
 The clock port of a device (if it is a clocked device) doesn't have to be represented by a port simply becasue the 'clocking' is implemented by the scheduling described above ([Scheduling](#scheduling)).
 
 #### Analogue ports
-A device can also register an analogue port. Such ports are usually associted with Analuge-to-Digital converters or similar. It is not (yet) possible to connect such ports but their values
+A device can also register an analogue port. Such ports are usually associated with Analuge-to-Digital converters or similar. It is not (yet) possible to connect such ports but their values
 can be accessed and modified by the debugger. So e.g., it is possible to change the voltage of a port connected to an ADC.
 
 ## Headless operation vs display operation
