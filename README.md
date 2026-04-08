@@ -1,5 +1,6 @@
 # AtomEmulUtils
-AtomEmulUtils is an emulation framework that makes it possible to "build" a 6502-based computer system from a set of predefined hardware devices. Devices are selected and "connected" using a configuration file.
+AtomEmulUtils is an emulation framework that makes it possible to "build" a 6502-based computer system from a set of predefined hardware devices.
+Devices are selected and "connected" using a configuration file (referred to as a map file as it includes a memory map for the emulated system).
 The following hardware devices are currently supported:
 - ADC 7002 12-bit Analogue-to-Digital Converter (used in e.g., the BBC Micro)
 - M6850 ACIA
@@ -26,16 +27,18 @@ The following hardware devices are currently supported:
 There are also a few devices that are not part of the computer system that emulates external equipment connected to the computer system:
 - SD Card with SPI interface (SD Card File System ROM software like https://github.com/hoglet67/MMFS for the BBC Micro can use this)
 - Tape Recorder (allows for tape audio files to be streamed to and from the computer system)
+
+See [Installation instructions](docs/Installation.md) for details on how to install emulator.
   
 ## How the emulator works
 To use the emulator and understand the related configuration used to 'build' your computer system it is necessary to understand a bit about
 how the emulator operates. Especially how time is advanced for the devices, how devices interact and how memory accesses are emulated. 
-It is a bit technical and refers both the the configuration of the system (by a map file) and some actual c++ code used to implement
-the emulator. But I think it should be understandable by most people with some basic experience in programming.
+It is a bit technical and refers both to the configuration of the system (by the map file) and some actual c++ code used to implement
+the emulator.
 
 ### Scheduling
 All the devices are usually 'stepped' one by one in rounds.
-The 6502 microcontroller can be stepped a complete instruction (Instruction-stepped) or a micro cycle (Micro cycle-stepped)
+The 6502 microcontroller can be stepped a complete instruction (instruction-stepped) or a micro cycle (micro cycle-stepped)
 at a time.
 In each round (that starts with stepping the microprocessor), each other device will be stepped as many steps it takes to
 match the time of the microprocessor. 
@@ -140,29 +143,41 @@ The clock port of a device (if it is a clocked device) doesn't have to be repres
 A device can also register an analogue port. Such ports are usually associated with Analuge-to-Digital converters or similar. It is not (yet) possible to connect such ports but their values
 can be accessed and modified by the debugger. So e.g., it is possible to change the voltage of a port connected to an ADC.
 
-## Headless operation vs display operation
-If no video display device (either a MC6847 or a BBC Micro Video ULA) is specified, the emulator will run in 'headless' mode. In headless mode the only way to
-interact with the emulated computer system is via the debugger interface (see below). If a video display device is specified, a display with a resolution
-matching that of the TV standard supported by the device will be shown.
+## Connectivity
 
-## Keyboard operation
+### Keyboard
 If a keyboard device is specified, then keyboard presses will be forwarded to that device. Is is also possible to 'bypass' keyboard presses and 'paste' text
 from the host computer's clipboard directly to the keyboard device.
 
-## Audio operation
-If a sound device is specified, then sound produced by it will be forwarded to the host computer.
+### Audio
+If a sound device is specified, then sound produced by it will be encoded as an audio stream and played on the host computer.
 
-## Tape recorder
+### Tape recorder
 If a tape recorder is specified, then tape audio files (CSW format) can be be 'played' to generate a bit stream to the emulated computer system
 and bit streams from the emulated computer system can 'recorded' into tape audio files (CSW format).
 
+### Display
+If a video display device is specified, a display with a resolution matching that of the TV standard supported by the device will be created. This display
+will then be updated by the video display device based on the video memory content.
+If no video display device (either a MC6847 or a BBC Micro Video ULA) is specified, the emulator will run in 'headless' mode. In headless mode the only way to
+interact with the emulated computer system is via the debugger interface (see below). 
+
+### SD Card
+If the SD Card device is specified, then the emulated computer system can interact with it over SPI. Inserting and ejected the card is emulated by
+a menu that selects an actual SD Card file.
+
 ## Debugger
 A command-line debugger can be started at any time and will make it possible to get and change the status of the emulated computer system.
+The debugger monitor will be the terminal from which the emulator was started from. See [Debugger commands](docs/Debugger.md)
 
-## SD Card operation
-If the SD Card device is specified, then the emulated computer system can interact with it over SPI. It is possible to insert and eject
-an SD Card.
+## Misc.
 
-## Loading/saving files to/from memory
+### Loading/saving files to/from memory
 It is possible to load data into the emulated memory directly by selecting a file with binary data. Memory data can also be saved to file.
 This makes it possible to quickly load e.g. a BASIC program into memory without having to use the slow cassette interface.
+
+### Emulation speed
+The emulation speed is default 'real time' but cna be changed to be slower or faster. How fast it can become depends on the host computer and the complexity of
+the emauled computer system. Don't expect much higgher speed than real time for a complex system. When a video display device is present, the update rate 
+(perceived frame rate) of the display can be adjusted (slowed down) to improvde emulation performance. The default is to use that of the selected TV standard
+(50 Hz for PAL and 60 Hz for NTSC).
