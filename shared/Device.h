@@ -107,12 +107,13 @@ public:
 // The port value currently only be accessed by the debugger.
 class AnaloguePort {
 public:
-	Device*			dev = NULL;				// name of the device
-	string			name = "";				// name of the I/O port
-	int				localIndex = -1;		// local device index for the I/O port
-	int				globalIndex = -1;		// unique global index for the port
-	PortDirection	dir = IO_PORT;			// I/O direction
-	double*			val = nullptr;			// pointer to variable holding the port's value
+	Device*					dev = NULL;				// name of the device
+	string					name = "";				// name of the I/O port
+	int						localIndex = -1;		// local device index for the I/O port
+	int						globalIndex = -1;		// unique global index for the port
+	PortDirection			dir = IO_PORT;			// I/O direction
+	double*					val = nullptr;			// pointer to variable holding the port's value
+	vector<AnaloguePort *>	inputs;					// connected inputs (used only if the port is an output port)
 };
 
 #define _PORT_ID(x)	(x==NULL||x->dev==NULL?"???":(x->dev->name+":"+x->name))
@@ -127,16 +128,6 @@ public:
 	DevicePort* port = nullptr;	// port identity
 	BitsSelection	bits;	// bits selection
 };
-
-typedef struct Connector_struct { // specifies the receiving unique part of a routing
-	BitsSelection srcBits; // specifies the bits of the output port to be connected
-	PortSelection dstPort; // specifies the the input port to be connected
-} Connection;
-
-typedef struct Routing_struct { // specifies how an output port of one device is connected to the input ports of one or more receving devices
-	DevicePort *		srcPort;
-	vector <Connection>	connections;
-} Routing;
 
 class Device {
 

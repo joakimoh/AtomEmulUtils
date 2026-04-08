@@ -37,10 +37,12 @@ You might also need to install additional libraries (only do it if you get error
 > sudo apt-get install libtheora-dev
 ```
 Now you can build:
+```
 > cd AtomEmulUtils
 > cmake -S . -B build
 > cmake --build build
 > cmake --build build -t AtomEmulUtils
+```
 
 # Install instructions for Windows
 Start by installing zlib and Visual Studio and then clone the repository to your computer using Visual Studio.

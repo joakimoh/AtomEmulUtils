@@ -131,6 +131,7 @@ DeviceManager::DeviceManager(
 					cmd == "ADD" ||
 					cmd == "GAP" ||
 					cmd.length() >= 7 && cmd.substr(0, 7) == "CONNECT" ||
+					cmd == "ACONNECT" ||
 					cmd == "TRIGGER" ||
 					cmd == "SCHED" ||
 					cmd == "EMU_LOW_RATE" ||
@@ -717,6 +718,28 @@ DeviceManager::DeviceManager(
 				sin >> src_port;
 				sin >> dst_port;
 				if (!mCM->connect(src_port, dst_port, invert, process)) {
+					throw runtime_error("Syntax error");
+				}
+
+
+
+			}
+			else if (cmd== "ACONNECT") {
+
+				//
+				// Connect Analogue Device ports
+				// 
+				// Syntax;
+				//	ACONNECT <src device>:<src port>	<dst device>:<dst port>
+				// 
+				// qualifer ::= 'I' | 'P'
+				//
+
+
+				string src_port, dst_port;
+				sin >> src_port;
+				sin >> dst_port;
+				if (!mCM->connectAnaloguePorts(src_port, dst_port)) {
 					throw runtime_error("Syntax error");
 				}
 

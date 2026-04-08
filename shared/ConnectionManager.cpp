@@ -69,9 +69,12 @@ Device *ConnectionManager::getDevice(string name)
 	
 }
 
-bool ConnectionManager::extractAnaloguePort(string name, AnaloguePort *&port)
+bool ConnectionManager::extractAnaloguePort(string name, AnaloguePort * &port)
 {
 	try {
+
+		port = nullptr;
+
 		// Get device
 		Tokeniser dev_tok(name, ':');
 		string dev_name;
@@ -80,22 +83,23 @@ bool ConnectionManager::extractAnaloguePort(string name, AnaloguePort *&port)
 		Device* dev;
 		if (!mDevices->getDevice(dev_name, dev))
 			return false;
-		// Get port reference
-		string port_ref;
-		if (!dev_tok.nextToken(port_ref))
-			return false;
+
 		// Get port name
-		Tokeniser port_tok(port_ref, ';');
 		string port_name;
-		if (!port_tok.nextToken(port_name))
+		if (!dev_tok.nextToken(port_name))
 			return false;
+
+
 		// Get port
 		if (!dev->getAnaloguePort(port_name, port)) {
-			cout << "Failed to find analogue port '" << port_name << "' for device '" << dev->name << "'!\n";
+			cout << "Failed to find port '" << port_name << "' for device '" << dev->name << "'!\n";
 			return false;
 		}
+
 		return true;
+
 	}
+
 	catch (...) {
 		return false;
 	}
@@ -168,6 +172,27 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 	}
 }
 
+// Connect one device's analogue output with the input of another device
+bool ConnectionManager::connectAnaloguePorts(string srcName, string dstName)
+{
+	AnaloguePort *src_port;
+	if (!extractAnaloguePort(srcName, src_port)) {
+		cout << "Invalid format for source routing '" << srcName << "'\n";
+		return false;
+	}
+
+	AnaloguePort *dst_port;
+	if (!extractAnaloguePort(dstName, dst_port)) {
+		cout << "Invalid format for destination routing '" << dstName << "'\n";
+		return false;
+	}
+
+	src_port->inputs.push_back(dst_port);
+
+	return true;
+}
+
+
 //
 bool ConnectionManager::connect(string srcName, string dstName, bool invert, bool process)
 {
@@ -194,10 +219,6 @@ bool ConnectionManager::connect(string srcName, string dstName, bool invert, boo
 		cout << "Attempt to use the output port " << _PORT_ID(dst_port.port) << " as a destination port!\n";
 		return false;
 	}
-
-	Connection connection;
-	connection.srcBits = src_port.bits;
-	connection.dstPort = dst_port;
 
 	InputReference input_ref;
 	input_ref.port = dst_port.port;

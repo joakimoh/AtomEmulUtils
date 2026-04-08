@@ -193,8 +193,25 @@ bool Device::updateAnaloguePort(int index, double val)
 		return false;
 	}
 
+
+	// Changes or enforced update?
+	bool changed = *port.val != val;
+
 	// Update the source port value with the new value
 	*port.val = val;
+
+	// No need to progate value if the source port is unchanged unless an update is enforced
+	if (!changed)
+		return true;
+
+	// Update the destination ports based on the new value
+	for (int i = 0; i < port.inputs.size(); i++) {
+
+		AnaloguePort *input = port.inputs[i];
+
+		*(input->val) = val;
+
+	}
 
 	return true;
 }

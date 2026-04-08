@@ -28,7 +28,7 @@ There are also a few devices that are not part of the computer system that emula
 - SD Card with SPI interface (SD Card File System ROM software like https://github.com/hoglet67/MMFS for the BBC Micro can use this)
 - Tape Recorder (allows for tape audio files to be streamed to and from the computer system)
 
-See [Installation instructions](docs/Installation.md) for details on how to install emulator.
+See [Installation instructions](docs/Installation.md) for details on how to install the emulator.
 
 See [Implementation of the emulator](docs/Implementation.md) for details on how the emulator works and is implemented.
 

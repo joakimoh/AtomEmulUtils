@@ -35,7 +35,6 @@ public:
 
 	Device *getDevice(string name);
 	bool extractPort(string name, PortSelection& port);
-
 	bool extractAnaloguePort(string name, AnaloguePort * &port);
 
 	void printRouting();
@@ -57,6 +56,9 @@ public:
 
 	// Connect one device's output with the input of another device
 	bool connect(string srcName, string dstName, bool invert, bool process);
+
+	// Connect one device's analogue output with the input of another device
+	bool connectAnaloguePorts(string srcName, string dstName);
 
 };
 

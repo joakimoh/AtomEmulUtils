@@ -108,5 +108,5 @@ ADD	VDU6847		VDU			0800	0100		1			8000					// VDU CRT Controller 6847
 The clock port of a device (if it is a clocked device) doesn't have to be represented by a port simply becasue the 'clocking' is implemented by the scheduling described above ([Scheduling](#scheduling)).
 
 #### Analogue ports
-A device can also register an analogue port. Such ports are usually associated with Analuge-to-Digital converters or similar. It is not (yet) possible to connect such ports but their values
-can be accessed and modified by the debugger. So e.g., it is possible to change the voltage of a port connected to an ADC.
+A device can also register an analogue port. Such ports are usually associated with Analuge-to-Digital converters or similar. It is also possible to connect such ports but and their values
+can be accessed and modified by the debugger. So e.g., it is possible to change the voltage of a port connected to an ADC using the debugger.
