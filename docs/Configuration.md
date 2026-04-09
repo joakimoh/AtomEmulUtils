@@ -39,5 +39,6 @@ ADD	VIA6522			SYS_VIA		fe40	0020	1			1.0
 ## List of devices and their parameters
 | Device        | Description                           | Parameters                                                        |
 | ------------- | ------------------------------------- | ----------------------------------------------------------------- |
-| ADC7002       | 12-bit Analogue-to-Digital Converter  | <start address> <size> <access speed> <clock speed>               |
-| ZN428         | 8-bit Digital-to-Analogue Converter   | <start address> <size> <access speed> <clock speed>               |
+| ADC7002       | 12-bit Analogue-to-Digital Converter  | \<start address\> \<size> \<access speed\> \<clock speed\>        |
+| ZN428         | 8-bit Digital-to-Analogue Converter   | \<start address\> \<size> \<access speed\> \<clock speed\>        |
+| CRT6845       | Character Raster Generator            | \<start address\> \<size> \<access speed\>                        |
