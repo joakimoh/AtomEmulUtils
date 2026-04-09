@@ -18,6 +18,14 @@ ADD SRAM			SWRAM2		8000	4000	2						// 16kB Paged Sideways RAM #2		8000 - bfff
 ADD SRAM			SWRAM3		8000	4000	2						// 16kB Paged Sideways RAM #3		8000 - bfff
 ADD	ROM				OS			c000	4000	2			OS12.rom	// OS (IC51)		 				c000 - ffff
 GAP					OS			fc00	0300							// Gap in OS ROM space between		fc00 - ff00	
+
+//
+// FRED fc00 - fcff
+//															CLK
+ADD ZN428			DAC			fc00	0001	1			1.0				// 8-bit Digital-to-Analogue Converter
+
+
+
 //
 // SHEILA	fe00 -	feff
 //
@@ -32,11 +40,12 @@ ADD	VIA6522			USER_VIA	fe60	0020	1			1.0			// IC69	fe60 -	fe6f; 1 MHz Clock
 ADD	ADC7002			ADC			fec0	0003	1			1.0			// ADC Converter
 
 ADD	BEEBKB			KB			00										// startup options (DIP switches)
-ADD	CPU_6502CC		CPU										2.0			// Microprocessor 6502 running ay 2 MHz
+ADD	CPU_6502		CPU										2.0			// Microprocessor 6502 running ay 2 MHz
 ADD	TAPREC			TAPREC												// Standard Tape Recorder
 ADD	TI4689			SOUND
 ADD	BEEBVIALATCH	74LS259												// System VIA Latch with 8 outputs, each updated by writing to Port B bits 3:0
 ADD SD_CARD			MMFS_CARD								MMC.img		// FAT32 SD Card image
+
 
 //
 //	Device connections
@@ -50,6 +59,9 @@ ADD SD_CARD			MMFS_CARD								MMC.img		// FAT32 SD Card image
 
 // ADC 7002 Connections - ADC is connected to the System VIA
 CONNECT		ADC:EOC				SYS_VIA:CB;0	// ADC EOC output => SYS_VIA CB1 input
+
+// DAC ZN428 Connections - DAC is connected to the ADC
+ACONNECT		DAC:AOut	ADC:CH3									// Connect DAC output to ADC channel #3 input
 
 // Sound chip connections
 CONNECT:P 	SYS_VIA:PB;3;0		74LS259:CTRL	// PB3:0 => CTRL

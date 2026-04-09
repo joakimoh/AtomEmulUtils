@@ -3,6 +3,7 @@ AtomEmulUtils is an emulation framework that makes it possible to "build" a 6502
 Devices are selected and "connected" using a configuration file (referred to as a map file as it includes a memory map for the emulated system).
 The following hardware devices are currently supported:
 - ADC 7002 12-bit Analogue-to-Digital Converter (used in e.g., the BBC Micro)
+- DAC ZN428 8-bit Digital-to-Analogue Converter
 - M6850 ACIA
 - Acorn Atom Cassette Interface
 - Acorn Atom Keyboard (the keyboard matrix)

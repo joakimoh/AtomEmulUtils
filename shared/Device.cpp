@@ -193,7 +193,6 @@ bool Device::updateAnaloguePort(int index, double val)
 		return false;
 	}
 
-
 	// Changes or enforced update?
 	bool changed = *port.val != val;
 

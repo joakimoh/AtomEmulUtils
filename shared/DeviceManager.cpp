@@ -38,6 +38,7 @@
 #include "MemorySegmentTree.h"
 #include "Display.h"
 #include "TimedDevice.h"
+#include "DACZN428.h"
 
 using namespace std;
 
@@ -293,7 +294,8 @@ DeviceManager::DeviceManager(
 					dev_type == "BeebVideoULA" ||
 					dev_type == "BEEBVIALATCH" ||
 					dev_type == "SD_CARD" ||
-					dev_type == "ADC7002"
+					dev_type == "ADC7002" ||
+					dev_type == "ZN428"
 					)) {
 					cout << "Unknown device '" << dev_type << "' found at line " << line_no << " in the memory map file : \n\t" << line << "\n";
 					throw runtime_error("Syntax error");
@@ -615,7 +617,18 @@ DeviceManager::DeviceManager(
 					double clk = getDoubleVal(sin);
 					ADC7002* adc = new ADC7002(dev_name, tickRate, clk, dev_adr, dev_sz, access_speed, mDM, mCM, this);
 					mDevices.push_back(adc);
+
 				}
+
+				else if (dev_type == "ZN428") {
+					uint16_t dev_adr = getHexVal(sin);
+					uint16_t dev_sz = getHexVal(sin);
+					double access_speed;
+					sin >> access_speed;
+					double clk = getDoubleVal(sin);
+					DACZN428* dac = new DACZN428(dev_name, tickRate, clk, dev_adr, dev_sz, access_speed, mDM, mCM, this);
+					mDevices.push_back(dac);
+					}
 
 			}
 

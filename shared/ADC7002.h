@@ -10,7 +10,6 @@
 using namespace std;
 
 class ADC7002 : public MemoryMappedDevice, public ClockedDevice {
-	// Selects one of the four sideways ROM sockets (IC52, IC88, IC100, IC101, left to right on the board after the OS socket)
 
 private:
 
@@ -28,7 +27,7 @@ private:
 	int mStartCycleCount = 0;
 
 	double mVREF = 0.7 * 3;				// Reference voltage
-	double mCHInput[4] = { 0.0 };		// Channel input voltages
+	double mCHInput[4] = { 0.0 };		// Channel input voltages [0,VREF]
 	uint16_t mConversionData = 0x0;		// Conversion data
 	int mConversionCount = 0;			// Conversion counter
 	bool mConversion = false;			// Active conversion

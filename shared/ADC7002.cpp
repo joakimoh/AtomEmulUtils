@@ -27,8 +27,13 @@ bool ADC7002::advanceUntil(uint64_t stopTick)
 
 			if (mTicks - mStartCycleCount >= mSpeed) {
 				mConversion = false;
+				double a_in = mCHInput[ADC_7002_CR_CH];
+				if (a_in < 0)
+					a_in = 0.0;
+				else if (a_in > mVREF)
+					a_in = mVREF;
 				uint16_t range = (ADC_7002_CR_12_BIT ? 0xfff : 0xff);
-				uint16_t data = mCHInput[ADC_7002_CR_CH]  / mVREF * range;
+				uint16_t data = a_in / mVREF * range;
 				mDataH = (ADC_7002_CR_12_BIT ? (data >> 4) & 0xff : data & 0xff);
 				mDataL = (ADC_7002_CR_12_BIT ? (data << 4) & 0xf0 : 0x00);
 
@@ -36,7 +41,7 @@ bool ADC7002::advanceUntil(uint64_t stopTick)
 				uint8_t pSR = mSR;
 				mSR |= ADC_7002_CR_EOC_BIT_MASK | ADC_7002_SR_BUSY_MASK;
 				updatePort(EOC, 0x0);
-				//cout << "Conversion for channel " << (int)ADC_7002_CR_CH << " completed at cycle " << mTicks << "; input voltage " << mCHInput[ADC_7002_CR_CH] <<
+				//cout << "Conversion for channel " << (int)ADC_7002_CR_CH << " completed at cycle " << mTicks << "; input voltage " << a_in <<
 				//	" gave value 0x" << Utility::int2HexStr(data, 3) << " <=> " << (data * mVREF / range) << "V for VREF = " << mVREF << "V and range = 0x" << Utility::int2HexStr(range, 3) <<
 				//	", Status Register 0x" << Utility::int2HexStr(pSR, 2) << " -> 0x" << Utility::int2HexStr(mSR, 2) << "\n";
 				DBG_LOG(this, DBG_ADC, (ADC_7002_CR_12_BIT ? "12-bit"s : "8-bit"s) + " conversion for channel " + to_string(ADC_7002_CR_CH) + 
@@ -172,8 +177,8 @@ bool ADC7002::setChannelVoltage(int channel, double voltage)
 // Outputs the internal state of the device
 bool ADC7002::outputState(ostream& sout)
 {
-	sout << "Control Register = 0x" << Utility::int2HexStr(mCR, 2) << " <=>\n";
-	sout << "\tConversion bits =  " << (ADC_7002_CR_12_BIT ? 12 : 8) << "\n";
+	sout << "Control Register = 0x" << Utility::int2HexStr(mCR, 2) << dec << " <=>\n";
+	sout << "\tConversion bits =  " << (int)(ADC_7002_CR_12_BIT ? 12 : 8) << "\n";
 	sout << "\tSelected channel = " << (int)ADC_7002_CR_CH << "\n";
 	sout << "\tFLAG =             " << (int)ADC_7002_CR_FLAG << "\n";
 	sout << "Status register = 0x" << Utility::int2HexStr(mSR, 2) << " <=>\n";
