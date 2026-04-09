@@ -13,35 +13,26 @@ You might also need to install additional libraries (only do it if you get error
 
 ```
 > sudo apt-get install libxi-dev
-
 > sudo apt-get install -y libpng-dev
-
 > sudo apt-get install libjpeg-dev
-
 > sudo apt install libwebp-dev
-
 > sudo apt install libpulse-dev
-
 > sudo apt-get install libopenal-dev
-
 > sudo apt install libgtk-3-dev
-
 > sudo apt install libflac-dev
-
 > sudo apt install libaldmb1-dev
-
 > sudo apt-get install libvorbis-dev
-
 > sudo apt-get install libphysfs-dev
-
 > sudo apt-get install libtheora-dev
 ```
-Now you can build:
+
+Now you can configure, build and install:
 ```
 > cd AtomEmulUtils
-> cmake -S . -B build
-> cmake --build build
-> cmake --build build -t AtomEmulUtils
+> cmake -DCMAKE_BUILD_TYPE=Release -S . -B ../AtomEmulUtilsBuild
+> cmake --build ../AtomEmulUtilsBuild
+> cd ../AtomEmulUtilsBuild
+> make install
 ```
 
 # Install instructions for Windows
@@ -56,12 +47,18 @@ cmake might fail to locate where you have installed zlib. If this is the case, t
 in the file CMakeLists.txt at the project root and update it to point to where you installed zlib (e.g., C:/Program Files/zlib).
 Also update the Windows path variable to point to where the DLL is located (e.g., C:/Program Files/zlib/bin).
 
+# Install instructions for Mac
+I'm sorry but I don't own a Mac and cannot guide you there. The project should build on any machine in theory but
+you cannot really tell until you try it. If you do get it to build on a Mac, then please tell me about it and I will update the instruction
+to tell about that as well!
+
 # General troubleshooting
-If you get errors related to buidling the allegro5 libraries you should change the line
+If you get errors related to building the allegro5 libraries and there is aline
 ```
 cmake_minimum_required(VERSION 3.12...4.0)
 ```
-of the file ...\_deps\allegro5-src\CmakeList.txt to
+in the file AtomEmulUtils/.../_deps/allegro5-src/CmakeList.txt (replace '...' with whatever path you have downto '_deps').
+Then change that line to:
 ```
 cmake_minimum_required(VERSION 3.8)
 ```
