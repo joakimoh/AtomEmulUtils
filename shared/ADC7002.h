@@ -59,7 +59,7 @@ private:
 public:
 
 
-	ADC7002(string name, double tickRate, double deviceClockRate, uint16_t adr, uint16_t sz, int waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager,
+	ADC7002(string name, double tickRate, double deviceClockRate, uint16_t adr, uint16_t sz, int accessSpeed, DebugTracing* debugTracing, ConnectionManager* connectionManager,
 		DeviceManager *deviceManager);
 
 	bool advanceUntil(uint64_t stopTick);

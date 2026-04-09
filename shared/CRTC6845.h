@@ -164,7 +164,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	CRTC6845(string name, uint16_t adr, double tickRate, uint8_t waitStates,
+	CRTC6845(string name, uint16_t adr, double tickRate, uint8_t accessSpeed,
 		DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~CRTC6845() {}
 

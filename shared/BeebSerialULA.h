@@ -99,7 +99,7 @@ private:
 
 public:
 
-	BeebSerialULA(string name, uint16_t adr, double tickRate, uint8_t waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
+	BeebSerialULA(string name, uint16_t adr, double tickRate, uint8_t accessSpeed, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
 	bool readByte(BusAddress adr, BusByte& data);
 	bool dump(BusAddress adr, uint8_t& data) override;

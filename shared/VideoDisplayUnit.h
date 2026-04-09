@@ -44,7 +44,7 @@ protected:
 
 public:
 
-	VideoDisplayUnit(string name, DeviceId devId, Display *display, uint8_t waitStates, BusAddress adr, BusAddress sz,
+	VideoDisplayUnit(string name, DeviceId devId, Display *display, uint8_t accessSpeed, BusAddress adr, BusAddress sz,
 		BusAddress videoMemAdr, DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
 	virtual ~VideoDisplayUnit() {};

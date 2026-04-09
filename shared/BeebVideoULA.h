@@ -175,7 +175,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	BeebVideoULA(string name, BusAddress adr, Display *display, double tickRate, uint8_t waitStates,
+	BeebVideoULA(string name, BusAddress adr, Display *display, double tickRate, uint8_t accessSpeed,
 		DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~BeebVideoULA();
 

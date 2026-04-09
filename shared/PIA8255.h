@@ -31,7 +31,7 @@ private:
 
 public:
 
-	PIA8255(string name, double tickRate, uint8_t waitStates, BusAddress adr, DebugTracing  *debugTracing, ConnectionManager *connectionManager, DeviceManager* deviceManager);
+	PIA8255(string name, double tickRate, uint8_t accessSpeed, BusAddress adr, DebugTracing  *debugTracing, ConnectionManager *connectionManager, DeviceManager* deviceManager);
 
 	bool readByte(BusAddress adr, BusByte& data);
 	bool dump(BusAddress adr, uint8_t& data) override;

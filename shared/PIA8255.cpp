@@ -189,9 +189,9 @@ bool PIA8255::advanceUntil(uint64_t tickTime)
 // At reset all ports will be set to input mode (Control Register becomes 10011011 = 0x9b)
 // All output registers will be reset when the mode is changed.
 //
-PIA8255::PIA8255(string name, double tickRate, uint8_t waitStates, BusAddress adr, DebugTracing  *debugTracing, ConnectionManager* connectionManager,
+PIA8255::PIA8255(string name, double tickRate, uint8_t accessSpeed, BusAddress adr, DebugTracing  *debugTracing, ConnectionManager* connectionManager,
 	DeviceManager *deviceManager) :
-	MemoryMappedDevice(name, PIA8255_DEV, PERIPHERAL, waitStates, adr, 4, debugTracing, connectionManager, deviceManager),
+	MemoryMappedDevice(name, PIA8255_DEV, PERIPHERAL, accessSpeed, adr, 4, debugTracing, connectionManager, deviceManager),
 	TimedDevice(tickRate)
 {
 	// Specify ports that can be connected to other devices

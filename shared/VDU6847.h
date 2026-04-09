@@ -237,7 +237,7 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	VDU6847(string name, uint16_t adr, Display *display, double tickRate, uint8_t wait_states,
+	VDU6847(string name, uint16_t adr, Display *display, double tickRate, uint8_t accessSpeed,
 		uint16_t videoMemAdr, DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 	~VDU6847();
 

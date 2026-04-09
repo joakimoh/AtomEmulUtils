@@ -39,7 +39,7 @@ private:
 public:
 
 
-	DACZN428(string name, double tickRate, double deviceClockRate, uint16_t adr, uint16_t sz, int waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
+	DACZN428(string name, double tickRate, double deviceClockRate, uint16_t adr, uint16_t sz, int accessSpeed, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
 	bool writeByte(BusAddress adr, BusByte data);
 

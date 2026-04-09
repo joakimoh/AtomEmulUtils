@@ -9,8 +9,8 @@
 using namespace std;
 
 BeebSerialULA::BeebSerialULA(
-	string name, uint16_t adr, double tickRate, uint8_t waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
-	MemoryMappedDevice(name, BEEB_SERIAL_ULA_DEV, PERIPHERAL, waitStates, adr, 1, debugTracing, connectionManager, deviceManager),
+	string name, uint16_t adr, double tickRate, uint8_t accessSpeed, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
+	MemoryMappedDevice(name, BEEB_SERIAL_ULA_DEV, PERIPHERAL, accessSpeed, adr, 1, debugTracing, connectionManager, deviceManager),
 	TimedDevice(tickRate)
 {
 	registerPort("RxD",		OUT_PORT,	0x1,	RxD,		&mRxD);		// Receive Data					to ACIA

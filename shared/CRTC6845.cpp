@@ -32,11 +32,11 @@
 // R16, R17   Light pen position				-     -     -     -     -     -     -     -
 //
 CRTC6845::CRTC6845(
-	string name, uint16_t adr, double tickRate, uint8_t waitStates, DebugTracing  *debugTracing,
+	string name, uint16_t adr, double tickRate, uint8_t accessSpeed, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager *deviceManager
-//) : VideoDisplayUnit(name, CRTC6845_DEV, display, tickRate, waitStates, adr, 0x2, 0x0 /* dummy adr as not used by the 6845 */, debugTracing,
+//) : VideoDisplayUnit(name, CRTC6845_DEV, display, tickRate, accessSpeed, adr, 0x2, 0x0 /* dummy adr as not used by the 6845 */, debugTracing,
 //	connectionManager, deviceManager)
-): MemoryMappedDevice(name, CRTC6845_DEV, VDU_DEVICE, waitStates, adr, 0x2, debugTracing, connectionManager, deviceManager),
+): MemoryMappedDevice(name, CRTC6845_DEV, VDU_DEVICE, accessSpeed, adr, 0x2, debugTracing, connectionManager, deviceManager),
 TimedDevice(tickRate)
 {
 

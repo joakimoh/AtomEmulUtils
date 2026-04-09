@@ -6,9 +6,9 @@
 
 using namespace std;
 
-ROM::ROM(string name, uint8_t waitStates, BusAddress adr, BusAddress sz, string binaryContent, DebugTracing  *debugTracing,
+ROM::ROM(string name, uint8_t accessSpeed, BusAddress adr, BusAddress sz, string binaryContent, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager) :
-	MemoryMappedDevice(name, ROM_DEV, MEMORY_DEVICE, waitStates, adr, sz, debugTracing, connectionManager, deviceManager)
+	MemoryMappedDevice(name, ROM_DEV, MEMORY_DEVICE, accessSpeed, adr, sz, debugTracing, connectionManager, deviceManager)
 {
 	registerPort("CS", IN_PORT, 0x1, CS, &mCS);
 

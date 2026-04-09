@@ -19,7 +19,7 @@ public:
 public:
 
 
-	ROM(string name, uint8_t waitStates, BusAddress adr, BusAddress sz, string binaryContent, DebugTracing  *debugTracing,
+	ROM(string name, uint8_t accessSpeed, BusAddress adr, BusAddress sz, string binaryContent, DebugTracing  *debugTracing,
 		ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
 	bool readByte(BusAddress adr, BusByte& data);

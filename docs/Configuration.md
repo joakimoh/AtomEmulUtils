@@ -30,7 +30,8 @@ the microcontroller (or by a video data unit) and _size_ is the siaze in
 bytes of the space the device occupies in memory and _access speed_ is the
 max speed (in mHz) at which the device can be accessed (this information is
 used to decide what type of clock stretching will be required - if enabled).
-Optionally (for devices that are clocked) a clock speed can be specified
+Sometimes (for a device that is clocked <=> its time is advanced
+based on its own running clock) a clock speed needs to be specified
 Example:
 ```
 ADD	VIA6522			SYS_VIA		fe40	0020	1			1.0
@@ -41,4 +42,4 @@ ADD	VIA6522			SYS_VIA		fe40	0020	1			1.0
 | ------------- | ------------------------------------- | ----------------------------------------------------------------- |
 | ADC7002       | 12-bit Analogue-to-Digital Converter  | \<start address\> \<size> \<access speed\> \<clock speed\>        |
 | ZN428         | 8-bit Digital-to-Analogue Converter   | \<start address\> \<size> \<access speed\> \<clock speed\>        |
-| CRT6845       | Character Raster Generator            | \<start address\> \<size> \<access speed\>                        |
+| CRTC6845      | Character Raster Generator            | \<start address\> \<size> \<access speed\>                        |

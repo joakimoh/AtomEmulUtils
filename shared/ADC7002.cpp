@@ -2,9 +2,9 @@
 #include "Utility.h"
 #include <cmath>
 
-ADC7002::ADC7002(string name, double tickRate, double deviceClockRate, uint16_t adr, uint16_t sz, int waitStates, DebugTracing* debugTracing, ConnectionManager* connectionManager,
+ADC7002::ADC7002(string name, double tickRate, double deviceClockRate, uint16_t adr, uint16_t sz, int accessSpeed, DebugTracing* debugTracing, ConnectionManager* connectionManager,
 	DeviceManager* deviceManager) :
-	MemoryMappedDevice(name, ADC_7002_DEV, OTHER_DEVICE, waitStates, adr, sz, debugTracing, connectionManager, deviceManager),
+	MemoryMappedDevice(name, ADC_7002_DEV, OTHER_DEVICE, accessSpeed, adr, sz, debugTracing, connectionManager, deviceManager),
 	ClockedDevice(tickRate, deviceClockRate)
 {
 	registerPort("EOC", OUT_PORT, 0x01, EOC, &mEOC);	// EOC output

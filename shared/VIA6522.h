@@ -208,7 +208,7 @@ private:
 
 public:
 
-	VIA6522(string name, uint16_t adr, double deviceClockRate, double tickRate, uint8_t waitStates, DebugTracing  *debugTracing, ConnectionManager* connectionManager,
+	VIA6522(string name, uint16_t adr, double deviceClockRate, double tickRate, uint8_t accessSpeed, DebugTracing  *debugTracing, ConnectionManager* connectionManager,
 		DeviceManager* deviceManager);
 
 	bool readByte(BusAddress adr, BusByte& data);

@@ -12,9 +12,9 @@ using namespace std;
 //
 
 
-VIA6522::VIA6522(string name, uint16_t adr, double deviceClockRate, double tickRate, uint8_t waitStates, DebugTracing  *debugTracing, ConnectionManager* connectionManager,
+VIA6522::VIA6522(string name, uint16_t adr, double deviceClockRate, double tickRate, uint8_t accessSpeed, DebugTracing  *debugTracing, ConnectionManager* connectionManager,
 	DeviceManager *deviceManager) :
-	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL,waitStates, adr, 0x10, debugTracing, connectionManager, deviceManager),
+	MemoryMappedDevice(name, VIA6522_DEV, PERIPHERAL,accessSpeed, adr, 0x10, debugTracing, connectionManager, deviceManager),
 	ClockedDevice(tickRate, deviceClockRate)
 {
 

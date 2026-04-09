@@ -80,9 +80,9 @@ using namespace std;
 //						 -´     `-´     `-´     `-´     `-´     `-´
 
 BeebVideoULA::BeebVideoULA(
-	string name, BusAddress adr, Display* display, double tickRate, uint8_t waitStates,
+	string name, BusAddress adr, Display* display, double tickRate, uint8_t accessSpeed,
 	DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager
-) : VideoDisplayUnit(name, BEEB_VDU_DEV, display, waitStates, adr, 0x10, 0x0 /* dummy adr */, debugTracing, connectionManager,
+) : VideoDisplayUnit(name, BEEB_VDU_DEV, display, accessSpeed, adr, 0x10, 0x0 /* dummy adr */, debugTracing, connectionManager,
 	deviceManager), TimedDevice(tickRate)
 {
 	//registerPort("SCROLL_CTRL",	IN_PORT,	0x0f, SCROLL_CTRL,	&mSCROLL_CTRL);

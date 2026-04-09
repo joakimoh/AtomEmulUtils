@@ -3,9 +3,9 @@
 #include <iostream>
 #include <filesystem>
 
-RAM::RAM(string name, uint8_t waitStates, bool DRAM, BusAddress adr, BusAddress sz, DebugTracing  *debugTracing,
+RAM::RAM(string name, uint8_t accessSpeed, bool DRAM, BusAddress adr, BusAddress sz, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager) :
-	MemoryMappedDevice(name, RAM_DEV, MEMORY_DEVICE, waitStates, adr, sz, debugTracing, connectionManager, deviceManager)
+	MemoryMappedDevice(name, RAM_DEV, MEMORY_DEVICE, accessSpeed, adr, sz, debugTracing, connectionManager, deviceManager)
 {
 
 	registerPort("CS", IN_PORT, 0x1, CS, &mCS);

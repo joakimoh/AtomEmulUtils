@@ -17,7 +17,7 @@ private:
 public:
 
 
-	RAM(string name, uint8_t waitStates, bool DRAM, BusAddress adr, BusAddress sz, DebugTracing  *debugTracing,
+	RAM(string name, uint8_t accessSpeed, bool DRAM, BusAddress adr, BusAddress sz, DebugTracing  *debugTracing,
 		ConnectionManager * connectionManager, DeviceManager* deviceManager);
 
 	bool readByte(BusAddress adr, BusByte& data);

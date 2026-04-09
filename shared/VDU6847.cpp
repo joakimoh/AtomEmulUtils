@@ -73,9 +73,9 @@ using namespace std;
 // 1	1	1	1	7		256 x 192	2			6kB					resolution graphics six (RG6)		Yes - Graphics mode 4
 //
 
-VDU6847::VDU6847(string name, uint16_t adr, Display* display, double tickRate, uint8_t waitStates, 
+VDU6847::VDU6847(string name, uint16_t adr, Display* display, double tickRate, uint8_t accessSpeed, 
 	uint16_t videoMemAdr, DebugTracing  *debugTracing, ConnectionManager* connectionManager, DeviceManager *deviceManager) :
-	VideoDisplayUnit(name, VDU6847_DEV, display, waitStates, adr, 0x100, videoMemAdr, debugTracing, connectionManager,
+	VideoDisplayUnit(name, VDU6847_DEV, display, accessSpeed, adr, 0x100, videoMemAdr, debugTracing, connectionManager,
 		deviceManager), mN60HzCycles((int)round(tickRate * 1e6 / 60)), TimedDevice(tickRate)
 {
 	// Specify ports that can be connectde to other devices
