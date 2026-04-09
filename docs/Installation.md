@@ -60,12 +60,22 @@ you cannot really tell until you try it. If you do get it to build on a Mac, the
 to tell about that as well!
 
 # General troubleshooting
-If you get errors related to building the allegro5 libraries and there is aline
+If you get the error below (because your version of cmake is more recent):
 ```
-cmake_minimum_required(VERSION 3.12...4.0)
+CMake Error at out/build/x64-release/_deps/allegro5-src/CMakeLists.txt:8 (cmake_minimum_required):
+1> [CMake]   Compatibility with CMake < 3.5 has been removed from CMake.
+1> [CMake] 
+1> [CMake]   Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+1> [CMake]   to tell CMake that the project requires at least <min> but has been updated
+1> [CMake]   to work with policies introduced by <max> or earlier.
+1> [CMake] 
+1> [CMake]   Or, add -DCMAKE_POLICY_VERSION_MINIMUM=3.5 to try configuring anyway.
 ```
-in the file AtomEmulUtils/.../_deps/allegro5-src/CmakeList.txt (replace '...' with whatever path you have downto '_deps').
-Then change that line to:
+Then change the line
+```
+cmake_minimum_required(VERSION 3.0)
+```
+in the offending file to
 ```
 cmake_minimum_required(VERSION 3.8)
 ```

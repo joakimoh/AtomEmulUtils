@@ -33,6 +33,25 @@ See [Installation instructions](docs/Installation.md) for details on how to inst
 
 See [Implementation of the emulator](docs/Implementation.md) for details on how the emulator works and is implemented.
 
+The emulator is run from command line and cannot run without a map file that defines your computer system:
+```
+> Emu6502 -map <path to map file>
+```
+You will find several example systems in the folder 'Examples'.
+E.g., 'AtomEmulUtils/Examples/Atom/ROMs/AtomMemoryMap.txt' defines a basic Acorn Atom computer system
+To start the emulation of that system you simply give the command:
+```
+> Emu6502 -map AtomEmulUtils/Examples/Atom/ROMs/AtomMemoryMap.txt
+```
+Other systems include a BBC Micro system and some simple headless systems (systems just with a microprocessor and memory).
+
+The map file and ROM files (with operating systems or your own software) need to be located in the same folder as the
+map file.
+
+The utility deson't include any assembler but the example assembler files are written in a way that is compatible with e.g.,
+the beebasm assmebler (https://github.com/stardot/beebasm). What is included is however a simple disassmebler ('Dis') that
+you can run on any binary file content (like a ROM file).
+
 ## Connectivity
 
 ### Keyboard
@@ -67,7 +86,7 @@ It is possible to load data into the emulated memory directly by selecting a fil
 This makes it possible to quickly load e.g. a BASIC program into memory without having to use the slow cassette interface.
 
 ### Emulation speed
-The emulation speed is default 'real time' but cna be changed to be slower or faster. How fast it can become depends on the host computer and the complexity of
+The emulation speed is default 'real time' but can be changed to be slower or faster. How fast it can become depends on the host computer and the complexity of
 the emauled computer system. Don't expect much higgher speed than real time for a complex system. When a video display device is present, the update rate 
 (perceived frame rate) of the display can be adjusted (slowed down) to improvde emulation performance. The default is to use that of the selected TV standard
 (50 Hz for PAL and 60 Hz for NTSC).
