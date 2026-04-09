@@ -34,6 +34,13 @@ Now you can configure, build and install:
 > cd ../AtomEmulUtilsBuild
 > make install
 ```
+You might also need to export the path to the library and executaables built (replace '...' with whatever
+path you have to reach the lib and bin directories):
+```
+> export LD_LIBRARY_PATH=...AtomEmulUtilsBuild/lib
+> PATH=$PATH:.../AtomEmulUtilsBuild/bin
+```
+This you should add to your ~/.bashrc file.
 
 # Install instructions for Windows
 Start by installing zlib and Visual Studio and then clone the repository to your computer using Visual Studio.
