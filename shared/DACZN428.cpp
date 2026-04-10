@@ -1,8 +1,7 @@
 #include "DACZN428.h"
 
-DACZN428::DACZN428(string name, double tickRate, double deviceClockRate, uint16_t adr, uint16_t sz, int accessSpeed, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
-	MemoryMappedDevice(name, DAC_ZN428_DEV, OTHER_DEVICE, accessSpeed, adr, sz, debugTracing, connectionManager, deviceManager),
-	ClockedDevice(tickRate, deviceClockRate)
+DACZN428::DACZN428(string name, uint16_t adr, uint16_t sz, int accessSpeed, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager) :
+	MemoryMappedDevice(name, DAC_ZN428_DEV, OTHER_DEVICE, accessSpeed, adr, sz, debugTracing, connectionManager, deviceManager)
 {
 	registerPort("ENABLE", IN_PORT, 0x01, ENABLE, &mENABLE);	// ENA input
 

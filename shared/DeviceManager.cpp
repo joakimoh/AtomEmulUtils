@@ -426,7 +426,8 @@ DeviceManager::DeviceManager(
 				else if (dev_type == "BEEBKB") {
 
 					uint8_t startup_options = getHexVal(sin) & 0xff;
-					BeebKeyboard* kb = new BeebKeyboard(dev_name, tickRate, 1.0, startup_options, mDM, mCM);
+					double clk = getDoubleVal(sin);
+					BeebKeyboard* kb = new BeebKeyboard(dev_name, tickRate, clk, startup_options, mDM, mCM);
 					mDevices.push_back(kb);
 					keyboard = kb;
 
@@ -567,8 +568,7 @@ DeviceManager::DeviceManager(
 					uint16_t dev_sz = getHexVal(sin);
 					double access_speed;
 					sin >> access_speed;
-					double clk = getDoubleVal(sin);
-					ACIA6850* acia = new ACIA6850(dev_name, dev_adr, clk, tickRate, access_speed, mDM, mCM, this);
+					ACIA6850* acia = new ACIA6850(dev_name, dev_adr, tickRate, access_speed, mDM, mCM, this);
 					mDevices.push_back(acia);
 
 				}
@@ -625,8 +625,7 @@ DeviceManager::DeviceManager(
 					uint16_t dev_sz = getHexVal(sin);
 					double access_speed;
 					sin >> access_speed;
-					double clk = getDoubleVal(sin);
-					DACZN428* dac = new DACZN428(dev_name, tickRate, clk, dev_adr, dev_sz, access_speed, mDM, mCM, this);
+					DACZN428* dac = new DACZN428(dev_name, dev_adr, dev_sz, access_speed, mDM, mCM, this);
 					mDevices.push_back(dac);
 					}
 

@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <map>
-#include "ClockedDevice.h"
+#include "TimedDevice.h"
 #include "Device.h"
 #include <allegro5/allegro5.h>
 #include "DebugTracing.h"

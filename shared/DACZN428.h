@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include "MemoryMappedDevice.h"
-#include "ClockedDevice.h"
 
 
 using namespace std;
@@ -14,7 +13,7 @@ using namespace std;
 // 
 // The analogue output range is [0,VREF] where VREF is [2.475, 2.625]
 //
-class DACZN428 : public MemoryMappedDevice, public ClockedDevice {
+class DACZN428 : public MemoryMappedDevice {
 
 private:
 
@@ -39,7 +38,7 @@ private:
 public:
 
 
-	DACZN428(string name, double tickRate, double deviceClockRate, uint16_t adr, uint16_t sz, int accessSpeed, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
+	DACZN428(string name, uint16_t adr, uint16_t sz, int accessSpeed, DebugTracing* debugTracing, ConnectionManager* connectionManager, DeviceManager* deviceManager);
 
 	bool writeByte(BusAddress adr, BusByte data);
 

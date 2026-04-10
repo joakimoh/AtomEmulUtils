@@ -22,7 +22,7 @@ GAP					OS			fc00	0300							// Gap in OS ROM space between		fc00 - ff00
 //
 // FRED fc00 - fcff
 //															CLK
-ADD ZN428			DAC			fc00	0001	1			1.0				// 8-bit Digital-to-Analogue Converter
+ADD ZN428			DAC			fc00	0001	1						// 8-bit Digital-to-Analogue Converter
 
 
 
@@ -31,7 +31,7 @@ ADD ZN428			DAC			fc00	0001	1			1.0				// 8-bit Digital-to-Analogue Converter
 //
 ADD	CRTC6845		CRTC		fe00	0008	1						// H6845SP CRTC
 ADD	SAA5050			TCG							1						// Teletext Character Generator			
-ADD	ACIA6850		ACIA		fe08	0008	1			1.0			// ACIA 6850
+ADD	ACIA6850		ACIA		fe08	0008	1						// ACIA 6850
 ADD	BeebSerULA		SerialULA	fe10	0010	1						// Beeb Serial ULA
 ADD	BeebVideoULA	VDU			fe20	0010	1						// Beeb Video ULA
 ADD	BeebRomSel		ROMSel		fe30	0001	2
@@ -39,12 +39,12 @@ ADD	VIA6522			SYS_VIA		fe40	0020	1			1.0			// IC3	fe40 -	fe4f; 1 Mhz Clock
 ADD	VIA6522			USER_VIA	fe60	0020	1			1.0			// IC69	fe60 -	fe6f; 1 MHz Clock
 ADD	ADC7002			ADC			fec0	0003	1			1.0			// ADC Converter
 
-ADD	BEEBKB			KB			00										// startup options (DIP switches)
+ADD	BEEBKB			KB			00							1.0			// startup options (DIP switches) + 1 MHz keyboard auto scanning
 ADD	CPU_6502		CPU										2.0			// Microprocessor 6502 running ay 2 MHz
 ADD	TAPREC			TAPREC												// Standard Tape Recorder
 ADD	TI4689			SOUND
 ADD	74LS259			74LS259												// System VIA Latch with 8 outputs, each updated by writing to Port B bits 3:0
-ADD SD_CARD			MMFS_CARD								MMC.img		// FAT32 SD Card image
+ADD SD_CARD			MMFS_CARD											// FAT32 SD Card image
 
 
 //

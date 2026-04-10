@@ -9,7 +9,7 @@
 using namespace std;
 
 
-class ACIA6850 : public MemoryMappedDevice, public ClockedDevice {
+class ACIA6850 : public MemoryMappedDevice, public TimedDevice {
 
 public:
 	bool mDataStart = false; // for debugging only
@@ -122,7 +122,7 @@ private:
 
 public:
 
-	ACIA6850(string name, uint16_t adr, double deviceClockRate, double tickRate, uint8_t accessSpeed, DebugTracing  *debugTracing,
+	ACIA6850(string name, uint16_t adr, double tickRate, uint8_t accessSpeed, DebugTracing  *debugTracing,
 		ConnectionManager* connectionManager, DeviceManager *deviceManager);
 
 	bool readByte(BusAddress adr, BusByte& data);

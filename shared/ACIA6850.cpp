@@ -2,10 +2,10 @@
 #include <cmath>
 #include "Utility.h"
 
-ACIA6850::ACIA6850(string name, uint16_t adr, double deviceClockRate, double tickRate, uint8_t accessSpeed, DebugTracing  *debugTracing,
+ACIA6850::ACIA6850(string name, uint16_t adr, double tickRate, uint8_t accessSpeed, DebugTracing  *debugTracing,
 	ConnectionManager* connectionManager, DeviceManager* deviceManager) :
 	MemoryMappedDevice(name, ACIA6850_DEV, PERIPHERAL, accessSpeed, adr, 0x08, debugTracing, connectionManager, deviceManager),
-	ClockedDevice(tickRate, deviceClockRate)
+	TimedDevice(tickRate)
 {
 	registerPort("RxD",		IN_PORT,	0x1,	RxD,	&mRxD);
  	registerPort("CTS",		IN_PORT,	0x1,	CTS,	&mCTS);

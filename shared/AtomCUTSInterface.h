@@ -7,7 +7,7 @@
 #include "CSWCodec.h"
 #include <cmath>
 #include <chrono>
-#include "ClockedDevice.h"
+#include "TimedDevice.h"
 
 class AtomCUTSInterface : public Device, public TimedDevice {
 
