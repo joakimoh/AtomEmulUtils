@@ -7,7 +7,7 @@
 #include "CRTC6845.h"
 #include "BeebVideoULA.h"
 #include "BeebKeyboard.h"
-#include "TT5050.h"
+#include "SAA5050.h"
 #include "AtomKeyboardDevice.h"
 #include <iostream>
 #include <filesystem>
@@ -290,9 +290,9 @@ DeviceManager::DeviceManager(
 					dev_type == "ACIA6850" ||
 					dev_type == "VDU6847" ||
 					dev_type == "CRTC6845" ||
-					dev_type == "TT5050" ||
+					dev_type == "SAA5050" ||
 					dev_type == "BeebVideoULA" ||
-					dev_type == "BEEBVIALATCH" ||
+					dev_type == "74LS259" ||
 					dev_type == "SD_CARD" ||
 					dev_type == "ADC7002" ||
 					dev_type == "ZN428"
@@ -587,9 +587,9 @@ DeviceManager::DeviceManager(
 					mDevices.push_back(crtc);
 				}
 
-				else if (dev_type == "TT5050") {
+				else if (dev_type == "SAA5050") {
 
-					TT5050* tcg = new TT5050(dev_name, 0x0, tickRate, 0x0, mDM, mCM);
+					SAA5050* tcg = new SAA5050(dev_name, 0x0, tickRate, 0x0, mDM, mCM);
 					mDevices.push_back(tcg);
 				}
 
@@ -598,7 +598,7 @@ DeviceManager::DeviceManager(
 				//
 
 				// Emulation of BBC Micro IC31 & IC32
-				else if (dev_type == "BEEBVIALATCH") {
+				else if (dev_type == "74LS259") {
 					Latch74LS259* latch = new Latch74LS259(dev_name, tickRate, mDM, mCM);
 					mDevices.push_back(latch);
 				}

@@ -1,6 +1,6 @@
 #include "BeebVideoULA.h"
 #include "CRTC6845.h"
-#include "TT5050.h"
+#include "SAA5050.h"
 #include <iomanip>
 #include "Utility.h"
 #include <chrono>
@@ -302,7 +302,7 @@ bool BeebVideoULA::advanceChar(uint64_t& endCycle)
 
 	// For teletext-enabled modes, decode video memory data as videotext data
 
-	TT5050::ScreenDataType* tmpTgcData = mNewTgcData;
+	SAA5050::ScreenDataType* tmpTgcData = mNewTgcData;
 	mNewTgcData = mOldTgcData;
 	mOldTgcData = tmpTgcData;
 	bool valid_TGC_data = false;
@@ -536,8 +536,8 @@ bool BeebVideoULA::connectDevice(Device* dev)
 	if (dev != NULL && dev->devType == CRTC6845_DEV) {
 		mCRTC = (CRTC6845*)dev;
 	}
-	if (dev != NULL && dev->devType == TT_5050_DEV) {
-		mTGC = (TT5050*)dev;
+	if (dev != NULL && dev->devType == SAA5050_DEV) {
+		mTGC = (SAA5050*)dev;
 	}
 
 	return true;

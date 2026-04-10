@@ -30,7 +30,7 @@ ADD ZN428			DAC			fc00	0001	1			1.0				// 8-bit Digital-to-Analogue Converter
 // SHEILA	fe00 -	feff
 //
 ADD	CRTC6845		CRTC		fe00	0008	1						// H6845SP CRTC
-ADD	TT5050			TCG							1						// Teletext Character Generator			
+ADD	SAA5050			TCG							1						// Teletext Character Generator			
 ADD	ACIA6850		ACIA		fe08	0008	1			1.0			// ACIA 6850
 ADD	BeebSerULA		SerialULA	fe10	0010	1						// Beeb Serial ULA
 ADD	BeebVideoULA	VDU			fe20	0010	1						// Beeb Video ULA
@@ -43,7 +43,7 @@ ADD	BEEBKB			KB			00										// startup options (DIP switches)
 ADD	CPU_6502		CPU										2.0			// Microprocessor 6502 running ay 2 MHz
 ADD	TAPREC			TAPREC												// Standard Tape Recorder
 ADD	TI4689			SOUND
-ADD	BEEBVIALATCH	74LS259												// System VIA Latch with 8 outputs, each updated by writing to Port B bits 3:0
+ADD	74LS259			74LS259												// System VIA Latch with 8 outputs, each updated by writing to Port B bits 3:0
 ADD SD_CARD			MMFS_CARD								MMC.img		// FAT32 SD Card image
 
 
@@ -79,7 +79,7 @@ CONNECT:P	CRTC:RA;3;0			VDU:RA
 CONNECT		CRTC:VS				SYS_VIA:CA;0	// VS => CA1
 CONNECT:P	CRTC:VS				VDU:VS
 CONNECT:P	CRTC:HS				VDU:HS
-CONNECT:P	74LS259:Q;5;4			VDU:C
+CONNECT:P	74LS259:Q;5;4		VDU:C
 CONNECT 	VDU:CRTC_CLK		CRTC:CLK
 
 // Paged ROMs
@@ -165,6 +165,7 @@ SCHED	74LS259		NONE								// The VIA latch is driven only by changes in the I/O
 SCHED	SOUND		HIGH_RATE
 SCHED	MMFS_CARD	NONE								// The SC Card is driven only by changes in the I/O pins
 SCHED	ADC			MICROPROCESSOR_RATE
+SCHED	DAC			NONE
 
 //
 // Initialisation of ports

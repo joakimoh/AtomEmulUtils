@@ -28,7 +28,7 @@
 // input shall be high during the visible part of the scan line.
 //
 
-class TT5050 : public Device, public TimedDevice {
+class SAA5050 : public Device, public TimedDevice {
 
 private:
 
@@ -249,10 +249,10 @@ public:
 
 	ALLEGRO_COLOR green, black;
 
-	TT5050(string name, uint16_t adr, double tickRate, uint16_t videoMemAdr, DebugTracing  *debugTracing,
+	SAA5050(string name, uint16_t adr, double tickRate, uint16_t videoMemAdr, DebugTracing  *debugTracing,
 		ConnectionManager* connectionManager);
 
-	~TT5050();
+	~SAA5050();
 
 	// Device power on
 	bool power() { return reset(); }
@@ -261,7 +261,7 @@ public:
 	bool advanceUntil(uint64_t tickTime) override;
 
 	// Called by the device that needs the RGB pixel data (screenData) that
-	// the TT5050 generates based on page memory data (pageData).
+	// the SAA5050 generates based on page memory data (pageData).
 	typedef uint8_t ScreenDataType[16];
 	bool getScreenData(uint8_t pageData, ScreenDataType* &screenData, TTColour &bgColour, TTColour &fgColour);
 

@@ -1,4 +1,4 @@
-#include "TT5050.h"
+#include "SAA5050.h"
 #include <iostream>
 #include <iomanip>
 #include <cmath>
@@ -7,9 +7,9 @@
 
 using namespace std;
 
-TT5050::TT5050(
+SAA5050::SAA5050(
 	string name, uint16_t adr, double tickRate, uint16_t videoMemAdr, DebugTracing  *debugTracing, ConnectionManager* connectionManager
-) : Device(name, TT_5050_DEV, VDU_DEVICE, debugTracing, connectionManager), TimedDevice(tickRate)
+) : Device(name, SAA5050_DEV, VDU_DEVICE, debugTracing, connectionManager), TimedDevice(tickRate)
 {
 	if (VERBOSE_EXT_OUTPUT)
 		cout << "Teletext Character Generator SA5050 '" << name << "' added\n";
@@ -24,7 +24,7 @@ TT5050::TT5050(
 
 }
 
-TT5050::~TT5050()
+SAA5050::~SAA5050()
 {
 	if (pSymbolRasterBits != nullptr)
 		delete pSymbolRasterBits;
@@ -36,7 +36,7 @@ TT5050::~TT5050()
 		delete pStretchedSymbolRasterBits;
 }
 
-void TT5050::createInterpolatedSymbols()
+void SAA5050::createInterpolatedSymbols()
 {
 	pSymbolRasterBits = new SymbolRasterBits();
 	auto& mSymbolRasterBits = pSymbolRasterBits->data;
@@ -160,7 +160,7 @@ void TT5050::createInterpolatedSymbols()
 		}
 	}
 }
-void TT5050::createSixels12(uint8_t separated_graphics, uint8_t char_data, uint8_t raster_line, vector <uint8_t>& screenData12)
+void SAA5050::createSixels12(uint8_t separated_graphics, uint8_t char_data, uint8_t raster_line, vector <uint8_t>& screenData12)
 {
 	//
 	// Create one raster line made up of a graphical symbol that is made up of two "big" pixels (sixels) occupying 2 x 6 actual pixels
@@ -212,7 +212,7 @@ void TT5050::createSixels12(uint8_t separated_graphics, uint8_t char_data, uint8
 
 }
 
-void TT5050::stretchTo16Pixels()
+void SAA5050::stretchTo16Pixels()
 {
 	vector <uint8_t> screenData12(12);
 	pStretchedSymbolRasterBits = new StretchedSymbolRasterBits();
@@ -254,7 +254,7 @@ void TT5050::stretchTo16Pixels()
 }
 
 // Advance until time tickTime
-bool TT5050::advanceUntil(uint64_t tickTime)
+bool SAA5050::advanceUntil(uint64_t tickTime)
 {
 	// Currently not intended to be used as getScreenData() should instead be called periodically
 
@@ -273,7 +273,7 @@ bool TT5050::advanceUntil(uint64_t tickTime)
 // 
 // Returns true if data was enabled (LOSE active) and the TCG was properly initialised; otherwise false is returned	
 //
-bool TT5050::getScreenData(uint8_t pageData, ScreenDataType* &screenData, TTColour& bgColour, TTColour& fgColour)
+bool SAA5050::getScreenData(uint8_t pageData, ScreenDataType* &screenData, TTColour& bgColour, TTColour& fgColour)
 {
 
 	// Advance time 1 us
@@ -514,7 +514,7 @@ bool TT5050::getScreenData(uint8_t pageData, ScreenDataType* &screenData, TTColo
 
 
 // Process a port update directly (and not just next time the advanceUntil() method is called)
-void  TT5050::processPortUpdate(int index)
+void  SAA5050::processPortUpdate(int index)
 {
 	if (index == GLR) {
 		if (mGLR == 1 && pGLR == 0 && mLOSE == 0) {
@@ -565,7 +565,7 @@ void  TT5050::processPortUpdate(int index)
 }
 
 // Outputs the internal state of the device
-bool TT5050::outputState(ostream& sout)
+bool SAA5050::outputState(ostream& sout)
 {
 	sout << "LOSE [Start of visible line] = " << (int)mLOSE << " <=> " << (mLOSE ? "Active" : "Inactive") << "\n";
 	sout << "CRS  [Field polarity       ] = " << (int)mCRS << " <=> " << (mCRS ? "Even field":"Odd field") << "\n";

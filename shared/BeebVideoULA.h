@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "VideoDisplayUnit.h"
 #include "RAM.h"
-#include "TT5050.h"
+#include "SAA5050.h"
 #include "CRTC6845.h"
 #include <cmath>
 #include <chrono>
@@ -150,12 +150,12 @@ public:
 	};
 
 	CRTC6845* mCRTC = NULL;
-	TT5050* mTGC = NULL;
+	SAA5050* mTGC = NULL;
 
-	TT5050::TTColour mFgColour = { 0 };
-	TT5050::TTColour mBgColour = { 0 };
-	TT5050::ScreenDataType* mOldTgcData = nullptr;
-	TT5050::ScreenDataType* mNewTgcData = nullptr;
+	SAA5050::TTColour mFgColour = { 0 };
+	SAA5050::TTColour mBgColour = { 0 };
+	SAA5050::ScreenDataType* mOldTgcData = nullptr;
+	SAA5050::ScreenDataType* mNewTgcData = nullptr;
 	bool mValidTgcData = false;
 
 	
