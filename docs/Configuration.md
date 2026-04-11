@@ -386,15 +386,30 @@ A datasheet can be found here: https://web.mit.edu/6.115/www/document/MC6847.pdf
 The device is scheduled at rate MICROPROCESSOR_RATE.
 																		
 ### BeebRomSel
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| BeebRomSel	| BBC Micro Paged Memory Selection		| W				|						|					|				|					| \<start address\> \<size> \<access speed\>						|
+The BeebRomSel emulates the paged ROM selection circuitry of an BBC Micro. It is extended sligtly to support selection of up to 16 memory devices.
+See IC20 (74LS139) and IC76 (74LS163) on the BBC Micro Model B circuit diagram at  https://stardot.org.uk/forums/download/file.php?id=34864 and https://beebwiki.mdfs.net/Paged_ROM for details.
+
+#### Parameters
+| Parameter		| Description												|
+| ------------- | --------------------------------------------------------- |
+| start address	| Start of the memory space occupied by the device			|
+| size			| Size of the memory space occupied by the device			|
+| access speed	| Speed in MHz for microprocessor accesses to the device	|
+
+#### Ports
+| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| NW			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Slot 12 Selection						|											|
+| NE			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Slot 13 Selection						|											|
+| SW			| Digital		| OUTPUT		| 3 bits	| Active LOW	| 1					| Slot 14 Selection						|											|
+| SE			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Slot 15 Selection						|											|
+| B0			| Digital		| OUTPUT		| 4 bits	| N/A			| f					| Selection of slots 0-3				|											|
+| B1			| Digital		| OUTPUT		| 4 bits	| N/A			| f					| Selection of slots 4-7				|											|
+| B2			| Digital		| OUTPUT		| 4 bits	| N/A			| f					| Selection of slots 8-11				|											|
 
 
-
-
-
-
+#### Scheduling
+The device is not explcitly scheduled. The outputs are updated by writing to the device.
 
 ### ACIA6850
 | Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
