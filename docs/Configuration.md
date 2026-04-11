@@ -60,19 +60,9 @@ GAP					OS			fc00	0300							// Gap in OS ROM space between		fc00 - ff00
 ```
 
 ## List of devices and their parameters
-The table below lists all devices and specifies whether they are memory-mapped, how they are scheduled, whether immediate prort processing is required and the parameters they need to have.
+The table below lists all devices and specifies whether they are memory-mapped, how they are scheduled, whether immediate port processing is required and the parameters they need to have.
 Scheduling is a combination of rate-based scheduling (column _Rate Scheduling_) and triggering by call from other devices (Columns _At Call_ and _Callees_).
-Triggering by call means that another device (the callee) exchanges data with (and sometimes also advances the time of) the called device by explicitly calling a method provided by that device.
-The result is that data is exchanged between the two devices and possibly, that time is advanced for the called device. An example of this it that the BeebVideoULA device calls both the SAA5050
-and CRTC6845 devices to advance their time correspodning to one screen character. At the same time the BeebVideoULA device will get character data from those devices to use when generatingh 
-ideo output. Only the devices listed in the _Callees_ column can be connected to the called device. Another example is that the BeebSerULA communicates changes in the received and transmit
-clock speeds to the ACIA6850 device (here  time is not advanced of the called device - only data is exchanged).
-The calling is  specified by the TRIGGER directive.
 
-Example:
-```
-TRIGGER	CRTC		CALL	VDU
-```
 
 | Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
 | ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
@@ -100,3 +90,15 @@ TRIGGER	CRTC		CALL	VDU
 | ATOMCAS		| Acorn Atom Cassette Interface			|				| MICROPROCESSOR_RATE	|					|				|					|																	|
 | ATOMSP		| Acorn Atom Sound Device				|				| HI_RATE (31.25 kHz)	|					|				|					|																	|
 | 74LS259		| 74LS259 8-bit Addressable Latch		|				| NONE					|					|				|					|																	|
+
+Triggering by call means that another device (the callee) exchanges data with (and sometimes also advances the time of) the called device by explicitly calling a method provided by that device.
+The result is that data is exchanged between the two devices and possibly, the time is also advanced for the called device. An example of this it that the BeebVideoULA device calls both the SAA5050
+and CRTC6845 devices to advance their time corresponding to one screen character. At the same time the BeebVideoULA device will get character data from those devices to use when generating 
+video output. Only the devices listed in the _Callees_ column can be connected to the called device. Another example is that the BeebSerULA communicates changes in the received and transmit
+clock speeds to the ACIA6850 device (here  time is not advanced of the called device - only data is exchanged).
+The calling is  specified by the TRIGGER directive.
+
+Example:
+```
+TRIGGER	CRTC		CALL	VDU
+```

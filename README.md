@@ -52,6 +52,8 @@ The utility deson't include any assembler but the example assembler files are wr
 the beebasm assmebler (https://github.com/stardot/beebasm). What is included is however a simple disassmebler ('Dis') that
 you can run on any binary file content (like a ROM file).
 
+Details about the content of a map file cand be found in [Map File Content](docs/Configuration.md) 
+
 ## Connectivity
 
 ### Keyboard

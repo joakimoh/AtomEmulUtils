@@ -10,19 +10,19 @@ EMU_HIGH_RATE	31250	// From the duration of a 1/2 scan line for PAL (32us)
 //												Speed		
 //												[mHz]
 ADD	DRAM			RAM32K		0000	8000	4						// 32kB RAM	0000 -	7fff
-ADD	ROM 			BASIC		8000	4000	2			BASIC2.rom	// 16kB Paged ROM #15 (IC101 SE)	8000 - bfff
+ADD	ROM				BASIC		8000	4000	2			BASIC2.rom	// 16kB Paged ROM #15 (IC101 SE)	8000 - bfff
 ADD	ROM				MMFS		8000	4000	2			MMFS.rom	// 16kB Paged ROM #13 (IC52 NW)		8000 - bfff
-ADD SRAM			SWRAM0		8000	4000	2						// 16kB Paged Sideways RAM #0		8000 - bfff
-ADD SRAM			SWRAM1		8000	4000	2						// 16kB Paged Sideways RAM #1		8000 - bfff
-ADD SRAM			SWRAM2		8000	4000	2						// 16kB Paged Sideways RAM #2		8000 - bfff
-ADD SRAM			SWRAM3		8000	4000	2						// 16kB Paged Sideways RAM #3		8000 - bfff
+ADD	SRAM			SWRAM0		8000	4000	2						// 16kB Paged Sideways RAM #0		8000 - bfff
+ADD	SRAM			SWRAM1		8000	4000	2						// 16kB Paged Sideways RAM #1		8000 - bfff
+ADD	SRAM			SWRAM2		8000	4000	2						// 16kB Paged Sideways RAM #2		8000 - bfff
+ADD	SRAM			SWRAM3		8000	4000	2						// 16kB Paged Sideways RAM #3		8000 - bfff
 ADD	ROM				OS			c000	4000	2			OS12.rom	// OS (IC51)		 				c000 - ffff
 GAP					OS			fc00	0300							// Gap in OS ROM space between		fc00 - ff00	
 
 //
 // FRED fc00 - fcff
 //															CLK
-ADD ZN428			DAC			fc00	0001	1						// 8-bit Digital-to-Analogue Converter
+ADD	ZN428	DAC			fc00	0001	1						// 8-bit Digital-to-Analogue Converter
 
 
 
@@ -154,18 +154,18 @@ CONNECT		ACIA:IRQ				CPU:IRQ
 //	Device scheduling
 //
 SCHED	KB			LOW_RATE
-SCHED	CRTC		NONE								// Trigger the CRTC only on VDU function calls (to emulate a CRTC data transfer to the VDU)
-TRIGGER	CRTC		CALL	VDU							// 
-SCHED	TCG			NONE								// Trigger the TCG only on VDU function calls (to emulate a CRTC data transfer to the TCG and the resulting RGB signal back to the VDU)
-TRIGGER	TCG			CALL	VDU							// 
+TRIGGER	CRTC		CALL	VDU							// Trigger the CRTC on VDU function calls (to get video memory addresses)
+TRIGGER	TCG			CALL	VDU							// Trigger the TCG on VDU function calls (to get characters)
 TRIGGER ACIA		CALL	SerialULA					// Trigger the ACIA on Serial ULA function calls (to update the ACIA's Rx/Tx CLK rates)
-SCHED	ACIA		MICROPROCESSOR_RATE							// as well as on instruction basis.
+SCHED	ACIA		MICROPROCESSOR_RATE					// as well as on instruction basis.
 SCHED	SerialULA	MICROPROCESSOR_RATE
-SCHED	74LS259		NONE								// The VIA latch is driven only by changes in the I/O pins
 SCHED	SOUND		HIGH_RATE
-SCHED	MMFS_CARD	NONE								// The SC Card is driven only by changes in the I/O pins
 SCHED	ADC			MICROPROCESSOR_RATE
-SCHED	DAC			NONE
+SCHED	VDU			MICROPROCESSOR_RATE
+SCHED	SYS_VIA		MICROPROCESSOR_RATE
+SCHED	USER_VIA	MICROPROCESSOR_RATE
+SCHED	TAPREC		MICROPROCESSOR_RATE
+SCHED	SOUND		MICROPROCESSOR_RATE
 
 //
 // Initialisation of ports

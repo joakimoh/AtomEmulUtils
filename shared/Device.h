@@ -167,7 +167,7 @@ protected:
 
 public:
 
-	Scheduling scheduling = MICROPROCESSOR_RATE; // default scheduling if nothing specified
+	Scheduling scheduling = NONE; // default scheduling if nothing specified
 
 	string name;
 
