@@ -498,20 +498,49 @@ A datasheet is available here: https://www.princeton.edu/~mae412/HANDOUTS/Datash
 #### Scheduling
 The device can be scheduled at MICROPROCESSOR_RATE rate.
 
-
-
-
-
-
-
-
-
-
-
 ### BeebSerULA
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| BeebSerULA	| BBC Micro Serial ULA					| R/W			| MICROPROCESSOR_RATE	|					|				| TxD,RTSI			| \<start address\> \<size> \<access speed\>						|
+The BeebSerULA emulates a BBC Micro Model B Serial ULA.
+No datasheet is available but a de3scription of it can be found here: https://beebwiki.mdfs.net/Serial_ULA
+
+#### Parameters
+| Parameter		| Description												|
+| ------------- | --------------------------------------------------------- |
+| start address	| Start of the memory space occupied by the device			|
+| size			| Size of the memory space occupied by the device			|
+| access speed	| Speed in MHz for microprocessor accesses to the device	|
+
+#### Ports
+| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| RxD			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Receive Data (to ACIA)				|											|
+| CTSO			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Clear To Send (to ACIA)				|											|
+| DCD			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Data Carrier Detect (to ACIA)			|											|
+| TxD			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Transmit Data (from ACIA)				| CONNECT:P									|
+| RTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Request To Send (from ACIA)			| CONNECT:P									|
+| CASMO			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Cassette Motor control (to relay)		|											|
+| CAS_IN		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Cassette In (from tape recorder)		| CONNECT									|
+| CAS_OUT		| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Cassette Out (to tape recorder)		|											|
+| DIn			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Serial In (from RS423 I/F)			| CONNECT									|
+| Dout			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Serial Out (to RS423 I/F)				|											|
+| RTSO			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Request To Send Out (to RS423 I/F)	|											|
+| CTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Clear To Send (from RS423 I/F)		| CONNECT									|
+
+#### Scheduling
+The device can be scheduled at MICROPROCESSOR_RATE rate.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### ADC7002
 | Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
