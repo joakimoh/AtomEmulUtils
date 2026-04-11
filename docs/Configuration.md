@@ -328,7 +328,7 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/9/9e/Mullard_SAA5050_
 | CRS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| Field index (odd=0 or even=1)			| CONNECTION								|
 
 #### Scheduling
-The device is sThe device is scheduled by calling it each time a new character is needed. The following devices can call the device: BeebVideoULA.
+The device is scheduled by calling it each time a new character is needed. The following devices can call the device: BeebVideoULA.
 
 ### Call API (used by the callee device)
 ```
@@ -363,7 +363,7 @@ There is no datasheet for this circuit available but a general description of it
 adjust the video memory address to care for scrolling.
 
 #### Scheduling
-The device is scheduled at rate MICROPROCESSOR_RATE.
+The device can be scheduled at MICROPROCESSOR_RATE rate.
 
 ### VDU6847
 The VDU6847 emulates an M6847 Video Display Generator.
@@ -393,7 +393,7 @@ A datasheet can be found here: https://web.mit.edu/6.115/www/document/MC6847.pdf
 [^2]:This is a trick to make it possible to connect a data in pin to another pin on the device. For an Acorn Atom e.g., bit 7 is conencted to the INV input pin.
 
 #### Scheduling
-The device is scheduled at rate MICROPROCESSOR_RATE.
+The device can be scheduled at MICROPROCESSOR_RATE rate.
 																		
 ### BeebRomSel
 The BeebRomSel emulates the paged ROM selection circuitry of a BBC Micro. It is extended sligtly to support selection of up to 16 memory devices.
@@ -443,7 +443,7 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/3/3f/MC6850.pdf.
 | IRQ			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 0					| Interrupt Request						| CONNECTION								|
 
 #### Scheduling
-The device is not scheduled on MICROPROCESSOR_RATE rate.
+The device can be scheduled at MICROPROCESSOR_RATE rate..
 The Rx and Tx clocks are not available as ports (for performance reasons) and are instead set by a method call to the device. The devices that can call the ACIA are: BeebSerULA.
 
 ### Call API (used by the callee device)
@@ -451,20 +451,62 @@ The Rx and Tx clocks are not available as ports (for performance reasons) and ar
 void setRxClkRate(long clkRate);
 void setRxClkRate(long clkRate);
 ```
-
-
-
-
-
 ### PIA8255
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| PIA8255		| 8255 PIA								| R/W			| LOW_RATE (50 Hz)		|					|				| 					| \<start address\> \<size> \<access speed\>						|
+The PIA8255 emulates an 8255 PIA.
+A datasheet is available here: https://theoddys.com/acorn/semiconductor_datasheets/P8255A.pdf.
+
+#### Parameters
+| Parameter		| Description												|
+| ------------- | --------------------------------------------------------- |
+| start address	| Start of the memory space occupied by the device			|
+| size			| Size of the memory space occupied by the device			|
+| access speed	| Speed in MHz for microprocessor accesses to the device	|
+
+#### Ports
+| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| RESET			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Device reset							|											|
+| PortA			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port A								|											|
+| PortB			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port B								|											|
+| PortC			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port C								|											|
+
+#### Scheduling
+The device can be scheduled at LOW_RATE rate.
 
 ### VIA6522
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| VIA6522		| 6522 VIA								| R/W			| MICROPROCESSOR_RATE	|					|				|					| \<start address\> \<size> \<access speed\> \<clock speed\>        |
+The VIA6522 emulates an 6522 VIA.
+A datasheet is available here: https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6522.pdf.
+
+#### Parameters
+| Parameter		| Description												|
+| ------------- | --------------------------------------------------------- |
+| start address	| Start of the memory space occupied by the device			|
+| size			| Size of the memory space occupied by the device			|
+| access speed	| Speed in MHz for microprocessor accesses to the device	|
+| clock speed	| The device's clock speed in MHz							|
+
+#### Ports
+| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| RESET			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Device reset							|											|
+| IRQ			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Interrupt Request						|											|
+| PA			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port A								|											|
+| PB			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port B								|											|
+| CA			| Digital		| INPUT/OUTPUT	| 2 bits	| N/A			| 0					| Port CA								|											|
+| CB			| Digital		| INPUT/OUTPUT	| 2 bits	| N/A			| 0					| Port CB								|											|
+
+#### Scheduling
+The device can be scheduled at MICROPROCESSOR_RATE rate.
+
+
+
+
+
+
+
+
+
+
 
 ### BeebSerULA
 | Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
