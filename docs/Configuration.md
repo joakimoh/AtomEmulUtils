@@ -211,6 +211,10 @@ AINIT 	<device>':'<port>	<hex value>
 Below follows a description of each device as required to understand how to add it to your computer system.
 For a good understanding a specific device's detailed operation you should also read the device's datasheet (links provided for each device)
 as such a detailed description will not be provided here.
+The column _Connect to the input_ in the tables listing each device's ports tell which directive to use when specifying a connecting
+of another device's source port to the the specific input (destination) port of the device. "CONNECTION:P" means that an update of the input
+port must be processed immediately by the device whereas just "CONNECTION" means that it is sufficient for the device to process the update
+next time it is scheduled to run.
 
 ### DRAM
 The DRAM emulates a Dynamic RAM. The content will be cleared at initialisation.
@@ -500,7 +504,7 @@ The device can be scheduled at MICROPROCESSOR_RATE rate.
 
 ### BeebSerULA
 The BeebSerULA emulates a BBC Micro Model B Serial ULA.
-No datasheet is available but a de3scription of it can be found here: https://beebwiki.mdfs.net/Serial_ULA
+No datasheet is available but a description of it can be found here: https://beebwiki.mdfs.net/Serial_ULA
 
 #### Parameters
 | Parameter		| Description												|
@@ -528,24 +532,36 @@ No datasheet is available but a de3scription of it can be found here: https://be
 #### Scheduling
 The device can be scheduled at MICROPROCESSOR_RATE rate.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### ADC7002
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| ADC7002       | 12-bit Analogue-to-Digital Converter  | R/W			| MICROPROCESSOR_RATE	|					|				|					| \<start address\> \<size> \<access speed\> \<clock speed\>        |
+The ADC7002 emulates a NEC uPD7002 12-bit Analogue-ot-Digital Converter.
+A datasheet can be found here: https://www.alldatasheet.com/datasheet-pdf/view/83024/NEC/UPD7002.html
+
+#### Parameters
+| Parameter		| Description												|
+| ------------- | --------------------------------------------------------- |
+| start address	| Start of the memory space occupied by the device			|
+| size			| Size of the memory space occupied by the device			|
+| access speed	| Speed in MHz for microprocessor accesses to the device	|
+| clock speed	| The device's clock speed in MHz							|
+
+#### Ports
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| EOC			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| End of Conversion (Interrupt)			|											|
+| CHO			| Analogue		| INPUT			| 0 to VREF	| N/A			| 0					| Channel #0 input voltage				|											|
+| CH1			| Analogue		| INPUT			| 0 to VREF	| N/A			| 0					| Channel #1 input voltage				|											|
+| CH2			| Analogue		| INPUT			| 0 to VREF	| N/A			| 0					| Channel #2 input voltage				|											|
+| CH3			| Analogue		| INPUT			| 0 to VREF	| N/A			| 0					| Channel #3 input voltage				|											|
+| VREF			| Analogue		| INPUT			| 0 to 5V	| N/A			| 0					| Reference voltage						|											|
+
+#### Scheduling
+The device can be scheduled at MICROPROCESSOR_RATE rate.
+
+
+
+
+
+
 
 ### ZN428
 | Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
