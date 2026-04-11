@@ -218,7 +218,6 @@ No reference to any DRAM datasheet will be provided here as it is assumed that t
 without it.
 
 #### Parameters
-
 | Parameter		| Description												|
 | ------------- | --------------------------------------------------------- |
 | start address	| Start of the memory space occupied by the device			|
@@ -227,7 +226,6 @@ without it.
 
 
 #### Ports
-
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECTION								|
@@ -241,7 +239,6 @@ No reference to any SRAM datasheet will be provided here as it is assumed that t
 without it.
 
 #### Parameters
-
 | Parameter		| Description												|
 | ------------- | --------------------------------------------------------- |
 | start address	| Start of the memory space occupied by the device			|
@@ -250,7 +247,6 @@ without it.
 
 
 #### Ports
-
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECTION								|
@@ -264,7 +260,6 @@ No reference to any ROM datasheet will be provided here as it is assumed that th
 without it.
 
 #### Parameters
-
 | Parameter		| Description												|
 | ------------- | --------------------------------------------------------- |
 | start address	| Start of the memory space occupied by the device			|
@@ -274,7 +269,6 @@ without it.
 
 
 #### Ports
-
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECTION								|
@@ -288,7 +282,6 @@ The CRTC6845 emulates a H6845 Character Raster Generator.
 A datasheet can be found here: https://www.cpcwiki.eu/imgs/c/c0/Hd6845.hitachi.pdf.
 
 #### Parameters
-
 | Parameter		| Description												|
 | ------------- | --------------------------------------------------------- |
 | start address	| Start of the memory space occupied by the device			|
@@ -297,7 +290,6 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/c/c0/Hd6845.hitachi.p
 
 
 #### Ports
-
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | CLK			| Digital		| INPUT			| 3 bits	| N/A			| 1 (1 MHz)			| Sets the device clock					| CONNECTION								|
@@ -316,7 +308,6 @@ The SAA5050 emulates a Mullard SAA5050 Teletext Character generator.
 A datasheet can be found here: https://www.cpcwiki.eu/imgs/9/9e/Mullard_SAA5050_datasheet.pdf.
 
 #### Parameters
-
 | Parameter		| Description												|
 | ------------- | --------------------------------------------------------- |
 | access speed	| Speed in MHz for microprocessor accesses to the device	|
@@ -339,7 +330,6 @@ The BeebVideoULA emulates a BBC Micro Video ULA.
 There is no datasheet for this circuit available but a general description of it can be found here: https://beebwiki.mdfs.net/Video_ULA
 
 #### Parameters
-
 | Parameter		| Description												|
 | ------------- | --------------------------------------------------------- |
 | start address	| Start of the memory space occupied by the device			|
@@ -348,15 +338,6 @@ There is no datasheet for this circuit available but a general description of it
 
 
 #### Ports
-registerPort("C",			IN_PORT,	0x03,	C,			&mC);
-	registerPort("DISEN",		IN_PORT,	0x01,	DISPTMG,	&mDISPTMG);
-	registerPort("CURSOR",		IN_PORT,	0x01,	CURSOR,		&mCURSOR);	
-	registerPort("INV",			IN_PORT,	0x01,	INV,		&mINV);
-	registerPort("RA",			IN_PORT,	0x0f,	RA,			&mRA);
-	registerPort("CRTC_CLK",	OUT_PORT,	0x3,	CRTC_CLK,	&mCRTC_CLK);
-	registerPort("HS",			IN_PORT,	0x1,	HS,			&mHS);
-	registerPort("VS",			IN_PORT,	0x1,	VS,			&mVS);
-
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | C				| Digital		| INPUT			| 2 bits	| N/A			| 0					| Scroll control[^1]					| CONNECTION:P								|
@@ -372,21 +353,48 @@ registerPort("C",			IN_PORT,	0x03,	C,			&mC);
 adjust the video memory address to care for scrolling.
 
 #### Scheduling
-The device is rate-scheduled on MICROPROCESSOR_RATE.
-
-
-
-
+The device is scheduled at rate MICROPROCESSOR_RATE.
 
 ### VDU6847
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| VDU6847		| MC6847 Video Display Generator		| R/W			| MICROPROCESSOR_RATE	|					|				| A/S,GM			| \<start address\> \<size> \<access speed\> \<video mem adr\>		|																		|
+The VDU6847 emulates an M6847 Video Display Generator.
+A datasheet can be found here: https://web.mit.edu/6.115/www/document/MC6847.pdf.
 
+#### Parameters
+| Parameter		| Description												|
+| ------------- | --------------------------------------------------------- |
+| start address	| Start of the memory space occupied by the device			|
+| size			| Size of the memory space occupied by the device			|
+| access speed	| Speed in MHz for microprocessor accesses to the device	|
+| video adr		| Start address  of the video memory						|
+
+
+#### Ports
+| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| A/S			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| alphanumeric (0) or semigraphics (1)	| CONNECTION:P								|
+| A/G			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| alphanum./semigr. (0) or graphics (1)	| CONNECTION								|
+| GM			| Digital		| INPUT			| 3 bits	| N/A			| 0					| graphic mode (0-7)					| CONNECTION:P								|
+| CSS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| colour palette						| CONNECTION								|
+| INT/EXT		| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| external char ROM (1) or internal (0)	| CONNECTION								|
+| INV			| Digital		| INPUT			| 4 bits	| N/A			| 0					| inverted character					| CONNECTION								|
+| FS			| Digital		| OUTPUT		| 1 bit		| Active HIGH	| 1					| Field Sync							|											|
+| DIn			| Digital		| OUTPUT		| 8 bits	| N/A			| 0					| Mirror of DIn read by the device[^2]	|											|
+
+[^2]:This is a trick to make it possible to connect a data in pin to another pin on the device. For an Acorn Atom e.g., bit 7 is conencted to the INV input pin.
+
+#### Scheduling
+The device is scheduled at rate MICROPROCESSOR_RATE.
+																		
 ### BeebRomSel
 | Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
 | ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
 | BeebRomSel	| BBC Micro Paged Memory Selection		| W				|						|					|				|					| \<start address\> \<size> \<access speed\>						|
+
+
+
+
+
+
 
 ### ACIA6850
 | Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
