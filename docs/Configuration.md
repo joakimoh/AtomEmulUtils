@@ -116,32 +116,33 @@ start of a comment and will also be ignored.
 
 ### Constants
 The emulator uses as aa default a tick rate equal to the clock rate of the microprocessor. But
-it is possible to select another one (needs to at least as fast as the clock rate of the microprocessor
-though) using the _TICK_RATE_ directive:
+it is possible to select another one (needs to be at least as fast as the clock rate of the microprocessor) using the _TICK_RATE_ directive:
 ```
 TICK_RATE			 <rate in MHz>
-```
 ```
 
 The video standard defaults to that of the selected video device but another one can still be specified using
 the VIDEO directive:
-VIDEO				('PAL' | 'NTSC')
 ```
+VIDEO				('PAL' | 'NTSC')
+
 ```
 
 The input clock to the microprocessor will be 'stretched' based on the access speed of the memoery device being
 accessed by the microprocessor if clock stretching is enabled (default it is disabled). To enable it, use the
 _CLOCK_STRETCHING_ directive:
-CLOCK_STRETCHING	('ON' | 'OFF')
 ```
+CLOCK_STRETCHING	('ON' | 'OFF')
+
 ```
 
 The base rate of the emulator defaults to 50 Hz unless another one is selected using the EMU_LOW_RATE directive:
-EMU_LOW_RATE		<rate in Hz>
 ```
+EMU_LOW_RATE		<rate in Hz>
 ```
 
 The high device schedule rate defaults to 31.25 kHz unless another one is selected using the EMU_HIGH_RATE directive:
+```
 EMU_HIGH_RATE		<rate in Hz>
 ```
 
