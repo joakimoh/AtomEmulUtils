@@ -1,7 +1,7 @@
 # The configuration (map) file
 The map file is the one that defines your computer system. It has different sections (the order of these sections
 doesn't matter and you can mix directives as you like in the map file but keeping similar directives in the same
-section will easy readability as is therefore recommended).
+section will easy readability and is therefore recommended).
 
 ## The memory mapping section
 Here you specify all the devices (including the ones that are not memory-mapped actually).
@@ -9,10 +9,10 @@ Each device is added with the directive
 ```
 ADD <device type> <your alias for the device>  <device parameters>
 ```
-Where _device type_ is the selected component (e.g. 'DRAM') and _<your alias for the device_
+Where _device type_ is the selected component (e.g. 'DRAM') and _your alias for the device_
 is a unique name you give that component instance (e.g. 'IC11'). The same type of component
 can be be used in several places in the same computer system and each instance then will have a unique
-name (e.g. 'IC11' and 'IC12' for two DRAM devices. The name needs also to be unique among all
+name (e.g. 'IC11' and 'IC12' for two DRAM devices). The name needs also to be unique among all
 devices. This is because the name will later be used when defining device ports that shall
 be interconnected.
 
@@ -26,16 +26,17 @@ Memory-mapped devices have at least the parameters:
 <start address> <size> <access speed>
 ```
 _start address_ is the lowest address at which the device can be accessed by
-the microcontroller (or by a video data unit) and _size_ is the siae in
+the microcontroller (or by a video data unit) and _size_ is the size in
 bytes of the space the device occupies in memory and _access speed_ is the
 max speed (in mHz) at which the device can be accessed (this information is
 used to decide what type of clock stretching will be required - if enabled).
 
-Devices advance time either based on emulation ticks or the device's
+Devices advance time either based on the emulation engines base time ticks or the device's
 own clock (for some clocked devices). In the latter case, a clock speed
 parameter needs also to be specified.
 
-Example:
+The example below defines a device _SYS_VIA_ of type _VIA6522_, located at address
+0xfe40 to 0xfe5f, with an access speed of 1 MHz and an input clock of 1 MHz.
 ```
 ADD	VIA6522			SYS_VIA		fe40	0020	1			1.0
 ```
@@ -45,7 +46,9 @@ video memory.
 <video mem adr>
 ```
 
-Example:
+The example below defines a device _VDU__ of type _VDU6847_, located at address
+0x800 to 0x8ff, with an access speed of 1 MHz and accessing video memory from
+address 0x8000 and updwards.
 ```
 ADD	VDU6847		VDU			0800	0100		1			8000
 ```
@@ -53,7 +56,10 @@ ADD	VDU6847		VDU			0800	0100		1			8000
 Memory-mapped devices (normally a memory device like a RAM or a ROM) is also allowed
 to have small gaps in the memory space they occupy. Such a gap is specified by
 the _GAP_ directive.
-Example:
+
+The example below defines a memoeroy device _OS__ of type _ROM_, located at address
+0c000 to 0xffff with a gap at 0xfc00 to 0xeff, with an access speed of 2 MHz and with
+concent from the file 'OS12.rom'.
 ```
 ADD	ROM				OS			c000	4000	2			OS12.rom	// OS (IC51)		 				c000 - ffff
 GAP					OS			fc00	0300							// Gap in OS ROM space between		fc00 - ff00
@@ -102,3 +108,193 @@ Example:
 ```
 TRIGGER	CRTC		CALL	VDU
 ```
+
+## Complete list of directives
+There map file can have many lines. Each line can have a directive that specifies a device, how it is connected or scheduled and more.
+A blank line (or a line just consisting of white space) will be ignored. Any part of a line that starts with '\\\\' will be the
+start of a comment and will also be ignored.
+
+### Constants
+```
+TICK_RATE			 <rate in MHz>
+VIDEO				('PAL' | 'NTSC')
+CLOCK_STRETCHING	('ON' | 'OFF')
+EMU_LOW_RATE		<rate in Hz>
+EMU_HIGH_RATE		<rate in Hz>
+```
+
+### Device Declarations
+To declare a device, the _ADD_ directive shall be used:
+```
+ADD <device type> <your alias for the device>  <device parameters>
+```
+For details about the parameters for a specific type of device, see [Device Parameters](#device-parameters-and-ports).
+
+If the device is memory-mapped one and it doesn't occupy a continuous memory space, gaps in the memory space can
+be specified using the _GAP_ directive:
+```
+GAP <device> <start address> <size>
+```
+
+### Connecting devices
+To connect one digital output port of one device (the source device) to another device's (the destination device)
+input port, the directive _CONNECT_ shall be used:
+```
+CONNECT	<src device>':'<port>[';'[<high bit>[';'<low bit>]] <dst device>':'<port>[';'[<high bit>[';'<low bit>]]
+```
+It is possible to select a single bit or a subset of the bits of both the soruce and destination ports.
+
+To connect one analogue output port of one device (the source device) to another device's (the destination device)
+analogue input port, the directive _ACONNECT_ shall be used:
+```
+ACONNECT	<src device>':'<port>	<dst device>':'<port>
+```
+
+### Device scheduling
+TRIGGER
+SCHED
+
+### Port initialisation
+INIT
+AINIT
+
+## Device Parameters and ports
+
+### DRAM
+
+Parameters:
+
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| DRAM			| DRAM									| R/W			|						|					|				|					| \<start address\> \<size> \<access speed\>						|
+
+Ports:
+
+| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- |
+| CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| SRAM			| Static RAM							| R/W			|						|					|				|					| \<start address\> \<size> \<access speed\>						|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| ROM			| ROM									| W				|						|					|				|					| \<start address\> \<size> \<access speed\> \<ROM file\>			|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| CRTC6845      | H6845 Character Raster Generator      | R/W			| NONE					| Advance one Char	| BeebVideoULA	| DEW,GLR,LOSE		| \<start address\> \<size> \<access speed\>						|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| SAA5050		| SAA5050 Teletext Character Generator	| R/W			| NONE					| Advance one Char	| BeebVideoULA	|					|																	|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| BeebVideoULA	| BBC Micro Video ULA					| R/W			| MICROPROCESSOR_RATE	|					|				| RA,VS,HS,C		| \<start address\> \<size> \<access speed\>						|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| VDU6847		| MC6847 Video Display Generator		| R/W			| MICROPROCESSOR_RATE	|					|				| A/S,GM			| \<start address\> \<size> \<access speed\> \<video mem adr\>		|																		|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| BeebRomSel	| BBC Micro Paged Memory Selection		| W				|						|					|				|					| \<start address\> \<size> \<access speed\>						|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| ACIA6850		| M6850 ACIA							| R/W			| MICROPROCESSOR_RATE	| Poll Rx/TX CLK	| BeebSerULA	| CTS,DCD			| \<start address\> \<size> \<access speed\>					    |
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| PIA8255		| 8255 PIA								| R/W			| LOW_RATE (50 Hz)		|					|				| 					| \<start address\> \<size> \<access speed\>						|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| VIA6522		| 6522 VIA								| R/W			| MICROPROCESSOR_RATE	|					|				|					| \<start address\> \<size> \<access speed\> \<clock speed\>        |
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| BeebSerULA	| BBC Micro Serial ULA					| R/W			| MICROPROCESSOR_RATE	|					|				| TxD,RTSI			| \<start address\> \<size> \<access speed\>						|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| ADC7002       | 12-bit Analogue-to-Digital Converter  | R/W			| MICROPROCESSOR_RATE	|					|				|					| \<start address\> \<size> \<access speed\> \<clock speed\>        |
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| ZN428         | 8-bit Digital-to-Analogue Converter   | W 			| NONE					|					|				|					| \<start address\> \<size> \<access speed\>						|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| CPU_6502		| 6502 Instruction-stepped				|				| MICROPROCESSOR_RATE	|					|				|					| \<clock speed\>													|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| CPU_6502CC	| 6502 Micro cycle-stepped				|				| MICROPROCESSOR_RATE	|					|				|					| \<clock speed\>													|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| TAPREC		| Tape Recorder							|				| MICROPROCESSOR_RATE	|					|				|					|																	|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| TI4689		| TI4689 Tone Generator					| R/W			| HI_RATE (31.25 kHz)	|					|				| WE,D				|																	|
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| SD_CARD		| SD Card with SPI interface			|				| NONE					|					|				| CLK,MOSI			|																	|
+
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| ATOMKB		| Acorn Atom Keyboard					|				| LOW_RATE (50 Hz)		|					|				| ROW				|																	|
+
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| BEEBKB        | BBC Micro Keyboard				    |				| LOW_RATE (50 Hz)		|					|				|					| \<keyboard start-up option byte\>	\<clock speed\>					|
+
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| ATOMCAS		| Acorn Atom Cassette Interface			|				| MICROPROCESSOR_RATE	|					|				|					|																	|
+
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| ATOMSP		| Acorn Atom Sound Device				|				| HI_RATE (31.25 kHz)	|					|				|					|																	|
+
+
+###
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
+| 74LS259		| 74LS259 8-bit Addressable Latch		|				| NONE					|					|				|					|																	|
+
+
+
+
+
