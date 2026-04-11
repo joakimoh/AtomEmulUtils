@@ -326,7 +326,7 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/9/9e/Mullard_SAA5050_
 
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| GLR			| Digital		| INPUT			| 1 bit		|A ctive HIGH	| 1					| Start of line							| CONNECTION:P								|
+| GLR			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Start of line							| CONNECTION:P								|
 | LOSE			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| Start of visible line					| CONNECTION:P								|
 | DEW			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Start of field						| CONNECTION:P								|	
 | CRS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| Field index (odd=0 or even=1)			| CONNECTION								|
@@ -334,12 +334,49 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/9/9e/Mullard_SAA5050_
 The device is scheduled by calling it each time a new character is needed. The following devices can call the device: BeebVideoULA.
 
 
-|
-
 ### BeebVideoULA
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| BeebVideoULA	| BBC Micro Video ULA					| R/W			| MICROPROCESSOR_RATE	|					|				| RA,VS,HS,C		| \<start address\> \<size> \<access speed\>						|
+The BeebVideoULA emulates a BBC Micro Video ULA.
+There is no datasheet for this circuit available but a general description of it can be found here: https://beebwiki.mdfs.net/Video_ULA
+
+#### Parameters
+
+| Parameter		| Description												|
+| ------------- | --------------------------------------------------------- |
+| start address	| Start of the memory space occupied by the device			|
+| size			| Size of the memory space occupied by the device			|
+| access speed	| Speed in MHz for microprocessor accesses to the device	|
+
+
+#### Ports
+registerPort("C",			IN_PORT,	0x03,	C,			&mC);
+	registerPort("DISEN",		IN_PORT,	0x01,	DISPTMG,	&mDISPTMG);
+	registerPort("CURSOR",		IN_PORT,	0x01,	CURSOR,		&mCURSOR);	
+	registerPort("INV",			IN_PORT,	0x01,	INV,		&mINV);
+	registerPort("RA",			IN_PORT,	0x0f,	RA,			&mRA);
+	registerPort("CRTC_CLK",	OUT_PORT,	0x3,	CRTC_CLK,	&mCRTC_CLK);
+	registerPort("HS",			IN_PORT,	0x1,	HS,			&mHS);
+	registerPort("VS",			IN_PORT,	0x1,	VS,			&mVS);
+
+| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| C				| Digital		| INPUT			| 2 bits	| N/A			| 0					| Scroll control[^1]					| CONNECTION:P								|
+| DISEN			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| DISPTMG from the CRTC 6845			| CONNECTION								|
+| CURSOR		| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| CUDISP from the CRTC 6845				| CONNECTION								|
+| INV			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Invert Video (non-teletext mnodes)	| CONNECTION								|
+| RA			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Raster address from the CRTC 6845		| CONNECTION:P								|
+| HS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Horizontal sync						| CONNECTION:P								|
+| VS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Vertical sync							| CONNECTION:P								|
+| CRT_CLK		| Digital		| OUTPUT		| 3 bits	| N/A			| 1 (1 MHz)			| Sets the clock of the H6846 CRTC		|											|
+
+[^1] See https://beebwiki.mdfs.net/Address_translation, Section _Calculation of the adjusted address_. The C1 C0 Columns correspond to the C port above and will be used to
+adjust the video memory address to care for scrolling.
+
+#### Scheduling
+The device is rate-scheduled on MICROPROCESSOR_RATE.
+
+
+
+
 
 ### VDU6847
 | Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
