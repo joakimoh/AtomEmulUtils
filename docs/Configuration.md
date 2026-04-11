@@ -125,7 +125,6 @@ The video standard defaults to that of the selected video device but another one
 the VIDEO directive:
 ```
 VIDEO				('PAL' | 'NTSC')
-
 ```
 
 The input clock to the microprocessor will be 'stretched' based on the access speed of the memoery device being
@@ -133,7 +132,6 @@ accessed by the microprocessor if clock stretching is enabled (default it is dis
 _CLOCK_STRETCHING_ directive:
 ```
 CLOCK_STRETCHING	('ON' | 'OFF')
-
 ```
 
 The base rate of the emulator defaults to 50 Hz unless another one is selected using the EMU_LOW_RATE directive:
@@ -211,10 +209,10 @@ AINIT 	<device>':'<port>	<hex value>
 
 ## Device Specifications
 
-###DRAM
+### DRAM
 The DRAM emulates a Dynamic RAM. The content will be cleared at initialisation.
 
-####Parameters
+#### Parameters
 
 | Parameter		| Description												|
 | ------------- | --------------------------------------------------------- |
@@ -223,19 +221,19 @@ The DRAM emulates a Dynamic RAM. The content will be cleared at initialisation.
 | access speed	| Speed in MHz for microprocessor accesses to the device	|
 
 
-####Ports
+#### Ports
 
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connection Directive as destination		|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECTION								|
 
-####Scheduling
+#### Scheduling
 The device doesn't have any notion of time and doesn't have to be scheduled.
 
-###SRAM;
+### SRAM
 The SRAM emulates a Static RAM. The content will be initialised with random values at initialisation.
 
-####Parameters
+#### Parameters
 
 | Parameter		| Description												|
 | ------------- | --------------------------------------------------------- |
@@ -244,19 +242,19 @@ The SRAM emulates a Static RAM. The content will be initialised with random valu
 | access speed	| Speed in MHz for microprocessor accesses to the device	|
 
 
-####Ports
+#### Ports
 
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connection Directive as destination		|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECTION								|
 
-####Scheduling
+#### Scheduling
 The device doesn't have any notion of time and doesn't have to be scheduled.
 
-###ROM
+### ROM
 The ROM emulates a ROM. The content will loaded from a file at initialisation.
 
-####Parameters
+#### Parameters
 
 | Parameter		| Description												|
 | ------------- | --------------------------------------------------------- |
@@ -266,20 +264,20 @@ The ROM emulates a ROM. The content will loaded from a file at initialisation.
 | ROM file		| Name of file that contains the ROM content				|
 
 
-####Ports
+#### Ports
 
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connection Directive as destination		|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECTION								|
 
-####Scheduling
+#### Scheduling
 The device doesn't have any notion of time and doesn't have to be scheduled.
 
-###CRTC6845
+### CRTC6845
 
 The CRTC6845 emulates a H6845 Character Raster Generator.
 
-####Parameters
+#### Parameters
 
 | Parameter		| Description												|
 | ------------- | --------------------------------------------------------- |
@@ -288,7 +286,7 @@ The CRTC6845 emulates a H6845 Character Raster Generator.
 | access speed	| Speed in MHz for microprocessor accesses to the device	|
 
 
-####Ports
+#### Ports
 
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connection Directive as destination		|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
@@ -300,10 +298,10 @@ The CRTC6845 emulates a H6845 Character Raster Generator.
 | HS			| Digital		| OUTPUT		| 1 bit		| Active HIGH	| 0					| Horizontal sync						|											|
 | VS			| Digital		| OUTPUT		| 1 bit		| Active HIGH	| 0					| Vertical sync							|											|
 
-####Scheduling
+#### Scheduling
 The device is scheduled by calling it each time a new character is needed. The following devices can call the device: BeebVideoULA.
 
-###SAA5050
+### SAA5050
 | Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
 | ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
 | SAA5050		| SAA5050 Teletext Character Generator	| R/W			| NONE					| Advance one Char	| BeebVideoULA	|					|																	|
