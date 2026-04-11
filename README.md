@@ -53,6 +53,7 @@ the beebasm assmebler (https://github.com/stardot/beebasm). What is included is 
 you can run on any binary file content (like a ROM file).
 
 Details about the content of a map file cand be found in [Map File Content](docs/Configuration.md).
+See [Menus](docs/Menu.md) for details about all the menu options.
 
 ## Connectivity
 
