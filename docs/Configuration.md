@@ -89,7 +89,7 @@ Scheduling is a combination of rate-based scheduling (column _Rate Scheduling_) 
 | CPU_6502		| 6502 Instruction-stepped				|				| MICROPROCESSOR_RATE	|					|				|					| \<clock speed\>													|
 | CPU_6502CC	| 6502 Micro cycle-stepped				|				| MICROPROCESSOR_RATE	|					|				|					| \<clock speed\>													|
 | TAPREC		| Tape Recorder							|				| MICROPROCESSOR_RATE	|					|				|					|																	|
-| TI4689		| TI4689 Tone Generator					| R/W			| HI_RATE (31.25 kHz)	|					|				| WE,D				|																	|
+| SN76489		| SN76489 Tone Generator					| R/W			| HI_RATE (31.25 kHz)	|					|				| WE,D				|																	|
 | SD_CARD		| SD Card with SPI interface			|				|						|					|				| CLK,MOSI			|																	|
 | ATOMKB		| Acorn Atom Keyboard					|				| LOW_RATE (50 Hz)		|					|				| ROW				|																	|
 | BEEBKB        | BBC Micro Keyboard				    |				| LOW_RATE (50 Hz)		|					|				|					| \<keyboard start-up option byte\>	\<clock speed\>					|
@@ -470,9 +470,9 @@ A datasheet is available here: https://theoddys.com/acorn/semiconductor_datashee
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | RESET			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Device reset							|											|
-| PortA			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port A								|											|
-| PortB			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port B								|											|
-| PortC			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port C								|											|
+| PortA			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port A								| CONNECTION								|
+| PortB			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port B								| CONNECTION								|
+| PortC			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port C								| CONNECTION								|
 
 #### Scheduling
 The device can be scheduled at LOW_RATE rate.
@@ -494,10 +494,10 @@ A datasheet is available here: https://www.princeton.edu/~mae412/HANDOUTS/Datash
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | RESET			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Device reset							|											|
 | IRQ			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Interrupt Request						|											|
-| PA			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port A								|											|
-| PB			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port B								|											|
-| CA			| Digital		| INPUT/OUTPUT	| 2 bits	| N/A			| 0					| Port CA								|											|
-| CB			| Digital		| INPUT/OUTPUT	| 2 bits	| N/A			| 0					| Port CB								|											|
+| PA			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port A								| CONNECTION								|
+| PB			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port B								| CONNECTION								|
+| CA			| Digital		| INPUT/OUTPUT	| 2 bits	| N/A			| 0					| Port CA								| CONNECTION								|
+| CB			| Digital		| INPUT/OUTPUT	| 2 bits	| N/A			| 0					| Port CB								| CONNECTION								|
 
 #### Scheduling
 The device can be scheduled at MICROPROCESSOR_RATE rate.
@@ -519,15 +519,15 @@ No datasheet is available but a description of it can be found here: https://bee
 | RxD			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Receive Data (to ACIA)				|											|
 | CTSO			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Clear To Send (to ACIA)				|											|
 | DCD			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Data Carrier Detect (to ACIA)			|											|
-| TxD			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Transmit Data (from ACIA)				| CONNECT:P									|
-| RTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Request To Send (from ACIA)			| CONNECT:P									|
+| TxD			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Transmit Data (from ACIA)				| CONNECTION:P								|
+| RTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Request To Send (from ACIA)			| CONNECTION:P								|
 | CASMO			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Cassette Motor control (to relay)		|											|
-| CAS_IN		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Cassette In (from tape recorder)		| CONNECT									|
+| CAS_IN		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Cassette In (from tape recorder)		| CONNECTION								|
 | CAS_OUT		| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Cassette Out (to tape recorder)		|											|
-| DIn			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Serial In (from RS423 I/F)			| CONNECT									|
+| DIn			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Serial In (from RS423 I/F)			| CONNECTION								|
 | Dout			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Serial Out (to RS423 I/F)				|											|
 | RTSO			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Request To Send Out (to RS423 I/F)	|											|
-| CTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Clear To Send (from RS423 I/F)		| CONNECT									|
+| CTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Clear To Send (from RS423 I/F)		| CONNECTION								|
 
 #### Scheduling
 The device can be scheduled at MICROPROCESSOR_RATE rate.
@@ -548,7 +548,7 @@ A datasheet can be found here: https://www.alldatasheet.com/datasheet-pdf/view/8
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | EOC			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| End of Conversion (Interrupt)			|											|
-| CHO			| Analogue		| INPUT			| 0 to VREF	| N/A			| 0					| Channel #0 input voltage				|											|
+| CHO			| Analogue		| INPUT			| 0 to VREF	| N/A			| 0					| Channel #0 input voltage				|  											|
 | CH1			| Analogue		| INPUT			| 0 to VREF	| N/A			| 0					| Channel #1 input voltage				|											|
 | CH2			| Analogue		| INPUT			| 0 to VREF	| N/A			| 0					| Channel #2 input voltage				|											|
 | CH3			| Analogue		| INPUT			| 0 to VREF	| N/A			| 0					| Channel #3 input voltage				|											|
@@ -557,73 +557,209 @@ A datasheet can be found here: https://www.alldatasheet.com/datasheet-pdf/view/8
 #### Scheduling
 The device can be scheduled at MICROPROCESSOR_RATE rate.
 
-
-
-
-
-
-
 ### ZN428
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| ZN428         | 8-bit Digital-to-Analogue Converter   | W 			| NONE					|					|				|					| \<start address\> \<size> \<access speed\>						|
+The ZN428 emulates a NEC ZN428 8-bit Digital-to-Analogue Converter.
+A datasheet can be found here: https://www.cpcwiki.eu/imgs/5/59/ZN428.pdf
 
-### CPU_6502
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| CPU_6502		| 6502 Instruction-stepped				|				| MICROPROCESSOR_RATE	|					|				|					| \<clock speed\>													|
+#### Parameters
+| Parameter		| Description												|
+| ------------- | --------------------------------------------------------- |
+| start address	| Start of the memory space occupied by the device			|
+| size			| Size of the memory space occupied by the device			|
+| access speed	| Speed in MHz for microprocessor accesses to the device	|
 
-### CPU_6502CC
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| CPU_6502CC	| 6502 Micro cycle-stepped				|				| MICROPROCESSOR_RATE	|					|				|					| \<clock speed\>													|
+#### Ports
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| ENABLE		| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Latch value to convert				| CONNECTION								|
+| AOut			| Analogue		| OUTPUT		| 0 to VREF	| N/A			| 0					| Voltage out							|											|
+
+#### Scheduling
+The device has no notion of time and doesn't have to be scheduled.
+
+### CPU_6502 and CPU6502CC
+The CPU_6502 and CPU6502CC emulates an NMOS 6502A microprocessor.
+A datasheet can be found here: https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6502.pdf
+
+#### Parameters
+| Parameter		| Description												|
+| ------------- | --------------------------------------------------------- |
+| clock speed	| The microprocessor's clock speed in MHz					|
+
+#### Ports
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| RESET			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Resets the microprocessor				| CONNECTION								|
+| IRQ			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Interrupt Request						| CONNECTION								|
+| NMI			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Non-Maskable Interrupt Request		| CONNECTION								|
+| SO			| Digital		| INPUT			| 1 bit		| Active LOW	| 01				| Set overflow flag (on negative edge)	| CONNECTION								|
+| RDY			| Digital		| INPUT			| 1 bit		| Active LOW	| 01				| Halt processor on read cycle			| CONNECTION								|
+| SYNC			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 01				| Indicates opcode fetch cycle			|											|
+| RW			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 01				| Read (1) or Write (0)					|											|
+| DATA			| Digital		| OUTPUT		| 8 bits	| N/A			| 01				| Data out[^3]							|											|
+| ADDRESS		| Digital		| OUTPUT		| 16 bits	| N/A			| 01				| Read and write Address^3]				|											|
+
+#### Scheduling
+The device is always scheduled at either a step of a complete instruction (CPU_6502) or one cycle (CPU6502CC). Scheduling doesn't have to be specified for that reason.
+
+[^3]: This port is only used by the micro cycle-stepped 6502 device. The port is not expected to be used by any other device (only used internally by the 6502CC).
 
 ### TAPREC
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| TAPREC		| Tape Recorder							|				| MICROPROCESSOR_RATE	|					|				|					|																	|
+The TAPREC emulates an external tape recorder.
 
-### TI4689
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| TI4689		| TI4689 Tone Generator					| R/W			| HI_RATE (31.25 kHz)	|					|				| WE,D				|																	|
+#### Parameters
+The device has no parameters.
+
+#### Ports
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| CAS_IN		| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Audio from the tape					|											|
+| CAS_OUT		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Audio to the tape						| CONNECTION								|
+
+#### Scheduling
+The device can be scheduled at MICROPROCESSOR_RATE rate.
+
+### SN76489
+The SN76489 emulates an SN76489 tone generator.
+A datasheet can be found here: https://map.grauw.nl/resources/sound/texas_instruments_sn76489an.pdf
+
+#### Parameters
+The device has no parameters.
+
+#### Ports
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| CLK			| Digital		| INPUT			| 4 bits	| N/AW	| 1		| 4 (MHz)			| Clock input							| CONNECTION								|
+| D				| Digital		| INPUT			| 1 bit		| N/A			| 0					| Data in (for write)					| CONNECTION:P								|
+| WE			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Write enable							| CONNECTION:P								|
+
+#### Scheduling
+The device can be scheduled at HI_RATE rate.
 
 ### SD_CARD
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| SD_CARD		| SD Card with SPI interface			|				| NONE					|					|				| CLK,MOSI			|																	|
+The SD_CARD emulates an SC Card with SPI interface.
+See https://www.dejazzer.com/ee379/lecture_notes/lec12_sd_card.pdf for details.
 
+#### Parameters
+The device has no parameters.
+
+#### Ports
+registerPort("CLK",		IN_PORT,	0x1,	CLK,	&mCLK);		// Clock
+	registerPort("MOSI",	IN_PORT,	0x1,	MOSI,	&mMOSI);	// Data In
+	registerPort("SEL",		IN_PORT,	0x1,	SEL,	&mSEL);		// Select
+	registerPort("MISO",	OUT_PORT,	0x1,	MISO,	&mMISO);	// Data Ou
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| CLK			| Digital		| INPUT			| 1 bit		| N/AW			| 1					| Clock input							| CONNECTION:P								|
+| MOSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Data in								| CONNECTION:P								|
+| SEL			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Select								| CONNECTION								|
+| MISO			| Digital		| OUTUT			| 1 bit		| Active LOW	| 1					| Data out								|											|
+
+#### Scheduling
+The device needs no rate scheduling. It is scheduled based on CLK input changes instead.
 
 ### ATOMKB
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| ATOMKB		| Acorn Atom Keyboard					|				| LOW_RATE (50 Hz)		|					|				| ROW				|																	|
+The ATOMKB emulates an Acorn Atom Keyboard.
+See https://www.4corn.co.uk/archive/diagrams/102,000-C%20Circuit%20Diagram%20for%20the%20Atom%20Microcomputer.jpg for a circuit description.
 
+#### Parameters
+The device has no parameters.
+
+#### Ports
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| ROW			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Row selection							| CONNECTION:P								|
+| COL			| Digital		| OUTPUT		| 10 bits	| Active HIGH	| 3ff				| Column output							| CONNECTION								|
+
+#### Scheduling
+The device can be scheduled at LOW_RATE rate.
 
 ### BEEBKB
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| BEEBKB        | BBC Micro Keyboard				    |				| LOW_RATE (50 Hz)		|					|				|					| \<keyboard start-up option byte\>	\<clock speed\>					|
+The BEEBKB emulates a BBC Micro Model B Keyboard.
+See https://stardot.org.uk/forums/viewtopic.php?t=14405 for a circuit description.
+
+#### Parameters
+| Parameter				| Description												|
+| --------------------- | --------------------------------------------------------- |
+| start-up option byte	|
+| clock speed			| The keyboards auto scan clock speed in MHz				|
+
+#### Ports
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| SW			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Keyboard switches						| CONNECTION								|
+| ENA			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Enable auto scanning and load[^4]		| CONNECTION								|
+| COL_SEL		| Digital		| INPUT			| 4 bits	| N/A			| 0					| Column selection						| CONNECTION								|
+| ROW_SEL		| Digital		| INPUT			| 4 bits	| N/A			| 0					| Row Selection							|											|
+| ROW			| Digital		| OUTPUT		| 3 bits	| Active HIGH	| 0					| Row output							|											|
+| BREAK			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Break key pressed						|											|
+| PRESSED		| Digital		| OUTPUT		| 1 bit		| Active HIGH	| 0					| Any key pressed						|											|
+
+
+#### Scheduling
+The device can be scheduled at LOW_RATE rate.
+
+[^4]:Bits b2:b0 = counter value to load; bit3 = 0 => load else count upwards at the configured clock speed.
+
 
 
 ### ATOMCAS
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| ATOMCAS		| Acorn Atom Cassette Interface			|				| MICROPROCESSOR_RATE	|					|				|					|																	|
+The ATOMKB emulates an Acorn Atom Cassette Interface.
+See https://www.4corn.co.uk/archive/diagrams/102,000-C%20Circuit%20Diagram%20for%20the%20Atom%20Microcomputer.jpg for a circuit description.
 
+#### Parameters
+The device has no parameters.
+
+#### Ports
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| TAPE_OUT		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Audio from computer (PIA Port PC0)	| CONNECTION								|
+| ENA_TONE		| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| Enable 2.4 KHz tone to CAS_OUT		| CONNECTION								|
+| CAS_IN		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Audio from the tape recorder			| CONNECTION								|
+| TONE			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| 2.4 kHz Tone (to PIA PC4)				| CONNECTION								|
+| TAPE_IN		| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Audio from CAS_IN (to PIA Port PC5)	| CONNECTION								|
+| CAS_OUT		| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Audio to the tape	recorder			| CONNECTION								|
+
+#### Scheduling
+The device can be scheduled at MICROPROCESSOR_RATE rate.
 
 ### ATOMSP
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| ATOMSP		| Acorn Atom Sound Device				|				| HI_RATE (31.25 kHz)	|					|				|					|																	|
+The ATOMKB emulates an Acorn Atom Speaker Interface.
+See https://www.4corn.co.uk/archive/diagrams/102,000-C%20Circuit%20Diagram%20for%20the%20Atom%20Microcomputer.jpg for a circuit description.
 
+#### Parameters
+The device has no parameters.
+
+#### Ports
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| OUT			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Audio input to the speaker			| CONNECTION								|
+
+#### Scheduling
+The device can be scheduled at HI_RATE rate.
 
 ### 74LS259
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| 74LS259		| 74LS259 8-bit Addressable Latch		|				| NONE					|					|				|					|																	|
+The 74LS259 emulates an 74LS2598-bit addressable latch
+Datasheet is available from https://www.ti.com/lit/ds/symlink/sn74ls259b.pdf?ts=1775934117134.
 
+#### Parameters
+The device has no parameters.
 
+#### Ports
+registerPort("CLR",		IN_PORT,	0x1, CLR,	&mCLR);
+	registerPort("ENA",		IN_PORT,	0x1, ENA,	&mENA);
+	registerPort("CTRL",	IN_PORT,	0x0f, CTRL,	&mCTRL);
+	registerPort("Q",		OUT_PORT,	0xff, Q,	&mQ);
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| CLR			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Clear output							| CONNECTION								|
+| ENA			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Latch input							| CONNECTION								|
+| CTRL			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Latch selection and load value[^5]	|											|
+| Q				| Digital		| OUTPUT		| 8 bits	| N/A			| ff				| Latch outputs							|											|
 
+#### Scheduling
+The device has no notation fo time and doesn't have to be scheduled.
+
+[^5]: Bits b2:b0 Selects the latch (0-7) and bit b3 holds the value to load into the latch.
 
 

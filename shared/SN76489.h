@@ -1,5 +1,5 @@
-#ifndef TI4689_H
-#define TI4689_H
+#ifndef SN76489_H
+#define SN76489_H
 
 #include "SoundDevice.h"
 #include <fstream>
@@ -9,7 +9,7 @@
 #include <cmath>
 #include "TimedDevice.h"
 
-class TI4689 : public SoundDevice, public TimedDevice {
+class SN76489 : public SoundDevice, public TimedDevice {
 
 private:
 	int mHalfCycleCount[4] = { 0 };
@@ -34,7 +34,7 @@ private:
 	int mCpuCyclesPerSample = 0;
 	int mSampleCount = 0;
 
-	PortVal mCLK = 4;
+	PortVal mCLK = 4;	// CLK nin MHz
 	PortVal mD = 0x0;	// Data in
 	PortVal mWE = 0x1;	// Write Enable (active low)
 	PortVal pWE = 0x0;
@@ -96,9 +96,9 @@ private:
 
 public:
 
-	TI4689(string name, double masterClock, int sampleFreq, double emulationRate, double highEmulationRate,
+	SN76489(string name, double masterClock, int sampleFreq, double emulationRate, double highEmulationRate,
 		DebugTracing* debugTracing, ConnectionManager* connectionManager);
-	~TI4689();
+	~SN76489();
 
 	void setEmulationSpeed(double speed) override;
 

@@ -24,7 +24,7 @@
 #include "BeebRomSel.h"
 #include "ACIA6850.h"
 #include "BeebSerialULA.h"
-#include "TI4689.h"
+#include "SN76489.h"
 #include "Latch74LS259.h"
 #include "ConnectionManager.h"
 #include "Utility.h"

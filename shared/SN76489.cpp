@@ -1,19 +1,19 @@
-#include "TI4689.h"
+#include "SN76489.h"
 #include <cmath>
 #include "Utility.h"
 
 
 //
-// Model of the TI4689 Sound Chip from the 1980's
+// Model of the SN76489 Sound Chip from the 1980's
 // 
 
 
-TI4689::TI4689(string name, double tickRate, int sampleFreq, double emulationRate, double highEmulationRate,
+SN76489::SN76489(string name, double tickRate, int sampleFreq, double emulationRate, double highEmulationRate,
 	DebugTracing* debugTracing, ConnectionManager* connectionManager) :
-	SoundDevice(name, TI4689_DEV, sampleFreq, emulationRate, highEmulationRate, debugTracing, connectionManager),
+	SoundDevice(name, SN76489_DEV, sampleFreq, emulationRate, highEmulationRate, debugTracing, connectionManager),
 	TimedDevice(tickRate)
 {
-	registerPort("CLK", IN_PORT, 0x1, CLK,	&mCLK);
+	registerPort("CLK", IN_PORT, 0xf, CLK,	&mCLK);
 	registerPort("D",	IN_PORT, 0xff, D,	&mD);
 	registerPort("WE", IN_PORT, 0x1, WE, &mWE);
 
@@ -27,7 +27,7 @@ TI4689::TI4689(string name, double tickRate, int sampleFreq, double emulationRat
 
 }
 
-void TI4689::setEmulationSpeed(double speed)
+void SN76489::setEmulationSpeed(double speed)
 {
 	SoundDevice::setEmulationSpeed(speed);
 
@@ -87,7 +87,7 @@ void TI4689::setEmulationSpeed(double speed)
 	}
 }
 
-TI4689::~TI4689()
+SN76489::~SN76489()
 {
 	for (int i = 0; i < 4; i++) {
 		al_drain_audio_stream(mChannelStream[i]);
@@ -96,7 +96,7 @@ TI4689::~TI4689()
 }
 
 // Advance until the CPU stopTick has been reached
-bool TI4689::advanceUntil(uint64_t stopTick)
+bool SN76489::advanceUntil(uint64_t stopTick)
 {
 	while (mTicks < stopTick) {
 
@@ -243,7 +243,7 @@ bool TI4689::advanceUntil(uint64_t stopTick)
 }
 
 // Process input port changes directly (i.e. don't wait until the next call of the advanceUntil() method)
-void TI4689::processPortUpdate(int index)
+void SN76489::processPortUpdate(int index)
 {
 
 	if (index == CLK) {
@@ -394,7 +394,7 @@ void TI4689::processPortUpdate(int index)
 
 }
 
-string TI4689::noiseChannelFrequency2Str()
+string SN76489::noiseChannelFrequency2Str()
 {
 	stringstream ss;
 
@@ -418,7 +418,7 @@ string TI4689::noiseChannelFrequency2Str()
 }
 
 // Outputs the internal state of the device
-bool TI4689::outputState(ostream& sout)
+bool SN76489::outputState(ostream& sout)
 {
 
 	for (int i = 0; i < 4; i++) {

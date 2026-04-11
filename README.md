@@ -20,7 +20,7 @@ The following hardware devices are currently supported:
 - DRAM
 - Static RAM
 - ROM (a ROM data file associated with it can hold e.g., an operating system)
-- TI4689 Tone Generator (used in e.g., the BBC Micro)
+- SN76489 Tone Generator (used in e.g., the BBC Micro)
 - SAA5050 Teletext Character Generator
 - MC6847 Video Display Generator
 - 6522 VIA

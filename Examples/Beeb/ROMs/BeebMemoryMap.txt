@@ -42,7 +42,7 @@ ADD	ADC7002			ADC			fec0	0003	1			1.0			// ADC Converter
 ADD	BEEBKB			KB			00							1.0			// startup options (DIP switches) + 1 MHz keyboard auto scanning
 ADD	CPU_6502		CPU										2.0			// Microprocessor 6502 running ay 2 MHz
 ADD	TAPREC			TAPREC												// Standard Tape Recorder
-ADD	TI4689			SOUND
+ADD	SN76489			SOUND
 ADD	74LS259			74LS259												// System VIA Latch with 8 outputs, each updated by writing to Port B bits 3:0
 ADD SD_CARD			MMFS_CARD											// FAT32 SD Card image
 

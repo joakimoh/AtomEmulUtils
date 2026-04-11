@@ -25,7 +25,7 @@
 #include "BeebRomSel.h"
 #include "ACIA6850.h"
 #include "BeebSerialULA.h"
-#include "TI4689.h"
+#include "SN76489.h"
 #include "Latch74LS259.h"
 #include "Device.h"
 #include "ConnectionManager.h"
@@ -277,7 +277,7 @@ DeviceManager::DeviceManager(
 					dev_type == "ATOMKB" ||
 					dev_type == "BEEBKB" ||
 					dev_type == "ATOMSP" ||
-					dev_type == "TI4689" ||
+					dev_type == "SN76489" ||
 					(dev_type == "TAPREC") ||
 					dev_type == "ATOMCAS" ||
 					dev_type == "SRAM" ||
@@ -448,10 +448,10 @@ DeviceManager::DeviceManager(
 
 				}
 
-				else if (dev_type == "TI4689") {
+				else if (dev_type == "SN76489") {
 
 					mAudioSampleRate = highSchedulingRate;
-					TI4689* sd = new TI4689(
+					SN76489* sd = new SN76489(
 						dev_name, tickRate, mAudioSampleRate, baseSchedulingRate, highSchedulingRate, mDM, mCM
 					);
 					mDevices.push_back(sd);
