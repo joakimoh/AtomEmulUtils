@@ -739,17 +739,13 @@ The device has no parameters.
 The device can be scheduled at HI_RATE rate.
 
 ### 74LS259
-The 74LS259 emulates an 74LS2598-bit addressable latch
+The 74LS259 emulates an 74LS2598-bit addressable latch.
 Datasheet is available from https://www.ti.com/lit/ds/symlink/sn74ls259b.pdf?ts=1775934117134.
 
 #### Parameters
 The device has no parameters.
 
 #### Ports
-registerPort("CLR",		IN_PORT,	0x1, CLR,	&mCLR);
-	registerPort("ENA",		IN_PORT,	0x1, ENA,	&mENA);
-	registerPort("CTRL",	IN_PORT,	0x0f, CTRL,	&mCTRL);
-	registerPort("Q",		OUT_PORT,	0xff, Q,	&mQ);
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | CLR			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Clear output							| CONNECTION								|
