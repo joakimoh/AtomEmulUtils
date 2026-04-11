@@ -533,7 +533,7 @@ No datasheet is available but a description of it can be found here: https://bee
 The device can be scheduled at MICROPROCESSOR_RATE rate.
 
 ### ADC7002
-The ADC7002 emulates a NEC uPD7002 12-bit Analogue-ot-Digital Converter.
+The ADC7002 emulates a NEC uPD7002 12-bit Analogue-to-Digital Converter.
 A datasheet can be found here: https://www.alldatasheet.com/datasheet-pdf/view/83024/NEC/UPD7002.html
 
 #### Parameters
@@ -552,7 +552,7 @@ A datasheet can be found here: https://www.alldatasheet.com/datasheet-pdf/view/8
 | CH1			| Analogue		| INPUT			| 0 to VREF	| N/A			| 0					| Channel #1 input voltage				|											|
 | CH2			| Analogue		| INPUT			| 0 to VREF	| N/A			| 0					| Channel #2 input voltage				|											|
 | CH3			| Analogue		| INPUT			| 0 to VREF	| N/A			| 0					| Channel #3 input voltage				|											|
-| VREF			| Analogue		| INPUT			| 0 to 5V	| N/A			| 0					| Reference voltage						|											|
+| VREF			| Analogue		| INPUT			| 0 to 5 [V]| N/A			| 2.1 [V]			| Reference voltage						|											|
 
 #### Scheduling
 The device can be scheduled at MICROPROCESSOR_RATE rate.
