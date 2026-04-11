@@ -208,9 +208,14 @@ AINIT 	<device>':'<port>	<hex value>
 ```
 
 ## Device Specifications
+Below follows a description of each device as required to understand how to add it to your computer system.
+For a good understanding a specific device's detailed operation you should also read the device's datasheet (links provided for each device)
+as such a detailed description will not be provided here.
 
 ### DRAM
 The DRAM emulates a Dynamic RAM. The content will be cleared at initialisation.
+No reference to any DRAM datasheet will be provided here as it is assumed that the user can understand the operation of such a basic device
+without it.
 
 #### Parameters
 
@@ -223,7 +228,7 @@ The DRAM emulates a Dynamic RAM. The content will be cleared at initialisation.
 
 #### Ports
 
-| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connection Directive as destination		|
+| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECTION								|
 
@@ -232,6 +237,8 @@ The device doesn't have any notion of time and doesn't have to be scheduled.
 
 ### SRAM
 The SRAM emulates a Static RAM. The content will be initialised with random values at initialisation.
+No reference to any SRAM datasheet will be provided here as it is assumed that the user can understand the operation of such a basic device
+without it.
 
 #### Parameters
 
@@ -244,7 +251,7 @@ The SRAM emulates a Static RAM. The content will be initialised with random valu
 
 #### Ports
 
-| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connection Directive as destination		|
+| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECTION								|
 
@@ -253,6 +260,8 @@ The device doesn't have any notion of time and doesn't have to be scheduled.
 
 ### ROM
 The ROM emulates a ROM. The content will loaded from a file at initialisation.
+No reference to any ROM datasheet will be provided here as it is assumed that the user can understand the operation of such a basic device
+without it.
 
 #### Parameters
 
@@ -266,7 +275,7 @@ The ROM emulates a ROM. The content will loaded from a file at initialisation.
 
 #### Ports
 
-| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connection Directive as destination		|
+| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECTION								|
 
@@ -276,6 +285,7 @@ The device doesn't have any notion of time and doesn't have to be scheduled.
 ### CRTC6845
 
 The CRTC6845 emulates a H6845 Character Raster Generator.
+A datasheet can be found here: https://www.cpcwiki.eu/imgs/c/c0/Hd6845.hitachi.pdf.
 
 #### Parameters
 
@@ -288,9 +298,9 @@ The CRTC6845 emulates a H6845 Character Raster Generator.
 
 #### Ports
 
-| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connection Directive as destination		|
+| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| CLK			| Digital		| INPUT			| 3 bits	| N/A			| 1 (1 MHz)			| CLK (1 <=> 1 MHz or 2 <=> 2 MHz)		| CONNECTION								|
+| CLK			| Digital		| INPUT			| 3 bits	| N/A			| 1 (1 MHz)			| Sets the device clock					| CONNECTION								|
 | RESET			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Resets the device						| CONNECTION								|
 | DISPTMG		| Digital		| OUTPUT		| 1 bit		| Active HIGH	| 0					| Active display						|											|	
 | RA			| Digital		| OUTPUT		| 5 bits	| N/A			| 0					| Raster address						|											|
@@ -302,9 +312,29 @@ The CRTC6845 emulates a H6845 Character Raster Generator.
 The device is scheduled by calling it each time a new character is needed. The following devices can call the device: BeebVideoULA.
 
 ### SAA5050
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| SAA5050		| SAA5050 Teletext Character Generator	| R/W			| NONE					| Advance one Char	| BeebVideoULA	|					|																	|
+The SAA5050 emulates a Mullard SAA5050 Teletext Character generator.
+A datasheet can be found here: https://www.cpcwiki.eu/imgs/9/9e/Mullard_SAA5050_datasheet.pdf.
+
+#### Parameters
+
+| Parameter		| Description												|
+| ------------- | --------------------------------------------------------- |
+| access speed	| Speed in MHz for microprocessor accesses to the device	|
+
+
+#### Ports
+
+| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| GLR			| Digital		| INPUT			| 1 bit		|A ctive HIGH	| 1					| Start of line							| CONNECTION:P								|
+| LOSE			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| Start of visible line					| CONNECTION:P								|
+| DEW			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Start of field						| CONNECTION:P								|	
+| CRS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| Field index (odd=0 or even=1)			| CONNECTION								|
+
+The device is scheduled by calling it each time a new character is needed. The following devices can call the device: BeebVideoULA.
+
+
+|
 
 ### BeebVideoULA
 | Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
