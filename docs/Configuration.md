@@ -303,6 +303,11 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/c/c0/Hd6845.hitachi.p
 #### Scheduling
 The device is scheduled by calling it each time a new character is needed. The following devices can call the device: BeebVideoULA.
 
+### Call API (used by the callee device)
+```
+bool getMemFetchAdr(uint16_t& adr);
+```
+
 ### SAA5050
 The SAA5050 emulates a Mullard SAA5050 Teletext Character generator.
 A datasheet can be found here: https://www.cpcwiki.eu/imgs/9/9e/Mullard_SAA5050_datasheet.pdf.
@@ -322,8 +327,13 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/9/9e/Mullard_SAA5050_
 | DEW			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Start of field						| CONNECTION:P								|	
 | CRS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| Field index (odd=0 or even=1)			| CONNECTION								|
 
-The device is scheduled by calling it each time a new character is needed. The following devices can call the device: BeebVideoULA.
+#### Scheduling
+The device is sThe device is scheduled by calling it each time a new character is needed. The following devices can call the device: BeebVideoULA.
 
+### Call API (used by the callee device)
+```
+bool getScreenData(uint8_t pageData, ScreenDataType* &screenData, TTColour &bgColour, TTColour &fgColour);
+```
 
 ### BeebVideoULA
 The BeebVideoULA emulates a BBC Micro Video ULA.
@@ -386,7 +396,7 @@ A datasheet can be found here: https://web.mit.edu/6.115/www/document/MC6847.pdf
 The device is scheduled at rate MICROPROCESSOR_RATE.
 																		
 ### BeebRomSel
-The BeebRomSel emulates the paged ROM selection circuitry of an BBC Micro. It is extended sligtly to support selection of up to 16 memory devices.
+The BeebRomSel emulates the paged ROM selection circuitry of a BBC Micro. It is extended sligtly to support selection of up to 16 memory devices.
 See IC20 (74LS139) and IC76 (74LS163) on the BBC Micro Model B circuit diagram at  https://stardot.org.uk/forums/download/file.php?id=34864 and https://beebwiki.mdfs.net/Paged_ROM for details.
 
 #### Parameters
@@ -412,9 +422,39 @@ See IC20 (74LS139) and IC76 (74LS163) on the BBC Micro Model B circuit diagram a
 The device is not explcitly scheduled. The outputs are updated by writing to the device.
 
 ### ACIA6850
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| ACIA6850		| M6850 ACIA							| R/W			| MICROPROCESSOR_RATE	| Poll Rx/TX CLK	| BeebSerULA	| CTS,DCD			| \<start address\> \<size> \<access speed\>					    |
+The ACIA6850 emulates an M6850 ACIA.
+A datasheet can be found here: https://www.cpcwiki.eu/imgs/3/3f/MC6850.pdf.
+
+#### Parameters
+| Parameter		| Description												|
+| ------------- | --------------------------------------------------------- |
+| start address	| Start of the memory space occupied by the device			|
+| size			| Size of the memory space occupied by the device			|
+| access speed	| Speed in MHz for microprocessor accesses to the device	|
+
+#### Ports
+| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
+| RxD			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Serial receive data					| CONNECTION								|
+| CTS			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Clear To Send							| CONNECTION:P								|
+| DCD			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Data Carrier Detect					| CONNECTION:P								|
+| TxD			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Serial send data						| CONNECTION								|
+| RTS			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Return To Send						| CONNECTION								|
+| IRQ			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 0					| Interrupt Request						| CONNECTION								|
+
+#### Scheduling
+The device is not scheduled on MICROPROCESSOR_RATE rate.
+The Rx and Tx clocks are not available as ports (for performance reasons) and are instead set by a method call to the device. The devices that can call the ACIA are: BeebSerULA.
+
+### Call API (used by the callee device)
+```
+void setRxClkRate(long clkRate);
+void setRxClkRate(long clkRate);
+```
+
+
+
+
 
 ### PIA8255
 | Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
