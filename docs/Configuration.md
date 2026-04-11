@@ -368,7 +368,7 @@ registerPort("C",			IN_PORT,	0x03,	C,			&mC);
 | VS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Vertical sync							| CONNECTION:P								|
 | CRT_CLK		| Digital		| OUTPUT		| 3 bits	| N/A			| 1 (1 MHz)			| Sets the clock of the H6846 CRTC		|											|
 
-[^1] See https://beebwiki.mdfs.net/Address_translation, Section _Calculation of the adjusted address_. The C1 C0 Columns correspond to the C port above and will be used to
+[^1]:See https://beebwiki.mdfs.net/Address_translation, Section _Calculation of the adjusted address_. The C1 C0 Columns correspond to the C port above and will be used to
 adjust the video memory address to care for scrolling.
 
 #### Scheduling
