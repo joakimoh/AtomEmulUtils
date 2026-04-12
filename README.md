@@ -38,7 +38,7 @@ The emulator is run from command line and cannot run without a map file that def
 > Emu6502 -map <path to map file>
 ```
 You will find several example systems in the folder 'Examples'.
-E.g., 'AtomEmulUtils/Examples/Atom/ROMs/AtomMemoryMap.txt' defines a basic Acorn Atom computer system
+E.g., 'AtomEmulUtils/Examples/Atom/ROMs/AtomMemoryMap.txt' defines a basic Acorn Atom computer system.
 To start the emulation of that system you simply give the command:
 ```
 > Emu6502 -map AtomEmulUtils/Examples/Atom/ROMs/AtomMemoryMap.txt
@@ -48,11 +48,37 @@ Other systems include a BBC Micro system and some simple headless systems (syste
 The map file and ROM files (with operating systems or your own software) need to be located in the same folder as the
 map file.
 
-The utility deson't include any assembler but the example assembler files are written in a way that is compatible with e.g.,
-the beebasm assmebler (https://github.com/stardot/beebasm). What is included is however a simple disassmebler ('Dis') that
+The utility doesn't include any assembler but the example assembler files are written in a way that is compatible with e.g.,
+the beebasm assmebler (https://github.com/stardot/beebasm). What is included is however a simple disassembler ('Dis') that
 you can run on any binary file content (like a ROM file).
 
+## A simple example system
+To get a taste of how a map file could look like for an emulated computer system we will start with the
+simplest of all systems. A system with just memory and a microprocessor:
+
+```
+ADD	CPU_6502	CPU		1												// CPU
+ADD	SRAM		STACK	0100	0200	1								// Stack space
+ADD	SRAM		DATA	4000	0100	1								// Program data (256 bytes)
+ADD	ROM			PGM		f000	1000	1			ADC_test.rom		// Program (starts at f000;RESET vector points there)
+```
+
+The first line tells that there shall be a 6502 microprocessor. The three other lines defines two static RAMs and a ROM.
+The first parameter is the device type and the second one is the name of unique instance of th device
+(here you could use names like 'IC11', 'IC12' ect. if you like as each instance kind of represents 
+a component on a PCB).
+The last parameter (which is '1') specifies the access speed[^1] of the memories as well as the CPU clock rate.
+The third and  forth parameters for the meoery devices specify where in the memory map each device resides. E.g.,
+the SRAM 'STACK' resides in memory 0x100 to 0x2ff (start address 0x100 and size 0x200).
+In the subsequent sections the different directives that can be used in the map file are explained in detail.
+
+[^1]: The access speed parameter will not be used by the emulator in this simple example (but still needs to be specified). It matters only whn clock stretching is enabled.
+
 Details about the content of a map file cand be found in [Map File Content](docs/Configuration.md).
+
+## The menu bar
+The emulator comes with a menu bar
+![The Menu Bar.](MenuBar.jpg)
 See [Menus](docs/Menu.md) for details about all the menu options.
 
 ## Connectivity
