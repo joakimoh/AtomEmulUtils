@@ -587,6 +587,7 @@ bool Engine::setLoggedDevices(vector<Device*> loggedDevices)
 void Engine::disableLogWindow()
 {
     clrLogWindow();
+    mLoggedPorts.clear();
     mBreakWindowEnabled = false;
 }
 

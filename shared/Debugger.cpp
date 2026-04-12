@@ -836,8 +836,8 @@ void Debugger::help()
 	cout << "awrite <dev name>:<port name>:                      set a device's analogue input port's value\n";
 	cout << "aread <dev name>:<port name>:                       get a device's analogue port's value\n";
 	cout << "twin (set <sz> | clr):                              enable trace window of a certain size or disable it\n";
-	cout << "plog (set <port> {,...<port>} | clr):               add logging of specific device ports to the trace\n";
-	cout << "dlog (set <device> {,...<device>} | clr):           add logging of specific devices' states to the trace\n";
+	cout << "plog (set <port> {,...<port>} | clr):               add (or completely remove) logging of specific device ports to the instruction log\n";
+	cout << "dlog (set <device> {,...<device>} | clr):           add (or compeltely remove) logging of specific devices' states to the trace\n";
 	cout << "exit:                                               exit the debugger\n";
 	cout << "dsel (set <device> {,...<device>} | clr):           select the devices to be part of the extensive tracing\n";
 	cout << "settings:                                           output the current settings (breakpoints, selected devices for logging etc.)\n";
@@ -1094,6 +1094,7 @@ bool Debugger::settingsCmd()
 				cout << dev->name << " ";
 			}
 		}
+		cout << "\n";
 	}
 
 	// Output logged devices
@@ -1114,7 +1115,7 @@ bool Debugger::settingsCmd()
 	vector<DevicePort*>* logged_ports = nullptr;
 	mEngine->getLoggedPorts(logged_ports);
 	if (logged_ports != nullptr && logged_ports->size() > 0) {
-		cout << "Ports selected for logging: ";
+		cout << "\nPorts selected for logging: ";
 		for (int i = 0; i < logged_ports->size(); i++) {
 			DevicePort* port = (*logged_ports)[i];
 			if (port != nullptr) {
