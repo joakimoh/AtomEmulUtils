@@ -3,6 +3,26 @@ The map file is the one that defines your computer system. It has different sect
 doesn't matter and you can mix directives as you like in the map file but keeping similar directives in the same
 section will easy readability and is therefore recommended).
 
+## The simplest of all examples
+To get a taste of how a map file could look like for an emulated computer system we will start with the
+simplest of all systems. A system with just memory and a microprocessor:
+
+```
+ADD	CPU_6502	CPU		1												// CPU
+ADD	SRAM		STACK	0100	0200	1								// Stack space
+ADD	SRAM		DATA	4000	0100	1								// Program data (256 bytes)
+ADD	ROM			PGM		f000	1000	1			ADC_test.rom		// Program (starts at f000;RESET vector points there)
+```
+
+The first line tells that there shall be a 6502 microprocessor. The three other lines defines two static RAMs and a ROM.
+The first parameter is the device type and the second one is the name of unique instance of th device
+(here you could use names like 'IC11', 'IC12' ect. if you like as each instance kind of represents 
+a component on a PCB).
+The last parameter (which is '1') specifies the access speed of the memories as well as the CPU clock rate.
+The third and  forth parameters for the meoery devices specify where in the memoery map each device resides. E.g.,
+the SRAM 'STACK' resides in memory 0x100 to 0x2ff (start address 0x100 and size 0x200).
+In the subsequent sections the different directives that can be used in the map file are explained in detail.
+
 ## The memory mapping section
 Here you specify all the devices (including the ones that are not memory-mapped actually).
 Each device is added with the directive
@@ -677,7 +697,7 @@ The device needs no rate scheduling. It is scheduled based on CLK input changes 
 The ATOMKB emulates an Acorn Atom Keyboard.
 See https://www.4corn.co.uk/archive/diagrams/102,000-C%20Circuit%20Diagram%20for%20the%20Atom%20Microcomputer.jpg for a circuit description.
 
-The keyboard mapping for keys that are not present on any country-specific keyboard, the mapping below has been made to secure that
+The keyboard mappings for keys that are not present on any country-specific keyboard are special. The mapping below has been made to secure that
 one key on the Acorn Atom keyboard always is mapped to a single key on any keyboard. The mapping looks strange but it make compatibility
 with most keyboards easier.
 
@@ -711,7 +731,7 @@ The device can be scheduled at LOW_RATE rate.
 The BEEBKB emulates a BBC Micro Model B Keyboard.
 See https://stardot.org.uk/forums/viewtopic.php?t=14405 for a circuit description.
 
-The keyboard mapping for keys that are not present on any country-specific keyboard, the mapping below has been made to secure that
+The keyboard mappings for keys that are not present on any country-specific keyboard are special. The mapping below has been made to secure that
 one key on the BBC Micro Model B keyboard always is mapped to a single key on any keyboard. The mapping looks strange but it make compatibility
 with most keyboards easier.
 
