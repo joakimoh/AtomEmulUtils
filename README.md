@@ -64,7 +64,7 @@ ADD	ROM			PGM		f000	1000	1			ADC_test.rom		// Program (starts at f000;RESET vect
 ```
 
 The first line tells that there shall be a 6502 microprocessor. The three other lines defines two static RAMs and a ROM.
-The first parameter is the device type and the second one is the name of unique instance of th device
+The first parameter is the device type and the second one is the name of unique instance of the device
 (here you could use names like 'IC11', 'IC12' ect. if you like as each instance kind of represents 
 a component on a PCB).
 The last parameter (which is '1') specifies the access speed[^1] of the memories as well as the CPU clock rate.
@@ -72,7 +72,7 @@ The third and  forth parameters for the meoery devices specify where in the memo
 the SRAM 'STACK' resides in memory 0x100 to 0x2ff (start address 0x100 and size 0x200).
 In the subsequent sections the different directives that can be used in the map file are explained in detail.
 
-[^1]: The access speed parameter will not be used by the emulator in this simple example (but still needs to be specified). It matters only whn clock stretching is enabled.
+[^1]: The access speed parameter will not be used by the emulator in this simple example (but still needs to be specified). It matters only when clock stretching is enabled.
 
 Details about the content of a map file cand be found in [Map File Content](docs/Configuration.md).
 
