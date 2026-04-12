@@ -78,7 +78,7 @@ Details about the content of a map file cand be found in [Map File Content](docs
 
 ## The menu bar
 The emulator comes with a menu bar
-![The Menu Bar.](MenuBar.jpg)
+![The Menu Bar.](docs/MenuBar.jpg)
 See [Menus](docs/Menu.md) for details about all the menu options.
 
 ## Connectivity
