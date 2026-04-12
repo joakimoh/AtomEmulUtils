@@ -308,9 +308,13 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/c/c0/Hd6845.hitachi.p
 The device is scheduled by calling it each time a new character is needed. The following devices can call the device: BeebVideoULA.
 
 ### Call API (used by the callee device)
+The calling device (the callee) uses a certain API when calling the device. You don't need to know about this API unless you are thinking of writing a device of your own and want it to
+'connect' to this device by call. Still it provides a bit of understanding about what kind of data is exchanged when scheduling by call..
 ```
 bool getMemFetchAdr(uint16_t& adr);
 ```
+The callee (usually a BeebVideoULA device) calls this method to get the next video memory address (_adr_) to fetch character/graphics data from. The call will aslo advance time for the
+CRTC6845 device itself.
 
 ### SAA5050
 The SAA5050 emulates a Mullard SAA5050 Teletext Character generator.
@@ -335,9 +339,14 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/9/9e/Mullard_SAA5050_
 The device is scheduled by calling it each time a new character is needed. The following devices can call the device: BeebVideoULA.
 
 ### Call API (used by the callee device)
+The calling device (the callee) uses a certain API when calling the device. You don't need to know about this API unless you are thinking of writing a device of your own and want it to
+'connect' to this device by call. Still it provides a bit of understanding about what kind of data is exchanged when scheduling by call..
 ```
 bool getScreenData(uint8_t pageData, ScreenDataType* &screenData, TTColour &bgColour, TTColour &fgColour);
 ```
+_pageData_ is the memory character data read by the callee (usually a BeebVideoULA device) and provided to the SA5050 device
+_screenData_ is the symbol/graphics data produced by the SAA5050 device based on the _pageData_
+_bgColour_ and _fgColour_ are the background and foregorund colours to be used when rendering the symbol/graphics.
 
 ### BeebVideoULA
 The BeebVideoULA emulates a BBC Micro Video ULA.
@@ -451,10 +460,14 @@ The device can be scheduled at MICROPROCESSOR_RATE rate..
 The Rx and Tx clocks are not available as ports (for performance reasons) and are instead set by a method call to the device. The devices that can call the ACIA are: BeebSerULA.
 
 ### Call API (used by the callee device)
+The calling device (the callee) uses a certain API when calling the device. You don't need to know about this API unless you are thinking of writing a device of your own and want it to
+'connect' to this device by call. Still it provides a bit of understanding about what kind of data is exchanged when scheduling by call..
 ```
 void setRxClkRate(long clkRate);
 void setRxClkRate(long clkRate);
 ```
+The callee (usually a BeebSerULA device) will use these APIs to set the receive and send clock rates of the ACIA6850 device.
+
 ### PIA8255
 The PIA8255 emulates an 8255 PIA.
 A datasheet is available here: https://theoddys.com/acorn/semiconductor_datasheets/P8255A.pdf.

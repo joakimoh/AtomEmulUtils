@@ -20,8 +20,8 @@ extension or naming of the file doesn't matter.
 ![The File Menu.](File.jpg)
 
 ## The Memory Card Menu
-If the system has the SCCard device, then you will be able to 'insert'
-an SC Card by selecting a data file. The format of the data file needs
+If the system has the SDCard device, then you will be able to 'insert'
+an SD Card by selecting a data file. The format of the data file needs
 to match that required by the software of your emulated computer system.
 If you e.g. use the MMFS software for the BBC Micro (see https://github.com/hoglet67/MMFS/wiki),
 then the format can be MMB (see https://github.com/hoglet67/MMFS/wiki/MMB-File-Format).
@@ -40,7 +40,7 @@ probbaly be more like a few times real time only).
 
 ## The Screen Refresh Rate Menu
 To improve performance (e.g. if you are not able to come up to real time emulation) you could try
-to slow down the refresh rate of the emualted computer display (this will of course only be
+to slow down the refresh rate of the emulated computer display (this will of course only be
 applicable if you have a video device in your emulated system). The default rate is set based
 on the TV standard (e.g. 50 Hz for PAL and 60 Hz for NTSC) but you can try with lower rates.
 ![The  Screen Refresh Menu.](RefreshRate.jpg)
@@ -48,9 +48,9 @@ on the TV standard (e.g. 50 Hz for PAL and 60 Hz for NTSC) but you can try with 
 ## The Tape Recorder Menu
 If you emulated computer system has a tape recorder device, then you will be able to load
 and save tape audio. The format supported is CSW (see https://acorn.huininga.nl/pub/unsorted/software/pc/CSW/csw.html).
-The menu mimics the buttons of a real  tape recorder with (PLAY, RECORD, REWIND, STOP and PAUSE).
-To load from tape,select the _Load from Tape_. Then select _Play_.
-To save to tape, select _Save to Tape_. Then select _Record_.
+The menu mimics the buttons of a real  tape recorder with PLAY, RECORD, REWIND, STOP and PAUSE.
+To load from tape,select the _Load from Tape_; then select _Play_.
+To save to tape, select _Save to Tape_.; then select _Record_.
 
 ![The Tape Recorder Menu.](TapeRecorder.jpg)
 
