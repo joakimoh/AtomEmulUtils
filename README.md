@@ -117,6 +117,6 @@ This makes it possible to quickly load e.g. a BASIC program into memory without 
 
 ### Emulation speed
 The emulation speed is default 'real time' but can be changed to be slower or faster. How fast it can become depends on the host computer and the complexity of
-the emauled computer system. Don't expect much higgher speed than real time for a complex system. When a video display device is present, the update rate 
+the emulated computer system. Don't expect much higher speed than real time for a complex system. When a video display device is present, the update rate 
 (perceived frame rate) of the display can be adjusted (slowed down) to improvde emulation performance. The default is to use that of the selected TV standard
 (50 Hz for PAL and 60 Hz for NTSC).
