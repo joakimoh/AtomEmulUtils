@@ -116,7 +116,7 @@ bool AtomKeyboardDevice::checkKeyBoard()
 				if (keyDown(key.keyCode)) {
 					column &= ~(0x1 << c);
 					keyDepressedState[key_state_index] = true;
-					DBG_LOG_COND(!key_depressed_state, this, DBG_KEYBOARD, "KeyCodeMapping " + key->atomKeyName + " depressed\n");
+					DBG_LOG_COND(!key_depressed_state, this, DBG_KEYBOARD, "KeyCodeMapping " + key.keyName + " depressed\n");
 				}
 			}
 		}

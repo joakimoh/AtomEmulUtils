@@ -56,7 +56,7 @@ bool MemoryMappedDevice::triggerBeforeRead(BusAddress adr, uint8_t data)
 	for (int i = 0; i < mScheduleOnRead.size(); i++) {
 		if (mScheduleOnRead[i].triggeringAdr == adr) {
 			DBG_LOG(this, DBG_TRGGERING, "READ 0x" + Utility::int2HexStr(adr, 4) +  " => triggers " +
-					mScheduleOnRead[i].device->name + " at " + to_string(mTicks) + "\n");
+					mScheduleOnRead[i].device->name + "\n");
 			mScheduleOnRead[i].device->processPortUpdate(); // request device on what outputs this device depends to update its outputs
 		}
 	}
@@ -76,7 +76,7 @@ bool MemoryMappedDevice::triggerAfterWrite(BusAddress adr, uint8_t data)
 	for (int i = 0; i < mScheduleOnWrite.size(); i++) {
 		if (mScheduleOnWrite[i].triggeringAdr == adr) {
 			DBG_LOG(this, DBG_TRGGERING, "WRITE 0x" + Utility::int2HexStr(data,2) + " TO 0x" + Utility::int2HexStr(adr,4) + " => triggers " +
-					mScheduleOnWrite[i].device->name + " at " + to_string(mTicks) + "\n");
+					mScheduleOnWrite[i].device->name +  "\n");
 			mScheduleOnWrite[i].device->processPortUpdate(); // request device that depends on the outputs this device to update its outputs
 		}
 	}

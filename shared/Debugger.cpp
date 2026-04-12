@@ -813,38 +813,44 @@ bool Debugger::logDevicesCmd(istream& sin)
 void Debugger::help()
 {
 	cout << "Commands are:\n";
+
 	cout << "read <hex start address> [<hex end address>]:       read memory content - default is end address = start address\n";
-	cout << "dis <hex start address> [<hex end address>]         disassemble memory content - default is 10 instructions\n";
 	cout << "write <hex start address <hex byte> { <hex byte> }: write bytes to memory\n";
 	cout << "swrite <hex start address> \"<string>\":              write ASCII string to memory\n";
+
+	cout << "up:                                                 get the microprocessor's state\n";
+	cout << "reset:                                              reset the microprocessor\n";
+	cout << "rset (A|X|Y|SP|SR|PC) <hex val>:                    set a register value\n";
+
 	cout << "devices:                                            lists the devices\n";
 	cout << "state <name of device>:                             get a device's state\n";
-	cout << "up:                                                 get the microprocessor's state\n";
-	cout << "step [<no of instructions>]:                        execute the specified no of instructions (default is 1) and then stop (instruction tracing only)\n";
-	cout << "skip:                                               as 'step 1' but will step over a JSR instruction\n";
-	cout << "cont:                                               continue execution (if previusly stopped)\n";
+
+	cout << "ports <device name>:		                         list the ports of a device\n";
+	cout << "pwrite <dev name>:<port name>[<qualifier>]<hex val>:set a device's input port value. <qualifier> ::= <bit no> | [<high bit no>;<low bit no>\n";
+	cout << "pread <dev name>:<port name>:                       get a device's port value\n";
+	cout << "awrite <dev name>:<port name>:                      set a device's analogue input port's value\n";
+	cout << "aread <dev name>:<port name>:                       get a device's analogue port's value\n";
+
+
+	cout << "dis <hex start address> [<hex end address>]         disassemble memory content - default is 10 instructions\n";
+
 	cout << "break x <hex address>:                              continue execution until the program counter reaches the specified address\n";
 	cout << "break r|w|rw <hex address>:                         continue execution until the specified address is accessed in the way specified\n";
 	cout << "break clr:                                          clear any previously set breakpoint\n";
-	cout << "halt:                                               stop execution\n";
+	cout << "step [<no of instructions>]:                        execute the specified no of instructions (default is 1) and then stop (instruction tracing only)\n";
+	cout << "skip:                                               as 'step 1' but will step over a JSR instruction\n";
 	cout << "mlog (set <adr> | clr):                             add logging of a specific memory address to instruction log\n";
-	cout << "rset (A|X|Y|SP|SR|PC) <hex val>:                    set a register value\n";
-	cout << "pwrite <dev name>:<port name>[<qualifier>]<hex val>:set a device's input port value. <qualifier> ::= <bit no> | [<high bit no>;<low bit no>\n";
-	cout << "pread <dev name>:<port name>:                       get a device's port value\n";
-	cout << "ports <device name>:		                         list the ports of a device\n";
-	cout << "reset:                                              reset the microprocessor\n";
-	cout << "awrite <dev name>:<port name>:                      set a device's analogue input port's value\n";
-	cout << "aread <dev name>:<port name>:                       get a device's analogue port's value\n";
-	cout << "twin (set <sz> | clr):                              enable trace window of a certain size or disable it\n";
 	cout << "plog (set <port> {,...<port>} | clr):               add (or completely remove) logging of specific device ports to the instruction log\n";
 	cout << "dlog (set <device> {,...<device>} | clr):           add (or compeltely remove) logging of specific devices' states to the trace\n";
-	cout << "exit:                                               exit the debugger\n";
+	cout << "cont:                                               continue execution (if previusly stopped)\n";
+	cout << "halt:                                               stop execution\n";	
+	cout << "twin (set <sz> | clr):                              enable trace window of a certain size or disable it\n";
+	
+#ifdef DBG_ON
 	cout << "dsel (set <device> {,...<device>} | clr):           select the devices to be part of the extensive tracing\n";
-	cout << "settings:                                           output the current settings (breakpoints, selected devices for logging etc.)\n";
 	cout << "notrace:                                            turn off extensive tracing\n";
-	cout << "map:                                                print memory map\n";
 	cout << "trace <string with from letters below> [<n>]:   turn on extensive tracing for the devices selected by the dsel command. Stop after <n> instructions if specified.\n";
-	cout << "\t'V' verbose output\n"; 
+	cout << "\t'V' verbose output\n";
 	cout << "\t'e' errors\n";
 	cout << "\t'w' warnings\n";
 	cout << "\t'u' microprocessor execution\n";
@@ -863,7 +869,14 @@ void Debugger::help()
 	cout << "\t'C' ADC devices\n";
 	cout << "\t'X' extensive debugging for the selected debug scope\n";
 	cout << "\t'A' all the above\n\n";
-}
+#endif
+	cout << "map:                                                print memory map\n";
+
+	cout << "settings:                                           output the current settings (breakpoints, selected devices for logging etc.)\n";
+	cout << "exit:                                               exit the debugger\n";
+	cout << "help:                                               list available commands\n";
+
+	}
 
 void Debugger::run()
 {
@@ -893,12 +906,6 @@ void Debugger::run()
 				help();
 			else if(cmd == "map")
 				success = memMapCmd(sin);
-			else if (cmd == "dsel")
-				success = selectTracedDevices(sin);
-			else if (cmd == "trace")
-				success = enableTracingCmd(sin);
-			else if (cmd == "notrace")
-				success = disableTracingCmd();
 			else if (cmd == "twin")
 				success = logWinCmd(sin);
 			else if (cmd == "ports")
@@ -947,7 +954,7 @@ void Debugger::run()
 				success = breakCmd(sin, true);
 			else if (cmd == "plog")
 				success = logPortsCmd(sin);
-			else if (cmd == "dlog")
+			else if (cmd == "dlog") 
 				success = logDevicesCmd(sin);
 			else if (cmd == "exit")
 				success = exit();
@@ -955,6 +962,15 @@ void Debugger::run()
 				success = memLogCmd(sin);
 			else if (cmd == "settings")
 				success = settingsCmd();
+#ifdef DBG_ON
+			else if (cmd == "dsel")
+					success = selectTracedDevices(sin);
+				else if (cmd == "trace")
+					success = enableTracingCmd(sin);
+				else if (cmd == "notrace")
+					success = disableTracingCmd();
+			}
+#endif
 			else if (cmd != "")
 				cout << "Unknown command '" << cmd << "'!\n";
 

@@ -79,7 +79,7 @@ bool ADC7002::readByte(BusAddress adr, BusByte& data) {
 		mSR &= ~ADC_7002_CR_EOC_BIT_MASK;
 		uint8_t p_EOC = mEOC;
 		updatePort(EOC, 0x1);
-		uint16_t d = (ADC_7002_CR_12_BIT ? (mDataH << 4) | (mDataL >> 4): mDataH & 0xff)
+		uint16_t d = (ADC_7002_CR_12_BIT ? (mDataH << 4) | (mDataL >> 4) : mDataH & 0xff);
 		//if (mEOC != p_EOC)
 		//	cout << "Read conversion data for channel " << (int)ADC_7002_CR_CH << " at cycle " << mTicks << " => 0x" << Utility::int2HexStr(d, 3) << " <=> " << (mVREF * d / 0x3ff) << " V for VREF = " <<
 		//	mVREF << " V" << ", Status Register 0x" << Utility::int2HexStr(pSR, 2) << " -> 0x" << Utility::int2HexStr(mSR,2) << "\n";

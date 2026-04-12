@@ -32,7 +32,7 @@ state <name of device>:                             get a device's state
 ports <device name>:                                list the ports of a device
 pwrite <dev name>:<port name>[<qualifier>]<hex val>:set a device's port value. <qualifier> ::= <bit no> | [<high bit no>;<low bit no>]
 pread <dev name>:<port name>:                       get a device's port value
-awrite <dev name>:<port name>:                      set a device's analogue input port's value
+awrite <dev name>:<port name>:                      set a device's analogue port's value
 aread <dev name>:<port name>:                       get a device's analogue port's value
 
 
@@ -51,17 +51,16 @@ break x <hex address>:                              continue execution until the
 break r|w|rw <hex address>:                         continue execution until the specified address is accessed in the way specified
 break clr:                                          clear any previously set breakpoint
 ```
-It is possible to step a no of isntructions:
+It is possible to step a no of instructions:
 ```
 step [<no of instructions>]:                        execute the specified no of instructions (default is 1) and then stop (instruction tracing only)
-
+skip:                                               as 'step 1' but will step over a JSR instruction
 ```
 While stepping, an instruction log will be shown. That log can be extended with both device port status and devices' complete status:
 ```
 mlog (set <adr> | clr):                             add logging of a specific memory address to the instruction log
 plog (set <dev>:<prt> {,...<dev:<prt>} | clr):      add (or completely remove) logging of specific device ports to the instruction log
 dlog (set <device> {,...<device>} | clr):           add logging of specific devices' states to the instruction log
-skip:                                               as 'step 1' but will step over a JSR instruction
 ```
 The microprocessor's running state ('running' or 'halt') is a prefix to the prompt '>'.
 If the state is 'running', it is possible to stop the microprocessor exection using the
@@ -71,10 +70,20 @@ cont:                                               continue execution (if previ
 halt:                                               stop execution
 
 ```
-
-## Tracing
+When the emulator waits for a breakpoint to be triggered, it is possible to enable a trace window. If enabled,
+then a no of instructions (the size of the trace window) will be logged prior to the breakpoint is hit.
 ```
 twin (set <sz> | clr):                              enable trace window of a certain size or disable it
+```
+
+## Extensive tracing
+Extensive tracing will only be available if the emulator was built with DBG_ON defined.
+(Uncomment the line '//#define DBG_ON' in '.../AtomEmulUtils/shared/DebugTracing.h' to define it).
+By default DBG_ON is not defined as the emulator will run much slower when enabled.
+For extensive tracing it is possible to selected which devices shall be part of the tracing (_dsel_
+command). What kind of tracing information that shall be part of the trace is selected by the
+_trace_ command and tracing can be turned off with the _notrace_ command:
+```
 dsel (set <device> {,...<device>} | clr):           select the devices to be part of the extensive tracing
 notrace:                                            turn off extensive tracing
 trace <string with from letters below> [<n>]:   turn on extensive tracing for the devices selected by the dsel command. Stop after <n> instructions if specified.
