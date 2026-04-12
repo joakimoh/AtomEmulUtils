@@ -1,6 +1,16 @@
-10 FOR C = 1 TO 4
-20 B = ADVAL(C)
-30 V = 1.8 * B / 65520
-40 PRINT "CH "; C;" ";B;"(";~B;") <=> "; V ;" V"
-50 NEXT C
-60 END
+10 ?&FC00 = &00 : REM Set the DAC output to 0 V
+20 A$ = GET$ : REM Wait for the DAC output to be measured by the ADC
+30 PRINT 1.8 * ADVAL(4) / 65520 : REM Read the ADC (should read 0 V)
+40 ?&FC00 = &40 : REM Set the DAC output to 0.625 V
+50 A$ = GET$ : REM Wait for the DAC output to be measured by the ADC
+60 PRINT 1.8 * ADVAL(4) / 65520 : REM Read the AADC (should read 0.625 V)
+70 ?&FC00 = &80 : REM Set the the DAC output to 1.25 V
+80 A$ = GET$ : REM Wait for the DAC output to be measured by the ADC
+90 PRINT 1.8 * ADVAL(4) / 65520 : REM Read the AADC (should read 1.25 V)
+100 REM Read ADC Channels #1 to #4
+110 FOR C = 1 TO 4
+120 B = ADVAL(C)
+130 V = 1.8 * B / 65520
+140 PRINT "CH "; C;" ";B;"(";~B;") <=> "; V ;" V"
+150 NEXT C
+160 END
