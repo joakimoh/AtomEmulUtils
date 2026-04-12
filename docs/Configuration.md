@@ -313,7 +313,7 @@ The calling device (the callee) uses a certain API when calling the device. You 
 ```
 bool getMemFetchAdr(uint16_t& adr);
 ```
-The callee (usually a BeebVideoULA device) calls this method to get the next video memory address (_adr_) to fetch character/graphics data from. The call will aslo advance time for the
+The callee (usually a BeebVideoULA device) calls this method to get the next video memory address (_adr_) to fetch character/graphics data from. The call will also advance time for the
 CRTC6845 device itself.
 
 ### SAA5050
@@ -344,9 +344,11 @@ The calling device (the callee) uses a certain API when calling the device. You 
 ```
 bool getScreenData(uint8_t pageData, ScreenDataType* &screenData, TTColour &bgColour, TTColour &fgColour);
 ```
-_pageData_ is the memory character data read by the callee (usually a BeebVideoULA device) and provided to the SA5050 device
-_screenData_ is the symbol/graphics data produced by the SAA5050 device based on the _pageData_
-_bgColour_ and _fgColour_ are the background and foregorund colours to be used when rendering the symbol/graphics.
+- _pageData_ is the memory character data read by the callee (usually a BeebVideoULA device) and provided to the SA5050 device.
+
+- _screenData_ is the symbol/graphics data produced by the SAA5050 device based on the _pageData_.
+
+- _bgColour_ and _fgColour_ are the background and foregorund colours to be used when rendering the symbol/graphics.
 
 ### BeebVideoULA
 The BeebVideoULA emulates a BBC Micro Video ULA.
