@@ -677,6 +677,24 @@ The device needs no rate scheduling. It is scheduled based on CLK input changes 
 The ATOMKB emulates an Acorn Atom Keyboard.
 See https://www.4corn.co.uk/archive/diagrams/102,000-C%20Circuit%20Diagram%20for%20the%20Atom%20Microcomputer.jpg for a circuit description.
 
+The keyboard mapping for keys that are not present on any country-specific keyboard, the mapping below has been made to secure that
+one key on the Acorn Atom keyboard always is mapped to a single key on any keyboard. The mapping looks strange but it make compatibility
+with most keyboards easier.
+
+| Host computer key	| Acorn Atom key	|
+| ----------------- | ----------------- |
+| KEY_PGUP			| ";+"				|
+| KEY_TAB			| "HZARROW"			|
+| KEY_DELETE		| ":*"				|
+| KEY_CAPSLOCK		| "LOCK"			|
+| KEY_BACKSPACE		| "DEL"				|
+| KEY_UP			| "UPARROW"			|
+| KEY_HOME			| "COPY"			|
+| KEY_DOWN			| "]"				|
+| KEY_PGDN			| "@"				|
+| KEY_LEFT			| "["				|
+| KEY_END			| "/?"				|
+
 #### Parameters
 The device has no parameters.
 
@@ -692,6 +710,23 @@ The device can be scheduled at LOW_RATE rate.
 ### BEEBKB
 The BEEBKB emulates a BBC Micro Model B Keyboard.
 See https://stardot.org.uk/forums/viewtopic.php?t=14405 for a circuit description.
+
+The keyboard mapping for keys that are not present on any country-specific keyboard, the mapping below has been made to secure that
+one key on the BBC Micro Model B keyboard always is mapped to a single key on any keyboard. The mapping looks strange but it make compatibility
+with most keyboards easier.
+
+| Host computer key	| Acorn Atom key	|
+| ----------------- | ----------------- |
+| KEY_ALTGR			| "£_"				|
+| KEY_PGUP			| "[{"				|
+| KEY_RSHIFT		| "@"				|
+| KEY_DELETE		| ":*"				|
+| KEY_ALT			| "SHIFT LOCK"		|
+| KEY_RCTRL			| ";+"				|
+| KEY_PGDN			| "]}"				|
+| KEY_BACKSPACE		| "DELETE"			|
+| KEY_END			| "/?"				|
+| KEY_HOME			| "COPY"			|
 
 #### Parameters
 | Parameter				| Description												|

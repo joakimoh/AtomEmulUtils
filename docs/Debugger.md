@@ -75,6 +75,8 @@ then a no of instructions (the size of the trace window) will be logged prior to
 ```
 twin (set <sz> | clr):                              enable trace window of a certain size or disable it
 ```
+If the debugger is waiting for a breakpoint that never is hit and you want to stop this waiting, you could do
+this by selecting the Debugger Menu option _Stop waiting'.
 
 ## Extensive tracing
 Extensive tracing will only be available if the emulator was built with DBG_ON defined.
@@ -82,7 +84,7 @@ Extensive tracing will only be available if the emulator was built with DBG_ON d
 By default DBG_ON is not defined as the emulator will run much slower when enabled.
 For extensive tracing it is possible to selected which devices shall be part of the tracing (_dsel_
 command). What kind of tracing information that shall be part of the trace is selected by the
-_trace_ command and tracing can be turned off with the _notrace_ command:
+_trace_ command and tracing can be turned off with the _notrace_ command (or via the Debugger Menu):
 ```
 dsel (set <device> {,...<device>} | clr):           select the devices to be part of the extensive tracing
 notrace:                                            turn off extensive tracing
