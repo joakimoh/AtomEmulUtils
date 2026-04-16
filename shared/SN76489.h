@@ -34,7 +34,7 @@ private:
 	int mCpuCyclesPerSample = 0;
 	int mSampleCount = 0;
 
-	PortVal mCLK = 4;	// CLK nin MHz
+	AnaloguePortVal mCLK = 4.0;	// CLK in MHz
 	PortVal mD = 0x0;	// Data in
 	PortVal mWE = 0x1;	// Write Enable (active low)
 	PortVal pWE = 0x0;

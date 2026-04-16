@@ -13,7 +13,7 @@ SN76489::SN76489(string name, double tickRate, int sampleFreq, double emulationR
 	SoundDevice(name, SN76489_DEV, sampleFreq, emulationRate, highEmulationRate, debugTracing, connectionManager),
 	TimedDevice(tickRate)
 {
-	registerPort("CLK", IN_PORT, 0xf, CLK,	&mCLK);
+	registerAnaloguePort("CLK", IN_PORT, CLK,	&mCLK);
 	registerPort("D",	IN_PORT, 0xff, D,	&mD);
 	registerPort("WE", IN_PORT, 0x1, WE, &mWE);
 

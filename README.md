@@ -45,6 +45,7 @@ To start the emulation of that system you simply give the command:
 ```
 The Atom emulation looks like this:
 ![The Atom Emuation.](docs/Atom.jpg)
+
 Other systems include a BBC Micro system and some simple headless systems (systems just with a microprocessor and memory).
 To start the emulation of that system you simply give the command:
 ```

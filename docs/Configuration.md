@@ -70,38 +70,37 @@ The table below lists all devices and specifies whether they are memory-mapped, 
 Scheduling is a combination of rate-based scheduling (column _Rate Scheduling_) and triggering by call from other devices (Columns _At Call_ and _Callees_).
 
 
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing		| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | --------------------- | ----------------------------------------------------------------- |
-| DRAM			| DRAM									| R/W			|						|					|				|						| \<start address\> \<size> \<access speed\>						|
-| SRAM			| Static RAM							| R/W			|						|					|				|						| \<start address\> \<size> \<access speed\>						|
-| ROM			| ROM									| W				|						|					|				|						| \<start address\> \<size> \<access speed\> \<ROM file\>			|
-| CRTC6845      | H6845 Character Raster Generator      | R/W			|						| Advance one Char	| BeebVideoULA	| CLK					| \<start address\> \<size> \<access speed\>						|
-| SAA5050		| SAA5050 Teletext Character Generator	| R/W			|						| Advance one Char	| BeebVideoULA	| DEW,GLR,LOSE			|																	|
-| BeebVideoULA	| BBC Micro Video ULA					| R/W			| MICROPROCESSOR_RATE	|					|				| RA,VS,HS,C			| \<start address\> \<size> \<access speed\>						|
-| VDU6847		| MC6847 Video Display Generator		| R/W			| MICROPROCESSOR_RATE	|					|				| A/S,GM				| \<start address\> \<size> \<access speed\> \<video mem adr\>		|																		|
-| BeebRomSel	| BBC Micro Paged Memory Selection		| W				|						|					|				|						| \<start address\> \<size> \<access speed\>						|
-| ACIA6850		| M6850 ACIA							| R/W			| MICROPROCESSOR_RATE	|					|				| CTS,DCD,RxCLK,TxCLK	| \<start address\> \<size> \<access speed\>					    |
-| PIA8255		| 8255 PIA								| R/W			| LOW_RATE (50 Hz)		|					|				| 						| \<start address\> \<size> \<access speed\>						|
-| VIA6522		| 6522 VIA								| R/W			| MICROPROCESSOR_RATE	|					|				|						| \<start address\> \<size> \<access speed\> \<clock speed\>        |
-| BeebSerULA	| BBC Micro Serial ULA					| R/W			| MICROPROCESSOR_RATE	|					|				| TxD,RTSI				| \<start address\> \<size> \<access speed\>						|
-| ADC7002       | 12-bit Analogue-to-Digital Converter  | R/W			| MICROPROCESSOR_RATE	|					|				|						| \<start address\> \<size> \<access speed\> \<clock speed\>        |
-| ZN428         | 8-bit Digital-to-Analogue Converter   | W 			|						|					|				|						| \<start address\> \<size> \<access speed\>						|
-| CPU_6502		| 6502 Instruction-stepped				|				| MICROPROCESSOR_RATE	|					|				|						| \<clock speed\>													|
-| CPU_6502CC	| 6502 Micro cycle-stepped				|				| MICROPROCESSOR_RATE	|					|				|						| \<clock speed\>													|
-| TAPREC		| Tape Recorder							|				| MICROPROCESSOR_RATE	|					|				|						|																	|
-| SN76489		| SN76489 Tone Generator				| R/W			| HI_RATE (31.25 kHz)	|					|				| WE,D					|																	|
-| SD_CARD		| SD Card with SPI interface			|				|						|					|				| CLK,MOSI				|																	|
-| ATOMKB		| Acorn Atom Keyboard					|				| LOW_RATE (50 Hz)		|					|				| ROW					|																	|
-| BEEBKB        | BBC Micro Keyboard				    |				| LOW_RATE (50 Hz)		|					|				|						| \<keyboard start-up option byte\>	\<clock speed\>					|
-| ATOMCAS		| Acorn Atom Cassette Interface			|				| MICROPROCESSOR_RATE	|					|				|						|																	|
-| ATOMSP		| Acorn Atom Sound Device				|				| HI_RATE (31.25 kHz)	|					|				|						|																	|
-| 74LS259		| 74LS259 8-bit Addressable Latch		|				|						|					|				|						|																	|
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing		| Parameters											|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | --------------------- | ----------------------------------------------------- |
+| DRAM			| DRAM									| R/W			|						|					|				|						| \<adr\> \<sz> \<access speed\>						|
+| SRAM			| Static RAM							| R/W			|						|					|				|						| \<adr\> \<sz> \<access speed\>						|
+| ROM			| ROM									| W				|						|					|				|						| \<adr\> \<sz> \<access speed\> \<ROM file\>			|
+| CRTC6845      | H6845 Character Raster Generator      | R/W			|						| Advance one Char	| BeebVideoULA	| CLK					| \<adr\> \<sz> \<access speed\>						|
+| SAA5050		| SAA5050 Teletext Character Generator	| R/W			|						| Advance one Char	| BeebVideoULA	| DEW,GLR,LOSE			|														|
+| BeebVideoULA	| BBC Micro Video ULA					| R/W			| MICROPROCESSOR_RATE	|					|				| RA,VS,HS,C			| \<adr\> \<sz> \<access speed\>						|
+| VDU6847		| MC6847 Video Display Generator		| R/W			| MICROPROCESSOR_RATE	|					|				| A/S,GM				| \<adr\> \<sz> \<access speed\> \<video mem adr\>		|																		|
+| BeebRomSel	| BBC Micro Paged Memory Selection		| W				|						|					|				|						| \<adr\> \<sz> \<access speed\>						|
+| ACIA6850		| M6850 ACIA							| R/W			| MICROPROCESSOR_RATE	|					|				| CTS,DCD,RxCLK,TxCLK	| \<adr\> \<sz> \<access speed\>					    |
+| PIA8255		| 8255 PIA								| R/W			| LOW_RATE (50 Hz)		|					|				| 						| \<adr\> \<sz> \<access speed\>						|
+| VIA6522		| 6522 VIA								| R/W			| MICROPROCESSOR_RATE	|					|				|						| \<adr\> \<sz> \<access speed\> \<clock speed\>        |
+| BeebSerULA	| BBC Micro Serial ULA					| R/W			| MICROPROCESSOR_RATE	|					|				| TxD,RTSI				| \<adr\> \<sz> \<access speed\>						|
+| ADC7002       | 12-bit Analogue-to-Digital Converter  | R/W			| MICROPROCESSOR_RATE	|					|				|						| \<adr\> \<sz> \<access speed\> \<clock speed\>        |
+| ZN428         | 8-bit Digital-to-Analogue Converter   | W 			|						|					|				|						| \<adr\> \<sz> \<access speed\>						|
+| CPU_6502		| 6502 Instruction-stepped				|				| MICROPROCESSOR_RATE	|					|				|						| \<clock speed\>										|
+| CPU_6502CC	| 6502 Micro cycle-stepped				|				| MICROPROCESSOR_RATE	|					|				|						| \<clock speed\>										|
+| TAPREC		| Tape Recorder							|				| MICROPROCESSOR_RATE	|					|				|						|														|
+| SN76489		| SN76489 Tone Generator				| R/W			| HI_RATE (31.25 kHz)	|					|				| WE,D					|														|
+| SD_CARD		| SD Card with SPI interface			|				|						|					|				| CLK,MOSI				|														|
+| ATOMKB		| Acorn Atom Keyboard					|				| LOW_RATE (50 Hz)		|					|				| ROW					|														|
+| BEEBKB        | BBC Micro Keyboard				    |				| LOW_RATE (50 Hz)		|					|				|						| \<keyboard start-up option byte\>	\<clock speed\>		|
+| ATOMCAS		| Acorn Atom Cassette Interface			|				| MICROPROCESSOR_RATE	|					|				|						|														|
+| ATOMSP		| Acorn Atom Sound Device				|				| HI_RATE (31.25 kHz)	|					|				|						|														|
+| 74LS259		| 74LS259 8-bit Addressable Latch		|				|						|					|				|						|														|
 
 Triggering by call means that another device (the callee) exchanges data with (and sometimes also advances the time of) the called device by explicitly calling a method provided by that device.
 The result is that data is exchanged between the two devices and possibly, the time is also advanced for the called device. An example of this it that the BeebVideoULA device calls both the SAA5050
 and CRTC6845 devices to advance their time corresponding to one screen character. At the same time the BeebVideoULA device will get character data from those devices to use when generating 
-video output. Only the devices listed in the _Callees_ column can be connected to the called device. Another example is that the BeebSerULA communicates changes in the received and transmit
-clock speeds to the ACIA6850 device (here  time is not advanced of the called device - only data is exchanged).
+video output. Only the devices listed in the _Callees_ column can be connected to the called device.
 The calling is  specified by the TRIGGER directive.
 
 Example:
@@ -170,6 +169,13 @@ analogue input port, the directive _ACONNECT_ shall be used:
 ```
 ACONNECT	<src device>':'<port>	<dst device>':'<port>
 ```
+
+Both the _CONNECT_ and the _ACONNECT_ directives can have a suffix ':P'. This tells that the destination device (the one
+with the input port) shall process the port data immediately (and not wait until the device is scheduled to 'run' the
+next time).
+
+The _CONNECT_ directive can also have the prefix ':I'. This specfies that the port value shall be inverted on the
+way between the source and destination devices. The 'P' and 'I' suffixes can be mixed as well, e.g. ':PI'.
 
 ### Device scheduling
 The rate at which a device is scheduled (if it should be rate-scheduled) needs to be specified using the _SCHED_ directive:
@@ -304,6 +310,10 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/c/c0/Hd6845.hitachi.p
 | HS			| Digital		| OUTPUT		| 1 bit		| Active HIGH	| 0					| Horizontal sync						|											|
 | VS			| Digital		| OUTPUT		| 1 bit		| Active HIGH	| 0					| Vertical sync							|											|
 
+Although the  _CLK_ port represents an actual CLK input on the H6845 device, no clock pulses are received during emulation on this port. Instead, the port is used to dynamically
+change the clock speed (the source device - a BeebVideoULA - will change this value depending on the video mode). The device emulation will then internally emulate a running
+clock.
+
 #### Scheduling
 The device is scheduled by calling it each time a new character is needed. The following devices can call the device: BeebVideoULA.
 
@@ -373,6 +383,11 @@ There is no datasheet for this circuit available but a general description of it
 | HS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Horizontal sync						| CONNECT:P								|
 | VS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Vertical sync							| CONNECT:P								|
 | CRT_CLK		| Analogue		| OUTPUT		| 1/2 MHz	| N/A			| 1 (1 MHz)			| Sets the clock of the H6846 CRTC		|											|
+
+Although the  _CRT_CLK_ port represents an actual CLK input on the H6845 device, no clock pulses are sent by the BeebVideoULA device  during emulation on this port.
+Instead, the port is used to dynamically change the clock speed (BeebVideoULA will change this value depending on the video mode). The H6845 device emulation will
+then internally emulate a running clock.
+
 
 [^1]:See https://beebwiki.mdfs.net/Address_translation, Section _Calculation of the adjusted address_. The C1 C0 Columns correspond to the C port above and will be used to
 adjust the video memory address to care for scrolling.
@@ -461,6 +476,9 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/3/3f/MC6850.pdf.
 | RxD			| Digital		| INPUT			| 1 bit			| Active LOW	| 1					| Serial receive data													| CONNECT								|
 | DATA_IN		| Digital		| INPUT			| 1 bit			| Active HIGH	| 0					| Debug info - tells if data provider is transmitting					| CONNECT								|
 
+Although the  _RxCLK_ and _TxCLK_ ports represent actual clock inputs on the M6850 device, no clock pulses are received by the device during emulation on these ports.
+Instead, the ports are used to dynamically change the Rx and Tx clock speeds (BeebSerULA will change this value depending on e.g. tape speed set). The M6850 device emulation will
+then internally emulate a running clock.
 
 #### Scheduling
 The device can be scheduled at MICROPROCESSOR_RATE rate..
@@ -539,6 +557,9 @@ No datasheet is available but a description of it can be found here: https://bee
 | Dout			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Serial Out (to RS423 I/F)				|											|
 | RTSO			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Request To Send Out (to RS423 I/F)	|											|
 | CTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Clear To Send (from RS423 I/F)		| CONNECT								|
+
+Although the  _RxCLK_ and _TxCLK_ ports represent actual clock outputs on the BeebSerULA device, no clock pulses are sent by the device to the ACIA during emulation on these ports.
+Instead, the ports are used to dynamically change the Rx and Tx clock speeds (BeebSerULA will change this value depending on e.g. tape speed set).
 
 #### Scheduling
 The device can be scheduled at MICROPROCESSOR_RATE rate.
@@ -640,9 +661,12 @@ The device has no parameters.
 #### Ports
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| CLK			| Digital		| INPUT			| 4 bits	| N/AW	| 1		| 4 (MHz)			| Clock input							| CONNECT								|
+| CLK			| Analogue		| INPUT			| 1-4 MHz	| N/A			| 1		| 4 (MHz)			| Clock input					| CONNECT								|
 | D				| Digital		| INPUT			| 1 bit		| N/A			| 0					| Data in (for write)					| CONNECT:P								|
 | WE			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Write enable							| CONNECT:P								|
+
+Although the  _CLK_ port represents an actual CLK input on the SN76489 device, no clock pulses are received during emulation on this port. Instead, the port is used to dynamically
+change the clock speed. The device emulation will then internally emulate a running clock.
 
 #### Scheduling
 The device can be scheduled at HI_RATE rate.
@@ -655,16 +679,14 @@ See https://www.dejazzer.com/ee379/lecture_notes/lec12_sd_card.pdf for details.
 The device has no parameters.
 
 #### Ports
-registerPort("CLK",		IN_PORT,	0x1,	CLK,	&mCLK);		// Clock
-	registerPort("MOSI",	IN_PORT,	0x1,	MOSI,	&mMOSI);	// Data In
-	registerPort("SEL",		IN_PORT,	0x1,	SEL,	&mSEL);		// Select
-	registerPort("MISO",	OUT_PORT,	0x1,	MISO,	&mMISO);	// Data Ou
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| CLK			| Digital		| INPUT			| 1 bit		| N/AW			| 1					| Clock input							| CONNECT:P								|
+| CLK			| Digital		| INPUT			| 1 bit		| N/A			| 1					| Clock input							| CONNECT:P								|
 | MOSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Data in								| CONNECT:P								|
 | SEL			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Select								| CONNECT								|
 | MISO			| Digital		| OUTUT			| 1 bit		| Active LOW	| 1					| Data out								|											|
+
+Here the CLK input does receive actual clock pulses as in a real hardware set up.
 
 #### Scheduling
 The device needs no rate scheduling. It is scheduled based on CLK input changes instead.
