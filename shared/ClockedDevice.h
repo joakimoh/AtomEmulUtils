@@ -44,6 +44,8 @@ public:
 
 	uint64_t deviceCycles2Ticks(uint64_t deviceCycles) { return  (uint64_t)round(deviceCycles * mTicksPerDeviceCycle); }
 
+	// Change the device'c clock frequency
+	bool changeClockRate(double deviceClockRate);
 
 };
 

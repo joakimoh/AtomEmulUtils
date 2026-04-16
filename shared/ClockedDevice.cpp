@@ -13,6 +13,17 @@ ClockedDevice::ClockedDevice(double tickRate, double deviceClockRate) : mDeviceC
 	mTicksPerHalfDeviceCycle = (int) round(mTicksPerDeviceCycle / 2);
 }
 
+// Change the device'c clock frequency
+bool ClockedDevice::changeClockRate(double deviceClockRate)
+{
+	if (deviceClockRate > 0) {
+		mTicksPerDeviceCycle = max(1, (int)round(mTickRate / deviceClockRate));
+		mTicksPerHalfDeviceCycle = (int)round(mTicksPerDeviceCycle / 2);
+		return true;
+	}
+	return false;
+}
+
 // Advance the device time by the specified number of device cycles and return the current device cycle count after the advance
 uint64_t ClockedDevice::deviceTick(int deviceCycles)
 {

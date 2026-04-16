@@ -11,8 +11,6 @@ using namespace std;
 
 class ACIA6850 : public MemoryMappedDevice, public TimedDevice {
 
-public:
-	bool mDataStart = false; // for debugging only
 private:
 
 	bool mPowerOn = true;
@@ -22,7 +20,9 @@ private:
 	long mDataCount = 0;
 
 	// Ports
-	int RxD, TxD, RTS, CTS, DCD, IRQ;
+	int RxD, TxD, RTS, CTS, DCD, IRQ, RxCLK, TxCLK;
+	int DATA_IN;
+	PortVal mDATA_IN = 0; // // for debugging only
 	PortVal mRxD = 0x1;
 	PortVal mTxD = 0x1;
 	PortVal mRTS = 0x1;
@@ -31,6 +31,8 @@ private:
 	PortVal mIRQ = 1;
 	PortVal pDCD = 1;
 	PortVal pCTS = 1;
+	double mRxCLK = 1.0;
+	double mTxCLK = 1.0;
 
 	// Registers
 	uint8_t mCR = 0x0;	// base address + 0 - Write-only
@@ -141,8 +143,8 @@ public:
 	// Process clock updates to drive shifting on changes
 	void processPortUpdate(int index);
 
-	void setRxClkRate(long clkRate);
-	void setTxClkRate(long clkRate);
+	// Process Rx and Tx clock rate changes
+	void processAnaloguePortUpdate(int index) override;
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

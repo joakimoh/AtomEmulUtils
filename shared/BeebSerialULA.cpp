@@ -29,6 +29,11 @@ BeebSerialULA::BeebSerialULA(
 	registerPort("RTSO",	OUT_PORT,	0x1,	RTSO,		&mRTSO);	// Request To Send Out			to RS423 Interface
 	registerPort("CTSI",	IN_PORT,	0x1,	CTSI,		&mCTSI);	// Clear To Send				from RS423 Interface
 
+	registerAnaloguePort("ACIA_RxCLK", OUT_PORT, ACIA_RxCLK, &mACIA_RxCLK);
+	registerAnaloguePort("ACIA_TxCLK", OUT_PORT, ACIA_TxCLK, &mACIA_TxCLK);
+
+	registerPort("ACIA_DATA_IN", OUT_PORT, 0x1, ACIA_DATA_IN, &mACIA_DATA_IN);	// Debug data to the ACIA telling whether data is being provided (1) or not (0)
+
 	double tolerance = 0.3;
 	double t_low = 1 - tolerance;
 	double t_high = 1 + tolerance;
@@ -182,10 +187,9 @@ bool BeebSerialULA::writeByte(BusAddress adr, BusByte data)
 	}
 
 	// "Tell" the ACIA about the updated Rx & Tx clock rates
-	if (mACIA != NULL) {
-		mACIA->setRxClkRate(mRxClkRate);
-		mACIA->setTxClkRate(mTxClkRate);
-	}
+	updateAnaloguePort(ACIA_RxCLK, (double) mRxClkRate);
+	updateAnaloguePort(ACIA_TxCLK, (double) mTxClkRate);
+
 
 	// Update cassette motor output
 	updatePort(CASMO, SER_ULA_CR_CAS_MOT);
@@ -237,8 +241,7 @@ bool BeebSerialULA::advanceUntil(uint64_t tickTime)
 				DBG_LOG(this,DBG_TAPE,
 					"TAPE STARTS AT " + to_string(mTapeStartCount) + " cycles(" + to_string(mTicks / mTickRate * 1e-6) + "s)"
 				);
-				if (mACIA != NULL)
-					mACIA->mDataStart = true;	// Only for debug output (tape time)			
+				updatePort(mACIA_DATA_IN, 1); // Only for debug output (tape time)			
 			}
 			mfirstTapeSample = false;
 		}		
@@ -461,18 +464,6 @@ void BeebSerialULA::processPortUpdate(int index)
 		}
 	}
 
-}
-
-// Get pointer to other device to be able to call its methods
-bool BeebSerialULA::connectDevice(Device* dev)
-{
-	Device::connectDevice(dev);
-
-	if (dev != NULL && dev->devType == ACIA6850_DEV) {
-		mACIA = (ACIA6850 *) dev;
-	}
-
-	return true;
 }
 
 // Outputs the internal state of the device

@@ -38,7 +38,9 @@ bool RAM::readByte(BusAddress adr, BusByte& data)
 		if (!MemoryMappedDevice::triggerBeforeRead(adr, data) || mCS != 0)
 			return false;
 	}
-	
+	if (!selected(adr))
+		return false;
+
 	data = mMem[adr - mStartOfSpace];
 
 	return true;

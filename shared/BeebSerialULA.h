@@ -23,6 +23,10 @@ private:
 	// Ports
 	int RxD, TxD, RTSI, CTSO, CTSI, DCD, RxCLK, TxCLK;
 	int CASMO, CAS_IN, CAS_OUT, DIn, DOut, RTSO;
+	int ACIA_RxCLK, ACIA_TxCLK, ACIA_DATA_IN;
+	AnaloguePortVal mACIA_TxCLK = 1.0;
+	AnaloguePortVal mACIA_RxCLK = 1.0;
+	PortVal mACIA_DATA_IN = 0; // for debugging only - tells that data is being provided (1) or not (0)
 	PortVal mCASMO = 0;
 	PortVal mCAS_IN = 0;
 	PortVal mCAS_OUT = 0;
@@ -64,8 +68,6 @@ private:
 	double mTapeTime = 0;
 	double mTime = 0;
 
-
-	ACIA6850 *mACIA = NULL;
 
 	int mLevelCnt = 0;
 	uint8_t mLevel = 0;
@@ -116,9 +118,6 @@ public:
 
 	// Process clock updates to drive shifting on changes
 	void processPortUpdate(int index);
-
-	// Get pointer to the ACIA device to be able to call its methods
-	bool connectDevice(Device* dev);
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;

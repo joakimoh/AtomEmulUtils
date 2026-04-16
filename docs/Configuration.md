@@ -70,32 +70,32 @@ The table below lists all devices and specifies whether they are memory-mapped, 
 Scheduling is a combination of rate-based scheduling (column _Rate Scheduling_) and triggering by call from other devices (Columns _At Call_ and _Callees_).
 
 
-| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing	| Parameters														|
-| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | ----------------- | ----------------------------------------------------------------- |
-| DRAM			| DRAM									| R/W			|						|					|				|					| \<start address\> \<size> \<access speed\>						|
-| SRAM			| Static RAM							| R/W			|						|					|				|					| \<start address\> \<size> \<access speed\>						|
-| ROM			| ROM									| W				|						|					|				|					| \<start address\> \<size> \<access speed\> \<ROM file\>			|
-| CRTC6845      | H6845 Character Raster Generator      | R/W			|						| Advance one Char	| BeebVideoULA	| 					| \<start address\> \<size> \<access speed\>						|
-| SAA5050		| SAA5050 Teletext Character Generator	| R/W			|						| Advance one Char	| BeebVideoULA	| DEW,GLR,LOSE		|																	|
-| BeebVideoULA	| BBC Micro Video ULA					| R/W			| MICROPROCESSOR_RATE	|					|				| RA,VS,HS,C		| \<start address\> \<size> \<access speed\>						|
-| VDU6847		| MC6847 Video Display Generator		| R/W			| MICROPROCESSOR_RATE	|					|				| A/S,GM			| \<start address\> \<size> \<access speed\> \<video mem adr\>		|																		|
-| BeebRomSel	| BBC Micro Paged Memory Selection		| W				|						|					|				|					| \<start address\> \<size> \<access speed\>						|
-| ACIA6850		| M6850 ACIA							| R/W			| MICROPROCESSOR_RATE	| Poll Rx/TX CLK	| BeebSerULA	| CTS,DCD			| \<start address\> \<size> \<access speed\>					    |
-| PIA8255		| 8255 PIA								| R/W			| LOW_RATE (50 Hz)		|					|				| 					| \<start address\> \<size> \<access speed\>						|
-| VIA6522		| 6522 VIA								| R/W			| MICROPROCESSOR_RATE	|					|				|					| \<start address\> \<size> \<access speed\> \<clock speed\>        |
-| BeebSerULA	| BBC Micro Serial ULA					| R/W			| MICROPROCESSOR_RATE	|					|				| TxD,RTSI			| \<start address\> \<size> \<access speed\>						|
-| ADC7002       | 12-bit Analogue-to-Digital Converter  | R/W			| MICROPROCESSOR_RATE	|					|				|					| \<start address\> \<size> \<access speed\> \<clock speed\>        |
-| ZN428         | 8-bit Digital-to-Analogue Converter   | W 			|						|					|				|					| \<start address\> \<size> \<access speed\>						|
-| CPU_6502		| 6502 Instruction-stepped				|				| MICROPROCESSOR_RATE	|					|				|					| \<clock speed\>													|
-| CPU_6502CC	| 6502 Micro cycle-stepped				|				| MICROPROCESSOR_RATE	|					|				|					| \<clock speed\>													|
-| TAPREC		| Tape Recorder							|				| MICROPROCESSOR_RATE	|					|				|					|																	|
-| SN76489		| SN76489 Tone Generator					| R/W			| HI_RATE (31.25 kHz)	|					|				| WE,D				|																	|
-| SD_CARD		| SD Card with SPI interface			|				|						|					|				| CLK,MOSI			|																	|
-| ATOMKB		| Acorn Atom Keyboard					|				| LOW_RATE (50 Hz)		|					|				| ROW				|																	|
-| BEEBKB        | BBC Micro Keyboard				    |				| LOW_RATE (50 Hz)		|					|				|					| \<keyboard start-up option byte\>	\<clock speed\>					|
-| ATOMCAS		| Acorn Atom Cassette Interface			|				| MICROPROCESSOR_RATE	|					|				|					|																	|
-| ATOMSP		| Acorn Atom Sound Device				|				| HI_RATE (31.25 kHz)	|					|				|					|																	|
-| 74LS259		| 74LS259 8-bit Addressable Latch		|				|						|					|				|					|																	|
+| Device        | Description                           | Memory Access	| Rate Scheduling       | At Call           | Callees		| Port Processing		| Parameters														|
+| ------------- | ------------------------------------- | ------------- | --------------------- | ----------------- | ------------- | --------------------- | ----------------------------------------------------------------- |
+| DRAM			| DRAM									| R/W			|						|					|				|						| \<start address\> \<size> \<access speed\>						|
+| SRAM			| Static RAM							| R/W			|						|					|				|						| \<start address\> \<size> \<access speed\>						|
+| ROM			| ROM									| W				|						|					|				|						| \<start address\> \<size> \<access speed\> \<ROM file\>			|
+| CRTC6845      | H6845 Character Raster Generator      | R/W			|						| Advance one Char	| BeebVideoULA	| CLK					| \<start address\> \<size> \<access speed\>						|
+| SAA5050		| SAA5050 Teletext Character Generator	| R/W			|						| Advance one Char	| BeebVideoULA	| DEW,GLR,LOSE			|																	|
+| BeebVideoULA	| BBC Micro Video ULA					| R/W			| MICROPROCESSOR_RATE	|					|				| RA,VS,HS,C			| \<start address\> \<size> \<access speed\>						|
+| VDU6847		| MC6847 Video Display Generator		| R/W			| MICROPROCESSOR_RATE	|					|				| A/S,GM				| \<start address\> \<size> \<access speed\> \<video mem adr\>		|																		|
+| BeebRomSel	| BBC Micro Paged Memory Selection		| W				|						|					|				|						| \<start address\> \<size> \<access speed\>						|
+| ACIA6850		| M6850 ACIA							| R/W			| MICROPROCESSOR_RATE	|					|				| CTS,DCD,RxCLK,TxCLK	| \<start address\> \<size> \<access speed\>					    |
+| PIA8255		| 8255 PIA								| R/W			| LOW_RATE (50 Hz)		|					|				| 						| \<start address\> \<size> \<access speed\>						|
+| VIA6522		| 6522 VIA								| R/W			| MICROPROCESSOR_RATE	|					|				|						| \<start address\> \<size> \<access speed\> \<clock speed\>        |
+| BeebSerULA	| BBC Micro Serial ULA					| R/W			| MICROPROCESSOR_RATE	|					|				| TxD,RTSI				| \<start address\> \<size> \<access speed\>						|
+| ADC7002       | 12-bit Analogue-to-Digital Converter  | R/W			| MICROPROCESSOR_RATE	|					|				|						| \<start address\> \<size> \<access speed\> \<clock speed\>        |
+| ZN428         | 8-bit Digital-to-Analogue Converter   | W 			|						|					|				|						| \<start address\> \<size> \<access speed\>						|
+| CPU_6502		| 6502 Instruction-stepped				|				| MICROPROCESSOR_RATE	|					|				|						| \<clock speed\>													|
+| CPU_6502CC	| 6502 Micro cycle-stepped				|				| MICROPROCESSOR_RATE	|					|				|						| \<clock speed\>													|
+| TAPREC		| Tape Recorder							|				| MICROPROCESSOR_RATE	|					|				|						|																	|
+| SN76489		| SN76489 Tone Generator				| R/W			| HI_RATE (31.25 kHz)	|					|				| WE,D					|																	|
+| SD_CARD		| SD Card with SPI interface			|				|						|					|				| CLK,MOSI				|																	|
+| ATOMKB		| Acorn Atom Keyboard					|				| LOW_RATE (50 Hz)		|					|				| ROW					|																	|
+| BEEBKB        | BBC Micro Keyboard				    |				| LOW_RATE (50 Hz)		|					|				|						| \<keyboard start-up option byte\>	\<clock speed\>					|
+| ATOMCAS		| Acorn Atom Cassette Interface			|				| MICROPROCESSOR_RATE	|					|				|						|																	|
+| ATOMSP		| Acorn Atom Sound Device				|				| HI_RATE (31.25 kHz)	|					|				|						|																	|
+| 74LS259		| 74LS259 8-bit Addressable Latch		|				|						|					|				|						|																	|
 
 Triggering by call means that another device (the callee) exchanges data with (and sometimes also advances the time of) the called device by explicitly calling a method provided by that device.
 The result is that data is exchanged between the two devices and possibly, the time is also advanced for the called device. An example of this it that the BeebVideoULA device calls both the SAA5050
@@ -212,8 +212,8 @@ Below follows a description of each device as required to understand how to add 
 For a good understanding a specific device's detailed operation you should also read the device's datasheet (links provided for each device)
 as such a detailed description will not be provided here.
 The column _Connect to the input_ in the tables listing each device's ports tell which directive to use when specifying a connecting
-of another device's source port to the the specific input (destination) port of the device. "CONNECTION:P" means that an update of the input
-port must be processed immediately by the device whereas just "CONNECTION" means that it is sufficient for the device to process the update
+of another device's source port to the the specific input (destination) port of the device. "CONNECT:P" means that an update of the input
+port must be processed immediately by the device whereas just "CONNECT" means that it is sufficient for the device to process the update
 next time it is scheduled to run.
 
 ### DRAM
@@ -232,7 +232,7 @@ without it.
 #### Ports
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECTION								|
+| CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECT								|
 
 #### Scheduling
 The device doesn't have any notion of time and doesn't have to be scheduled.
@@ -253,7 +253,7 @@ without it.
 #### Ports
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECTION								|
+| CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECT								|
 
 #### Scheduling
 The device doesn't have any notion of time and doesn't have to be scheduled.
@@ -275,7 +275,7 @@ without it.
 #### Ports
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECTION								|
+| CS			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Chip Select							| CONNECT									|
 
 #### Scheduling
 The device doesn't have any notion of time and doesn't have to be scheduled.
@@ -294,10 +294,10 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/c/c0/Hd6845.hitachi.p
 
 
 #### Ports
-| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| CLK			| Digital		| INPUT			| 3 bits	| N/A			| 1 (1 MHz)			| Sets the device clock					| CONNECTION								|
-| RESET			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Resets the device						| CONNECTION								|
+| CLK			| Analogue		| INPUT			| 1-3 MHz	| N/A			| 1 (1 MHz)			| Sets the device clock					| ACONNECT:P								|
+| RESET			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Resets the device						| CONNECT									|
 | DISPTMG		| Digital		| OUTPUT		| 1 bit		| Active HIGH	| 0					| Active display						|											|	
 | RA			| Digital		| OUTPUT		| 5 bits	| N/A			| 0					| Raster address						|											|
 | CUDISP		| Digital		| OUTPUT		| 1 bit		| Active HIGH	| 0					| Cursor active							|											|
@@ -330,10 +330,10 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/9/9e/Mullard_SAA5050_
 
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| GLR			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Start of line							| CONNECTION:P								|
-| LOSE			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| Start of visible line					| CONNECTION:P								|
-| DEW			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Start of field						| CONNECTION:P								|	
-| CRS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| Field index (odd=0 or even=1)			| CONNECTION								|
+| GLR			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Start of line							| CONNECT:P								|
+| LOSE			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| Start of visible line					| CONNECT:P								|
+| DEW			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Start of field						| CONNECT:P								|	
+| CRS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| Field index (odd=0 or even=1)			| CONNECT								|
 
 #### Scheduling
 The device is scheduled by calling it each time a new character is needed. The following devices can call the device: BeebVideoULA.
@@ -363,16 +363,16 @@ There is no datasheet for this circuit available but a general description of it
 
 
 #### Ports
-| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| C				| Digital		| INPUT			| 2 bits	| N/A			| 0					| Scroll control[^1]					| CONNECTION:P								|
-| DISEN			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| DISPTMG from the CRTC 6845			| CONNECTION								|
-| CURSOR		| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| CUDISP from the CRTC 6845				| CONNECTION								|
-| INV			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Invert Video (non-teletext mnodes)	| CONNECTION								|
-| RA			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Raster address from the CRTC 6845		| CONNECTION:P								|
-| HS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Horizontal sync						| CONNECTION:P								|
-| VS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Vertical sync							| CONNECTION:P								|
-| CRT_CLK		| Digital		| OUTPUT		| 3 bits	| N/A			| 1 (1 MHz)			| Sets the clock of the H6846 CRTC		|											|
+| C				| Digital		| INPUT			| 2 bits	| N/A			| 0					| Scroll control[^1]					| CONNECT:P								|
+| DISEN			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| DISPTMG from the CRTC 6845			| CONNECT								|
+| CURSOR		| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| CUDISP from the CRTC 6845				| CONNECT								|
+| INV			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Invert Video (non-teletext mnodes)	| CONNECT								|
+| RA			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Raster address from the CRTC 6845		| CONNECT:P								|
+| HS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Horizontal sync						| CONNECT:P								|
+| VS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 1					| Vertical sync							| CONNECT:P								|
+| CRT_CLK		| Analogue		| OUTPUT		| 1/2 MHz	| N/A			| 1 (1 MHz)			| Sets the clock of the H6846 CRTC		|											|
 
 [^1]:See https://beebwiki.mdfs.net/Address_translation, Section _Calculation of the adjusted address_. The C1 C0 Columns correspond to the C port above and will be used to
 adjust the video memory address to care for scrolling.
@@ -396,12 +396,12 @@ A datasheet can be found here: https://web.mit.edu/6.115/www/document/MC6847.pdf
 #### Ports
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| A/S			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| alphanumeric (0) or semigraphics (1)	| CONNECTION:P								|
-| A/G			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| alphanum./semigr. (0) or graphics (1)	| CONNECTION								|
-| GM			| Digital		| INPUT			| 3 bits	| N/A			| 0					| graphic mode (0-7)					| CONNECTION:P								|
-| CSS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| colour palette						| CONNECTION								|
-| INT/EXT		| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| external char ROM (1) or internal (0)	| CONNECTION								|
-| INV			| Digital		| INPUT			| 4 bits	| N/A			| 0					| inverted character					| CONNECTION								|
+| A/S			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| alphanumeric (0) or semigraphics (1)	| CONNECT:P								|
+| A/G			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| alphanum./semigr. (0) or graphics (1)	| CONNECT								|
+| GM			| Digital		| INPUT			| 3 bits	| N/A			| 0					| graphic mode (0-7)					| CONNECT:P								|
+| CSS			| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| colour palette						| CONNECT								|
+| INT/EXT		| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| external char ROM (1) or internal (0)	| CONNECT								|
+| INV			| Digital		| INPUT			| 4 bits	| N/A			| 0					| inverted character					| CONNECT								|
 | FS			| Digital		| OUTPUT		| 1 bit		| Active HIGH	| 1					| Field Sync							|											|
 | DIn			| Digital		| OUTPUT		| 8 bits	| N/A			| 0					| Mirror of DIn read by the device[^2]	|											|
 
@@ -448,27 +448,23 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/3/3f/MC6850.pdf.
 | access speed	| Speed in MHz for microprocessor accesses to the device	|
 
 #### Ports
-| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
-| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| RxD			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Serial receive data					| CONNECTION								|
-| CTS			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Clear To Send							| CONNECTION:P								|
-| DCD			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Data Carrier Detect					| CONNECTION:P								|
-| TxD			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Serial send data						| CONNECTION								|
-| RTS			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Return To Send						| CONNECTION								|
-| IRQ			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 0					| Interrupt Request						| CONNECTION								|
+| Port			| Type			| Direction		| Size/Range	| Polarity		| Default Value		| Description															| Connect to the input						|
+| ------------- | ------------- | ------------- | ------------- | ------------- | ----------------- | --------------------------------------------------------------------- | ----------------------------------------- |
+| RxD			| Digital		| INPUT			| 1 bit			| Active LOW	| 1					| Serial receive data													| CONNECT								|
+| CTS			| Digital		| INPUT			| 1 bit			| Active LOW	| 1					| Clear To Send															| CONNECT:P								|
+| DCD			| Digital		| INPUT			| 1 bit			| Active LOW	| 1					| Data Carrier Detect													| CONNECT:P								|
+| TxD			| Digital		| OUTPUT		| 1 bit			| Active LOW	| 1					| Serial send data														| CONNECT								|
+| RTS			| Digital		| OUTPUT		| 1 bit			| Active LOW	| 1					| Return To Send														| CONNECT								|
+| IRQ			| Digital		| OUTPUT		| 1 bit			| Active LOW	| 0					| Interrupt Request														| CONNECT								|
+| RxCLK			| Analogue		| INPUT			| 1 Hz to 1 MHz	| N/A			| 1 [Hz]			| Rx Clock [Hz]															| ACONNECT:P								|
+| TxCLK			| Analogue		| INPUT			| 1 Hz to 1 MHz	| N/A			| 1 [Hz]			| Tx Clock [Hz]															| ACONNECT:P								|
+| RxD			| Digital		| INPUT			| 1 bit			| Active LOW	| 1					| Serial receive data													| CONNECT								|
+| DATA_IN		| Digital		| INPUT			| 1 bit			| Active HIGH	| 0					| Debug info - tells if data provider is transmitting					| CONNECT								|
+
 
 #### Scheduling
 The device can be scheduled at MICROPROCESSOR_RATE rate..
 The Rx and Tx clocks are not available as ports (for performance reasons) and are instead set by a method call to the device. The devices that can call the ACIA are: BeebSerULA.
-
-### Call API (used by the callee device)
-The calling device (the callee) uses a certain API when calling the device. You don't need to know about this API unless you are thinking of writing a device of your own and want it to
-'connect' to this device by call. Still it provides a bit of understanding about what kind of data is exchanged when scheduling by call..
-```
-void setRxClkRate(long clkRate);
-void setRxClkRate(long clkRate);
-```
-The callee (usually a BeebSerULA device) will use these APIs to set the receive and send clock rates of the ACIA6850 device.
 
 ### PIA8255
 The PIA8255 emulates an 8255 PIA.
@@ -485,9 +481,9 @@ A datasheet is available here: https://theoddys.com/acorn/semiconductor_datashee
 | Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | RESET			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Device reset							|											|
-| PortA			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port A								| CONNECTION								|
-| PortB			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port B								| CONNECTION								|
-| PortC			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port C								| CONNECTION								|
+| PortA			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port A								| CONNECT								|
+| PortB			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port B								| CONNECT								|
+| PortC			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port C								| CONNECT								|
 
 #### Scheduling
 The device can be scheduled at LOW_RATE rate.
@@ -509,10 +505,10 @@ A datasheet is available here: https://www.princeton.edu/~mae412/HANDOUTS/Datash
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | RESET			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Device reset							|											|
 | IRQ			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Interrupt Request						|											|
-| PA			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port A								| CONNECTION								|
-| PB			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port B								| CONNECTION								|
-| CA			| Digital		| INPUT/OUTPUT	| 2 bits	| N/A			| 0					| Port CA								| CONNECTION								|
-| CB			| Digital		| INPUT/OUTPUT	| 2 bits	| N/A			| 0					| Port CB								| CONNECTION								|
+| PA			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port A								| CONNECT								|
+| PB			| Digital		| INPUT/OUTPUT	| 8 bits	| N/A			| 0					| Port B								| CONNECT								|
+| CA			| Digital		| INPUT/OUTPUT	| 2 bits	| N/A			| 0					| Port CA								| CONNECT								|
+| CB			| Digital		| INPUT/OUTPUT	| 2 bits	| N/A			| 0					| Port CB								| CONNECT								|
 
 #### Scheduling
 The device can be scheduled at MICROPROCESSOR_RATE rate.
@@ -534,15 +530,15 @@ No datasheet is available but a description of it can be found here: https://bee
 | RxD			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Receive Data (to ACIA)				|											|
 | CTSO			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Clear To Send (to ACIA)				|											|
 | DCD			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Data Carrier Detect (to ACIA)			|											|
-| TxD			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Transmit Data (from ACIA)				| CONNECTION:P								|
-| RTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Request To Send (from ACIA)			| CONNECTION:P								|
+| TxD			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Transmit Data (from ACIA)				| CONNECT:P								|
+| RTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Request To Send (from ACIA)			| CONNECT:P								|
 | CASMO			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Cassette Motor control (to relay)		|											|
-| CAS_IN		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Cassette In (from tape recorder)		| CONNECTION								|
+| CAS_IN		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Cassette In (from tape recorder)		| CONNECT								|
 | CAS_OUT		| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Cassette Out (to tape recorder)		|											|
-| DIn			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Serial In (from RS423 I/F)			| CONNECTION								|
+| DIn			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Serial In (from RS423 I/F)			| CONNECT								|
 | Dout			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Serial Out (to RS423 I/F)				|											|
 | RTSO			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Request To Send Out (to RS423 I/F)	|											|
-| CTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Clear To Send (from RS423 I/F)		| CONNECTION								|
+| CTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Clear To Send (from RS423 I/F)		| CONNECT								|
 
 #### Scheduling
 The device can be scheduled at MICROPROCESSOR_RATE rate.
@@ -586,7 +582,7 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/5/59/ZN428.pdf
 #### Ports
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| ENABLE		| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Latch value to convert				| CONNECTION								|
+| ENABLE		| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Latch value to convert				| CONNECT								|
 | AOut			| Analogue		| OUTPUT		| 0 to VREF	| N/A			| 0					| Voltage out							|											|
 
 #### Scheduling
@@ -604,11 +600,11 @@ A datasheet can be found here: https://www.princeton.edu/~mae412/HANDOUTS/Datash
 #### Ports
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| RESET			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Resets the microprocessor				| CONNECTION								|
-| IRQ			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Interrupt Request						| CONNECTION								|
-| NMI			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Non-Maskable Interrupt Request		| CONNECTION								|
-| SO			| Digital		| INPUT			| 1 bit		| Active LOW	| 01				| Set overflow flag (on negative edge)	| CONNECTION								|
-| RDY			| Digital		| INPUT			| 1 bit		| Active LOW	| 01				| Halt processor on read cycle			| CONNECTION								|
+| RESET			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Resets the microprocessor				| CONNECT								|
+| IRQ			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Interrupt Request						| CONNECT								|
+| NMI			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Non-Maskable Interrupt Request		| CONNECT								|
+| SO			| Digital		| INPUT			| 1 bit		| Active LOW	| 01				| Set overflow flag (on negative edge)	| CONNECT								|
+| RDY			| Digital		| INPUT			| 1 bit		| Active LOW	| 01				| Halt processor on read cycle			| CONNECT								|
 | SYNC			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 01				| Indicates opcode fetch cycle			|											|
 | RW			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 01				| Read (1) or Write (0)					|											|
 | DATA			| Digital		| OUTPUT		| 8 bits	| N/A			| 01				| Data out[^3]							|											|
@@ -629,7 +625,7 @@ The device has no parameters.
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
 | CAS_IN		| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Audio from the tape					|											|
-| CAS_OUT		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Audio to the tape						| CONNECTION								|
+| CAS_OUT		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Audio to the tape						| CONNECT								|
 
 #### Scheduling
 The device can be scheduled at MICROPROCESSOR_RATE rate.
@@ -644,9 +640,9 @@ The device has no parameters.
 #### Ports
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| CLK			| Digital		| INPUT			| 4 bits	| N/AW	| 1		| 4 (MHz)			| Clock input							| CONNECTION								|
-| D				| Digital		| INPUT			| 1 bit		| N/A			| 0					| Data in (for write)					| CONNECTION:P								|
-| WE			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Write enable							| CONNECTION:P								|
+| CLK			| Digital		| INPUT			| 4 bits	| N/AW	| 1		| 4 (MHz)			| Clock input							| CONNECT								|
+| D				| Digital		| INPUT			| 1 bit		| N/A			| 0					| Data in (for write)					| CONNECT:P								|
+| WE			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Write enable							| CONNECT:P								|
 
 #### Scheduling
 The device can be scheduled at HI_RATE rate.
@@ -665,9 +661,9 @@ registerPort("CLK",		IN_PORT,	0x1,	CLK,	&mCLK);		// Clock
 	registerPort("MISO",	OUT_PORT,	0x1,	MISO,	&mMISO);	// Data Ou
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| CLK			| Digital		| INPUT			| 1 bit		| N/AW			| 1					| Clock input							| CONNECTION:P								|
-| MOSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Data in								| CONNECTION:P								|
-| SEL			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Select								| CONNECTION								|
+| CLK			| Digital		| INPUT			| 1 bit		| N/AW			| 1					| Clock input							| CONNECT:P								|
+| MOSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Data in								| CONNECT:P								|
+| SEL			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Select								| CONNECT								|
 | MISO			| Digital		| OUTUT			| 1 bit		| Active LOW	| 1					| Data out								|											|
 
 #### Scheduling
@@ -701,8 +697,8 @@ The device has no parameters.
 #### Ports
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| ROW			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Row selection							| CONNECTION:P								|
-| COL			| Digital		| OUTPUT		| 10 bits	| Active HIGH	| 3ff				| Column output							| CONNECTION								|
+| ROW			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Row selection							| CONNECT:P								|
+| COL			| Digital		| OUTPUT		| 10 bits	| Active HIGH	| 3ff				| Column output							| CONNECT								|
 
 #### Scheduling
 The device can be scheduled at LOW_RATE rate.
@@ -737,9 +733,9 @@ with most keyboards easier.
 #### Ports
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| SW			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Keyboard switches						| CONNECTION								|
-| ENA			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Enable auto scanning and load[^4]		| CONNECTION								|
-| COL_SEL		| Digital		| INPUT			| 4 bits	| N/A			| 0					| Column selection						| CONNECTION								|
+| SW			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Keyboard switches						| CONNECT								|
+| ENA			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Enable auto scanning and load[^4]		| CONNECT								|
+| COL_SEL		| Digital		| INPUT			| 4 bits	| N/A			| 0					| Column selection						| CONNECT								|
 | ROW_SEL		| Digital		| INPUT			| 4 bits	| N/A			| 0					| Row Selection							|											|
 | ROW			| Digital		| OUTPUT		| 3 bits	| Active HIGH	| 0					| Row output							|											|
 | BREAK			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Break key pressed						|											|
@@ -763,12 +759,12 @@ The device has no parameters.
 #### Ports
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| TAPE_OUT		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Audio from computer (PIA Port PC0)	| CONNECTION								|
-| ENA_TONE		| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| Enable 2.4 KHz tone to CAS_OUT		| CONNECTION								|
-| CAS_IN		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Audio from the tape recorder			| CONNECTION								|
-| TONE			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| 2.4 kHz Tone (to PIA PC4)				| CONNECTION								|
-| TAPE_IN		| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Audio from CAS_IN (to PIA Port PC5)	| CONNECTION								|
-| CAS_OUT		| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Audio to the tape	recorder			| CONNECTION								|
+| TAPE_OUT		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Audio from computer (PIA Port PC0)	| CONNECT								|
+| ENA_TONE		| Digital		| INPUT			| 1 bit		| Active HIGH	| 0					| Enable 2.4 KHz tone to CAS_OUT		| CONNECT								|
+| CAS_IN		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Audio from the tape recorder			| CONNECT								|
+| TONE			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| 2.4 kHz Tone (to PIA PC4)				| CONNECT								|
+| TAPE_IN		| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Audio from CAS_IN (to PIA Port PC5)	| CONNECT								|
+| CAS_OUT		| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Audio to the tape	recorder			| CONNECT								|
 
 #### Scheduling
 The device can be scheduled at MICROPROCESSOR_RATE rate.
@@ -783,7 +779,7 @@ The device has no parameters.
 #### Ports
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| OUT			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Audio input to the speaker			| CONNECTION								|
+| OUT			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Audio input to the speaker			| CONNECT								|
 
 #### Scheduling
 The device can be scheduled at HI_RATE rate.
@@ -798,8 +794,8 @@ The device has no parameters.
 #### Ports
 | Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
 | ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| CLR			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Clear output							| CONNECTION								|
-| ENA			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Latch input							| CONNECTION								|
+| CLR			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Clear output							| CONNECT								|
+| ENA			| Digital		| INPUT			| 1 bit		| Active LOW	| 0					| Latch input							| CONNECT								|
 | CTRL			| Digital		| INPUT			| 4 bits	| N/A			| 0					| Latch selection and load value[^5]	|											|
 | Q				| Digital		| OUTPUT		| 8 bits	| N/A			| ff				| Latch outputs							|											|
 

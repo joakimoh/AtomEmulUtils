@@ -449,6 +449,9 @@ bool VDU6847::readByte(BusAddress adr, BusByte& data)
 	if (!MemoryMappedDevice::triggerBeforeRead(adr, data))
 		return false;
 
+	if (!selected(adr))
+		return false;
+
 	data = mMem[adr - mStartOfSpace];
 
 	return true;

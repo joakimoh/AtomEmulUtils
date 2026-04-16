@@ -173,7 +173,7 @@ bool ConnectionManager::extractPort(string name, PortSelection &port_selection)
 }
 
 // Connect one device's analogue output with the input of another device
-bool ConnectionManager::connectAnaloguePorts(string srcName, string dstName)
+bool ConnectionManager::connectAnaloguePorts(string srcName, string dstName, bool process)
 {
 	AnaloguePort *src_port;
 	if (!extractAnaloguePort(srcName, src_port)) {
@@ -186,8 +186,11 @@ bool ConnectionManager::connectAnaloguePorts(string srcName, string dstName)
 		cout << "Invalid format for destination routing '" << dstName << "'\n";
 		return false;
 	}
+	AnalogueInputReference input_ref;
+	input_ref.port = dst_port;
+	input_ref.process = process;
 
-	src_port->inputs.push_back(dst_port);
+	src_port->inputs.push_back(input_ref);
 
 	return true;
 }
@@ -243,7 +246,7 @@ bool ConnectionManager::connect(string srcName, string dstName, bool invert, boo
 	dst_port.port->fanIn++;
 	if (dst_port.port->dir == PortDirection::IO_PORT) {
 		src_port.port->conToBiDirP = true;
-		//cout << "BIDIRECTIONAL CONNECTION " << src_port.port->dev->name << ":" << src_port.port->name << " => " <<
+		//cout << "BIDIRECTIONAL CONNECT " << src_port.port->dev->name << ":" << src_port.port->name << " => " <<
 		//	dst_port.port->dev->name << ":" << dst_port.port->name << "\n";
 	}
 

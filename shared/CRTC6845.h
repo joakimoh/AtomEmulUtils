@@ -6,10 +6,10 @@
 #include "RAM.h"
 #include <cmath>
 #include <vector>
-#include "TimedDevice.h"
+#include "ClockedDevice.h"
 
 
-class CRTC6845 : public MemoryMappedDevice, public TimedDevice {
+class CRTC6845 : public MemoryMappedDevice, public ClockedDevice {
 
 	//
 	// This emulates the Hitachi HD6845SP used in e.g. the BBC Micro.
@@ -25,8 +25,8 @@ public:
 
 	// M6845 Ports
 	int CLK, DISPTMG, RA, CUDISP, HS, VS;
-	PortVal mCLK = 1;		// INPUT - Clock rate [MHz] (1 or 2 MHz for a BBC Micro Model B e.g.)
-	PortVal pCLK = 1;
+	double mCLK = 1;		// INPUT - Clock rate [MHz] (1 or 2 MHz for a BBC Micro Model B e.g.)
+	double pCLK = 1;
 	PortVal mNEXT_CHAR;		// INPUT  - Advance one character
 	PortVal mDISPTMG = 0x0;	// OUTPUT - DISPlay TiMinG: When high, the display is in the active area (delay specified by R9 skew bits)
 	PortVal mRA = 0x0;		// OUTPUT - Raster Address for row of a character (5 bits)
@@ -189,6 +189,8 @@ public:
 
 	// Outputs the internal state of the device
 	bool outputState(ostream& sout) override;
+
+	void processAnaloguePortUpdate(int index) override;
 
 };
 

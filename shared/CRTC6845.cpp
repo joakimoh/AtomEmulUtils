@@ -37,10 +37,10 @@ CRTC6845::CRTC6845(
 //) : VideoDisplayUnit(name, CRTC6845_DEV, display, tickRate, accessSpeed, adr, 0x2, 0x0 /* dummy adr as not used by the 6845 */, debugTracing,
 //	connectionManager, deviceManager)
 ): MemoryMappedDevice(name, CRTC6845_DEV, VDU_DEVICE, accessSpeed, adr, 0x2, debugTracing, connectionManager, deviceManager),
-TimedDevice(tickRate)
+ClockedDevice(tickRate,1.0)
 {
 
-	registerPort("CLK",			IN_PORT,  0x3,	CLK,		&mCLK);
+	registerAnaloguePort("CLK",	IN_PORT,  CLK,				&mCLK);
 	registerPort("RESET",		IN_PORT,  0x1,	RESET,		&mRESET);
 	registerPort("DISPTMG",		OUT_PORT, 0x1,	DISPTMG,	&mDISPTMG);
 	registerPort("RA",			OUT_PORT, 0x1f, RA,			&mRA);
@@ -106,12 +106,8 @@ bool CRTC6845::getMemFetchAdr(uint16_t &adr)
 
 bool CRTC6845::advanceChar()
 {
-
-	int nextCycleCount = (int)round(mTicks + mTickRate / mCLK);
-	if (nextCycleCount == mTicks)
-		nextCycleCount++;
-
-	mTicks = nextCycleCount;
+	// Advance time one device clock cycle <=> 1 period of frequecny mCLK
+	deviceTick(1);
 
 	if (DBG_LEVEL_DEV(this, DBG_GRAPHICS) && mCLK != pCLK)
 		printSettings();
@@ -566,4 +562,11 @@ bool CRTC6845::outputState(ostream& sout)
 	sout << "CUDISP:                                              " << (int)mCUDISP << "\n";
 
 	return true;
+}
+
+void CRTC6845::processAnaloguePortUpdate(int index)
+{
+	if (index == CLK) {
+		changeClockRate(mCLK);
+	}
 }

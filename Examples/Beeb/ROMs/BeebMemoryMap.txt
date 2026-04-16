@@ -80,7 +80,7 @@ CONNECT		CRTC:VS				SYS_VIA:CA;0	// VS => CA1
 CONNECT:P	CRTC:VS				VDU:VS
 CONNECT:P	CRTC:HS				VDU:HS
 CONNECT:P	74LS259:Q;5;4		VDU:C
-CONNECT 	VDU:CRTC_CLK		CRTC:CLK
+ACONNECT 	VDU:CRTC_CLK		CRTC:CLK
 
 // Paged ROMs
 CONNECT 	ROMSel:SE			BASIC:CS		// Sideways ROM Slot 15
@@ -149,6 +149,9 @@ CONNECT		SerialULA:RxD			ACIA:RxD			// Connect the Serial ULA Rx data to the ACI
 CONNECT:P	SerialULA:CTSO			ACIA:CTS			// Connect the Serial ULA CTS to the ACIA with direct processing on update
 CONNECT:P	SerialULA:DCD			ACIA:DCD			// Connect the Serial ULA DCD to the ACIA with direct processing on update
 CONNECT		ACIA:IRQ				CPU:IRQ
+ACONNECT:P	SerialULA:ACIA_RxCLK	ACIA:RxCLK			// Connect Serial ULA's Rx & Tx clocks to the ACIA
+ACONNECT:P	SerialULA:ACIA_TxCLK	ACIA:TxCLK			//
+CONNECT		SerialULA:ACIA_DATA_IN	ACIA:DATA_IN		// For debugging only
 
 //
 //	Device scheduling
@@ -156,7 +159,6 @@ CONNECT		ACIA:IRQ				CPU:IRQ
 SCHED	KB			LOW_RATE
 TRIGGER	CRTC		CALL	VDU							// Trigger the CRTC on VDU function calls (to get video memory addresses)
 TRIGGER	TCG			CALL	VDU							// Trigger the TCG on VDU function calls (to get characters)
-TRIGGER ACIA		CALL	SerialULA					// Trigger the ACIA on Serial ULA function calls (to update the ACIA's Rx/Tx CLK rates)
 SCHED	ACIA		MICROPROCESSOR_RATE					// as well as on instruction basis.
 SCHED	SerialULA	MICROPROCESSOR_RATE
 SCHED	SOUND		HIGH_RATE
@@ -166,6 +168,8 @@ SCHED	SYS_VIA		MICROPROCESSOR_RATE
 SCHED	USER_VIA	MICROPROCESSOR_RATE
 SCHED	TAPREC		MICROPROCESSOR_RATE
 SCHED	SOUND		MICROPROCESSOR_RATE
+
+
 
 //
 // Initialisation of ports

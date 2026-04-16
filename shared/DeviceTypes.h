@@ -16,5 +16,6 @@ typedef uint64_t	BusDoubleWord;
 
 typedef uint16_t PortVal;
 #define PORT_MASK 0xffff
+typedef double AnaloguePortVal;
 
 #endif

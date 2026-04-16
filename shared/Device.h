@@ -59,6 +59,7 @@ public:
 
 
 class DevicePort;
+class AnaloguePort;
 
 // dst = dst & ~mask | ((src >> shifts) & mask)
 typedef struct InputReference_struct {
@@ -68,6 +69,11 @@ typedef struct InputReference_struct {
 	bool			invert = false;			// If true, the source port value will be inverted before fed to the destination port
 	bool			process = false;		// If true, the receiving device's process method will be called in addition to updating the port value
 } InputReference;
+
+typedef struct AnalogueInputReference_struct {
+	AnaloguePort*	port;
+	bool			process = false;		// If true, the receiving device's process method will be called in addition to updating the port value
+} AnalogueInputReference;
 
 // Reference to a source port by a destination port - only used for port arbitration
 typedef struct OutputReference_struct {
@@ -107,13 +113,13 @@ public:
 // The port value currently only be accessed by the debugger.
 class AnaloguePort {
 public:
-	Device*					dev = NULL;				// name of the device
-	string					name = "";				// name of the I/O port
-	int						localIndex = -1;		// local device index for the I/O port
-	int						globalIndex = -1;		// unique global index for the port
-	PortDirection			dir = IO_PORT;			// I/O direction
-	double*					val = nullptr;			// pointer to variable holding the port's value
-	vector<AnaloguePort *>	inputs;					// connected inputs (used only if the port is an output port)
+	Device*							dev = NULL;				// name of the device
+	string							name = "";				// name of the I/O port
+	int								localIndex = -1;		// local device index for the I/O port
+	int								globalIndex = -1;		// unique global index for the port
+	PortDirection					dir = IO_PORT;			// I/O direction
+	double*							val = nullptr;			// pointer to variable holding the port's value
+	vector<AnalogueInputReference>	inputs;			// connected inputs (used only if the port is an output port)
 };
 
 #define _PORT_ID(x)	(x==NULL||x->dev==NULL?"???":(x->dev->name+":"+x->name))
@@ -208,7 +214,7 @@ public:
 	bool updatePort(int index, PortVal val, bool forceUpdate = false);
 
 	// Update an analogue output port
-	bool updateAnaloguePort(int index, double val);
+	bool updateAnaloguePort(int index, AnaloguePortVal val);
 
 	
 
@@ -218,9 +224,11 @@ public:
 	// In the case the port value need to be processed immediately (if the qualifier 'P' was added to 'CONNECT')
 	// then this method will be called for the device receiving the port update
 	virtual void processPortUpdate(int index) {};
+	virtual void processAnaloguePortUpdate(int index) {};
 
-	// As processPortUpdate above but assumes all input portss have been updated
+	// As processPortUpdate above but assumes all input ports have been updated
 	virtual void processPortUpdate() { }
+	
 
 	// Force an update of a device's all ports to secure that all connected devices have the correct port value
 	// Should be made after all device's have been connected. No triggering of connected devices are made.

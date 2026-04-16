@@ -132,7 +132,7 @@ DeviceManager::DeviceManager(
 					cmd == "ADD" ||
 					cmd == "GAP" ||
 					cmd.length() >= 7 && cmd.substr(0, 7) == "CONNECT" ||
-					cmd == "ACONNECT" ||
+					cmd == "ACONNECT" || cmd == "ACONNECT:P" ||
 					cmd == "TRIGGER" ||
 					cmd == "SCHED" ||
 					cmd == "EMU_LOW_RATE" ||
@@ -736,22 +736,21 @@ DeviceManager::DeviceManager(
 
 
 			}
-			else if (cmd== "ACONNECT") {
+			else if (cmd== "ACONNECT" || cmd == "ACONNECT:P") {
 
 				//
 				// Connect Analogue Device ports
 				// 
 				// Syntax;
-				//	ACONNECT <src device>:<src port>	<dst device>:<dst port>
-				// 
-				// qualifer ::= 'I' | 'P'
+				//	ACONNECT[:'P'] <src device>:<src port>	<dst device>:<dst port>
 				//
 
 
 				string src_port, dst_port;
 				sin >> src_port;
 				sin >> dst_port;
-				if (!mCM->connectAnaloguePorts(src_port, dst_port)) {
+				bool process = (cmd == "ACONNECT:P");
+				if (!mCM->connectAnaloguePorts(src_port, dst_port, process)) {
 					throw runtime_error("Syntax error");
 				}
 

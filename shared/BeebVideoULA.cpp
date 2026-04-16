@@ -91,7 +91,7 @@ BeebVideoULA::BeebVideoULA(
 	registerPort("CURSOR",		IN_PORT,	0x01,	CURSOR,		&mCURSOR);	
 	registerPort("INV",			IN_PORT,	0x01,	INV,		&mINV);
 	registerPort("RA",			IN_PORT,	0x0f,	RA,			&mRA);
-	registerPort("CRTC_CLK",	OUT_PORT,	0x3,	CRTC_CLK,	&mCRTC_CLK);
+	registerAnaloguePort("CRTC_CLK",	OUT_PORT,	CRTC_CLK,	&mCRTC_CLK);
 	registerPort("HS",			IN_PORT,	0x1,	HS,			&mHS);
 	registerPort("VS",			IN_PORT,	0x1,	VS,			&mVS);
 
@@ -645,9 +645,9 @@ bool BeebVideoULA::updateInternalState(uint8_t newControlRegisterValue)
 		updateHwScrollConstant();
 
 	if (getCRField(CR_CLOCK_RATE) == 1)
-		updatePort(CRTC_CLK, 2);
+		updateAnaloguePort(CRTC_CLK, 2);
 	else
-		updatePort(CRTC_CLK, 1);
+		updateAnaloguePort(CRTC_CLK, 1);
 
 	//
 	// The Pixel Rate is given by the NCol field

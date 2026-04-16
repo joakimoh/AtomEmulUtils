@@ -13,6 +13,9 @@ ACIA6850::ACIA6850(string name, uint16_t adr, double tickRate, uint8_t accessSpe
 	registerPort("TxD",		OUT_PORT,	0x1,	TxD,	&mTxD);
 	registerPort("RTS",		OUT_PORT,	0x1,	RTS,	&mRTS);
 	registerPort("IRQ",		OUT_PORT,	0x1,	IRQ,	&mIRQ);
+	registerAnaloguePort("RxCLK", IN_PORT, RxCLK, &mRxCLK);
+	registerAnaloguePort("TxCLK", IN_PORT, TxCLK, &mTxCLK);
+	registerPort("DATA_IN", IN_PORT, 0x1, DATA_IN, &mDATA_IN);	// For debugging only - tells whether data is incoming or not
 
 }
 
@@ -263,7 +266,7 @@ bool ACIA6850::advanceUntil(uint64_t tickTime)
 	uint8_t p_SR;
 	uint8_t p_CR;
 
-	if (mDataStart && mDataStartCount < 0) {
+	if (mDATA_IN && mDataStartCount < 0) {
 			mDataStartCount = mTicks;
 			DBG_LOG(this, DBG_IO_PERIPHERAL, "Rx DATA STARTS AT " + to_string(mDataStartCount) + " cycles (" + to_string(mTicks / mTickRate * 1e-6) + "s)");
 	}
@@ -503,16 +506,20 @@ void ACIA6850::updateIRQ()
 	}
 }
 
-void ACIA6850::setRxClkRate(long clkRate) {
-	mRxClkRate = clkRate;
-	mRxClkCycles = (int)round(mTickRate * 1e6 / clkRate);	
-	update_settings();
-}
 
-void ACIA6850::setTxClkRate(long clkRate) {
-	mTxClkRate = clkRate;
-	mTxClkCycles = (int)round(mTickRate * 1e6 / clkRate);
-	update_settings();
+// Process Rx and Tx clock rate changes
+void ACIA6850::processAnaloguePortUpdate(int index)
+{
+	if (index == RxCLK) {
+		mRxClkRate = (long)round(mRxCLK);
+		mRxClkCycles = (int)round(mTickRate * 1e6 / mRxCLK);
+		update_settings();
+	}
+	else if (index == TxCLK) {
+		mTxClkRate = (long)round(mTxCLK);
+		mTxClkCycles = (int)round(mTickRate * 1e6 / mRxCLK);
+		update_settings();
+	}
 }
 
 // Outputs the internal state of the device

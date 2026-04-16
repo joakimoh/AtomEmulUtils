@@ -46,7 +46,7 @@ public:
 	PortVal mHS = 0x0;
 	//uint8_t mSCROLL_CTRL = 0x0;		// INPUT - C0 & C1 selected by VIA PB Port <=> decides hardware scroll address
 	PortVal mC = 0x0;		// C1:C0 - set based on SCROLL_CTRL input
-	PortVal mCRTC_CLK = 1;	// OUTPUT - Clock to CRTC M6845 (1 or 2 MHz)
+	AnaloguePortVal mCRTC_CLK = 1;	// OUTPUT - Clock to CRTC M6845 (1 or 2 MHz)
 	PortVal mDISPTMG = 0x1;	// INPUT -	DISPTMG from the CRTC 6845; actual display enable DISEN is calculated as = ~(~DISPTMG | RA3)
 	PortVal mCURSOR = 0x0;	// INPUT -	CURSOR from M6845
 	PortVal mINV = 0x1;		// INPUT - invert video (HIGH <=> Not inverted)

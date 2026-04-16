@@ -179,7 +179,7 @@ void Device::getPortSelection(DevicePort *srcPort, InputReference & dstPort, str
 }
 
 // Update an analogue output port
-bool Device::updateAnaloguePort(int index, double val)
+bool Device::updateAnaloguePort(int index, AnaloguePortVal val)
 {
 	if (index < 0 || index >= mAnaloguePorts.size())
 		return false;
@@ -206,9 +206,14 @@ bool Device::updateAnaloguePort(int index, double val)
 	// Update the destination ports based on the new value
 	for (int i = 0; i < port.inputs.size(); i++) {
 
-		AnaloguePort *input = port.inputs[i];
+		AnalogueInputReference& input_ref = port.inputs[i];
+		AnaloguePort* input = input_ref.port;
 
 		*(input->val) = val;
+
+		// Call direct processing on the receiving device - if specified by configuration
+		if (input_ref.process)
+			input->dev->processAnaloguePortUpdate(input->localIndex);
 
 	}
 

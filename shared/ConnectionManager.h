@@ -58,7 +58,7 @@ public:
 	bool connect(string srcName, string dstName, bool invert, bool process);
 
 	// Connect one device's analogue output with the input of another device
-	bool connectAnaloguePorts(string srcName, string dstName);
+	bool connectAnaloguePorts(string srcName, string dstName, bool process);
 
 };
 
