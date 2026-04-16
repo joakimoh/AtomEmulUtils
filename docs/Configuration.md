@@ -174,7 +174,7 @@ Both the _CONNECT_ and the _ACONNECT_ directives can have a suffix ':P'. This te
 with the input port) shall process the port data immediately (and not wait until the device is scheduled to 'run' the
 next time).
 
-The _CONNECT_ directive can also have the prefix ':I'. This specfies that the port value shall be inverted on the
+The _CONNECT_ directive can also have the prefix ':I'. This specifies that the port value shall be inverted on the
 way between the source and destination devices. The 'P' and 'I' suffixes can be mixed as well, e.g. ':PI'.
 
 ### Device scheduling
@@ -471,8 +471,8 @@ A datasheet can be found here: https://www.cpcwiki.eu/imgs/3/3f/MC6850.pdf.
 | TxD			| Digital		| OUTPUT		| 1 bit			| Active LOW	| 1					| Serial send data														| CONNECT								|
 | RTS			| Digital		| OUTPUT		| 1 bit			| Active LOW	| 1					| Return To Send														| CONNECT								|
 | IRQ			| Digital		| OUTPUT		| 1 bit			| Active LOW	| 0					| Interrupt Request														| CONNECT								|
-| RxCLK			| Analogue		| INPUT			| 1 Hz to 1 MHz	| N/A			| 1 [Hz]			| Rx Clock [Hz]															| ACONNECT:P								|
-| TxCLK			| Analogue		| INPUT			| 1 Hz to 1 MHz	| N/A			| 1 [Hz]			| Tx Clock [Hz]															| ACONNECT:P								|
+| RxCLK			| Analogue		| INPUT			| 1 Hz to 1 MHz	| N/A			| 1 [Hz]			| Rx Clock [Hz]															| ACONNECT:P							|
+| TxCLK			| Analogue		| INPUT			| 1 Hz to 1 MHz	| N/A			| 1 [Hz]			| Tx Clock [Hz]															| ACONNECT:P							|
 | RxD			| Digital		| INPUT			| 1 bit			| Active LOW	| 1					| Serial receive data													| CONNECT								|
 | DATA_IN		| Digital		| INPUT			| 1 bit			| Active HIGH	| 0					| Debug info - tells if data provider is transmitting					| CONNECT								|
 
@@ -543,20 +543,23 @@ No datasheet is available but a description of it can be found here: https://bee
 | access speed	| Speed in MHz for microprocessor accesses to the device	|
 
 #### Ports
-| Port			| Type			| Direction		| Size		| Polarity		| Default Value		| Description							| Connect to the input						|
-| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| RxD			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Receive Data (to ACIA)				|											|
-| CTSO			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Clear To Send (to ACIA)				|											|
-| DCD			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Data Carrier Detect (to ACIA)			|											|
-| TxD			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Transmit Data (from ACIA)				| CONNECT:P								|
-| RTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Request To Send (from ACIA)			| CONNECT:P								|
-| CASMO			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Cassette Motor control (to relay)		|											|
-| CAS_IN		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Cassette In (from tape recorder)		| CONNECT								|
-| CAS_OUT		| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Cassette Out (to tape recorder)		|											|
-| DIn			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Serial In (from RS423 I/F)			| CONNECT								|
-| Dout			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Serial Out (to RS423 I/F)				|											|
-| RTSO			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Request To Send Out (to RS423 I/F)	|											|
-| CTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Clear To Send (from RS423 I/F)		| CONNECT								|
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input		|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ------------------------- |
+| RxD			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Receive Data (to ACIA)				|							|
+| CTSO			| Digital		| OUTPUT		| 1 bit		| Active LOW	| 1					| Clear To Send (to ACIA)				|							|
+| DCD			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Data Carrier Detect (to ACIA)			|							|
+| TxD			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Transmit Data (from ACIA)				| CONNECT:P					|
+| RTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Request To Send (from ACIA)			| CONNECT:P					|
+| CASMO			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Cassette Motor control (to relay)		|							|
+| CAS_IN		| Digital		| INPUT			| 1 bit		| N/A			| 0					| Cassette In (from tape recorder)		| CONNECT					|
+| CAS_OUT		| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Cassette Out (to tape recorder)		|							|
+| DIn			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Serial In (from RS423 I/F)			| CONNECT					|
+| Dout			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Serial Out (to RS423 I/F)				|							|
+| RTSO			| Digital		| OUTPUT		| 1 bit		| N/A			| 0					| Request To Send Out (to RS423 I/F)	|							|
+| CTSI			| Digital		| INPUT			| 1 bit		| N/A			| 0					| Clear To Send (from RS423 I/F)		| CONNECT					|
+| ACIA_RxCLK	| Analogue		| OUTPUT		|			| N/A			| 1					| Rx clock (to ACIA)					|							|
+| ACIA_TxCLK	| Analogue		| OUTPUT		|			| N/A			| 1					| Tx clock (to ACIA)					|							|
+| ACIA_DATA_IN	| Digital		| OUTPUT		| 1 bit		| Active HIGH	| 0					| Debug data only (to ACIA)				|							|
 
 Although the  _RxCLK_ and _TxCLK_ ports represent actual clock outputs on the BeebSerULA device, no clock pulses are sent by the device to the ACIA during emulation on these ports.
 Instead, the ports are used to dynamically change the Rx and Tx clock speeds (BeebSerULA will change this value depending on e.g. tape speed set).
@@ -659,9 +662,9 @@ A datasheet can be found here: https://map.grauw.nl/resources/sound/texas_instru
 The device has no parameters.
 
 #### Ports
-| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input						|
-| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ----------------------------------------- |
-| CLK			| Analogue		| INPUT			| 1-4 MHz	| N/A			| 1		| 4 (MHz)			| Clock input					| CONNECT								|
+| Port			| Type			| Direction		| Size/Range| Polarity		| Default Value		| Description							| Connect to the input					|
+| ------------- | ------------- | ------------- | --------- | ------------- | ----------------- | ------------------------------------- | ------------------------------------- |
+| CLK			| Analogue		| INPUT			| 1-4 MHz	| N/A			| 1		| 4 (MHz)			| Clock input					| ACONNECT								|
 | D				| Digital		| INPUT			| 1 bit		| N/A			| 0					| Data in (for write)					| CONNECT:P								|
 | WE			| Digital		| INPUT			| 1 bit		| Active LOW	| 1					| Write enable							| CONNECT:P								|
 
