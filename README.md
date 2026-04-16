@@ -84,47 +84,9 @@ the SRAM 'STACK' resides in memory 0x100 to 0x2ff (start address 0x100 and size 
 
 Details about the content of a map file cand be found in [Map File Content](docs/Configuration.md).
 
-## The menu bar
+## Interacting with the emulated computer system
 The emulator comes with a menu bar that allows the user to control the emulation and provide input data (e.g. tape audio or text input):
+
 ![The Menu Bar.](docs/MenuBar.jpg)
 
 See [Menus](docs/Menu.md) for details about all the menu options.
-
-## Connectivity
-
-### Keyboard
-If a keyboard device is specified, then keyboard presses will be forwarded to that device. Is is also possible to 'bypass' keyboard presses and 'paste' text
-from the host computer's clipboard directly to the keyboard device.
-
-### Audio
-If a sound device is specified, then sound produced by it will be encoded as an audio stream and played on the host computer.
-
-### Tape recorder
-If a tape recorder is specified, then tape audio files (CSW format) can be be 'played' to generate a bit stream to the emulated computer system
-and bit streams from the emulated computer system can 'recorded' into tape audio files (CSW format).
-
-### Display
-If a video display device is specified, a display with a resolution matching that of the TV standard supported by the device will be created. This display
-will then be updated by the video display device based on the video memory content.
-If no video display device (either a MC6847 or a BBC Micro Video ULA) is specified, the emulator will run in 'headless' mode. In headless mode the only way to
-interact with the emulated computer system is via the debugger interface (see below). 
-
-### SD Card
-If the SD Card device is specified, then the emulated computer system can interact with it over SPI. Inserting and ejected the card is emulated by
-a menu that selects an actual SD Card file.
-
-## Debugger
-A command-line debugger can be started at any time and will make it possible to get and change the status of the emulated computer system.
-The debugger monitor will be the terminal from which the emulator was started from. See [Debugger commands](docs/Debugger.md)
-
-## Misc.
-
-### Loading/saving files to/from memory
-It is possible to load data into the emulated memory directly by selecting a file with binary data. Memory data can also be saved to file.
-This makes it possible to quickly load e.g. a BASIC program into memory without having to use the slow cassette interface.
-
-### Emulation speed
-The emulation speed is default 'real time' but can be changed to be slower or faster. How fast it can become depends on the host computer and the complexity of
-the emulated computer system. Don't expect much higher speed than real time for a complex system. When a video display device is present, the update rate 
-(perceived frame rate) of the display can be adjusted (slowed down) to improvde emulation performance. The default is to use that of the selected TV standard
-(50 Hz for PAL and 60 Hz for NTSC).

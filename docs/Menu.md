@@ -29,7 +29,9 @@ then the format can be MMB (see https://github.com/hoglet67/MMFS/wiki/MMB-File-F
 ![The Memory Card Menu.](MemoryCard.jpg)
 
 ## The Speed Menu
-It is possible to slow down or speed up the emulation. Default is to run in real time.
+It is possible to slow down or speed up the emulation.
+The emulation speed is default 'real time' but can be changed to be slower or faster. How fast it can become depends on the host computer and the complexity of
+the emulated computer system. Don't expect much higher speed than real time for a complex system. 
 You can always slow down but how much you can
 speed up (if at all) depends on the capabilities of the host computer you run the emulator on.
 The slowest you can run is at 1% of real time and the fastest you can run is 100 times real time
@@ -39,10 +41,10 @@ probbaly be more like a few times real time only).
 ![The Speed Menu.](Speed.jpg)
 
 ## The Screen Refresh Rate Menu
-To improve performance (e.g. if you are not able to come up to real time emulation) you could try
-to slow down the refresh rate of the emulated computer display (this will of course only be
-applicable if you have a video device in your emulated system). The default rate is set based
-on the TV standard (e.g. 50 Hz for PAL and 60 Hz for NTSC) but you can try with lower rates.
+When a video display device is present, the update rate 
+(perceived frame rate) of the display can be adjusted (slowed down) to improvde emulation performance. The default is to use that of the selected TV standard
+(50 Hz for PAL and 60 Hz for NTSC).
+
 ![The  Screen Refresh Menu.](RefreshRate.jpg)
 
 ## The Tape Recorder Menu
