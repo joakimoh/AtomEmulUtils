@@ -43,7 +43,15 @@ To start the emulation of that system you simply give the command:
 ```
 > Emu6502 -map AtomEmulUtils/Examples/Atom/ROMs/AtomMemoryMap.txt
 ```
+The Atom emulation looks like this:
+![The Atom Emuation.](docs/Atom.jpg)
 Other systems include a BBC Micro system and some simple headless systems (systems just with a microprocessor and memory).
+To start the emulation of that system you simply give the command:
+```
+> Emu6502 -map AtomEmulUtils/Examples/Beeb/ROMs/BeebMemoryMap.txt
+```
+The Beeb emulation looks like this:
+![The Beeb Emuation.](docs/Beeb.jpg)
 
 The map file and ROM files (with operating systems or your own software) need to be located in the same folder as the
 map file.
