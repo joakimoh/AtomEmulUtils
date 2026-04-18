@@ -7,9 +7,9 @@
 #include "CSWCodec.h"
 #include "allegro5/allegro_audio.h"
 #include <cmath>
-#include "TimedDevice.h"
+#include "ClockedDevice.h"
 
-class SN76489 : public SoundDevice, public TimedDevice {
+class SN76489 : public SoundDevice, public ClockedDevice {
 
 private:
 	int mHalfCycleCount[4] = { 0 };

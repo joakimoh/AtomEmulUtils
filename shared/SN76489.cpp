@@ -11,7 +11,7 @@
 SN76489::SN76489(string name, double tickRate, int sampleFreq, double emulationRate, double highEmulationRate,
 	DebugTracing* debugTracing, ConnectionManager* connectionManager) :
 	SoundDevice(name, SN76489_DEV, sampleFreq, emulationRate, highEmulationRate, debugTracing, connectionManager),
-	TimedDevice(tickRate)
+	ClockedDevice(tickRate, 4.0)
 {
 	registerAnaloguePort("CLK", IN_PORT, CLK,	&mCLK);
 	registerPort("D",	IN_PORT, 0xff, D,	&mD);
@@ -26,6 +26,7 @@ SN76489::SN76489(string name, double tickRate, int sampleFreq, double emulationR
 	setEmulationSpeed(mEmulationSpeed);
 
 }
+
 
 void SN76489::setEmulationSpeed(double speed)
 {
@@ -247,7 +248,7 @@ void SN76489::processPortUpdate(int index)
 {
 
 	if (index == CLK) {
-
+		changeClockRate(mCLK);
 	}
 
 	else if (index == D) {
